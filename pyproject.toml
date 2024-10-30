@@ -36,6 +36,16 @@ fastapi = {version = "^0.110.2", extras = ["standard"]}
 uvicorn = "^0.30.6"
 pydantic-settings = "^2.4.0"
 httpx = "^0.27.2"
+docling-core = "^1.6.2"
+python-dotenv = "^1.0.1"
+llama-index-embeddings-huggingface = "^0.3.1"
+llama-index-llms-huggingface-api = "^0.2.0"
+llama-index-vector-stores-milvus = "^0.2.5"
+ipywidgets = "^8.1.5"
+llama-index = "^0.11.13"
+llamacpp = "^0.1.14"
+llama-index-llms-llama-cpp = "^0.2.3"
+python-multipart = "^0.0.12"
 
 [tool.poetry.group.pypi-torch]
 optional = false
