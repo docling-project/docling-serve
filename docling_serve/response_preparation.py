@@ -1,0 +1,237 @@
+import logging
+import os
+import shutil
+import tempfile
+import time
+from pathlib import Path
+from typing import Iterable, Optional
+
+from docling.datamodel.base_models import OutputFormat
+from docling.datamodel.document import ConversionResult, ConversionStatus
+from docling_conversion import (
+    ConvertDocumentResponse,
+    ConvertDocumentsRequest,
+    DocumentResponse,
+)
+from docling_core.types.doc import ImageRefMode
+from fastapi import BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+
+_log = logging.getLogger(__name__)
+
+
+def _export_document_as_content(
+    conv_result: ConversionResult,
+    export_json: bool,
+    export_html: bool,
+    export_md: bool,
+    export_txt: bool,
+    export_doctags: bool,
+    image_mode: ImageRefMode,
+):
+
+    document = DocumentResponse()
+    document.filename = conv_result.input.file.stem
+
+    if conv_result.status == ConversionStatus.SUCCESS:
+        document.filename = conv_result.input.file.stem
+        new_doc = conv_result.document._make_copy_with_refmode(Path(), image_mode)
+
+        # Create the different formats
+        if export_json:
+            document.json_content = new_doc.export_to_dict()
+        if export_html:
+            document.html_content = new_doc.export_to_html(image_mode=image_mode)
+        if export_txt:
+            document.text_content = new_doc.export_to_markdown(
+                strict_text=True, image_mode=image_mode
+            )
+        if export_md:
+            document.md_content = new_doc.export_to_markdown(image_mode=image_mode)
+        if export_doctags:
+            document.doctags_content = new_doc.export_to_document_tokens()
+
+    return document
+
+
+def _export_documents_as_files(
+    conv_results: Iterable[ConversionResult],
+    output_dir: Path,
+    export_json: bool,
+    export_html: bool,
+    export_md: bool,
+    export_txt: bool,
+    export_doctags: bool,
+    image_export_mode: ImageRefMode,
+):
+
+    success_count = 0
+    failure_count = 0
+
+    for conv_res in conv_results:
+        if conv_res.status == ConversionStatus.SUCCESS:
+            success_count += 1
+            doc_filename = conv_res.input.file.stem
+
+            # Export JSON format:
+            if export_json:
+                fname = output_dir / f"{doc_filename}.json"
+                _log.info(f"writing JSON output to {fname}")
+                conv_res.document.save_as_json(
+                    filename=fname, image_mode=image_export_mode
+                )
+
+            # Export HTML format:
+            if export_html:
+                fname = output_dir / f"{doc_filename}.html"
+                _log.info(f"writing HTML output to {fname}")
+                conv_res.document.save_as_html(
+                    filename=fname, image_mode=image_export_mode
+                )
+
+            # Export Text format:
+            if export_txt:
+                fname = output_dir / f"{doc_filename}.txt"
+                _log.info(f"writing TXT output to {fname}")
+                conv_res.document.save_as_markdown(
+                    filename=fname,
+                    strict_text=True,
+                    image_mode=ImageRefMode.PLACEHOLDER,
+                )
+
+            # Export Markdown format:
+            if export_md:
+                fname = output_dir / f"{doc_filename}.md"
+                _log.info(f"writing Markdown output to {fname}")
+                conv_res.document.save_as_markdown(
+                    filename=fname, image_mode=image_export_mode
+                )
+
+            # Export Document Tags format:
+            if export_doctags:
+                fname = output_dir / f"{doc_filename}.doctags"
+                _log.info(f"writing Doc Tags output to {fname}")
+                conv_res.document.save_as_document_tokens(filename=fname)
+
+        else:
+            _log.warning(f"Document {conv_res.input.file} failed to convert.")
+            failure_count += 1
+
+    _log.info(
+        f"Processed {success_count + failure_count} docs, "
+        f"of which {failure_count} failed"
+    )
+
+
+def process_results(
+    conversion_request: ConvertDocumentsRequest,
+    conv_results: Iterable[ConversionResult],
+    tmp_input_dir: Optional[str] = None,
+) -> JSONResponse | FileResponse:
+
+    # Let's start by processing the documents
+    try:
+        start_time = time.monotonic()
+
+        # Convert the iterator to a list to count the number of results and get timings
+        # As it's an iterator (lazy evaluation), it will also start the conversion
+        conv_results = list(conv_results)
+
+        processing_time = time.monotonic() - start_time
+
+        _log.info(
+            f"Processed {len(conv_results)} docs in {processing_time:.2f} seconds."
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if len(conv_results) == 0:
+        raise HTTPException(
+            status_code=500, detail="No documents were generated by Docling."
+        )
+
+    # We have some results, let's prepare the response
+
+    # Cleanup tasks holder
+    background_tasks = BackgroundTasks()
+
+    # Cleanup the temporary input directory after sending the response if needed
+    if tmp_input_dir:
+        background_tasks.add_task(shutil.rmtree, tmp_input_dir, ignore_errors=True)
+
+    # Booleans to know what to export
+    export_json = OutputFormat.JSON in conversion_request.to_formats
+    export_html = OutputFormat.HTML in conversion_request.to_formats
+    export_md = OutputFormat.MARKDOWN in conversion_request.to_formats
+    export_txt = OutputFormat.TEXT in conversion_request.to_formats
+    export_doctags = OutputFormat.DOCTAGS in conversion_request.to_formats
+
+    # Only 1 document was processed, and we are not returning it as a file
+    if len(conv_results) == 1 and not conversion_request.return_as_file:
+        document = _export_document_as_content(
+            conv_results[0],
+            export_json=export_json,
+            export_html=export_html,
+            export_md=export_md,
+            export_txt=export_txt,
+            export_doctags=export_doctags,
+            image_mode=conversion_request.image_export_mode,
+        )
+
+        content = ConvertDocumentResponse(
+            document=document, processing_time=processing_time
+        )
+        response = JSONResponse(content=content.model_dump())
+
+    # Multiple documents were processed, or we are forced returning as a file
+    else:
+        # Temporary directory to store the outputs
+        output_dir = Path(tempfile.mkdtemp(prefix="docling_"))
+
+        # Worker pid to use in archive identification as we may have multiple workers
+        worker_pid = os.getpid()
+
+        # Export the documents
+        _export_documents_as_files(
+            conv_results=conv_results,
+            output_dir=output_dir,
+            export_json=export_json,
+            export_html=export_html,
+            export_md=export_md,
+            export_txt=export_txt,
+            export_doctags=export_doctags,
+            image_export_mode=conversion_request.image_export_mode,
+        )
+
+        files = os.listdir(output_dir)
+
+        if len(files) == 0:
+            raise HTTPException(status_code=500, detail="No documents were exported.")
+
+        # Always return a zip file
+        else:
+            file_path = f"/tmp/{worker_pid}converted_docs.zip"
+            shutil.make_archive(
+                base_name=f"/tmp/{worker_pid}converted_docs",
+                format="zip",
+                root_dir=output_dir,
+            )
+
+        # Other cleanups after the response is sent
+        # Output directory
+        background_tasks.add_task(shutil.rmtree, output_dir, ignore_errors=True)
+        # Existing /tmp/{worker_pid}converted_docs.zip if it exists
+        if os.path.exists(f"/tmp/{worker_pid}converted_docs.zip"):
+            background_tasks.add_task(os.remove, f"/tmp/{worker_pid}converted_docs.zip")
+
+        # Remove {worker_pid} from the filename
+        filename = os.path.basename(file_path).replace(f"{worker_pid}", "")
+        response = FileResponse(  # type: ignore [assignment]
+            file_path, filename=filename, media_type="application/zip"
+        )
+
+        # Attach the cleanup background tasks
+        response.background = background_tasks
+
+    return response

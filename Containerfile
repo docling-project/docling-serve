@@ -1,32 +1,59 @@
-FROM python:3.11-slim-bookworm
+ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
+
+FROM ${BASE_IMAGE}
 
 ARG CPU_ONLY=false
-WORKDIR /docling-serve
 
-RUN apt-get update \
-    && apt-get install -y libgl1 libglib2.0-0 curl wget git \
-    && apt-get clean
+USER 0
 
-RUN pip install --no-cache-dir poetry
+###################################################################################################
+# OS Layer                                                                                        #
+###################################################################################################
 
-COPY pyproject.toml poetry.lock README.md /docling-serve/
+RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
+    dnf -y install --best --nodocs --setopt=install_weak_deps=False dnf-plugins-core && \
+    dnf config-manager --best --nodocs --setopt=install_weak_deps=False --save && \
+    dnf config-manager --enable crb && \
+    dnf -y update && \
+    dnf install -y $(cat /tmp/os-packages.txt) && \
+    dnf -y clean all && \
+    rm -rf /var/cache/dnf
 
-RUN if [ "$CPU_ONLY" = "true" ]; then \
-    poetry install --no-root --with cpu; \
-    else \
-        poetry install --no-root; \
-    fi
+ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
-ENV HF_HOME=/tmp/
-ENV TORCH_HOME=/tmp/
+###################################################################################################
+# Docling layer                                                                                   #
+###################################################################################################
 
-RUN poetry run python -c 'from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline; artifacts_path = StandardPdfPipeline.download_models_hf(force=True);'
+USER 1001
+
+WORKDIR /opt/app-root/src
 
 # On container environments, always set a thread budget to avoid undesired thread congestion.
 ENV OMP_NUM_THREADS=4
 
-COPY ./docling_serve /docling-serve/docling_serve
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV PYTHONIOENCODING=utf-8
 
-EXPOSE 5000
+COPY --chown=1001:0 pyproject.toml poetry.lock models_download.py README.md ./
 
-CMD ["poetry", "run", "uvicorn", "--port", "5000", "--host", "0.0.0.0", "docling_serve.app:app"]
+RUN pip install --no-cache-dir poetry && \
+    # We already are in a virtual environment, so we don't need to create a new one, only activate it.
+    poetry config virtualenvs.create false && \
+    source /opt/app-root/bin/activate && \
+    if [ "$CPU_ONLY" = "true" ]; then \
+        poetry install --no-root --no-cache --no-interaction --all-extras --with cpu --without dev; \
+    else \
+        poetry install --no-root --no-cache --no-interaction --all-extras --without dev; \
+    fi && \
+    echo "Downloading models..." && \
+    python models_download.py && \
+    chown -R 1001:0 /opt/app-root/src && \
+    chmod -R g=u /opt/app-root/src
+
+COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
+
+EXPOSE 8080
+
+CMD ["python", "docling_serve/app.py"]
