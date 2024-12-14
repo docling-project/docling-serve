@@ -39,6 +39,7 @@ class ConvertOptions(BaseModel):
     output_docling_document: bool = True
     output_markdown: bool = False
     output_html: bool = False
+    output_text: bool = False
     do_ocr: bool = True
     ocr_engine: OcrEngine = OcrEngine.EASYOCR
     ocr_lang: Optional[List[str]] = None
@@ -72,6 +73,7 @@ class ConvertDocumentFileSourceRequest(DocumentConvertBase):
 
 class DocumentResponse(BaseModel):
     markdown: Optional[str] = None
+    text: Optional[str] = None
     docling_document: Optional[DoclingDocument] = None
     html: Optional[str] = None
 
@@ -258,6 +260,8 @@ def convert_document(
         doc_resp.markdown = result.document.export_to_markdown(image_mode=image_mode)
     if body.options.output_html:
         doc_resp.html = result.document.export_to_html(image_mode=image_mode)
+    if body.options.output_text:
+        doc_resp.text = result.document.export_to_text()
 
     return ConvertDocumentResponse(
         document=doc_resp, status=result.status, timings=result.timings
