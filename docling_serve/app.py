@@ -98,6 +98,12 @@ ConvertDocumentRequest = Union[
 class MarkdownTextResponse(Response):
     media_type = "text/markdown"
 
+class PlainTextResponse(Response):
+    media_type = "text/plain"
+
+class HTMLTextResponse(Response):
+    media_type = "text/html"
+
 
 class HealthCheckResponse(BaseModel):
     status: str = "ok"
@@ -280,4 +286,27 @@ def convert_document_md(
     )
     return MarkdownTextResponse(
         result.document.export_to_markdown(image_mode=image_mode)
+    )
+
+@app.post("/convert/text", response_class=PlainTextResponse)
+def convert_document_text(
+    body: ConvertDocumentRequest,
+) -> PlainTextResponse:
+    result = _convert_document(body=body)
+    return PlainTextResponse(
+        result.document.export_to_text()
+    )
+
+@app.post("/convert/html", response_class=HTMLTextResponse)
+def convert_document_html(
+    body: ConvertDocumentRequest,
+) -> HTMLTextResponse:
+    result = _convert_document(body=body)
+    image_mode = (
+        ImageRefMode.EMBEDDED
+        if body.options.include_images
+        else ImageRefMode.PLACEHOLDER
+    )
+    return HTMLTextResponse(
+        result.document.export_to_html(image_mode=image_mode)
     )
