@@ -20,7 +20,7 @@ RUN if [ "$CPU_ONLY" = "true" ]; then \
 ENV HF_HOME=/tmp/
 ENV TORCH_HOME=/tmp/
 
-RUN poetry run python -c 'from docling.document_converter import DocumentConverter; artifacts_path = DocumentConverter.download_models_hf(force=True);'
+RUN poetry run python -c 'from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline; artifacts_path = StandardPdfPipeline.download_models_hf(force=True);'
 
 # On container environments, always set a thread budget to avoid undesired thread congestion.
 ENV OMP_NUM_THREADS=4
@@ -29,4 +29,4 @@ COPY ./docling_serve /docling-serve/docling_serve
 
 EXPOSE 5000
 
-CMD ["poetry", "run", "uvicorn", "--port", "5000", "docling_serve.app:app"]
+CMD ["poetry", "run", "uvicorn", "--port", "5000", "--host", "0.0.0.0", "docling_serve.app:app"]
