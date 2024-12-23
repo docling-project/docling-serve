@@ -9,18 +9,18 @@ RUN apt-get update \
 
 RUN pip install --no-cache-dir poetry
 
-COPY pyproject.toml poetry.lock README.md /docling-serve/
+COPY pyproject.toml poetry.lock README.md models_download.py /docling-serve/
 
 RUN if [ "$CPU_ONLY" = "true" ]; then \
     poetry install --no-root --with cpu; \
     else \
         poetry install --no-root; \
-    fi
+    fi && \
+    poetry run python models_download.py
 
 ENV HF_HOME=/tmp/
 ENV TORCH_HOME=/tmp/
 
-RUN poetry run python -c 'from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline; artifacts_path = StandardPdfPipeline.download_models_hf(force=True);'
 
 # On container environments, always set a thread budget to avoid undesired thread congestion.
 ENV OMP_NUM_THREADS=4
@@ -29,4 +29,4 @@ COPY ./docling_serve /docling-serve/docling_serve
 
 EXPOSE 5000
 
-CMD ["poetry", "run", "uvicorn", "--port", "5000", "--host", "0.0.0.0", "docling_serve.app:app"]
+CMD ["poetry", "run", "uvicorn", "--port", "5000", "--host", "0.0.0.0", "--log-level", "debug", "docling_serve.app:app"]
