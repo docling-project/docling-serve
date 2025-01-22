@@ -13,10 +13,6 @@ env:
   QUAY_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
   QUAY_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build_and_publish_cpu_images:
     name: Push docling-serve "CPU only" container image to GHCR and QUAY
@@ -105,6 +101,9 @@ jobs:
           file: Containerfile
           build-args: |
             --build-arg CPU_ONLY=true
+      - name: Remove Local Docker Images
+        run: |
+          docker image prune -af
 
   build_and_publish_gpu_images:
     name: Push docling-serve (with GPU support) container image to GHCR and QUAY
