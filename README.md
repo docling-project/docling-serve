@@ -39,6 +39,7 @@ The following variables are available:
 `TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
 `UVICORN_WORKERS`: Number of workers to use.
 `RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
+`WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
 
 ## Usage
 
@@ -48,20 +49,20 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 
 On top of the source of file (see below), both endpoints support the same parameters, which are the same as the Docling CLI.
 
-- `from_format` (Optional[Union[List[str], str]]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
-- `to_format` (Optional[Union[List[str], str]]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
-- `do_ocr` (Optional[bool]): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
+- `from_format` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
+- `to_format` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
+- `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
-- `force_ocr` (Optional[bool]): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
-- `ocr_engine` (Optional[str]): OCR engine to use. Allowed values: `easyocr`, `tesseract_cli`, `tesseract`, `rapidocr`, `ocrmac`. Defaults to `easyocr`.
-- `ocr_lang` (Optional[Union[List[str], str]]): List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. Defaults to empty.
-- `pdf_backend` (Optional[str]): PDF backend to use. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`. Defaults to `dlparse_v2`.
-- `table_mode` (Optional[str]): Table mode to use. Allowed values: `fast`, `accurate`. Defaults to `fast`.
-- `abort_on_error` (Optional[bool]): If enabled, abort on error. Defaults to false.
-- `return_as_file` (Optional[bool]): If enabled, return the output as a file. Defaults to false.
-- `do_table_structure` (Optional[bool]): If enabled, the table structure will be extracted. Defaults to true.
-- `include_images` (Optional[bool]): If enabled, images will be extracted from the document. Defaults to true.
-- `images_scale` (Optional[float]): Scale factor for images. Defaults to 2.0.
+- `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
+- `ocr_engine` (str): OCR engine to use. Allowed values: `easyocr`, `tesseract_cli`, `tesseract`, `rapidocr`, `ocrmac`. Defaults to `easyocr`.
+- `ocr_lang` (List[str]): List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. Defaults to empty.
+- `pdf_backend` (str): PDF backend to use. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`. Defaults to `dlparse_v2`.
+- `table_mode` (str): Table mode to use. Allowed values: `fast`, `accurate`. Defaults to `fast`.
+- `abort_on_error` (bool): If enabled, abort on error. Defaults to false.
+- `return_as_file` (boo): If enabled, return the output as a file. Defaults to false.
+- `do_table_structure` (bool): If enabled, the table structure will be extracted. Defaults to true.
+- `include_images` (bool): If enabled, images will be extracted from the document. Defaults to true.
+- `images_scale` (float): Scale factor for images. Defaults to 2.0.
 
 ### URL endpoint
 
@@ -76,14 +77,14 @@ Payload example:
   "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
   "to_formats": ["md", "json", "html", "text", "doctags"],
   "image_export_mode": "placeholder",
-  "do_ocr": True,
-  "force_ocr": False,
+  "do_ocr": true,
+  "force_ocr": false,
   "ocr_engine": "easyocr",
   "ocr_lang": "en",
   "pdf_backend": "dlparse_v2",
   "table_mode": "fast",
-  "abort_on_error": False,
-  "return_as_file": False,
+  "abort_on_error": false,
+  "return_as_file": false,
   "input_sources": "https://arxiv.org/pdf/2206.01062"
 }
 ```

@@ -101,7 +101,6 @@ class ConvertDocumentsParameters(BaseModel):
                 "Optional, defaults to easyocr."
             ),
             examples=[OcrEngine.EASYOCR],
-            # pattern="easyocr|tesseract|rapidocr",
         ),
     ] = OcrEngine.EASYOCR
 
@@ -127,7 +126,6 @@ class ConvertDocumentsParameters(BaseModel):
                 f"Optional, defaults to {PdfBackend.DLPARSE_V2.value}."
             ),
             examples=[PdfBackend.DLPARSE_V2],
-            # pattern="pypdfium2|dlparse_v1|dlparse_v2",
         ),
     ] = PdfBackend.DLPARSE_V2
 
@@ -342,29 +340,11 @@ def convert_documents(
     conversion_request: ConvertDocumentsRequest,
 ):
 
-    # # Initialize some values if missing
-    # # (None, empty string, empty List, List of empty strings)
-    # if not conversion_request.from_formats or all(
-    #     not item for item in conversion_request.from_formats
-    # ):
-    #     conversion_request.from_formats = [e for e in InputFormat]
-
-    # if not conversion_request.to_formats or all(
-    #     not item for item in conversion_request.to_formats
-    # ):
-    #     conversion_request.to_formats = OutputFormat.MARKDOWN
-
     # Sanitize some parameters as they can be a string or a list
     # TODO: maybe it could be done with a Pydantic field validator
     conversion_request.input_sources = _to_list_of_strings(
         conversion_request.input_sources
     )
-    # conversion_request.from_formats = _to_list_of_strings(
-    #     conversion_request.from_formats
-    # )
-    # conversion_request.to_formats = _to_list_of_strings(conversion_request.to_formats)
-    # if conversion_request.ocr_lang is not None:
-    #     conversion_request.ocr_lang = _to_list_of_strings(conversion_request.ocr_lang)
 
     pdf_format_option, options_hash = get_pdf_pipeline_opts(conversion_request)
 

@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, List
 
-import gradio as gr
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter
 from dotenv import load_dotenv
@@ -22,12 +21,17 @@ from docling_serve.docling_conversion import (
     converters,
     get_pdf_pipeline_opts,
 )
-from docling_serve.gradio_ui import ui as gradio_ui
 from docling_serve.helper_functions import FormDepends, _str_to_bool
 from docling_serve.response_preparation import process_results
 
 # Load local env vars if present
 load_dotenv()
+
+WITH_UI = _str_to_bool(os.getenv("WITH_UI", "False"))
+if WITH_UI:
+    import gradio as gr
+
+    from docling_serve.gradio_ui import ui as gradio_ui
 
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging
@@ -83,7 +87,8 @@ async def lifespan(app: FastAPI):
     yield
 
     converters.clear()
-    gradio_ui.close()
+    if WITH_UI:
+        gradio_ui.close()
 
 
 ##################################
@@ -108,11 +113,12 @@ app.add_middleware(
 )
 
 # Mount the Gradio app
-tmp_output_dir = Path(tempfile.mkdtemp())
-gradio_ui.gradio_output_dir = tmp_output_dir
-app = gr.mount_gradio_app(
-    app, gradio_ui, path="/ui", allowed_paths=["./logo.png", tmp_output_dir]
-)
+if WITH_UI:
+    tmp_output_dir = Path(tempfile.mkdtemp())
+    gradio_ui.gradio_output_dir = tmp_output_dir
+    app = gr.mount_gradio_app(
+        app, gradio_ui, path="/ui", allowed_paths=["./logo.png", tmp_output_dir]
+    )
 
 
 #############################

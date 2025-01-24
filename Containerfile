@@ -36,6 +36,8 @@ ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV PYTHONIOENCODING=utf-8
 
+ENV WITH_UI=True
+
 COPY --chown=1001:0 pyproject.toml poetry.lock models_download.py README.md ./
 
 RUN pip install --no-cache-dir poetry && \

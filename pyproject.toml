@@ -33,7 +33,7 @@ classifiers = [
 python = ">=3.10,<3.13" # 3.10 needed for Gradio, and no torchvision build for 3.13 yet
 docling = "^2.14.0"
 fastapi = {version = "^0.115.6", extras = ["standard"]}
-gradio = "^5.9.1"
+gradio = { version = "^5.9.1", optional = true }
 uvicorn = "~0.29.0"
 pydantic = "^2.10.3"
 pydantic-settings = "^2.4.0"
@@ -50,6 +50,7 @@ onnxruntime = [
 
 
 [tool.poetry.extras]
+ui = ["gradio"]
 tesserocr = ["tesserocr"]
 rapidocr = ["rapidocr-onnxruntime", "onnxruntime"]
 
