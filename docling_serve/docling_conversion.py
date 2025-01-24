@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-from typing import Dict, Iterator, List, Optional, Tuple, Type, Union
+from typing import Annotated, Dict, Iterator, List, Optional, Tuple, Type, Union
 
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
@@ -22,142 +22,193 @@ from docling.datamodel.pipeline_options import (
 from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
 from docling_core.types.doc import ImageRefMode
 from fastapi import HTTPException
-from helper_functions import _to_list_of_strings
 from pydantic import BaseModel, Field
+
+from docling_serve.helper_functions import _to_list_of_strings
 
 _log = logging.getLogger(__name__)
 
 
 # Define the input options for the API
 class ConvertDocumentsParameters(BaseModel):
-    from_formats: Optional[Union[List[str], str]] = Field(
-        ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
-        description=(
-            "Input format(s) to convert from. String or list of strings. "
-            "Allowed values: docx, pptx, html, image, pdf, asciidoc, md, xlsx. "
-            "Optional, defaults to all formats."
+    from_formats: Annotated[
+        List[InputFormat],
+        Field(
+            description=(
+                "Input format(s) to convert from. String or list of strings. "
+                f"Allowed values: {', '.join([v.value for v in InputFormat])}. "
+                "Optional, defaults to all formats."
+            ),
+            examples=[[v.value for v in InputFormat]],
         ),
-        examples=[["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"]],
-    )
-    to_formats: Optional[Union[List[str], str]] = Field(
-        ["md"],
-        description=(
-            "Output format(s) to convert to. String or list of strings. "
-            "Allowed values: md, docling (json), html, text, doctags. "
-            "Optional, defaults to Markdown."
+    ] = [v for v in InputFormat]
+
+    to_formats: Annotated[
+        List[OutputFormat],
+        Field(
+            description=(
+                "Output format(s) to convert to. String or list of strings. "
+                f"Allowed values: {', '.join([v.value for v in OutputFormat])}. "
+                "Optional, defaults to Markdown."
+            ),
+            examples=[[OutputFormat.MARKDOWN]],
         ),
-        examples=["md"],
-    )
-    image_export_mode: Optional[str] = Field(
-        "embedded",
-        description=(
-            "Image export mode for the document (in case of JSON, Markdown or HTML). "
-            "Allowed values: embedded, placeholder, referenced. "
-            "Optional, defaults to Embedded."
+    ] = [OutputFormat.MARKDOWN]
+
+    image_export_mode: Annotated[
+        ImageRefMode,
+        Field(
+            description=(
+                "Image export mode for the document (in case of JSON,"
+                " Markdown or HTML). "
+                f"Allowed values: {', '.join([v.value for v in ImageRefMode])}. "
+                "Optional, defaults to Embedded."
+            ),
+            examples=[ImageRefMode.EMBEDDED.value],
+            # pattern="embedded|placeholder|referenced",
         ),
-        examples=["embedded"],
-        pattern="embedded|placeholder|referenced",
-    )
-    do_ocr: Optional[bool] = Field(
-        True,
-        description=(
-            "If enabled, the bitmap content will be processed using OCR. "
-            "Boolean. Optional, defaults to true"
+    ] = ImageRefMode.EMBEDDED
+
+    do_ocr: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, the bitmap content will be processed using OCR. "
+                "Boolean. Optional, defaults to true"
+            ),
+            # examples=[True],
         ),
-        examples=[True],
-    )
-    force_ocr: Optional[bool] = Field(
-        False,
-        description=(
-            "If enabled, replace existing text with OCR-generated text over content. "
-            "Boolean. Optional, defaults to false."
+    ] = True
+
+    force_ocr: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, replace existing text with OCR-generated "
+                "text over content. Boolean. Optional, defaults to false."
+            ),
+            # examples=[False],
         ),
-        examples=[False],
-    )
-    ocr_engine: Optional[str] = Field(
-        OcrEngine.EASYOCR,
-        description=(
-            "The OCR engine to use. String. "
-            "Allowed values: easyocr, tesseract, rapidocr. "
-            "Optional, defaults to easyocr."
+    ] = False
+
+    # TODO: use a restricted list based on what is installed on the system
+    ocr_engine: Annotated[
+        OcrEngine,
+        Field(
+            description=(
+                "The OCR engine to use. String. "
+                "Allowed values: easyocr, tesseract, rapidocr. "
+                "Optional, defaults to easyocr."
+            ),
+            examples=[OcrEngine.EASYOCR],
+            # pattern="easyocr|tesseract|rapidocr",
         ),
-        examples=["easyocr"],
-        pattern="easyocr|tesseract|rapidocr",
-    )
-    ocr_lang: Optional[Union[List[str], str]] = Field(
-        None,
-        description=(
-            "List of languages used by the OCR engine. "
-            "Note that each OCR engine has "
-            "different values for the language names. String or list of strings. "
-            "Optional, defaults to empty."
+    ] = OcrEngine.EASYOCR
+
+    ocr_lang: Annotated[
+        Optional[List[str]],
+        Field(
+            description=(
+                "List of languages used by the OCR engine. "
+                "Note that each OCR engine has "
+                "different values for the language names. String or list of strings. "
+                "Optional, defaults to empty."
+            ),
+            examples=[["fr", "de", "es", "en"]],
         ),
-        examples=[["fr", "de", "es", "en"]],
-    )
-    pdf_backend: Optional[str] = Field(
-        PdfBackend.DLPARSE_V2,
-        description=(
-            "The PDF backend to use. String. "
-            "Allowed values: pypdfium2, dlparse_v1, dlparse_v2. "
-            "Optional, defaults to dlparse_v2."
+    ] = None
+
+    pdf_backend: Annotated[
+        PdfBackend,
+        Field(
+            description=(
+                "The PDF backend to use. String. "
+                f"Allowed values: {', '.join([v.value for v in PdfBackend])}. "
+                f"Optional, defaults to {PdfBackend.DLPARSE_V2.value}."
+            ),
+            examples=[PdfBackend.DLPARSE_V2],
+            # pattern="pypdfium2|dlparse_v1|dlparse_v2",
         ),
-        examples=["dlparse_v2"],
-        pattern="pypdfium2|dlparse_v1|dlparse_v2",
-    )
-    table_mode: Optional[str] = Field(
-        TableFormerMode.FAST,
-        description=(
-            "Mode to use for table structure, String. "
-            "Allowed values: fast, accurate. Optional, defaults to fast."
+    ] = PdfBackend.DLPARSE_V2
+
+    table_mode: Annotated[
+        TableFormerMode,
+        Field(
+            TableFormerMode.FAST,
+            description=(
+                "Mode to use for table structure, String. "
+                f"Allowed values: {', '.join([v.value for v in TableFormerMode])}. "
+                "Optional, defaults to fast."
+            ),
+            examples=[TableFormerMode.FAST],
+            # pattern="fast|accurate",
         ),
-        examples=["fast"],
-        pattern="fast|accurate",
-    )
-    abort_on_error: Optional[bool] = Field(
-        False,
-        description=(
-            "Abort on error if enabled. " "Boolean. Optional, defaults to false."
+    ] = TableFormerMode.FAST
+
+    abort_on_error: Annotated[
+        bool,
+        Field(
+            description=(
+                "Abort on error if enabled. " "Boolean. Optional, defaults to false."
+            ),
+            # examples=[False],
         ),
-        examples=[False],
-    )
-    return_as_file: Optional[bool] = Field(
-        False,
-        description=(
-            "Return the output as a zip file "
-            "(will happen anyway if multiple files are generated). "
-            "Boolean. Optional, defaults to false."
+    ] = False
+
+    return_as_file: Annotated[
+        bool,
+        Field(
+            description=(
+                "Return the output as a zip file "
+                "(will happen anyway if multiple files are generated). "
+                "Boolean. Optional, defaults to false."
+            ),
+            examples=[False],
         ),
-        examples=[False],
-    )
-    do_table_structure: Optional[bool] = Field(
-        True,
-        description=(
-            "If enabled, the table structure will be extracted. "
-            "Boolean. Optional, defaults to true."
+    ] = False
+
+    do_table_structure: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, the table structure will be extracted. "
+                "Boolean. Optional, defaults to true."
+            ),
+            examples=[True],
         ),
-        examples=[True],
-    )
-    include_images: Optional[bool] = Field(
-        True,
-        description=(
-            "If enabled, images will be extracted from the document. "
-            "Boolean. Optional, defaults to true."
+    ] = True
+
+    include_images: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, images will be extracted from the document. "
+                "Boolean. Optional, defaults to true."
+            ),
+            examples=[True],
         ),
-        examples=[True],
-    )
-    images_scale: Optional[float] = Field(
-        2.0,
-        description="Scale factor for images. Float. Optional, defaults to 2.0.",
-        examples=[2.0],
-    )
+    ] = True
+
+    images_scale: Annotated[
+        float,
+        Field(
+            description="Scale factor for images. Float. Optional, defaults to 2.0.",
+            examples=[2.0],
+        ),
+    ] = 2.0
 
 
 class ConvertDocumentsRequest(ConvertDocumentsParameters):
-    input_sources: Union[List[str], str] = Field(
-        ...,
-        description="Source(s) to process.",
-        examples=["https://arxiv.org/pdf/2206.01062"],
-    )
+    # TODO: we should also support a list of objects with optional headers information
+    # it will be needed to allows the download of urls which requires
+    # # cookies/authorization/etc
+    input_sources: Annotated[
+        Union[List[str], str],
+        Field(
+            description="Source(s) to process.",
+            examples=["https://arxiv.org/pdf/2206.01062"],
+        ),
+    ]
 
 
 class DocumentResponse(BaseModel):
@@ -263,9 +314,6 @@ def get_pdf_pipeline_opts(
 
     if request.image_export_mode != ImageRefMode.PLACEHOLDER:
         pipeline_options.generate_page_images = True
-        pipeline_options.generate_picture_images = (
-            True  # FIXME: to be deprecated in version 3
-        )
         if request.images_scale:
             pipeline_options.images_scale = request.images_scale
 
@@ -294,28 +342,29 @@ def convert_documents(
     conversion_request: ConvertDocumentsRequest,
 ):
 
-    # Initialize some values if missing
-    # (None, empty string, empty List, List of empty strings)
-    if not conversion_request.from_formats or all(
-        not item for item in conversion_request.from_formats
-    ):
-        conversion_request.from_formats = [e for e in InputFormat]
+    # # Initialize some values if missing
+    # # (None, empty string, empty List, List of empty strings)
+    # if not conversion_request.from_formats or all(
+    #     not item for item in conversion_request.from_formats
+    # ):
+    #     conversion_request.from_formats = [e for e in InputFormat]
 
-    if not conversion_request.to_formats or all(
-        not item for item in conversion_request.to_formats
-    ):
-        conversion_request.to_formats = OutputFormat.MARKDOWN
+    # if not conversion_request.to_formats or all(
+    #     not item for item in conversion_request.to_formats
+    # ):
+    #     conversion_request.to_formats = OutputFormat.MARKDOWN
 
     # Sanitize some parameters as they can be a string or a list
+    # TODO: maybe it could be done with a Pydantic field validator
     conversion_request.input_sources = _to_list_of_strings(
         conversion_request.input_sources
     )
-    conversion_request.from_formats = _to_list_of_strings(
-        conversion_request.from_formats
-    )
-    conversion_request.to_formats = _to_list_of_strings(conversion_request.to_formats)
-    if conversion_request.ocr_lang is not None:
-        conversion_request.ocr_lang = _to_list_of_strings(conversion_request.ocr_lang)
+    # conversion_request.from_formats = _to_list_of_strings(
+    #     conversion_request.from_formats
+    # )
+    # conversion_request.to_formats = _to_list_of_strings(conversion_request.to_formats)
+    # if conversion_request.ocr_lang is not None:
+    #     conversion_request.ocr_lang = _to_list_of_strings(conversion_request.ocr_lang)
 
     pdf_format_option, options_hash = get_pdf_pipeline_opts(conversion_request)
 

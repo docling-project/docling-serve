@@ -1,3 +1,4 @@
+import importlib
 import json
 import logging
 import os
@@ -6,6 +7,8 @@ from pathlib import Path
 
 import gradio as gr
 import requests
+
+from docling_serve.helper_functions import _to_list_of_strings
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +176,7 @@ def process_url(
         "ocr": ocr,
         "force_ocr": force_ocr,
         "ocr_engine": ocr_engine,
-        "ocr_lang": ocr_lang,
+        "ocr_lang": _to_list_of_strings(ocr_lang),
         "pdf_backend": pdf_backend,
         "table_mode": table_mode,
         "abort_on_error": abort_on_error,
@@ -220,20 +223,20 @@ def process_file(
         logger.error("No files provided.")
         raise gr.Error("No files provided.", print_exception=False)
     files_data = [("files", (file.name, open(file.name, "rb"))) for file in files]
-    # Because we send files as form data, we need to flatten
-    # the list of tuples and convert booleans to strings
+
     parameters = {
-        "to_formats": ",".join(to_formats),
+        "to_formats": to_formats,
         "image_export_mode": image_export_mode,
         "ocr": str(ocr).lower(),
         "force_ocr": str(force_ocr).lower(),
         "ocr_engine": ocr_engine,
-        "ocr_lang": ocr_lang,
+        "ocr_lang": _to_list_of_strings(ocr_lang),
         "pdf_backend": pdf_backend,
         "table_mode": table_mode,
         "abort_on_error": str(abort_on_error).lower(),
         "return_as_file": str(return_as_file).lower(),
     }
+
     try:
         response = requests.post(
             f"http://localhost:{int(os.getenv("PORT", "8080"))}/v1alpha/convert/file",
@@ -326,7 +329,8 @@ with gr.Blocks(
         # Title
         with gr.Column(scale=1, min_width=200):
             gr.Markdown(
-                "# Docling Serve \n(docling version: 2.14.0)",
+                f"# Docling Serve \n(docling version: "
+                f"{importlib.metadata.version('docling')})",
                 elem_id="title",
                 elem_classes=["title-text"],
             )

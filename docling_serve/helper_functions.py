@@ -1,5 +1,37 @@
+import inspect
 import re
-from typing import List, Union
+from typing import List, Type, Union
+
+from fastapi import Depends, Form
+from pydantic import BaseModel
+
+
+# Adapted from
+# https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
+def FormDepends(cls: Type[BaseModel]):
+    new_parameters = []
+
+    for field_name, model_field in cls.model_fields.items():
+        new_parameters.append(
+            inspect.Parameter(
+                name=field_name,
+                kind=inspect.Parameter.POSITIONAL_ONLY,
+                default=(
+                    Form(...)
+                    if model_field.is_required()
+                    else Form(model_field.default)
+                ),
+                annotation=model_field.annotation,
+            )
+        )
+
+    async def as_form_func(**data):
+        return cls(**data)
+
+    sig = inspect.signature(as_form_func)
+    sig = sig.replace(parameters=new_parameters)
+    as_form_func.__signature__ = sig  # type: ignore
+    return Depends(as_form_func)
 
 
 def _to_list_of_strings(input_value: Union[str, List[str]]) -> List[str]:

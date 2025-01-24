@@ -4,18 +4,19 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus
-from docling_conversion import (
+from docling_core.types.doc import ImageRefMode
+from fastapi import BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+
+from docling_serve.docling_conversion import (
     ConvertDocumentResponse,
     ConvertDocumentsRequest,
     DocumentResponse,
 )
-from docling_core.types.doc import ImageRefMode
-from fastapi import BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
 
 _log = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ def _export_documents_as_files(
 def process_results(
     conversion_request: ConvertDocumentsRequest,
     conv_results: Iterable[ConversionResult],
-    tmp_input_dir: Optional[str] = None,
+    tmp_input_dir: Optional[Union[str, Path]] = None,
 ) -> JSONResponse | FileResponse:
 
     # Let's start by processing the documents
@@ -158,6 +159,7 @@ def process_results(
 
     # Cleanup the temporary input directory after sending the response if needed
     if tmp_input_dir:
+        tmp_input_dir = Path(tmp_input_dir)
         background_tasks.add_task(shutil.rmtree, tmp_input_dir, ignore_errors=True)
 
     # Booleans to know what to export

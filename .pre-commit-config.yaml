@@ -18,6 +18,14 @@ repos:
         files: '\.py$'
   - repo: local
     hooks:
+      - id: autoflake
+        name: autoflake
+        entry: poetry run autoflake docling_serve tests
+        pass_filenames: false
+        language: system
+        files: '\.py$'
+  - repo: local
+    hooks:
       - id: system
         name: flake8
         entry: poetry run flake8 docling_serve
