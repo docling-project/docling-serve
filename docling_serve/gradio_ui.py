@@ -191,7 +191,7 @@ def process_url(
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv("PORT", "8080"))}/v1alpha/convert/url",
+            f"http://localhost:{int(os.getenv('PORT', '8080'))}/v1alpha/convert/url",
             json=parameters,
         )
     except Exception as e:
@@ -239,7 +239,7 @@ def process_file(
 
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv("PORT", "8080"))}/v1alpha/convert/file",
+            f"http://localhost:{int(os.getenv('PORT', '8080'))}/v1alpha/convert/file",
             files=files_data,
             data=parameters,
         )
