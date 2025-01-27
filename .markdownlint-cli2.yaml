@@ -2,6 +2,7 @@ config:
   line-length: false
   no-emphasis-as-header: false
   first-line-heading: false
-  allowed_elements: ["details", "summary"]
+  MD033:
+    allowed_elements: ["details", "summary"]
 globs:
   - "**/*.md"
