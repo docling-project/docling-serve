@@ -2,44 +2,6 @@
 
  Running [Docling](https://github.com/DS4SD/docling) as an API service.
 
- > [!NOTE]
-> This is an alpha version of the API that will quickly evolve.
-
-## Development
-
-### CPU only
-
-```sh
-# Install poetry if not already available
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Install dependencies
-poetry install --with cpu
-
-# Run the server
-poetry run python docling_serve/app.py
-```
-
-### Cuda GPU
-
-For GPU support use the following command:
-
-```sh
-# Install dependencies
-poetry install
-
-# Run the server
-poetry run python docling_serve/app.py
-```
-
-### Environment variables
-
-The following variables are available:
-
-`TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
-`UVICORN_WORKERS`: Number of workers to use.
-`RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
-`WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
 
 ## Usage
 
@@ -89,7 +51,9 @@ Payload example:
 }
 ```
 
-CURL example:
+<details>
+
+<summary>CURL example:</summary>
 
 ```sh
 curl -X 'POST' \
@@ -128,8 +92,10 @@ curl -X 'POST' \
   "input_sources": "https://arxiv.org/pdf/2206.01062"
 }'
 ```
+</details>
 
-Python example:
+<details>
+<summary>Python example:</summary>
 
 ```python
 import httpx
@@ -155,12 +121,14 @@ response = await async_client_client.post(url, json=payload)
 
 data = response.json()
 ```
+</details>
 
 ### File endpoint
 
 The endpoint is: `/v1alpha/convert/file`, listening for POST requests of Form payloads (necessary as the files are sent as multipart/form data). You can send one or multiple files.
 
-CURL example:
+<details>
+<summary>CURL example:</summary>
 
 ```sh
 curl -X 'POST' \
@@ -180,8 +148,10 @@ curl -X 'POST' \
   -F 'return_as_file=false' \
   -F 'do_ocr=true'
 ```
+</details>
 
-Python example:
+<details>
+<summary>Python example:</summary>
 
 ```python
 import httpx
@@ -214,6 +184,8 @@ assert response.status_code == 200, "Response should be 200 OK"
 
 data = response.json()
 ```
+</details>
+
 
 ### Response format
 
@@ -221,22 +193,26 @@ The response can be a JSON Document or a File.
 
 - If you process only one file, the response will be a JSON document with the following format:
 
-  ```json
+  ```jsonc
   {
     "document": {
       "md_content": "",
-      "json_content": "",
+      "json_content": {},
       "html_content": "",
       "text_content": "",
       "doctags_content": ""
       },
-    "processing_time": ""
+    "status": "<success|partial_success|skipped|failure>",
+    "processing_time": 0.0,
+    "timings": {},
+    "errors": []
   }
   ```
 
   Depending on the value you set in `output_formats`, the different items will be populated with their respective results or empty.
 
-  `processing_time` is the Docling processing time in seconds.
+  `processing_time` is the Docling processing time in seconds, and `timings` (when enabled in the backend) provides the detailed
+  timing of all the internal Docling components.
 
 - If you set the parameter `return_as_file` to True, the response will be a zip file.
 - If multiple files are generated (multiple inputs, or one input but multiple outputs with `return_as_file` True), the response will be a zip file.
@@ -252,3 +228,79 @@ The response can be a JSON Document or a File.
 ![ui-input.png](img/ui-input.png)
 
 ![ui-output.png](img/ui-output.png)
+
+## Development
+
+### CPU only
+
+```sh
+# Install poetry if not already available
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install --with cpu
+```
+
+### Cuda GPU
+
+For GPU support use the following command:
+
+```sh
+# Install dependencies
+poetry install
+```
+
+### Run the server
+
+The [start_server.sh](./start_server.sh) executable is a convenient script for launching the local webserver.
+
+```sh
+# Run the server
+bash start_server.sh
+
+# Run the server with live reload
+RELOAD=true bash start_server.sh
+```
+
+### Environment variables
+
+The following variables are available:
+
+`TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
+`UVICORN_WORKERS`: Number of workers to use.
+`RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
+`WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
+
+
+## Get help and support
+
+Please feel free to connect with us using the [discussion section](https://github.com/DS4SD/docling/discussions).
+
+## Contributing
+
+Please read [Contributing to Docling Serve](https://github.com/DS4SD/docling-serve/blob/main/CONTRIBUTING.md) for details.
+
+## References
+
+If you use Docling in your projects, please consider citing the following:
+
+```bib
+@techreport{Docling,
+  author = {Deep Search Team},
+  month = {8},
+  title = {Docling Technical Report},
+  url = {https://arxiv.org/abs/2408.09869},
+  eprint = {2408.09869},
+  doi = {10.48550/arXiv.2408.09869},
+  version = {1.0.0},
+  year = {2024}
+}
+```
+
+## License
+
+The Docling Serve codebase is under MIT license.
+
+## IBM ❤️ Open Source AI
+
+Docling has been brought to you by IBM.

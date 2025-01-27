@@ -32,6 +32,7 @@ class ConvertDocumentResponse(BaseModel):
     document: DocumentResponse
     status: ConversionStatus
     errors: List[ErrorItem] = []
+    processing_time: float
     timings: Dict[str, ProfilingItem] = {}
 
 
@@ -198,6 +199,7 @@ def process_results(
         response = ConvertDocumentResponse(
             document=document,
             status=conv_res.status,
+            processing_time=processing_time,
             timings=conv_res.timings,
         )
 
