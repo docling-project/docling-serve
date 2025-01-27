@@ -2,7 +2,6 @@
 
  Running [Docling](https://github.com/DS4SD/docling) as an API service.
 
-
 ## Usage
 
 The API provides two endpoints: one for urls, one for files. This is necessary to send files directly in binary format instead of base64-encoded strings.
@@ -92,6 +91,7 @@ curl -X 'POST' \
   "input_sources": "https://arxiv.org/pdf/2206.01062"
 }'
 ```
+
 </details>
 
 <details>
@@ -121,6 +121,7 @@ response = await async_client_client.post(url, json=payload)
 
 data = response.json()
 ```
+
 </details>
 
 ### File endpoint
@@ -148,6 +149,7 @@ curl -X 'POST' \
   -F 'return_as_file=false' \
   -F 'do_ocr=true'
 ```
+
 </details>
 
 <details>
@@ -184,8 +186,8 @@ assert response.status_code == 200, "Response should be 200 OK"
 
 data = response.json()
 ```
-</details>
 
+</details>
 
 ### Response format
 
@@ -270,7 +272,6 @@ The following variables are available:
 `UVICORN_WORKERS`: Number of workers to use.
 `RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
 `WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
-
 
 ## Get help and support
 
