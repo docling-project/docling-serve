@@ -9,7 +9,7 @@ from typing import Annotated, List
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile
+from fastapi import BackgroundTasks, FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -151,23 +151,26 @@ def api_check() -> HealthCheckResponse:
 
 # Convert a document from URL(s)
 @app.post("/v1alpha/convert/url")
-def process_url(conversion_request: ConvertDocumentsRequest):
+def process_url(
+    background_tasks: BackgroundTasks, conversion_request: ConvertDocumentsRequest
+):
     # Note: results are only an iterator->lazy evaluation
     results = convert_documents(conversion_request)
 
     # The real processing will happen here
     response = process_results(
-        conversion_request=conversion_request, conv_results=results
+        background_tasks=background_tasks,
+        conversion_request=conversion_request,
+        conv_results=results,
     )
 
     return response
 
 
 # Convert a document from file(s)
-
-
 @app.post("/v1alpha/convert/file")
 async def process_file(
+    background_tasks: BackgroundTasks,
     files: List[UploadFile],
     parameters: Annotated[
         ConvertDocumentsParameters, FormDepends(ConvertDocumentsParameters)
@@ -178,6 +181,8 @@ async def process_file(
 
     # Create a temporary directory to store the file(s)
     tmp_input_dir = Path(tempfile.mkdtemp())
+
+    background_tasks.add_task(shutil.rmtree, tmp_input_dir, ignore_errors=True)
 
     # Save the uploaded files to the temporary directory
     # TODO: we could use the binary stream with Docling directly, using the file could
@@ -197,9 +202,9 @@ async def process_file(
     results = convert_documents(conversion_request)
 
     response = process_results(
+        background_tasks=background_tasks,
         conversion_request=conversion_request,
         conv_results=results,
-        tmp_input_dir=tmp_input_dir,
     )
 
     return response

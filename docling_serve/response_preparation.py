@@ -4,25 +4,43 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from docling.datamodel.base_models import OutputFormat
-from docling.datamodel.document import ConversionResult, ConversionStatus
+from docling.datamodel.document import ConversionResult, ConversionStatus, ErrorItem
+from docling.utils.profiling import ProfilingItem
 from docling_core.types.doc import ImageRefMode
 from fastapi import BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
-from docling_serve.docling_conversion import (
-    ConvertDocumentResponse,
-    ConvertDocumentsRequest,
-    DocumentResponse,
-)
+from docling_serve.docling_conversion import ConvertDocumentsRequest
 
 _log = logging.getLogger(__name__)
 
 
+class DocumentResponse(BaseModel):
+    filename: str
+    md_content: Optional[str] = None
+    json_content: Optional[dict] = None
+    html_content: Optional[str] = None
+    text_content: Optional[str] = None
+    doctags_content: Optional[str] = None
+
+
+class ConvertDocumentResponse(BaseModel):
+    document: DocumentResponse
+    status: ConversionStatus
+    errors: List[ErrorItem] = []
+    timings: Dict[str, ProfilingItem] = {}
+
+
+class ConvertDocumentErrorResponse(BaseModel):
+    status: ConversionStatus
+
+
 def _export_document_as_content(
-    conv_result: ConversionResult,
+    conv_res: ConversionResult,
     export_json: bool,
     export_html: bool,
     export_md: bool,
@@ -31,12 +49,10 @@ def _export_document_as_content(
     image_mode: ImageRefMode,
 ):
 
-    document = DocumentResponse()
-    document.filename = conv_result.input.file.stem
+    document = DocumentResponse(filename=conv_res.input.file.name)
 
-    if conv_result.status == ConversionStatus.SUCCESS:
-        document.filename = conv_result.input.file.stem
-        new_doc = conv_result.document._make_copy_with_refmode(Path(), image_mode)
+    if conv_res.status == ConversionStatus.SUCCESS:
+        new_doc = conv_res.document._make_copy_with_refmode(Path(), image_mode)
 
         # Create the different formats
         if export_json:
@@ -51,6 +67,10 @@ def _export_document_as_content(
             document.md_content = new_doc.export_to_markdown(image_mode=image_mode)
         if export_doctags:
             document.doctags_content = new_doc.export_to_document_tokens()
+    elif conv_res.status == ConversionStatus.SKIPPED:
+        raise HTTPException(status_code=400, detail=conv_res.errors)
+    else:
+        raise HTTPException(status_code=500, detail=conv_res.errors)
 
     return document
 
@@ -125,10 +145,10 @@ def _export_documents_as_files(
 
 
 def process_results(
+    background_tasks: BackgroundTasks,
     conversion_request: ConvertDocumentsRequest,
     conv_results: Iterable[ConversionResult],
-    tmp_input_dir: Optional[Union[str, Path]] = None,
-) -> JSONResponse | FileResponse:
+) -> Union[ConvertDocumentResponse, FileResponse]:
 
     # Let's start by processing the documents
     try:
@@ -153,14 +173,7 @@ def process_results(
         )
 
     # We have some results, let's prepare the response
-
-    # Cleanup tasks holder
-    background_tasks = BackgroundTasks()
-
-    # Cleanup the temporary input directory after sending the response if needed
-    if tmp_input_dir:
-        tmp_input_dir = Path(tmp_input_dir)
-        background_tasks.add_task(shutil.rmtree, tmp_input_dir, ignore_errors=True)
+    response: Union[FileResponse, ConvertDocumentResponse]
 
     # Booleans to know what to export
     export_json = OutputFormat.JSON in conversion_request.to_formats
@@ -171,8 +184,9 @@ def process_results(
 
     # Only 1 document was processed, and we are not returning it as a file
     if len(conv_results) == 1 and not conversion_request.return_as_file:
+        conv_res = conv_results[0]
         document = _export_document_as_content(
-            conv_results[0],
+            conv_res,
             export_json=export_json,
             export_html=export_html,
             export_md=export_md,
@@ -181,18 +195,21 @@ def process_results(
             image_mode=conversion_request.image_export_mode,
         )
 
-        content = ConvertDocumentResponse(
-            document=document, processing_time=processing_time
+        response = ConvertDocumentResponse(
+            document=document,
+            status=conv_res.status,
+            timings=conv_res.timings,
         )
-        response = JSONResponse(content=content.model_dump())
 
     # Multiple documents were processed, or we are forced returning as a file
     else:
         # Temporary directory to store the outputs
-        output_dir = Path(tempfile.mkdtemp(prefix="docling_"))
+        work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
+        output_dir = work_dir / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         # Worker pid to use in archive identification as we may have multiple workers
-        worker_pid = os.getpid()
+        os.getpid()
 
         # Export the documents
         _export_documents_as_files(
@@ -211,29 +228,19 @@ def process_results(
         if len(files) == 0:
             raise HTTPException(status_code=500, detail="No documents were exported.")
 
-        # Always return a zip file
-        else:
-            file_path = f"/tmp/{worker_pid}converted_docs.zip"
-            shutil.make_archive(
-                base_name=f"/tmp/{worker_pid}converted_docs",
-                format="zip",
-                root_dir=output_dir,
-            )
+        file_path = output_dir / "converted_docs.zip"
+        shutil.make_archive(
+            base_name=str(file_path),
+            format="zip",
+            root_dir=output_dir,
+        )
 
         # Other cleanups after the response is sent
         # Output directory
-        background_tasks.add_task(shutil.rmtree, output_dir, ignore_errors=True)
-        # Existing /tmp/{worker_pid}converted_docs.zip if it exists
-        if os.path.exists(f"/tmp/{worker_pid}converted_docs.zip"):
-            background_tasks.add_task(os.remove, f"/tmp/{worker_pid}converted_docs.zip")
+        background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
-        # Remove {worker_pid} from the filename
-        filename = os.path.basename(file_path).replace(f"{worker_pid}", "")
-        response = FileResponse(  # type: ignore [assignment]
-            file_path, filename=filename, media_type="application/zip"
+        response = FileResponse(
+            file_path, filename=file_path.name, media_type="application/zip"
         )
-
-        # Attach the cleanup background tasks
-        response.background = background_tasks
 
     return response

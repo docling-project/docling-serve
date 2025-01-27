@@ -209,20 +209,6 @@ class ConvertDocumentsRequest(ConvertDocumentsParameters):
     ]
 
 
-class DocumentResponse(BaseModel):
-    filename: Optional[str] = None
-    md_content: Optional[str] = None
-    json_content: Optional[dict] = None
-    html_content: Optional[str] = None
-    text_content: Optional[str] = None
-    doctags_content: Optional[str] = None
-
-
-class ConvertDocumentResponse(BaseModel):
-    document: Optional[DocumentResponse] = None
-    processing_time: Optional[float] = None
-
-
 # Document converters will be preloaded and stored in a dictionary
 converters: Dict[str, DocumentConverter] = {}
 
