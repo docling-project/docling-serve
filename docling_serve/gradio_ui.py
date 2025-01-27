@@ -81,7 +81,7 @@ file_output_path = None  # Will be set when a new file is generated
 
 
 def health_check():
-    response = requests.get(f"http://localhost:{int(os.getenv("PORT", "8080"))}/health")
+    response = requests.get(f"http://localhost:{int(os.getenv('PORT', '8080'))}/health")
     if response.status_code == 200:
         return "Healthy"
     return "Unhealthy"
