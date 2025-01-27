@@ -22,7 +22,7 @@ from docling_serve.docling_conversion import (
     get_pdf_pipeline_opts,
 )
 from docling_serve.helper_functions import FormDepends, _str_to_bool
-from docling_serve.response_preparation import process_results
+from docling_serve.response_preparation import ConvertDocumentResponse, process_results
 
 # Load local env vars if present
 load_dotenv()
@@ -150,7 +150,16 @@ def api_check() -> HealthCheckResponse:
 
 
 # Convert a document from URL(s)
-@app.post("/v1alpha/convert/url")
+@app.post(
+    "/v1alpha/convert/url",
+    response_model=ConvertDocumentResponse,
+    responses={
+        200: {
+            "content": {"application/zip": {}},
+            # "description": "Return the JSON item or an image.",
+        }
+    },
+)
 def process_url(
     background_tasks: BackgroundTasks, conversion_request: ConvertDocumentsRequest
 ):
@@ -168,7 +177,16 @@ def process_url(
 
 
 # Convert a document from file(s)
-@app.post("/v1alpha/convert/file")
+@app.post(
+    "/v1alpha/convert/file",
+    response_model=ConvertDocumentResponse,
+    responses={
+        200: {
+            "content": {"application/zip": {}},
+            # "description": "Return the JSON item or an image.",
+        }
+    },
+)
 async def process_file(
     background_tasks: BackgroundTasks,
     files: List[UploadFile],

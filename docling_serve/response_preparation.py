@@ -9,7 +9,7 @@ from typing import Dict, Iterable, List, Optional, Union
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
-from docling_core.types.doc import ImageRefMode
+from docling_core.types.doc import DoclingDocument, ImageRefMode
 from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ _log = logging.getLogger(__name__)
 class DocumentResponse(BaseModel):
     filename: str
     md_content: Optional[str] = None
-    json_content: Optional[dict] = None
+    json_content: Optional[DoclingDocument] = None
     html_content: Optional[str] = None
     text_content: Optional[str] = None
     doctags_content: Optional[str] = None
@@ -228,9 +228,9 @@ def process_results(
         if len(files) == 0:
             raise HTTPException(status_code=500, detail="No documents were exported.")
 
-        file_path = output_dir / "converted_docs.zip"
+        file_path = work_dir / "converted_docs.zip"
         shutil.make_archive(
-            base_name=str(file_path),
+            base_name=str(file_path.with_suffix("")),
             format="zip",
             root_dir=output_dir,
         )
