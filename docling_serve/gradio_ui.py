@@ -170,22 +170,24 @@ def process_url(
     return_as_file,
 ):
     parameters = {
-        "input_sources": input_sources.split(","),
-        "to_formats": to_formats,
-        "image_export_mode": image_export_mode,
-        "ocr": ocr,
-        "force_ocr": force_ocr,
-        "ocr_engine": ocr_engine,
-        "ocr_lang": _to_list_of_strings(ocr_lang),
-        "pdf_backend": pdf_backend,
-        "table_mode": table_mode,
-        "abort_on_error": abort_on_error,
-        "return_as_file": return_as_file,
+        "http_sources": [{"url": source} for source in input_sources.split(",")],
+        "options": {
+            "to_formats": to_formats,
+            "image_export_mode": image_export_mode,
+            "ocr": ocr,
+            "force_ocr": force_ocr,
+            "ocr_engine": ocr_engine,
+            "ocr_lang": _to_list_of_strings(ocr_lang),
+            "pdf_backend": pdf_backend,
+            "table_mode": table_mode,
+            "abort_on_error": abort_on_error,
+            "return_as_file": return_as_file,
+        },
     }
     if (
-        not parameters["input_sources"]
-        or len(parameters["input_sources"]) == 0
-        or parameters["input_sources"][0] == ""
+        not parameters["http_sources"]
+        or len(parameters["http_sources"]) == 0
+        or parameters["http_sources"][0]["url"] == ""
     ):
         logger.error("No input sources provided.")
         raise gr.Error("No input sources provided.", print_exception=False)

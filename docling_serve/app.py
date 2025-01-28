@@ -1,12 +1,12 @@
 import logging
 import os
-import shutil
 import tempfile
 from contextlib import asynccontextmanager
+from io import BytesIO
 from pathlib import Path
-from typing import Annotated, List
+from typing import Annotated, Any, Dict, List, Optional, Union
 
-from docling.datamodel.base_models import InputFormat
+from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.document_converter import DocumentConverter
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, UploadFile
@@ -15,7 +15,8 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from docling_serve.docling_conversion import (
-    ConvertDocumentsParameters,
+    ConvertDocumentFileSourcesRequest,
+    ConvertDocumentsOptions,
     ConvertDocumentsRequest,
     convert_documents,
     converters,
@@ -72,9 +73,7 @@ async def lifespan(app: FastAPI):
     # settings = Settings()
 
     # Converter with default options
-    pdf_format_option, options_hash = get_pdf_pipeline_opts(
-        ConvertDocumentsParameters()
-    )
+    pdf_format_option, options_hash = get_pdf_pipeline_opts(ConvertDocumentsOptions())
     converters[options_hash] = DocumentConverter(
         format_options={
             InputFormat.PDF: pdf_format_option,
@@ -163,13 +162,26 @@ def api_check() -> HealthCheckResponse:
 def process_url(
     background_tasks: BackgroundTasks, conversion_request: ConvertDocumentsRequest
 ):
+    sources: List[Union[str, DocumentStream]] = []
+    headers: Optional[Dict[str, Any]] = None
+    if isinstance(conversion_request, ConvertDocumentFileSourcesRequest):
+        for file_source in conversion_request.file_sources:
+            sources.append(file_source.to_document_stream())
+    else:
+        for http_source in conversion_request.http_sources:
+            sources.append(http_source.url)
+            if headers is None and http_source.headers:
+                headers = http_source.headers
+
     # Note: results are only an iterator->lazy evaluation
-    results = convert_documents(conversion_request)
+    results = convert_documents(
+        sources=sources, options=conversion_request.options, headers=headers
+    )
 
     # The real processing will happen here
     response = process_results(
         background_tasks=background_tasks,
-        conversion_request=conversion_request,
+        conversion_options=conversion_request.options,
         conv_results=results,
     )
 
@@ -183,45 +195,29 @@ def process_url(
     responses={
         200: {
             "content": {"application/zip": {}},
-            # "description": "Return the JSON item or an image.",
         }
     },
 )
 async def process_file(
     background_tasks: BackgroundTasks,
     files: List[UploadFile],
-    parameters: Annotated[
-        ConvertDocumentsParameters, FormDepends(ConvertDocumentsParameters)
-    ],
+    options: Annotated[ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)],
 ):
 
     _log.info(f"Received {len(files)} files for processing.")
 
-    # Create a temporary directory to store the file(s)
-    tmp_input_dir = Path(tempfile.mkdtemp())
-
-    background_tasks.add_task(shutil.rmtree, tmp_input_dir, ignore_errors=True)
-
-    # Save the uploaded files to the temporary directory
-    # TODO: we could use the binary stream with Docling directly, using the file could
-    # indeed help when many jobs are queued with background tasks.
-    file_paths = []
+    # Load the uploaded files to Docling DocumentStream
+    file_sources = []
     for file in files:
-        file_location = tmp_input_dir / file.filename  # type: ignore [operator]
-        with open(file_location, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        file_paths.append(str(file_location))
+        buf = BytesIO(file.file.read())
+        name = file.filename if file.filename else "file.pdf"
+        file_sources.append(DocumentStream(name=name, stream=buf))
 
-    # Process the files
-    conversion_request = ConvertDocumentsRequest(
-        input_sources=file_paths, **parameters.model_dump()
-    )
-
-    results = convert_documents(conversion_request)
+    results = convert_documents(sources=file_sources, options=options)
 
     response = process_results(
         background_tasks=background_tasks,
-        conversion_request=conversion_request,
+        conversion_options=options,
         conv_results=results,
     )
 

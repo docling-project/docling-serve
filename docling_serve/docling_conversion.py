@@ -1,13 +1,27 @@
+import base64
 import hashlib
 import json
 import logging
-from typing import Annotated, Dict, Iterator, List, Optional, Tuple, Type, Union
+from io import BytesIO
+from pathlib import Path
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
 from docling.backend.pdf_backend import PdfDocumentBackend
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
-from docling.datamodel.base_models import InputFormat, OutputFormat
+from docling.datamodel.base_models import DocumentStream, InputFormat, OutputFormat
 from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
@@ -30,7 +44,7 @@ _log = logging.getLogger(__name__)
 
 
 # Define the input options for the API
-class ConvertDocumentsParameters(BaseModel):
+class ConvertDocumentsOptions(BaseModel):
     from_formats: Annotated[
         List[InputFormat],
         Field(
@@ -196,17 +210,57 @@ class ConvertDocumentsParameters(BaseModel):
     ] = 2.0
 
 
-class ConvertDocumentsRequest(ConvertDocumentsParameters):
-    # TODO: we should also support a list of objects with optional headers information
-    # it will be needed to allows the download of urls which requires
-    # # cookies/authorization/etc
-    input_sources: Annotated[
-        Union[List[str], str],
+class DocumentsConvertBase(BaseModel):
+    options: ConvertDocumentsOptions = ConvertDocumentsOptions()
+
+
+class HttpSource(BaseModel):
+    url: Annotated[
+        str,
         Field(
-            description="Source(s) to process.",
+            description="HTTP url to process",
             examples=["https://arxiv.org/pdf/2206.01062"],
         ),
     ]
+    headers: Annotated[
+        Dict[str, Any],
+        Field(
+            description="Additional headers used to fetch the urls, "
+            "e.g. authorization, agent, etc"
+        ),
+    ] = {}
+
+
+class FileSource(BaseModel):
+    base64_string: Annotated[
+        str,
+        Field(
+            description="Content of the file serialized in base64. "
+            "For example it can be obtained via "
+            "`base64 -w 0 /path/to/file/pdf-to-convert.pdf`."
+        ),
+    ]
+    filename: Annotated[
+        str,
+        Field(description="Filename of the uploaded document", examples=["file.pdf"]),
+    ]
+
+    def to_document_stream(self) -> DocumentStream:
+        buf = BytesIO(base64.b64decode(self.base64_string))
+        return DocumentStream(stream=buf, name=self.filename)
+
+
+class ConvertDocumentHttpSourcesRequest(DocumentsConvertBase):
+    http_sources: List[HttpSource]
+
+
+class ConvertDocumentFileSourcesRequest(DocumentsConvertBase):
+    file_sources: List[FileSource]
+
+
+ConvertDocumentsRequest = Union[
+    ConvertDocumentFileSourcesRequest, ConvertDocumentHttpSourcesRequest
+]
 
 
 # Document converters will be preloaded and stored in a dictionary
@@ -240,7 +294,7 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
 def get_pdf_pipeline_opts(
-    request: ConvertDocumentsParameters,
+    request: ConvertDocumentsOptions,
 ) -> Tuple[PdfFormatOption, str]:
 
     if request.ocr_engine == OcrEngine.EASYOCR:
@@ -312,7 +366,7 @@ def get_pdf_pipeline_opts(
 
     pdf_format_option = PdfFormatOption(
         pipeline_options=pipeline_options,
-        backend=backend,  # pdf_backend
+        backend=backend,
     )
 
     serialized_data = _serialize_pdf_format_option(pdf_format_option)
@@ -323,16 +377,11 @@ def get_pdf_pipeline_opts(
 
 
 def convert_documents(
-    conversion_request: ConvertDocumentsRequest,
+    sources: Iterable[Union[Path, str, DocumentStream]],
+    options: ConvertDocumentsOptions,
+    headers: Optional[Dict[str, Any]] = None,
 ):
-
-    # Sanitize some parameters as they can be a string or a list
-    # TODO: maybe it could be done with a Pydantic field validator
-    conversion_request.input_sources = _to_list_of_strings(
-        conversion_request.input_sources
-    )
-
-    pdf_format_option, options_hash = get_pdf_pipeline_opts(conversion_request)
+    pdf_format_option, options_hash = get_pdf_pipeline_opts(options)
 
     if options_hash not in converters:
         format_options: Dict[InputFormat, FormatOption] = {
@@ -344,7 +393,8 @@ def convert_documents(
         _log.info(f"We now have {len(converters)} converters in memory.")
 
     results: Iterator[ConversionResult] = converters[options_hash].convert_all(
-        conversion_request.input_sources
+        sources,
+        headers=headers,
     )
 
     return results

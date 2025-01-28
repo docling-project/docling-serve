@@ -17,7 +17,7 @@ async def async_client():
 async def test_convert_file(async_client):
     """Test convert single file to all outputs"""
     url = "http://localhost:5001/v1alpha/convert/file"
-    parameters = {
+    options = {
         "from_formats": [
             "docx",
             "pptx",
@@ -33,7 +33,7 @@ async def test_convert_file(async_client):
         "ocr": True,
         "force_ocr": False,
         "ocr_engine": "easyocr",
-        "ocr_lang": "en",
+        "ocr_lang": ["en"],
         "pdf_backend": "dlparse_v2",
         "table_mode": "fast",
         "abort_on_error": False,
@@ -48,7 +48,7 @@ async def test_convert_file(async_client):
     }
 
     response = await async_client.post(
-        url, files=files, data={"parameters": json.dumps(parameters)}
+        url, files=files, data={"options": json.dumps(options)}
     )
     assert response.status_code == 200, "Response should be 200 OK"
 

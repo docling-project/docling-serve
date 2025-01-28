@@ -14,7 +14,7 @@ from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from docling_serve.docling_conversion import ConvertDocumentsRequest
+from docling_serve.docling_conversion import ConvertDocumentsOptions
 
 _log = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ def _export_documents_as_files(
 
 def process_results(
     background_tasks: BackgroundTasks,
-    conversion_request: ConvertDocumentsRequest,
+    conversion_options: ConvertDocumentsOptions,
     conv_results: Iterable[ConversionResult],
 ) -> Union[ConvertDocumentResponse, FileResponse]:
 
@@ -177,14 +177,14 @@ def process_results(
     response: Union[FileResponse, ConvertDocumentResponse]
 
     # Booleans to know what to export
-    export_json = OutputFormat.JSON in conversion_request.to_formats
-    export_html = OutputFormat.HTML in conversion_request.to_formats
-    export_md = OutputFormat.MARKDOWN in conversion_request.to_formats
-    export_txt = OutputFormat.TEXT in conversion_request.to_formats
-    export_doctags = OutputFormat.DOCTAGS in conversion_request.to_formats
+    export_json = OutputFormat.JSON in conversion_options.to_formats
+    export_html = OutputFormat.HTML in conversion_options.to_formats
+    export_md = OutputFormat.MARKDOWN in conversion_options.to_formats
+    export_txt = OutputFormat.TEXT in conversion_options.to_formats
+    export_doctags = OutputFormat.DOCTAGS in conversion_options.to_formats
 
     # Only 1 document was processed, and we are not returning it as a file
-    if len(conv_results) == 1 and not conversion_request.return_as_file:
+    if len(conv_results) == 1 and not conversion_options.return_as_file:
         conv_res = conv_results[0]
         document = _export_document_as_content(
             conv_res,
@@ -193,7 +193,7 @@ def process_results(
             export_md=export_md,
             export_txt=export_txt,
             export_doctags=export_doctags,
-            image_mode=conversion_request.image_export_mode,
+            image_mode=conversion_options.image_export_mode,
         )
 
         response = ConvertDocumentResponse(
@@ -222,7 +222,7 @@ def process_results(
             export_md=export_md,
             export_txt=export_txt,
             export_doctags=export_doctags,
-            image_export_mode=conversion_request.image_export_mode,
+            image_export_mode=conversion_options.image_export_mode,
         )
 
         files = os.listdir(output_dir)

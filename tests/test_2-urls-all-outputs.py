@@ -15,29 +15,31 @@ async def test_convert_url(async_client):
     """Test convert URL to all outputs"""
     url = "http://localhost:5001/v1alpha/convert/url"
     payload = {
-        "from_formats": [
-            "docx",
-            "pptx",
-            "html",
-            "image",
-            "pdf",
-            "asciidoc",
-            "md",
-            "xlsx",
-        ],
-        "to_formats": ["md", "json", "html", "text", "doctags"],
-        "image_export_mode": "placeholder",
-        "ocr": True,
-        "force_ocr": False,
-        "ocr_engine": "easyocr",
-        "ocr_lang": "en",
-        "pdf_backend": "dlparse_v2",
-        "table_mode": "fast",
-        "abort_on_error": False,
-        "return_as_file": False,
-        "input_sources": [
-            "https://arxiv.org/pdf/2206.01062",
-            "https://arxiv.org/pdf/2408.09869",
+        "options": {
+            "from_formats": [
+                "docx",
+                "pptx",
+                "html",
+                "image",
+                "pdf",
+                "asciidoc",
+                "md",
+                "xlsx",
+            ],
+            "to_formats": ["md", "json", "html", "text", "doctags"],
+            "image_export_mode": "placeholder",
+            "ocr": True,
+            "force_ocr": False,
+            "ocr_engine": "easyocr",
+            "ocr_lang": ["en"],
+            "pdf_backend": "dlparse_v2",
+            "table_mode": "fast",
+            "abort_on_error": False,
+            "return_as_file": False,
+        },
+        "http_sources": [
+            {"url": "https://arxiv.org/pdf/2206.01062"},
+            {"url": "https://arxiv.org/pdf/2408.09869"},
         ],
     }
 
