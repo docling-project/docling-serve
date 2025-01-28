@@ -56,6 +56,6 @@ RUN pip install --no-cache-dir poetry && \
 
 COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
 
-EXPOSE 8080
+EXPOSE 5000
 
 CMD ["python", "docling_serve/app.py"]
