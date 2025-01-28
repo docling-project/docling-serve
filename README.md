@@ -29,26 +29,42 @@ On top of the source of file (see below), both endpoints support the same parame
 
 The endpoint is `/v1alpha/convert/url`, listening for POST requests of JSON payloads.
 
-On top of the above parameters, you must send the URL(s) of the document you want process with the `input_sources` field. You can provide URL(s) as a String (comma separated if multiple ones) or as a List of Strings.
+On top of the above parameters, you must send the URL(s) of the document you want process with either the `http_sources` or `file_sources` fields.
+The first is fetching URL(s) (optionally using with extra headers), the second allows to provide documents as base64-encoded strings.
+No `options` is required, they can be partially or completely omitted.
 
-Payload example:
+Simple payload example:
 
 ```json
 {
-  "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
-  "to_formats": ["md", "json", "html", "text", "doctags"],
-  "image_export_mode": "placeholder",
-  "do_ocr": true,
-  "force_ocr": false,
-  "ocr_engine": "easyocr",
-  "ocr_lang": "en",
-  "pdf_backend": "dlparse_v2",
-  "table_mode": "fast",
-  "abort_on_error": false,
-  "return_as_file": false,
-  "input_sources": "https://arxiv.org/pdf/2206.01062"
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
 ```
+
+<details>
+
+<summary>Complete payload example:</summary>
+
+```json
+{
+  "options": {
+    "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
+    "to_formats": ["md", "json", "html", "text", "doctags"],
+    "image_export_mode": "placeholder",
+    "do_ocr": true,
+    "force_ocr": false,
+    "ocr_engine": "easyocr",
+    "ocr_lang": ["en"],
+    "pdf_backend": "dlparse_v2",
+    "table_mode": "fast",
+    "abort_on_error": false,
+    "return_as_file": false,
+  },
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
+}
+```
+
+</details>
 
 <details>
 
@@ -60,35 +76,37 @@ curl -X 'POST' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "from_formats": [
-    "docx",
-    "pptx",
-    "html",
-    "image",
-    "pdf",
-    "asciidoc",
-    "md",
-    "xlsx"
-  ],
-  "to_formats": ["md", "json", "html", "text", "doctags"],
-  "image_export_mode": "placeholder",
-  "do_ocr": true,
-  "force_ocr": false,
-  "ocr_engine": "easyocr",
-  "ocr_lang": [
-    "fr",
-    "de",
-    "es",
-    "en"
-  ],
-  "pdf_backend": "dlparse_v2",
-  "table_mode": "fast",
-  "abort_on_error": false,
-  "return_as_file": false,
-  "do_table_structure": true,
-  "include_images": true,
-  "images_scale": 2,
-  "input_sources": "https://arxiv.org/pdf/2206.01062"
+  "options": {
+    "from_formats": [
+      "docx",
+      "pptx",
+      "html",
+      "image",
+      "pdf",
+      "asciidoc",
+      "md",
+      "xlsx"
+    ],
+    "to_formats": ["md", "json", "html", "text", "doctags"],
+    "image_export_mode": "placeholder",
+    "do_ocr": true,
+    "force_ocr": false,
+    "ocr_engine": "easyocr",
+    "ocr_lang": [
+      "fr",
+      "de",
+      "es",
+      "en"
+    ],
+    "pdf_backend": "dlparse_v2",
+    "table_mode": "fast",
+    "abort_on_error": false,
+    "return_as_file": false,
+    "do_table_structure": true,
+    "include_images": true,
+    "images_scale": 2,
+  },
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }'
 ```
 
@@ -103,6 +121,7 @@ import httpx
 async_client = httpx.AsyncClient(timeout=60.0)
 url = "http://localhost:5001/v1alpha/convert/url"
 payload = {
+  "options": {
     "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
     "to_formats": ["md", "json", "html", "text", "doctags"],
     "image_export_mode": "placeholder",
@@ -114,7 +133,8 @@ payload = {
     "table_mode": "fast",
     "abort_on_error": False,
     "return_as_file": False,
-    "input_sources": "https://arxiv.org/pdf/2206.01062"
+  },
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
 
 response = await async_client_client.post(url, json=payload)
@@ -141,7 +161,7 @@ curl -X 'POST' \
   -F 'from_formats=pdf,docx' \
   -F 'force_ocr=false' \
   -F 'image_export_mode=embedded' \
-  -F 'ocr_lang=en' \
+  -F 'ocr_lang=["en"]' \
   -F 'table_mode=fast' \
   -F 'files=@2206.01062v1.pdf;type=application/pdf' \
   -F 'abort_on_error=false' \
@@ -167,7 +187,7 @@ parameters = {
 "do_ocr": True,
 "force_ocr": False,
 "ocr_engine": "easyocr",
-"ocr_lang": "en",
+"ocr_lang": ["en"],
 "pdf_backend": "dlparse_v2",
 "table_mode": "fast",
 "abort_on_error": False,
