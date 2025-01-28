@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # Network settings
-export PORT="${PORT:-5000}"
+export PORT="${PORT:-5001}"
 export HOST="${HOST:-"0.0.0.0"}"
 
 # Performance settings

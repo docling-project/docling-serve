@@ -15,7 +15,7 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_convert_url(async_client):
     """Test convert URL to all outputs"""
-    url = "http://localhost:5000/v1alpha/convert/url"
+    url = "http://localhost:5001/v1alpha/convert/url"
     payload = {
         "from_formats": [
             "docx",

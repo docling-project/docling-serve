@@ -232,7 +232,7 @@ async def process_file(
 if __name__ == "__main__":
     from uvicorn import run
 
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     workers = int(os.getenv("UVICORN_WORKERS", "1"))
     reload = _str_to_bool(os.getenv("RELOAD", "False"))
     run(

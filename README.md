@@ -56,7 +56,7 @@ Payload example:
 
 ```sh
 curl -X 'POST' \
-  'http://localhost:5000/v1alpha/convert/url' \
+  'http://localhost:5001/v1alpha/convert/url' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -101,7 +101,7 @@ curl -X 'POST' \
 import httpx
 
 async_client = httpx.AsyncClient(timeout=60.0)
-url = "http://localhost:5000/v1alpha/convert/url"
+url = "http://localhost:5001/v1alpha/convert/url"
 payload = {
     "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
     "to_formats": ["md", "json", "html", "text", "doctags"],
@@ -133,7 +133,7 @@ The endpoint is: `/v1alpha/convert/file`, listening for POST requests of Form pa
 
 ```sh
 curl -X 'POST' \
-  'http://127.0.0.1:5000/v1alpha/convert/file' \
+  'http://127.0.0.1:5001/v1alpha/convert/file' \
   -H 'accept: application/json' \
   -H 'Content-Type: multipart/form-data' \
   -F 'ocr_engine=easyocr' \
@@ -159,7 +159,7 @@ curl -X 'POST' \
 import httpx
 
 async_client = httpx.AsyncClient(timeout=60.0)
-url = "http://localhost:5000/v1alpha/convert/file"
+url = "http://localhost:5001/v1alpha/convert/file"
 parameters = {
 "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
 "to_formats": ["md", "json", "html", "text", "doctags"],

@@ -81,7 +81,7 @@ file_output_path = None  # Will be set when a new file is generated
 
 
 def health_check():
-    response = requests.get(f"http://localhost:{int(os.getenv('PORT', '5000'))}/health")
+    response = requests.get(f"http://localhost:{int(os.getenv('PORT', '5001'))}/health")
     if response.status_code == 200:
         return "Healthy"
     return "Unhealthy"
@@ -191,7 +191,7 @@ def process_url(
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv('PORT', '5000'))}/v1alpha/convert/url",
+            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/url",
             json=parameters,
         )
     except Exception as e:
@@ -239,7 +239,7 @@ def process_file(
 
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv('PORT', '5000'))}/v1alpha/convert/file",
+            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/file",
             files=files_data,
             data=parameters,
         )
