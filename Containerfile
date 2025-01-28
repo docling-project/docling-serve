@@ -27,6 +27,6 @@ ENV OMP_NUM_THREADS=4
 
 COPY ./docling_serve /docling-serve/docling_serve
 
-EXPOSE 5000
+EXPOSE 5001
 
-CMD ["poetry", "run", "uvicorn", "--port", "5000", "--host", "0.0.0.0", "docling_serve.app:app"]
+CMD ["poetry", "run", "uvicorn", "--port", "5001", "--host", "0.0.0.0", "docling_serve.app:app"]

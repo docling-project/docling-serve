@@ -97,7 +97,7 @@ jobs:
           push: true
           tags: ${{ steps.quay_serve_cpu_meta.outputs.tags }}
           labels: ${{ steps.quay_serve_cpu_meta.outputs.labels }}
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: Containerfile
