@@ -57,7 +57,7 @@ def _export_document_as_content(
 
         # Create the different formats
         if export_json:
-            document.json_content = new_doc.export_to_dict()
+            document.json_content = new_doc
         if export_html:
             document.html_content = new_doc.export_to_html(image_mode=image_mode)
         if export_txt:
