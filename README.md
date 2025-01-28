@@ -151,6 +151,9 @@ When your PDF or other file type is too large, encoding it and passing it inline
 can lead to an “Argument list too long” error on some systems. To avoid this, we write
 the JSON request body to a file and have curl read from that file.
 
+<details>
+<summary>CURL steps:</summary>
+
 ```sh
 # 1. Base64-encode the file
 B64_DATA=$(base64 -w 0 /path/to/file/pdf-to-convert.pdf)
@@ -172,6 +175,8 @@ curl -X POST "localhost:5001/v1alpha/convert/url" \
      -H "Content-Type: application/json" \
      -d @/tmp/request_body.json
 ```
+
+</details>
 
 ### File endpoint
 
