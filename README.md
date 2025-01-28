@@ -144,6 +144,35 @@ data = response.json()
 
 </details>
 
+#### File as base64
+
+The `file_sources` argument in the endpoint allows to send files as base64-encoded strings.
+When your PDF or other file type is too large, encoding it and passing it inline to curl
+can lead to an “Argument list too long” error on some systems. To avoid this, we write
+the JSON request body to a file and have curl read from that file.
+
+```sh
+# 1. Base64-encode the file
+B64_DATA=$(base64 -w 0 /path/to/file/pdf-to-convert.pdf)
+
+# 2. Build the JSON with your options
+cat <<EOF > /tmp/request_body.json
+{
+  "options": {
+  },
+  "file_sources": [{
+    "base64_string": "${B64_DATA}",
+    "filename": "pdf-to-convert.pdf"
+  }]
+}
+EOF
+
+# 3. POST the request to the docling service
+curl -X POST "localhost:5001/v1alpha/convert/url" \
+     -H "Content-Type: application/json" \
+     -d @/tmp/request_body.json
+```
+
 ### File endpoint
 
 The endpoint is: `/v1alpha/convert/file`, listening for POST requests of Form payloads (necessary as the files are sent as multipart/form data). You can send one or multiple files.
