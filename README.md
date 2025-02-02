@@ -27,7 +27,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 ### URL endpoint
 
-The endpoint is `/v1alpha/convert/url`, listening for POST requests of JSON payloads.
+The endpoint is `/v1alpha/convert/source`, listening for POST requests of JSON payloads.
 
 On top of the above parameters, you must send the URL(s) of the document you want process with either the `http_sources` or `file_sources` fields.
 The first is fetching URL(s) (optionally using with extra headers), the second allows to provide documents as base64-encoded strings.
@@ -72,7 +72,7 @@ Simple payload example:
 
 ```sh
 curl -X 'POST' \
-  'http://localhost:5001/v1alpha/convert/url' \
+  'http://localhost:5001/v1alpha/convert/source' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -119,7 +119,7 @@ curl -X 'POST' \
 import httpx
 
 async_client = httpx.AsyncClient(timeout=60.0)
-url = "http://localhost:5001/v1alpha/convert/url"
+url = "http://localhost:5001/v1alpha/convert/source"
 payload = {
   "options": {
     "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
@@ -171,7 +171,7 @@ cat <<EOF > /tmp/request_body.json
 EOF
 
 # 3. POST the request to the docling service
-curl -X POST "localhost:5001/v1alpha/convert/url" \
+curl -X POST "localhost:5001/v1alpha/convert/source" \
      -H "Content-Type: application/json" \
      -d @/tmp/request_body.json
 ```

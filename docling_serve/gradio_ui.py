@@ -193,7 +193,7 @@ def process_url(
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/url",
+            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/source",
             json=parameters,
         )
     except Exception as e:

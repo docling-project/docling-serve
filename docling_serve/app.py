@@ -150,7 +150,7 @@ def api_check() -> HealthCheckResponse:
 
 # Convert a document from URL(s)
 @app.post(
-    "/v1alpha/convert/url",
+    "/v1alpha/convert/source",
     response_model=ConvertDocumentResponse,
     responses={
         200: {
