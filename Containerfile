@@ -58,4 +58,4 @@ COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
 
 EXPOSE 5001
 
-CMD ["python", "docling_serve/app.py"]
+CMD ["python", "-m", "docling_serve"]
