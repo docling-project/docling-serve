@@ -396,7 +396,7 @@ with gr.Blocks(
                 file_reset_btn = gr.Button("Reset", scale=1)
 
     # Options
-    with gr.Accordion("Options") as options:
+    with gr.Accordion("Options", open=False) as options:
         with gr.Row():
             with gr.Column(scale=1):
                 to_formats = gr.CheckboxGroup(
@@ -455,23 +455,30 @@ with gr.Blocks(
                 return_as_file = gr.Checkbox(label="Return as File", value=False)
 
     # Document output
-    with gr.Row(visible=False) as content_output:
-        with gr.Tab("Markdown"):
-            output_markdown = gr.Code(
-                language="markdown", wrap_lines=True, show_label=False
-            )
-        with gr.Tab("Markdown-Rendered"):
-            output_markdown_rendered = gr.Markdown(label="Response")
-        with gr.Tab("Docling (JSON)"):
-            output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
-        with gr.Tab("HTML"):
-            output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
-        with gr.Tab("HTML-Rendered"):
-            output_html_rendered = gr.HTML(label="Response")
-        with gr.Tab("Text"):
-            output_text = gr.Code(wrap_lines=True, show_label=False)
-        with gr.Tab("DocTags"):
-            output_doctags = gr.Code(wrap_lines=True, show_label=False)
+    with gr.Column(scale=1) as content_output:
+        with gr.Tabs():
+            with gr.Tab("Markdown"):
+                output_markdown = gr.Code(
+                    language="markdown",
+                    wrap_lines=True,
+                    show_label=False,
+                    container=False
+                )
+            with gr.Tab("Markdown-Rendered"):
+                output_markdown_rendered = gr.Markdown(
+                    label="Response",
+                    container=False
+                )
+            with gr.Tab("Docling (JSON)"):
+                output_json = gr.Code(language="json", wrap_lines=True, show_label=False, container=False)
+            with gr.Tab("HTML"):
+                output_html = gr.Code(language="html", wrap_lines=True, show_label=False, container=False)
+            with gr.Tab("HTML-Rendered"):
+                output_html_rendered = gr.HTML(label="Response", container=False)
+            with gr.Tab("Text"):
+                output_text = gr.Code(wrap_lines=True, show_label=False, container=False)
+            with gr.Tab("DocTags"):
+                output_doctags = gr.Code(wrap_lines=True, show_label=False, container=False)
 
     # File download output
     with gr.Row(visible=False) as file_output:
@@ -500,8 +507,6 @@ with gr.Blocks(
 
     # URL processing
     url_process_btn.click(
-        set_options_visibility, inputs=[false_bool], outputs=[options]
-    ).then(
         set_download_button_label, inputs=[processing_text], outputs=[download_file_btn]
     ).then(
         set_outputs_visibility_process,
@@ -558,7 +563,7 @@ with gr.Blocks(
             output_text,
             output_doctags,
         ],
-    ).then(set_options_visibility, inputs=[true_bool], outputs=[options]).then(
+    ).then(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
         outputs=[content_output, file_output],
@@ -568,8 +573,6 @@ with gr.Blocks(
 
     # File processing
     file_process_btn.click(
-        set_options_visibility, inputs=[false_bool], outputs=[options]
-    ).then(
         set_download_button_label, inputs=[processing_text], outputs=[download_file_btn]
     ).then(
         set_outputs_visibility_process,
@@ -626,10 +629,10 @@ with gr.Blocks(
             output_text,
             output_doctags,
         ],
-    ).then(set_options_visibility, inputs=[true_bool], outputs=[options]).then(
+    ).then(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
-        outputs=[content_output, file_output],
+        outputs=[content_output, file_output]
     ).then(
         clear_file_input, inputs=None, outputs=[file_input]
     )
