@@ -8,10 +8,10 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 
 ### Common parameters
 
-On top of the source of file (see below), both endpoints support the same parameters, which are the same as the Docling CLI.
+On top of the source of file (see below), both endpoints support the same parameters, which are almost the same as the Docling CLI.
 
 - `from_format` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
-- `to_format` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
+- `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
@@ -192,14 +192,17 @@ curl -X 'POST' \
   -H 'Content-Type: multipart/form-data' \
   -F 'ocr_engine=easyocr' \
   -F 'pdf_backend=dlparse_v2' \
-  -F 'from_formats=pdf,docx' \
+  -F 'from_formats=pdf' \
+  -F 'from_formats=docx' \
   -F 'force_ocr=false' \
   -F 'image_export_mode=embedded' \
-  -F 'ocr_lang=["en"]' \
+  -F 'ocr_lang=en' \
+  -F 'ocr_lang=pl' \
   -F 'table_mode=fast' \
   -F 'files=@2206.01062v1.pdf;type=application/pdf' \
   -F 'abort_on_error=false' \
   -F 'to_formats=md' \
+  -F 'to_formats=text' \
   -F 'return_as_file=false' \
   -F 'do_ocr=true'
 ```
