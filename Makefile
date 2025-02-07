@@ -62,7 +62,6 @@ md-lint: .md-lint ##      Lint markdown files
 	$(CMD_PREFIX) docker run --rm -v $$(pwd):/workdir davidanson/markdownlint-cli2:v0.14.0 "**/*.md"
 	$(CMD_PREFIX) touch $@
 
-
 .PHONY: py-Lint
 py-lint: ##      Lint Python files
 	$(ECHO_PREFIX) printf "  %-12s ./...\n" "[PY LINT]"
@@ -73,3 +72,13 @@ py-lint: ##      Lint Python files
 	fi
 	$(CMD_PREFIX) poetry install --all-extras
 	$(CMD_PREFIX) poetry run pre-commit run --all-files
+
+.PHONY: run-docling-cpu
+run-docling-cpu: docling-serve-cpu-image ## Run the docling-serve container with CPU support and assign a container name
+	$(ECHO_PREFIX) printf "Running docling-serve container with CPU support on port 5001, container named 'docling-serve-cpu'...\n"
+	$(CMD_PREFIX) docker run -it --name docling-serve-cpu -p 5001:5001 ghcr.io/ds4sd/docling-serve-cpu:main
+
+.PHONY: run-docling-gpu
+run-docling-gpu: docling-serve-gpu-image ## Run the docling-serve container with GPU support and assign a container name
+	$(ECHO_PREFIX) printf "Running docling-serve container with GPU support on port 5001, container named 'docling-serve-gpu'...\n"
+	$(CMD_PREFIX) docker run -it --name docling-serve-gpu -p 5001:5001 ghcr.io/ds4sd/docling-serve:main
