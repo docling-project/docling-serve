@@ -78,17 +78,11 @@ run-docling-cpu: ## Run the docling-serve container with CPU support and assign 
 	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
 	$(CMD_PREFIX) docker rm -f docling-serve-cpu 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with CPU support on port 5001...\n" "[RUN CPU]"
-	$(CMD_PREFIX) docker run -it \
-		--name docling-serve-cpu \
-		-p 5001:5001 \
-		ghcr.io/ds4sd/docling-serve-cpu:main
+	$(CMD_PREFIX) docker run -it --name docling-serve-cpu -p 5001:5001 ghcr.io/ds4sd/docling-serve-cpu:main
 
 .PHONY: run-docling-gpu
 run-docling-gpu: ## Run the docling-serve container with GPU support and assign a container name
 	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
 	$(CMD_PREFIX) docker rm -f docling-serve-gpu 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN GPU]"
-	$(CMD_PREFIX) docker run -it \
-		--name docling-serve-gpu \
-		-p 5001:5001 \
-		ghcr.io/ds4sd/docling-serve:main
+	$(CMD_PREFIX) docker run -it --name docling-serve-gpu -p 5001:5001 ghcr.io/ds4sd/docling-serve:main
