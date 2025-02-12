@@ -34,10 +34,6 @@ env:
   # QUAY_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
   # QUAY_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   image:
     runs-on: ubuntu-latest
