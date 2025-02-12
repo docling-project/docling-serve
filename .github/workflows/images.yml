@@ -25,7 +25,7 @@ jobs:
       id-token: write
     secrets: inherit
 
-    uses: ./.github/workflows/jobs/image.yml
+    uses: ./.github/workflows/job-image.yml
     with:
       publish: true
       environment: registry-creds
@@ -43,7 +43,7 @@ jobs:
       attestations: write
       id-token: write
 
-    uses: ./.github/workflows/jobs/image.yml
+    uses: ./.github/workflows/job-image.yml
     with:
       publish: true
       environment: registry-creds
