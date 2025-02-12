@@ -6,7 +6,7 @@ export PORT="${PORT:-5001}"
 export HOST="${HOST:-"0.0.0.0"}"
 
 # Performance settings
-UVICORN_WORKERS="${WITH_UI:-1}"
+UVICORN_WORKERS="${UVICORN_WORKERS:-1}"
 
 # Development settings
 export WITH_UI="${WITH_UI:-"true"}"
