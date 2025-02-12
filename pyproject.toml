@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "docling-serve"
-version = "0.2.0"
+version = "0.2.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = "MIT"
 authors = [
@@ -97,6 +97,7 @@ pytest = "^8.3.4"
 pytest-asyncio = "^0.24.0"
 pytest-check = "^2.4.1"
 mypy = "^1.11.2"
+python-semantic-release = "^7.32.2"
 
 [build-system]
 requires = ["poetry-core"]
@@ -150,3 +151,16 @@ addopts = "-rA --color=yes --tb=short --maxfail=5"
 markers = [
 "asyncio",
 ]
+
+[tool.semantic_release]
+# for default values check:
+# https://github.com/python-semantic-release/python-semantic-release/blob/v7.32.2/semantic_release/defaults.cfg
+
+version_source = "tag_only"
+branch = "main"
+
+# configure types which should trigger minor and patch version bumps respectively
+# (note that they must be a subset of the configured allowed types):
+parser_angular_allowed_types = "build,chore,ci,docs,feat,fix,perf,style,refactor,test"
+parser_angular_minor_types = "feat"
+parser_angular_patch_types = "fix,perf"

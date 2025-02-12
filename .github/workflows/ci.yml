@@ -1,0 +1,25 @@
+name: "Run CI"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  code-checks:
+    # if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name != 'DS4SD/docling-serve' && github.event.pull_request.head.repo.full_name != 'ds4sd/docling-serve') }}
+    uses: ./.github/workflows/jobs/checks.yml
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
+  build-images:
+    uses: ./.github/workflows/ci-images-dryrun.yml
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write

@@ -1,0 +1,41 @@
+name: Dry run docling-serve image building
+
+on:
+  workflow_call:
+
+
+jobs:
+  build_cpu_image:
+    name: Build docling-serve "CPU only" container image
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    # secrets: inherit
+
+    uses: ./.github/workflows/jobs/image.yml
+    with:
+      publish: false
+      build_args: |
+        --build-arg CPU_ONLY=true
+      ghcr_image_name: ds4sd/docling-serve-cpu
+      quay_image_name: ""
+
+
+  build_gpu_image:
+    name: Build docling-serve (with GPU support) container image
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    # secrets: inherit
+
+    uses: ./.github/workflows/jobs/image.yml
+    with:
+      publish: false
+      build_args: |
+        --build-arg CPU_ONLY=false
+      ghcr_image_name: ds4sd/docling-serve
+      quay_image_name: ""
