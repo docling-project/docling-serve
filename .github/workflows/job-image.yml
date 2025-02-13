@@ -52,7 +52,8 @@ jobs:
             sudo rm -rf "/usr/local/share/boost"
             sudo rm -rf "$AGENT_TOOLSDIRECTORY"
             sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup
-            sudo docker rmi $(docker image ls -aq) >/dev/null 2>&1 || true
+            # shellcheck disable=SC2046
+            sudo docker rmi "$(docker image ls -aq)" >/dev/null 2>&1 || true
             df -h
 
       - name: Check out the repo
