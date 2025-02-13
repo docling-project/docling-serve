@@ -81,7 +81,7 @@ jobs:
         with:
           images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
 
-      - name: Build and push docling-serve-cpu image to ghcr.io
+      - name: Build and push image to ghcr.io
         id: ghcr_push
         uses: docker/build-push-action@v5
         with:

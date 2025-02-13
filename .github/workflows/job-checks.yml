@@ -3,16 +3,6 @@ name: Run checks
 on:
   workflow_call:
 
-# on:
-#   push:
-#     branches: ["main"]
-#   pull_request:
-#     branches: ["main"]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   py-lint:
     runs-on: ubuntu-latest

@@ -15,7 +15,6 @@ jobs:
       contents: read
       attestations: write
       id-token: write
-    # secrets: inherit
 
     uses: ./.github/workflows/job-image.yml
     with:
@@ -33,7 +32,6 @@ jobs:
       contents: read
       attestations: write
       id-token: write
-    # secrets: inherit
 
     uses: ./.github/workflows/job-image.yml
     with:
