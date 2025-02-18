@@ -31,10 +31,10 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-docling = "^2.14.0"
+docling = "^2.23.0"
 fastapi = {version = "^0.115.6", extras = ["standard"]}
 gradio = { version = "^5.9.1", optional = true }
-uvicorn = "~0.29.0"
+uvicorn = { version = ">=0.29.0,<1.0.0", extras = ["standard"] }
 pydantic = "^2.10.3"
 pydantic-settings = "^2.4.0"
 python-multipart = ">=0.0.14,<0.1.0"
@@ -74,17 +74,19 @@ torch = [
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp310-cp310-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp311-cp311-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp312-cp312-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.13"', url="https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp313-cp313-linux_x86_64.whl"},
 ]
 torchvision = [
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp310-cp310-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp311-cp311-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp312-cp312-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.13"', url="https://download.pytorch.org/whl/cpu/torchvision-0.21.0%2Bcpu-cp313-cp313-linux_x86_64.whl"},
 ]
 
 [tool.poetry.group.constraints.dependencies]
 numpy = [
-    { version = "^2.1.0", markers = 'python_version >= "3.13"' },
-    { version = "^1.24.4", markers = 'python_version < "3.13"' },
+    { version = ">=1.24.4,<3.0.0", markers = 'python_version >= "3.10"' },
+    { version = ">=1.24.4,<2.1.0", markers = 'python_version < "3.10"' },
 ]
 
 [tool.poetry.group.dev.dependencies]

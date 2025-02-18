@@ -1,4 +1,5 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
+ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
 
 FROM ${BASE_IMAGE}
 
@@ -38,7 +39,7 @@ ENV PYTHONIOENCODING=utf-8
 
 ENV WITH_UI=True
 
-COPY --chown=1001:0 pyproject.toml poetry.lock models_download.py README.md ./
+COPY --chown=1001:0 pyproject.toml poetry.lock README.md ./
 
 RUN pip install --no-cache-dir poetry && \
     # We already are in a virtual environment, so we don't need to create a new one, only activate it.
@@ -50,7 +51,7 @@ RUN pip install --no-cache-dir poetry && \
         poetry install --no-root --no-cache --no-interaction --all-extras --without dev; \
     fi && \
     echo "Downloading models..." && \
-    python models_download.py && \
+    docling-tools models download ${MODELS_LIST} && \
     chown -R 1001:0 /opt/app-root/src && \
     chmod -R g=u /opt/app-root/src
 

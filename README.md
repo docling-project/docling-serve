@@ -325,10 +325,11 @@ RELOAD=true bash start_server.sh
 
 The following variables are available:
 
-`TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
-`UVICORN_WORKERS`: Number of workers to use.
-`RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
-`WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
+- `DOCLING_ARTIFACTS_PATH`: if set Docling will use only the local weights of models, for example `/opt/app-root/.cache/docling/cache`.
+- `TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
+- `UVICORN_WORKERS`: Number of workers to use.
+- `RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
+- `WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
 
 ## Get help and support
 
