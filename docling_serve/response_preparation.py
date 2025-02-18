@@ -40,6 +40,10 @@ class ConvertDocumentErrorResponse(BaseModel):
     status: ConversionStatus
 
 
+class ErrorResponse(BaseModel):
+    errors: List[ErrorItem]
+
+
 def _export_document_as_content(
     conv_res: ConversionResult,
     export_json: bool,
@@ -49,7 +53,6 @@ def _export_document_as_content(
     export_doctags: bool,
     image_mode: ImageRefMode,
 ):
-
     document = DocumentResponse(filename=conv_res.input.file.name)
 
     if conv_res.status == ConversionStatus.SUCCESS:
@@ -69,9 +72,15 @@ def _export_document_as_content(
         if export_doctags:
             document.doctags_content = new_doc.export_to_document_tokens()
     elif conv_res.status == ConversionStatus.SKIPPED:
-        raise HTTPException(status_code=400, detail=conv_res.errors)
+        raise HTTPException(
+            status_code=400,
+            detail=ErrorResponse(errors=conv_res.errors).model_dump()
+        )
     else:
-        raise HTTPException(status_code=500, detail=conv_res.errors)
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(errors=conv_res.errors).model_dump()
+        )
 
     return document
 
