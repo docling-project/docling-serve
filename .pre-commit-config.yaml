@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: system
         name: Black
-        entry: poetry run black docling_serve tests
+        entry: uv run --no-sync black docling_serve tests
         pass_filenames: false
         language: system
         files: '\.py$'
@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: system
         name: isort
-        entry: poetry run isort docling_serve tests
+        entry: uv run --no-sync isort docling_serve tests
         pass_filenames: false
         language: system
         files: '\.py$'
@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: autoflake
         name: autoflake
-        entry: poetry run autoflake docling_serve tests
+        entry: uv run --no-sync autoflake docling_serve tests
         pass_filenames: false
         language: system
         files: '\.py$'
@@ -28,7 +28,7 @@ repos:
     hooks:
       - id: system
         name: flake8
-        entry: poetry run flake8 docling_serve
+        entry: uv run --no-sync flake8 docling_serve
         pass_filenames: false
         language: system
         files: '\.py$'
@@ -36,7 +36,7 @@ repos:
     hooks:
       - id: system
         name: MyPy
-        entry: poetry run mypy docling_serve
+        entry: uv run --no-sync mypy docling_serve
         pass_filenames: false
         language: system
         files: '\.py$'
@@ -45,10 +45,3 @@ repos:
     rev: 0.6.1
     hooks:
       - id: uv-lock
-  # - repo: local
-  #   hooks:
-  #     - id: system
-  #       name: Poetry check
-  #       entry: poetry check --lock
-  #       pass_filenames: false
-  #       language: system

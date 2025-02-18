@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --no-extra cu124
       - name: Run styling check
-        run: uv run pre-commit run --all-files
+        run: uv run --no-sync pre-commit run --all-files
 
   markdown-lint:
     runs-on: ubuntu-latest
