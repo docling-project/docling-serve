@@ -60,10 +60,10 @@ optional = false
 
 [tool.poetry.group.pypi-torch.dependencies]
 torch = [
-  {version = "!=2.4.1+cpu" },
+  {version = "!=2.6.0+cpu" },
 ]
 torchvision = [
-  {version = "!=0.19.1+cpu" },
+  {version = "!=0.21.0+cpu" },
 ]
 
 [tool.poetry.group.cpu]
@@ -71,15 +71,15 @@ optional = true
 
 [tool.poetry.group.cpu.dependencies]
 torch = [
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp310-cp310-linux_x86_64.whl"},
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp311-cp311-linux_x86_64.whl"},
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torch-2.4.1%2Bcpu-cp312-cp312-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp310-cp310-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp311-cp311-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp312-cp312-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.13"', url="https://download.pytorch.org/whl/cpu/torch-2.6.0%2Bcpu-cp313-cp313-linux_x86_64.whl"},
 ]
 torchvision = [
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp310-cp310-linux_x86_64.whl"},
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp311-cp311-linux_x86_64.whl"},
-    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torchvision-0.19.1%2Bcpu-cp312-cp312-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.10"', url="https://download.pytorch.org/whl/cpu/torchvision-0.21.0%2Bcpu-cp310-cp310-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.11"', url="https://download.pytorch.org/whl/cpu/torchvision-0.21.0%2Bcpu-cp311-cp311-linux_x86_64.whl"},
+    {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.12"', url="https://download.pytorch.org/whl/cpu/torchvision-0.21.0%2Bcpu-cp312-cp312-linux_x86_64.whl"},
     {markers = 'platform_machine=="x86_64" and sys_platform=="linux" and python_version == "3.13"', url="https://download.pytorch.org/whl/cpu/torchvision-0.21.0%2Bcpu-cp313-cp313-linux_x86_64.whl"},
 ]
 
