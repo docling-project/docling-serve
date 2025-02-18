@@ -10,11 +10,11 @@ fi
 CHGLOG_FILE="${CHGLOG_FILE:-CHANGELOG.md}"
 
 # update package version
-poetry version "${TARGET_VERSION}"
+uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version "${TARGET_VERSION}"
 
 # collect release notes
 REL_NOTES=$(mktemp)
-poetry run semantic-release changelog --unreleased >> "${REL_NOTES}"
+uv run semantic-release changelog --unreleased >> "${REL_NOTES}"
 
 # update changelog
 TMP_CHGLOG=$(mktemp)

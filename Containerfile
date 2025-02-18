@@ -1,9 +1,9 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
-ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
 
 FROM ${BASE_IMAGE}
 
 ARG CPU_ONLY=false
+ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
 
 USER 0
 
@@ -22,6 +22,8 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
+COPY --from=ghcr.io/astral-sh/uv:0.6.1 /uv /uvx /bin/
+
 ###################################################################################################
 # Docling layer                                                                                   #
 ###################################################################################################
@@ -36,26 +38,28 @@ ENV OMP_NUM_THREADS=4
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV PYTHONIOENCODING=utf-8
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
 
 ENV WITH_UI=True
 
-COPY --chown=1001:0 pyproject.toml poetry.lock README.md ./
+COPY --chown=1001:0 pyproject.toml uv.lock README.md ./
 
-RUN pip install --no-cache-dir poetry && \
-    # We already are in a virtual environment, so we don't need to create a new one, only activate it.
-    poetry config virtualenvs.create false && \
-    source /opt/app-root/bin/activate && \
+RUN --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     if [ "$CPU_ONLY" = "true" ]; then \
-        poetry install --no-root --no-cache --no-interaction --all-extras --with cpu --without dev; \
+        NO_EXTRA=cu124; \
     else \
-        poetry install --no-root --no-cache --no-interaction --all-extras --without dev; \
+        NO_EXTRA=cpu; \
     fi && \
-    echo "Downloading models..." && \
+    uv sync --frozen --no-install-project --no-dev --all-extras --no-extra ${NO_EXTRA}
+
+RUN echo "Downloading models..." && \
     docling-tools models download ${MODELS_LIST} && \
-    chown -R 1001:0 /opt/app-root/src && \
-    chmod -R g=u /opt/app-root/src
+    chown -R 1001:0 /opt/app-root/src/.cache && \
+    chmod -R g=u /opt/app-root/src/.cache
 
 COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
+
 
 EXPOSE 5001
 

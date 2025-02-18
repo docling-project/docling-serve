@@ -40,10 +40,15 @@ repos:
         pass_filenames: false
         language: system
         files: '\.py$'
-  - repo: local
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.6.1
     hooks:
-      - id: system
-        name: Poetry check
-        entry: poetry check --lock
-        pass_filenames: false
-        language: system
+      - id: uv-lock
+  # - repo: local
+  #   hooks:
+  #     - id: system
+  #       name: Poetry check
+  #       entry: poetry check --lock
+  #       pass_filenames: false
+  #       language: system

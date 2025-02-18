@@ -11,11 +11,15 @@ jobs:
         python-version: ['3.12']
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-poetry
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --all-extras --no-extra cu124
       - name: Run styling check
-        run: poetry run pre-commit run --all-files
+        run: uv run pre-commit run --all-files
 
   markdown-lint:
     runs-on: ubuntu-latest
