@@ -34,7 +34,7 @@ jobs:
       publish: true
       environment: registry-creds
       build_args: |
-        --build-arg CPU_ONLY=true
+        CPU_ONLY=true
       ghcr_image_name: ds4sd/docling-serve-cpu
       quay_image_name: ds4sd/docling-serve-cpu
 
@@ -53,7 +53,7 @@ jobs:
       publish: true
       environment: registry-creds
       build_args: |
-        --build-arg CPU_ONLY=false
+        CPU_ONLY=false
       ghcr_image_name: ds4sd/docling-serve
       quay_image_name: ds4sd/docling-serve
 
