@@ -39,6 +39,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from docling_serve.helper_functions import _to_list_of_strings
+from docling_serve.settings import Settings
 
 _log = logging.getLogger(__name__)
 
@@ -209,6 +210,11 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = 2.0
 
+    document_timeout: Annotated[Optional[float], Field(
+        description="Timeout (in seconds) for document processing. Turned off by default.",
+        examples=[300],
+    )] = None
+
 
 class DocumentsConvertBase(BaseModel):
     options: ConvertDocumentsOptions = ConvertDocumentsOptions()
@@ -342,10 +348,15 @@ def get_pdf_pipeline_opts(
         else:
             ocr_options.lang = request.ocr_lang
 
+    settings = Settings()
+
+    document_timeout = request.document_timeout or settings.document_timeout
+    
     pipeline_options = PdfPipelineOptions(
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
         do_table_structure=request.do_table_structure,
+        document_timeout=document_timeout,
     )
     pipeline_options.table_structure_options.do_cell_matching = True  # do_cell_matching
     pipeline_options.table_structure_options.mode = TableFormerMode(request.table_mode)
