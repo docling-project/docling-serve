@@ -1,6 +1,30 @@
+from typing import Union
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
+class UvicornSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="UVICORN_",
+        env_file=".env",  # extra="allow"
+    )
 
-    model_config = SettingsConfigDict(env_prefix="DOCLING_")
+    host: str = "0.0.0.0"
+    port: int = 5001
+    reload: bool = False
+    root_path: str = ""
+    proxy_headers: bool = True
+    workers: Union[int, None] = None
+
+
+class DoclingServeSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="DOCLING_SERVE_",
+        env_file=".env",  # extra="allow"
+    )
+
+    enable_ui: bool = False
+
+
+uvicorn_settings = UvicornSettings()
+docling_serve_settings = DoclingServeSettings()
