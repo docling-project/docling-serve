@@ -313,12 +313,12 @@ uv sync
 
 `/ui` endpoint using `gradio` and different OCR backends can be enabled via package extras:
 
-```
+```sh
 # Enable ui and rapidocr
 uv sync --extra ui --extra rapidocr
 ```
 
-```
+```sh
 # Enable tesserocr
 uv sync --extra tesserocr
 ```
