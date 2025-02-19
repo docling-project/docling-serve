@@ -23,11 +23,11 @@ jobs:
       - name: Check version of potential release
         id: version_check
         run: |
-          TRGT_VERSION=$(uv run semantic-release print-version)
+          TRGT_VERSION=$(uv run --no-sync semantic-release print-version)
           echo "TRGT_VERSION=${TRGT_VERSION}" >> "$GITHUB_OUTPUT"
           echo "${TRGT_VERSION}"
       - name: Check notes of potential release
-        run: uv run semantic-release changelog --unreleased
+        run: uv run --no-sync semantic-release changelog --unreleased
   release:
     needs: [code-checks, pre-release-check]
     if: needs.pre-release-check.outputs.TARGET_TAG_V != ''

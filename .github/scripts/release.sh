@@ -14,7 +14,7 @@ uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version "${TARGE
 
 # collect release notes
 REL_NOTES=$(mktemp)
-uv run semantic-release changelog --unreleased >> "${REL_NOTES}"
+uv run --no-sync semantic-release changelog --unreleased >> "${REL_NOTES}"
 
 # update changelog
 TMP_CHGLOG=$(mktemp)
