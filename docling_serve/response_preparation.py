@@ -73,13 +73,11 @@ def _export_document_as_content(
             document.doctags_content = new_doc.export_to_document_tokens()
     elif conv_res.status == ConversionStatus.SKIPPED:
         raise HTTPException(
-            status_code=400,
-            detail=ErrorResponse(errors=conv_res.errors).model_dump()
+            status_code=400, detail=ErrorResponse(errors=conv_res.errors).model_dump()
         )
     else:
         raise HTTPException(
-            status_code=500,
-            detail=ErrorResponse(errors=conv_res.errors).model_dump()
+            status_code=500, detail=ErrorResponse(errors=conv_res.errors).model_dump()
         )
 
     return document

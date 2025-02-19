@@ -1,9 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="DOCLING_",
-        env_file=".env",
+        env_prefix="DOCLING_", env_file=".env", extra="allow"
     )
     document_timeout: Optional[float] = None

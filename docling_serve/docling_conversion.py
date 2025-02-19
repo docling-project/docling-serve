@@ -210,10 +210,13 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = 2.0
 
-    document_timeout: Annotated[Optional[float], Field(
-        description="Timeout (in seconds) for document processing. Turned off by default.",
-        examples=[300],
-    )] = None
+    document_timeout: Annotated[
+        Optional[float],
+        Field(
+            description="Timeout (in seconds) for document processing. Turned off by default.",
+            examples=[300],
+        ),
+    ] = None
 
 
 class DocumentsConvertBase(BaseModel):
@@ -351,7 +354,7 @@ def get_pdf_pipeline_opts(
     settings = Settings()
 
     document_timeout = request.document_timeout or settings.document_timeout
-    
+
     pipeline_options = PdfPipelineOptions(
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
