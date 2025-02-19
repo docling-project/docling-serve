@@ -401,9 +401,9 @@ The environment variables controlling specifics of the Docling Serve app can be 
 - `DOCLING_SERVE_ENABLE_UI`: If `True`, The Gradio UI will be available at `/ui`.
 
 Others:
+
 - `DOCLING_ARTIFACTS_PATH`: if set Docling will use only the local weights of models, for example `/opt/app-root/.cache/docling/cache`.
 - `TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
-
 
 ## Get help and support
 
