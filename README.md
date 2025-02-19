@@ -327,25 +327,83 @@ See `[project.optional-dependencies]` section in `pyproject.toml` for full list 
 
 ### Run the server
 
-The [start_server.sh](./start_server.sh) executable is a convenient script for launching the local webserver.
+The `docling-serve` executable is a convenient script for launching the webserver both in
+development and production mode.
 
 ```sh
-# Run the server
-bash start_server.sh
+# Run the server in development mode
+# - reload is enabled by default
+# - listening on the 127.0.0.1 address
+# - ui is enabled by default
+docling-serve dev
 
-# Run the server with live reload
-RELOAD=true bash start_server.sh
+# Run the server in production mode
+# - reload is disabled by default
+# - listening on the 0.0.0.0 address
+# - ui is disabled by default
+docling-serve run
 ```
 
-### Environment variables
+### Options
 
-The following variables are available:
+The `docling-serve` executable allows is controlled with both command line
+options and environment variables.
 
+<details>
+<summary>`docling-serve` help message</summary>
+
+```sh
+$ docling-serve dev --help
+                                                                                                              
+ Usage: docling-serve dev [OPTIONS]                                                                           
+                                                                                                              
+ Run a Docling Serve app in development mode. 🧪                                                              
+ This is equivalent to docling-serve run but with reload                                                      
+ enabled and listening on the 127.0.0.1 address.                                                              
+                                                                                                              
+ Options can be set also with the corresponding ENV variable, with the exception                              
+ of --enable-ui, --host and --reload.                                                                         
+                                                                                                              
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --host                                   TEXT     The host to serve on. For local development in localhost │
+│                                                   use 127.0.0.1. To enable public access, e.g. in a        │
+│                                                   container, use all the IP addresses available with       │
+│                                                   0.0.0.0.                                                 │
+│                                                   [default: 127.0.0.1]                                     │
+│ --port                                   INTEGER  The port to serve on. [default: 5001]                    │
+│ --reload           --no-reload                    Enable auto-reload of the server when (code) files       │
+│                                                   change. This is resource intensive, use it only during   │
+│                                                   development.                                             │
+│                                                   [default: reload]                                        │
+│ --root-path                              TEXT     The root path is used to tell your app that it is being  │
+│                                                   served to the outside world with some path prefix set up │
+│                                                   in some termination proxy or similar.                    │
+│ --proxy-headers    --no-proxy-headers             Enable/Disable X-Forwarded-Proto, X-Forwarded-For,       │
+│                                                   X-Forwarded-Port to populate remote address info.        │
+│                                                   [default: proxy-headers]                                 │
+│ --enable-ui        --no-enable-ui                 Enable the development UI. [default: enable-ui]          │
+│ --help                                            Show this message and exit.                              │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
+</details>
+
+#### Environment variables
+
+The environment variables controlling the `uvicorn` execution can be specified with the `UVICORN_` prefix:
+
+- `UVICORN_WORKERS`: Number of workers to use.
+- `UVICORN_RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
+
+The environment variables controlling specifics of the Docling Serve app can be specified with the
+`DOCLING_SERVE_` prefix:
+
+- `DOCLING_SERVE_ENABLE_UI`: If `True`, The Gradio UI will be available at `/ui`.
+
+Others:
 - `DOCLING_ARTIFACTS_PATH`: if set Docling will use only the local weights of models, for example `/opt/app-root/.cache/docling/cache`.
 - `TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
-- `UVICORN_WORKERS`: Number of workers to use.
-- `RELOAD`: If `True`, this will enable auto-reload when you modify files, useful for development.
-- `WITH_UI`: If `True`, The Gradio UI will be available at `/ui`.
+
 
 ## Get help and support
 

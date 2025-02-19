@@ -105,8 +105,6 @@ jobs:
           cache-to: type=gha,mode=max
           file: Containerfile
           build-args: ${{ inputs.build_args }}
-            # |
-            # --build-arg CPU_ONLY=true
 
       - name: Generate artifact attestation
         if: ${{ inputs.publish }}
@@ -137,8 +135,6 @@ jobs:
           cache-to: type=gha,mode=max
           file: Containerfile
           build-args: ${{ inputs.build_args }}
-            # |
-            # --build-arg CPU_ONLY=true
 
       - name: Remove Local Docker Images
         run: |

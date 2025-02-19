@@ -2,8 +2,8 @@ ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
 FROM ${BASE_IMAGE}
 
-ARG CPU_ONLY=false
 ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
+ARG UV_SYNC_EXTRA_ARGS=""
 
 USER 0
 
@@ -41,17 +41,10 @@ ENV PYTHONIOENCODING=utf-8
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
 
-ENV WITH_UI=True
-
 COPY --chown=1001:0 pyproject.toml uv.lock README.md ./
 
 RUN --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
-    if [ "$CPU_ONLY" = "true" ]; then \
-        NO_EXTRA=cu124; \
-    else \
-        NO_EXTRA=cpu; \
-    fi && \
-    uv sync --frozen --no-install-project --no-dev --all-extras --no-extra ${NO_EXTRA}
+    uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
 
 RUN echo "Downloading models..." && \
     docling-tools models download ${MODELS_LIST} && \
@@ -59,8 +52,9 @@ RUN echo "Downloading models..." && \
     chmod -R g=u /opt/app-root/src/.cache
 
 COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
-
+RUN --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
+    uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
 
 EXPOSE 5001
 
-CMD ["python", "-m", "docling_serve"]
+CMD ["docling-serve", "run"]
