@@ -5,8 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class UvicornSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="UVICORN_",
-        env_file=".env",  # extra="allow"
+        env_prefix="UVICORN_", env_file=".env", extra="allow"
     )
 
     host: str = "0.0.0.0"
@@ -19,8 +18,7 @@ class UvicornSettings(BaseSettings):
 
 class DoclingServeSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="DOCLING_SERVE_",
-        env_file=".env",  # extra="allow"
+        env_prefix="DOCLING_SERVE_", env_file=".env", extra="allow"
     )
 
     enable_ui: bool = False
