@@ -293,11 +293,11 @@ The response can be a JSON Document or a File.
 ### CPU only
 
 ```sh
-# Install poetry if not already available
-curl -sSL https://install.python-poetry.org | python3 -
+# Install uv if not already available
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies
-poetry install --with cpu
+uv sync --extra cpu
 ```
 
 ### Cuda GPU
@@ -306,8 +306,24 @@ For GPU support use the following command:
 
 ```sh
 # Install dependencies
-poetry install
+uv sync
 ```
+
+### Gradio UI and different OCR backends
+
+`/ui` endpoint using `gradio` and different OCR backends can be enabled via package extras:
+
+```
+# Enable ui and rapidocr
+uv sync --extra ui --extra rapidocr
+```
+
+```
+# Enable tesserocr
+uv sync --extra tesserocr
+```
+
+See `[project.optional-dependencies]` section in `pyproject.toml` for full list of options.
 
 ### Run the server
 

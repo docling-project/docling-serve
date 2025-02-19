@@ -65,13 +65,12 @@ md-lint: .md-lint ##      Lint markdown files
 .PHONY: py-Lint
 py-lint: ##      Lint Python files
 	$(ECHO_PREFIX) printf "  %-12s ./...\n" "[PY LINT]"
-	$(CMD_PREFIX) if ! which poetry $(PIPE_DEV_NULL) ; then \
-		echo "Please install poetry." ; \
-		echo "pip install poetry" ; \
+	$(CMD_PREFIX) if ! which uv $(PIPE_DEV_NULL) ; then \
+		echo "Please install uv." ; \
 		exit 1 ; \
 	fi
-	$(CMD_PREFIX) poetry install --all-extras
-	$(CMD_PREFIX) poetry run pre-commit run --all-files
+	$(CMD_PREFIX) uv sync --extra ui
+	$(CMD_PREFIX) uv run pre-commit run --all-files
 
 .PHONY: run-docling-cpu
 run-docling-cpu: ## Run the docling-serve container with CPU support and assign a container name

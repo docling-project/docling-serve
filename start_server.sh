@@ -21,7 +21,7 @@ if [ "$RELOAD" == "true" ]; then
 fi
 
 # Launch
-exec poetry run uvicorn \
+exec uv run uvicorn \
     docling_serve.app:app \
     --host=${HOST} \
     --port=${PORT} \
