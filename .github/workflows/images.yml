@@ -54,6 +54,7 @@ jobs:
       environment: registry-creds
       build_args: |
         CPU_ONLY=false
+      platforms: linux/amd64
       ghcr_image_name: ds4sd/docling-serve
       quay_image_name: ds4sd/docling-serve
 
