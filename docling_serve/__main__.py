@@ -3,7 +3,8 @@ import logging
 import platform
 import sys
 import warnings
-from typing import Annotated, Any, Union
+from pathlib import Path
+from typing import Annotated, Any, Optional, Union
 
 import typer
 import uvicorn
@@ -161,6 +162,15 @@ def dev(
         ),
     ] = uvicorn_settings.proxy_headers,
     # docling options
+    artifacts_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            help=(
+                "If set to a valid directory, "
+                "the model weights will be loaded from this path."
+            )
+        ),
+    ] = docling_serve_settings.artifacts_path,
     enable_ui: Annotated[bool, typer.Option(help="Enable the development UI.")] = True,
 ) -> Any:
     """
@@ -179,6 +189,7 @@ def dev(
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
 
+    docling_serve_settings.artifacts_path = artifacts_path
     docling_serve_settings.enable_ui = enable_ui
 
     _run(
@@ -243,6 +254,15 @@ def run(
         ),
     ] = uvicorn_settings.proxy_headers,
     # docling options
+    artifacts_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            help=(
+                "If set to a valid directory, "
+                "the model weights will be loaded from this path."
+            )
+        ),
+    ] = docling_serve_settings.artifacts_path,
     enable_ui: Annotated[
         bool, typer.Option(help="Enable the development UI.")
     ] = docling_serve_settings.enable_ui,
@@ -264,6 +284,7 @@ def run(
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
 
+    docling_serve_settings.artifacts_path = artifacts_path
     docling_serve_settings.enable_ui = enable_ui
 
     _run(

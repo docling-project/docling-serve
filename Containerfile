@@ -41,13 +41,15 @@ ENV PYTHONIOENCODING=utf-8
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
 
+ENV DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
+
 COPY --chown=1001:0 pyproject.toml uv.lock README.md ./
 
 RUN --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
 
 RUN echo "Downloading models..." && \
-    docling-tools models download ${MODELS_LIST} && \
+    docling-tools models download -o "${DOCLING_SERVE_ARTIFACTS_PATH}" ${MODELS_LIST} && \
     chown -R 1001:0 /opt/app-root/src/.cache && \
     chmod -R g=u /opt/app-root/src/.cache
 

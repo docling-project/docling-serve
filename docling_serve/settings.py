@@ -1,4 +1,5 @@
-from typing import Union
+from pathlib import Path
+from typing import Optional, Union
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,10 +19,14 @@ class UvicornSettings(BaseSettings):
 
 class DoclingServeSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="DOCLING_SERVE_", env_file=".env", extra="allow"
+        env_prefix="DOCLING_SERVE_",
+        env_file=".env",
+        env_parse_none_str="",
+        extra="allow",
     )
 
     enable_ui: bool = False
+    artifacts_path: Optional[Path] = None
 
 
 uvicorn_settings = UvicornSettings()

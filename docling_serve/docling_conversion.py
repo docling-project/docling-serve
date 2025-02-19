@@ -39,6 +39,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from docling_serve.helper_functions import _to_list_of_strings
+from docling_serve.settings import docling_serve_settings
 
 _log = logging.getLogger(__name__)
 
@@ -276,6 +277,11 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
     if pdf_format_option.pipeline_options:
         data["pipeline_options"] = pdf_format_option.pipeline_options.model_dump()
 
+        # Replace `artifacts_path` with a string representation
+        data["pipeline_options"]["artifacts_path"] = repr(
+            data["pipeline_options"]["artifacts_path"]
+        )
+
     # Replace `pipeline_cls` with a string representation
     data["pipeline_cls"] = repr(data["pipeline_cls"])
 
@@ -293,7 +299,7 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 
 
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
-def get_pdf_pipeline_opts(
+def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
 ) -> Tuple[PdfFormatOption, str]:
 
@@ -363,6 +369,31 @@ def get_pdf_pipeline_opts(
         backend = PyPdfiumDocumentBackend
     else:
         raise RuntimeError(f"Unexpected PDF backend type {request.pdf_backend}")
+
+    if docling_serve_settings.artifacts_path is not None:
+        if str(docling_serve_settings.artifacts_path.absolute()) == "":
+            _log.info(
+                "artifacts_path is an empty path, model weights will be dowloaded "
+                "at runtime."
+            )
+            pipeline_options.artifacts_path = None
+        elif docling_serve_settings.artifacts_path.is_dir():
+            _log.info(
+                "artifacts_path is set to a valid directory. "
+                "No model weights will be downloaded at runtime."
+            )
+            pipeline_options.artifacts_path = docling_serve_settings.artifacts_path
+        else:
+            _log.warning(
+                "artifacts_path is set to an invalid directory. "
+                "The system will download the model weights at runtime."
+            )
+            pipeline_options.artifacts_path = None
+    else:
+        _log.info(
+            "artifacts_path is unset. "
+            "The system will download the model weights at runtime."
+        )
 
     pdf_format_option = PdfFormatOption(
         pipeline_options=pipeline_options,

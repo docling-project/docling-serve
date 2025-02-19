@@ -381,6 +381,9 @@ $ docling-serve dev --help
 │ --proxy-headers    --no-proxy-headers             Enable/Disable X-Forwarded-Proto, X-Forwarded-For,       │
 │                                                   X-Forwarded-Port to populate remote address info.        │
 │                                                   [default: proxy-headers]                                 │
+│ --artifacts-path                          PATH     If set to a valid directory, the model weights will be  │
+│                                                    loaded from this path.                                  │
+│                                                    [default: None]                                         │
 │ --enable-ui        --no-enable-ui                 Enable the development UI. [default: enable-ui]          │
 │ --help                                            Show this message and exit.                              │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -398,11 +401,11 @@ The environment variables controlling the `uvicorn` execution can be specified w
 The environment variables controlling specifics of the Docling Serve app can be specified with the
 `DOCLING_SERVE_` prefix:
 
+- `DOCLING_SERVE_ARTIFACTS_PATH`: if set Docling will use only the local weights of models, for example `/opt/app-root/src/.cache/docling/models`.
 - `DOCLING_SERVE_ENABLE_UI`: If `True`, The Gradio UI will be available at `/ui`.
 
 Others:
 
-- `DOCLING_ARTIFACTS_PATH`: if set Docling will use only the local weights of models, for example `/opt/app-root/.cache/docling/cache`.
 - `TESSDATA_PREFIX`: Tesseract data location, example `/usr/share/tesseract/tessdata/`.
 
 ## Get help and support
