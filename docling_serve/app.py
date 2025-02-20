@@ -8,21 +8,26 @@ from typing import Annotated, Any, Dict, List, Optional, Union
 from fastapi import BackgroundTasks, FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.document_converter import DocumentConverter
 
-from docling_serve.docling_conversion import (
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.requests import (
     ConvertDocumentFileSourcesRequest,
-    ConvertDocumentsOptions,
     ConvertDocumentsRequest,
+)
+from docling_serve.datamodel.responses import (
+    ConvertDocumentResponse,
+    HealthCheckResponse,
+)
+from docling_serve.docling_conversion import (
     convert_documents,
     converters,
     get_pdf_pipeline_opts,
 )
 from docling_serve.helper_functions import FormDepends
-from docling_serve.response_preparation import ConvertDocumentResponse, process_results
+from docling_serve.response_preparation import process_results
 from docling_serve.settings import docling_serve_settings
 
 
@@ -138,10 +143,6 @@ def create_app():
             url="https://ds4sd.github.io/docling/assets/logo.png"
         )
         return response
-
-    # Status
-    class HealthCheckResponse(BaseModel):
-        status: str = "ok"
 
     @app.get("/health")
     def health() -> HealthCheckResponse:
