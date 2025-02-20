@@ -6,13 +6,14 @@ import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
+from fastapi import BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
 from docling_core.types.doc import DoclingDocument, ImageRefMode
-from fastapi import BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
 from docling_serve.docling_conversion import ConvertDocumentsOptions
 

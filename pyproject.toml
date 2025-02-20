@@ -123,7 +123,8 @@ include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
-known_third_party = ["docling", "docling_core"]
+known_docling = ["docling", "docling_core"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DOCLING", "FIRSTPARTY", "LOCALFOLDER"]
 line_length = 88
 py_version=311
 
@@ -146,7 +147,6 @@ module = [
     "easyocr.*",
     "tesserocr.*",
     "rapidocr_onnxruntime.*",
-    # "gradio_ui.*",
     "requests.*",
 ]
 ignore_missing_imports = true

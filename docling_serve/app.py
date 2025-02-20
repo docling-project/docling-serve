@@ -5,12 +5,13 @@ from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Optional, Union
 
-from docling.datamodel.base_models import DocumentStream, InputFormat
-from docling.document_converter import DocumentConverter
 from fastapi import BackgroundTasks, FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+
+from docling.datamodel.base_models import DocumentStream, InputFormat
+from docling.document_converter import DocumentConverter
 
 from docling_serve.docling_conversion import (
     ConvertDocumentFileSourcesRequest,

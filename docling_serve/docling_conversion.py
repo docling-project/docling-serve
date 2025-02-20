@@ -17,6 +17,9 @@ from typing import (
     Union,
 )
 
+from fastapi import HTTPException
+from pydantic import BaseModel, Field
+
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
 from docling.backend.pdf_backend import PdfDocumentBackend
@@ -35,8 +38,6 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
 from docling_core.types.doc import ImageRefMode
-from fastapi import HTTPException
-from pydantic import BaseModel, Field
 
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings
