@@ -56,7 +56,7 @@ class ConvertDocumentsOptions(BaseModel):
             ),
             examples=[[v.value for v in InputFormat]],
         ),
-    ] = [v for v in InputFormat]
+    ] = list(InputFormat)
 
     to_formats: Annotated[
         List[OutputFormat],
@@ -162,7 +162,7 @@ class ConvertDocumentsOptions(BaseModel):
         bool,
         Field(
             description=(
-                "Abort on error if enabled. " "Boolean. Optional, defaults to false."
+                "Abort on error if enabled. Boolean. Optional, defaults to false."
             ),
             # examples=[False],
         ),
@@ -302,7 +302,6 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
 ) -> Tuple[PdfFormatOption, str]:
-
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401

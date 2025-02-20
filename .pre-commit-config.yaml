@@ -3,38 +3,6 @@ repos:
   - repo: local
     hooks:
       - id: system
-        name: Black
-        entry: uv run --no-sync black docling_serve tests
-        pass_filenames: false
-        language: system
-        files: '\.py$'
-  - repo: local
-    hooks:
-      - id: system
-        name: isort
-        entry: uv run --no-sync isort docling_serve tests
-        pass_filenames: false
-        language: system
-        files: '\.py$'
-  - repo: local
-    hooks:
-      - id: autoflake
-        name: autoflake
-        entry: uv run --no-sync autoflake docling_serve tests
-        pass_filenames: false
-        language: system
-        files: '\.py$'
-  - repo: local
-    hooks:
-      - id: system
-        name: flake8
-        entry: uv run --no-sync flake8 docling_serve
-        pass_filenames: false
-        language: system
-        files: '\.py$'
-  - repo: local
-    hooks:
-      - id: system
         name: MyPy
         entry: uv run --no-sync mypy docling_serve
         pass_filenames: false
@@ -45,3 +13,12 @@ repos:
     rev: 0.6.1
     hooks:
       - id: uv-lock
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      # Run the Ruff linter.
+      - id: ruff
+        args: [--exit-non-zero-on-fix, --config=pyproject.toml]
+      # Run the Ruff formatter.
+      # - id: ruff-format
+      #   args: [--config=pyproject.toml]
