@@ -593,6 +593,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
 ]
 
 [package.optional-dependencies]
@@ -649,6 +650,7 @@ requires-dist = [
     { name = "torchvision", marker = "extra == 'cu124'", specifier = ">=0.21.0", index = "https://download.pytorch.org/whl/cu124", conflict = { package = "docling-serve", extra = "cu124" } },
     { name = "typer", specifier = "~=0.12" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29.0,<1.0.0" },
+    { name = "websockets", specifier = "~=14.0" },
 ]
 provides-extras = ["ui", "tesserocr", "rapidocr", "cpu", "cu124"]
 

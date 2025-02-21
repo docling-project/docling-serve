@@ -31,3 +31,9 @@ class ConvertDocumentResponse(BaseModel):
 
 class ConvertDocumentErrorResponse(BaseModel):
     status: ConversionStatus
+
+
+class TaskStatusResponse(BaseModel):
+    task_id: str
+    task_status: str
+    task_position: Optional[int] = None

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import tempfile
 from contextlib import asynccontextmanager
@@ -5,7 +6,15 @@ from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Optional, Union
 
-from fastapi import BackgroundTasks, FastAPI, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
@@ -20,11 +29,17 @@ from docling_serve.datamodel.requests import (
 from docling_serve.datamodel.responses import (
     ConvertDocumentResponse,
     HealthCheckResponse,
+    TaskStatusResponse,
 )
 from docling_serve.docling_conversion import (
     convert_documents,
     converters,
     get_pdf_pipeline_opts,
+)
+from docling_serve.engines import get_orchestrator
+from docling_serve.engines.async_local.orchestrator import (
+    AsyncLocalOrchestrator,
+    TaskNotFoundError,
 )
 from docling_serve.helper_functions import FormDepends
 from docling_serve.response_preparation import process_results
@@ -78,9 +93,22 @@ async def lifespan(app: FastAPI):
 
     converters[options_hash].initialize_pipeline(InputFormat.PDF)
 
+    orchestrator = get_orchestrator()
+
+    # Start the background queue processor
+    queue_task = asyncio.create_task(orchestrator.process_queue())
+
     yield
 
+    # Cancel the background queue processor on shutdown
+    queue_task.cancel()
+    try:
+        await queue_task
+    except asyncio.CancelledError:
+        _log.info("Queue processor cancelled.")
+
     converters.clear()
+
     # if WITH_UI:
     #     gradio_ui.close()
 
@@ -90,7 +118,7 @@ async def lifespan(app: FastAPI):
 ##################################
 
 
-def create_app():
+def create_app():  # noqa: C901
     app = FastAPI(
         title="Docling Serve",
         lifespan=lifespan,
@@ -228,5 +256,80 @@ def create_app():
         )
 
         return response
+
+    # Convert a document from URL(s) using the async api
+    @app.post(
+        "/v1alpha/convert/source/async",
+        response_model=TaskStatusResponse,
+    )
+    async def process_url_async(
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        conversion_request: ConvertDocumentsRequest,
+    ):
+        task = await orchestrator.enqueue(request=conversion_request)
+        task_queue_position = await orchestrator.get_queue_position(
+            task_id=task.task_id
+        )
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_status=task.task_status,
+            task_position=task_queue_position,
+        )
+
+    # Task status poll
+    @app.get(
+        "/v1alpha/status/poll/{task_id}",
+        response_model=TaskStatusResponse,
+    )
+    async def task_status_poll(
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        task_id: str,
+        wait: Annotated[
+            float, Query(help="Number of seconds to wait for a completed status.")
+        ] = 0.0,
+    ):
+        try:
+            task = await orchestrator.task_status(task_id=task_id, wait=wait)
+            task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found.")
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_status=task.task_status,
+            task_position=task_queue_position,
+        )
+
+    # Task status websocket
+    @app.websocket(
+        "/v1alpha/status/ws/{task_id}",
+    )
+    async def task_status_ws(
+        websocket: WebSocket,
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        task_id: str,
+    ):
+        pass
+
+    # Task result
+    @app.get(
+        "/v1alpha/result/{task_id}",
+        response_model=ConvertDocumentResponse,
+        responses={
+            200: {
+                "content": {"application/zip": {}},
+            }
+        },
+    )
+    async def task_result(
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        task_id: str,
+    ):
+        result = await orchestrator.task_result(task_id=task_id)
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Task result not found. Please wait for a completion status.",
+            )
+        return result
 
     return app

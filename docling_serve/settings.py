@@ -3,6 +3,8 @@ from typing import Optional, Union
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from docling_serve.datamodel.engines import AsyncEngine
+
 
 class UvicornSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -27,6 +29,9 @@ class DoclingServeSettings(BaseSettings):
 
     enable_ui: bool = False
     artifacts_path: Optional[Path] = None
+
+    eng_kind: AsyncEngine = AsyncEngine.LOCAL
+    eng_loc_num_workers: int = 2
 
 
 uvicorn_settings = UvicornSettings()
