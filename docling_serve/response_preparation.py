@@ -3,8 +3,9 @@ import os
 import shutil
 import tempfile
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Optional, Union
 
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus, ErrorItem
@@ -31,9 +32,9 @@ class DocumentResponse(BaseModel):
 class ConvertDocumentResponse(BaseModel):
     document: DocumentResponse
     status: ConversionStatus
-    errors: List[ErrorItem] = []
+    errors: list[ErrorItem] = []
     processing_time: float
-    timings: Dict[str, ProfilingItem] = {}
+    timings: dict[str, ProfilingItem] = {}
 
 
 class ConvertDocumentErrorResponse(BaseModel):

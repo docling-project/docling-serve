@@ -2,20 +2,10 @@ import base64
 import hashlib
 import json
 import logging
+from collections.abc import Iterable, Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Annotated, Any, Optional, Union
 
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
@@ -47,7 +37,7 @@ _log = logging.getLogger(__name__)
 # Define the input options for the API
 class ConvertDocumentsOptions(BaseModel):
     from_formats: Annotated[
-        List[InputFormat],
+        list[InputFormat],
         Field(
             description=(
                 "Input format(s) to convert from. String or list of strings. "
@@ -59,7 +49,7 @@ class ConvertDocumentsOptions(BaseModel):
     ] = list(InputFormat)
 
     to_formats: Annotated[
-        List[OutputFormat],
+        list[OutputFormat],
         Field(
             description=(
                 "Output format(s) to convert to. String or list of strings. "
@@ -120,7 +110,7 @@ class ConvertDocumentsOptions(BaseModel):
     ] = OcrEngine.EASYOCR
 
     ocr_lang: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         Field(
             description=(
                 "List of languages used by the OCR engine. "
@@ -224,7 +214,7 @@ class HttpSource(BaseModel):
         ),
     ]
     headers: Annotated[
-        Dict[str, Any],
+        dict[str, Any],
         Field(
             description="Additional headers used to fetch the urls, "
             "e.g. authorization, agent, etc"
@@ -252,11 +242,11 @@ class FileSource(BaseModel):
 
 
 class ConvertDocumentHttpSourcesRequest(DocumentsConvertBase):
-    http_sources: List[HttpSource]
+    http_sources: list[HttpSource]
 
 
 class ConvertDocumentFileSourcesRequest(DocumentsConvertBase):
-    file_sources: List[FileSource]
+    file_sources: list[FileSource]
 
 
 ConvertDocumentsRequest = Union[
@@ -265,7 +255,7 @@ ConvertDocumentsRequest = Union[
 
 
 # Document converters will be preloaded and stored in a dictionary
-converters: Dict[str, DocumentConverter] = {}
+converters: dict[str, DocumentConverter] = {}
 
 
 # Custom serializer for PdfFormatOption
@@ -301,7 +291,7 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
-) -> Tuple[PdfFormatOption, str]:
+) -> tuple[PdfFormatOption, str]:
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401
@@ -361,7 +351,7 @@ def get_pdf_pipeline_opts(  # noqa: C901
             pipeline_options.images_scale = request.images_scale
 
     if request.pdf_backend == PdfBackend.DLPARSE_V1:
-        backend: Type[PdfDocumentBackend] = DoclingParseDocumentBackend
+        backend: type[PdfDocumentBackend] = DoclingParseDocumentBackend
     elif request.pdf_backend == PdfBackend.DLPARSE_V2:
         backend = DoclingParseV2DocumentBackend
     elif request.pdf_backend == PdfBackend.PYPDFIUM2:
@@ -409,12 +399,12 @@ def get_pdf_pipeline_opts(  # noqa: C901
 def convert_documents(
     sources: Iterable[Union[Path, str, DocumentStream]],
     options: ConvertDocumentsOptions,
-    headers: Optional[Dict[str, Any]] = None,
+    headers: Optional[dict[str, Any]] = None,
 ):
     pdf_format_option, options_hash = get_pdf_pipeline_opts(options)
 
     if options_hash not in converters:
-        format_options: Dict[InputFormat, FormatOption] = {
+        format_options: dict[InputFormat, FormatOption] = {
             InputFormat.PDF: pdf_format_option,
             InputFormat.IMAGE: pdf_format_option,
         }

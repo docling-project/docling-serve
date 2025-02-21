@@ -3,7 +3,7 @@ import tempfile
 from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Optional, Union
 
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.document_converter import DocumentConverter
@@ -165,8 +165,8 @@ def create_app():
     def process_url(
         background_tasks: BackgroundTasks, conversion_request: ConvertDocumentsRequest
     ):
-        sources: List[Union[str, DocumentStream]] = []
-        headers: Optional[Dict[str, Any]] = None
+        sources: list[Union[str, DocumentStream]] = []
+        headers: Optional[dict[str, Any]] = None
         if isinstance(conversion_request, ConvertDocumentFileSourcesRequest):
             for file_source in conversion_request.file_sources:
                 sources.append(file_source.to_document_stream())
@@ -202,7 +202,7 @@ def create_app():
     )
     async def process_file(
         background_tasks: BackgroundTasks,
-        files: List[UploadFile],
+        files: list[UploadFile],
         options: Annotated[
             ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
         ],
