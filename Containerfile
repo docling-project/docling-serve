@@ -42,8 +42,6 @@ ENV \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
 
-COPY --chown=1001:0 README.md ./
-
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
