@@ -70,7 +70,6 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
 ) -> Tuple[PdfFormatOption, str]:
-
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401

@@ -19,7 +19,7 @@ class ConvertDocumentsOptions(BaseModel):
             ),
             examples=[[v.value for v in InputFormat]],
         ),
-    ] = [v for v in InputFormat]
+    ] = list(InputFormat)
 
     to_formats: Annotated[
         List[OutputFormat],
