@@ -64,7 +64,7 @@ cu124 = [
 [dependency-groups]
 dev = [
     "mypy~=1.11",
-    "pre-commit~=3.8",
+    "pre-commit-uv~=4.1",
     "pytest~=8.3",
     "pytest-asyncio~=0.24",
     "pytest-check~=2.4",
