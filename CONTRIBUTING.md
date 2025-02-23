@@ -142,8 +142,7 @@ poetry add NAME
 
 We use the following tools to enforce code style:
 
-- iSort, to sort imports
-- Black, to format code
+- ruff, to sort imports and format code
 
 We run a series of checks on the code base on every commit, using `pre-commit`. To install the hooks, run:
 
@@ -157,4 +156,4 @@ To run the checks on-demand, run:
 pre-commit run --all-files
 ```
 
-Note: Checks like `Black` and `isort` will "fail" if they modify files. This is because `pre-commit` doesn't like to see files modified by their Hooks. In these cases, `git add` the modified files and `git commit` again.
+Note: Formatting checks like `ruff` will "fail" if they modify files. This is because `pre-commit` doesn't like to see files modified by their Hooks. In these cases, `git add` the modified files and `git commit` again.
