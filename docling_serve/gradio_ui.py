@@ -12,6 +12,13 @@ from docling_serve.helper_functions import _to_list_of_strings
 
 logger = logging.getLogger(__name__)
 
+##############################
+# Head JS for web components #
+##############################
+head = """
+    <script src="https://unpkg.com/@docling/docling-components@0.0.3" type="module"></script>
+"""
+
 #################
 # CSS and theme #
 #################
@@ -48,6 +55,14 @@ css = """
 }
 #file_input_zone {
     height: 140px;
+}
+
+docling-img::part(pages) {
+    gap: 1rem;
+}
+
+docling-img::part(page) {
+    box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.2);
 }
 """
 
@@ -110,6 +125,7 @@ def set_download_button_label(label_text: gr.State):
 def clear_outputs():
     markdown_content = ""
     json_content = ""
+    json_rendered_content = ""
     html_content = ""
     text_content = ""
     doctags_content = ""
@@ -118,6 +134,7 @@ def clear_outputs():
         markdown_content,
         markdown_content,
         json_content,
+        json_rendered_content,
         html_content,
         html_content,
         text_content,
@@ -260,6 +277,7 @@ def process_file(
 def response_to_output(response, return_as_file):
     markdown_content = ""
     json_content = ""
+    json_rendered_content = ""
     html_content = ""
     text_content = ""
     doctags_content = ""
@@ -282,6 +300,12 @@ def response_to_output(response, return_as_file):
         json_content = json.dumps(
             full_content.get("document").get("json_content"), indent=2
         )
+        # Embed document JSON and trigger load at client via an image.
+        json_rendered_content = f"""
+            <docling-img id="dclimg" pagenumbers tooltip="parsed"></docling-img>
+            <script id="dcljson" type="application/json" onload="document.getElementById('dclimg').src = JSON.parse(document.getElementById('dcljson').textContent);">{json_content}</script>
+            <img src onerror="document.getElementById('dclimg').src = JSON.parse(document.getElementById('dcljson').textContent);" />
+            """
         html_content = full_content.get("document").get("html_content")
         text_content = full_content.get("document").get("text_content")
         doctags_content = full_content.get("document").get("doctags_content")
@@ -289,6 +313,7 @@ def response_to_output(response, return_as_file):
         markdown_content,
         markdown_content,
         json_content,
+        json_rendered_content,
         html_content,
         html_content,
         text_content,
@@ -302,6 +327,7 @@ def response_to_output(response, return_as_file):
 ############
 
 with gr.Blocks(
+    head=head,
     css=css,
     theme=theme,
     title="Docling Serve",
@@ -464,6 +490,8 @@ with gr.Blocks(
             output_markdown_rendered = gr.Markdown(label="Response")
         with gr.Tab("Docling (JSON)"):
             output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
+        with gr.Tab("Docling-Rendered"):
+            output_json_rendered = gr.HTML()
         with gr.Tab("HTML"):
             output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
         with gr.Tab("HTML-Rendered"):
@@ -514,6 +542,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
@@ -538,6 +567,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
@@ -553,6 +583,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
@@ -582,6 +613,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
@@ -606,6 +638,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
@@ -621,6 +654,7 @@ with gr.Blocks(
             output_markdown,
             output_markdown_rendered,
             output_json,
+            output_json_rendered,
             output_html,
             output_html_rendered,
             output_text,
