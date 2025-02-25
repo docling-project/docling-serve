@@ -338,43 +338,41 @@ See `[project.optional-dependencies]` section in `pyproject.toml` for full list 
 
 ### Run the server
 
-The `docling-serve` executable is a convenient script for launching the webserver both in
-development and production mode.
+UV will generate the virtual environment and place all the binaries in `.venv/bin`. Use the following commands to run the docling-serve
 
 ```sh
 # Run the server in development mode
 # - reload is enabled by default
 # - listening on the 127.0.0.1 address
 # - ui is enabled by default
-docling-serve dev
+uv run docling-serve dev
 
 # Run the server in production mode
 # - reload is disabled by default
 # - listening on the 0.0.0.0 address
 # - ui is disabled by default
-docling-serve run
+uv run docling-serve run
 ```
 
 ### Options
 
-The `docling-serve` executable allows is controlled with both command line
-options and environment variables.
+`docling-serve` supports both command line options and environment variables to configure the docling-serve.
 
 <details>
 <summary>`docling-serve` help message</summary>
 
 ```sh
 $ docling-serve dev --help
-                                                                                                              
- Usage: docling-serve dev [OPTIONS]                                                                           
-                                                                                                              
- Run a Docling Serve app in development mode. 🧪                                                              
- This is equivalent to docling-serve run but with reload                                                      
- enabled and listening on the 127.0.0.1 address.                                                              
-                                                                                                              
- Options can be set also with the corresponding ENV variable, with the exception                              
- of --enable-ui, --host and --reload.                                                                         
-                                                                                                              
+
+ Usage: docling-serve dev [OPTIONS]
+
+ Run a Docling Serve app in development mode. 🧪
+ This is equivalent to docling-serve run but with reload
+ enabled and listening on the 127.0.0.1 address.
+
+ Options can be set also with the corresponding ENV variable, with the exception
+ of --enable-ui, --host and --reload.
+
 ╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ --host                                   TEXT     The host to serve on. For local development in localhost │
 │                                                   use 127.0.0.1. To enable public access, e.g. in a        │

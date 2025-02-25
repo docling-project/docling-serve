@@ -38,6 +38,5 @@ jobs:
       publish: false
       build_args: |
         UV_SYNC_EXTRA_ARGS=--no-extra cpu
-      platforms: linux/amd64
       ghcr_image_name: ds4sd/docling-serve
       quay_image_name: ""
