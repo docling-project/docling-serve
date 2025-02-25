@@ -7,14 +7,6 @@ on:
   release:
     types: [published]
 
-# env:
-#   GHCR_REGISTRY: ghcr.io
-#   # GHCR_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
-#   # GHCR_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
-#   QUAY_REGISTRY: quay.io
-#   # QUAY_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
-#   # QUAY_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -54,7 +46,6 @@ jobs:
       environment: registry-creds
       build_args: |
         UV_SYNC_EXTRA_ARGS=--no-extra cpu
-      platforms: linux/amd64
       ghcr_image_name: ds4sd/docling-serve
       quay_image_name: ds4sd/docling-serve
 
