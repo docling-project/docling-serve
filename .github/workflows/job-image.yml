@@ -134,8 +134,7 @@ jobs:
       
       - name: Inspect the image details
         run: |
-          echo ${{ steps.ghcr_push.outputs.digest }}
-          echo ${{ steps.ghcr_push.outputs.metadata }}
+          echo "${{ steps.ghcr_push.outputs.metadata }}"
 
       - name: Remove Local Docker Images
         run: |
