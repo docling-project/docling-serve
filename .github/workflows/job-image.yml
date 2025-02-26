@@ -132,9 +132,10 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
       
-      - name: Inspect image sized
+      - name: Inspect the image details
         run: |
-          docker images | grep docling-serve      
+          echo ${{ steps.ghcr_push.outputs.digest }}
+          echo ${{ steps.ghcr_push.outputs.metadata }}
 
       - name: Remove Local Docker Images
         run: |
