@@ -8,8 +8,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_cpu_image:
-    name: Build docling-serve "CPU only" container image
+  build_image:
+    name: Build container image
+    strategy:
+      matrix:
+        spec:
+          - name: ds4sd/docling-serve
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu
+          - name: ds4sd/docling-serve-cpu
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cu124
+          - name: ds4sd/docling-serve-cu124
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cpu
+
     permissions:
       packages: write
       contents: read
@@ -19,25 +32,6 @@ jobs:
     uses: ./.github/workflows/job-image.yml
     with:
       publish: false
-      build_args: |
-        UV_SYNC_EXTRA_ARGS=--no-extra cu124
-      ghcr_image_name: ds4sd/docling-serve-cpu
-      quay_image_name: ""
-
-
-  build_gpu_image:
-    name: Build docling-serve (with GPU support) container image
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
-
-    uses: ./.github/workflows/job-image.yml
-    with:
-      publish: false
-      build_args: |
-        UV_SYNC_EXTRA_ARGS=--no-extra cpu
-      platforms: linux/amd64
-      ghcr_image_name: ds4sd/docling-serve
+      build_args: ${{ matrix.spec.build_args }}
+      ghcr_image_name: ${{ matrix.spec.name }}
       quay_image_name: ""

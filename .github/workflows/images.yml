@@ -7,21 +7,26 @@ on:
   release:
     types: [published]
 
-# env:
-#   GHCR_REGISTRY: ghcr.io
-#   # GHCR_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
-#   # GHCR_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
-#   QUAY_REGISTRY: quay.io
-#   # QUAY_DOCLING_SERVE_CPU_IMAGE_NAME: ds4sd/docling-serve-cpu
-#   # QUAY_DOCLING_SERVE_GPU_IMAGE_NAME: ds4sd/docling-serve
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_and_publish_cpu_images:
-    name: Push docling-serve "CPU only" container image to GHCR and QUAY
+  build_and_publish_images:
+    name: Build and push container image to GHCR and QUAY
+    strategy:
+      matrix:
+        spec:
+          - name: ds4sd/docling-serve
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu
+          - name: ds4sd/docling-serve-cpu
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cu124
+          - name: ds4sd/docling-serve-cu124
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-extra cpu
+
     permissions:
       packages: write
       contents: read
@@ -33,28 +38,6 @@ jobs:
     with:
       publish: true
       environment: registry-creds
-      build_args: |
-        UV_SYNC_EXTRA_ARGS=--no-extra cu124
-      ghcr_image_name: ds4sd/docling-serve-cpu
-      quay_image_name: ds4sd/docling-serve-cpu
-
-
-  build_and_publish_gpu_images:
-    name: Push docling-serve (with GPU support) container image to GHCR and QUAY
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
-    secrets: inherit
-
-    uses: ./.github/workflows/job-image.yml
-    with:
-      publish: true
-      environment: registry-creds
-      build_args: |
-        UV_SYNC_EXTRA_ARGS=--no-extra cpu
-      platforms: linux/amd64
-      ghcr_image_name: ds4sd/docling-serve
-      quay_image_name: ds4sd/docling-serve
-
+      build_args: ${{ matrix.spec.build_args }}
+      ghcr_image_name: ${{ matrix.spec.name }}
+      quay_image_name: ${{ matrix.spec.name }}
