@@ -1,3 +1,4 @@
+import enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -37,3 +38,15 @@ class TaskStatusResponse(BaseModel):
     task_id: str
     task_status: str
     task_position: Optional[int] = None
+
+
+class MessageKind(str, enum.Enum):
+    CONNECTION = "connection"
+    UPDATE = "update"
+    ERROR = "error"
+
+
+class WebsocketMessage(BaseModel):
+    message: MessageKind
+    task: Optional[TaskStatusResponse] = None
+    error: Optional[str] = None

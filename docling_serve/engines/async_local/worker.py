@@ -41,17 +41,17 @@ class AsyncLocalWorker:
                 task.task_status = TaskStatus.STARTED
                 _log.info(f"Worker {self.worker_id} processing task {task_id}")
 
-                # Notify clients about queue updates
-                # await notify_all_queue_positions()
+                # Notify clients about task updates
+                await self.orchestrator.notify_task_subscribers(task_id)
 
-                # await job.notification_queue.put(
-                #     {"status": "processing", "message": "Job is processing."}
-                # )
+                # Notify clients about queue updates
+                await self.orchestrator.notify_queue_positions()
 
                 # Get the current event loop
                 asyncio.get_event_loop()
 
                 # Define a callback function to send progress updates to the client.
+                # TODO: send partial updates, e.g. when a document in the batch is done
                 def run_conversion():
                     sources: List[Union[str, DocumentStream]] = []
                     headers: Optional[Dict[str, Any]] = None
@@ -104,14 +104,6 @@ class AsyncLocalWorker:
                 task.result = response
                 task.request = None
 
-                # Handle the result and notify the client
-                # await job.notification_queue.put(
-                #     {
-                #         "status": "completed",
-                #         "image": encoded_image,
-                #         "processing_time": processing_time,
-                #     }
-                # )
                 task.task_status = TaskStatus.SUCCESS
                 _log.info(
                     f"Worker {self.worker_id} completed job {task_id} "
@@ -123,9 +115,8 @@ class AsyncLocalWorker:
                     f"Worker {self.worker_id} failed to process job {task_id}: {e}"
                 )
                 task.task_status = TaskStatus.FAILURE
-                # await job.notification_queue.put(
-                # {"status": "failed", "message": str(e)})
 
             finally:
+                await self.orchestrator.notify_task_subscribers(task_id)
                 self.orchestrator.task_queue.task_done()
                 _log.debug(f"Worker {self.worker_id} completely done with {task_id}")

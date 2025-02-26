@@ -14,6 +14,7 @@ from fastapi import (
     Query,
     UploadFile,
     WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -29,7 +30,9 @@ from docling_serve.datamodel.requests import (
 from docling_serve.datamodel.responses import (
     ConvertDocumentResponse,
     HealthCheckResponse,
+    MessageKind,
     TaskStatusResponse,
+    WebsocketMessage,
 )
 from docling_serve.docling_conversion import (
     convert_documents,
@@ -81,7 +84,6 @@ _log = logging.getLogger(__name__)
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
     # Converter with default options
     pdf_format_option, options_hash = get_pdf_pipeline_opts(ConvertDocumentsOptions())
     converters[options_hash] = DocumentConverter(
@@ -113,6 +115,25 @@ async def lifespan(app: FastAPI):
     #     gradio_ui.close()
 
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
 ##################################
 # App creation and configuration #
 ##################################
@@ -138,7 +159,6 @@ def create_app():  # noqa: C901
 
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
-
         try:
             import gradio as gr
 
@@ -237,7 +257,6 @@ def create_app():  # noqa: C901
             ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
         ],
     ):
-
         _log.info(f"Received {len(files)} files for processing.")
 
         # Load the uploaded files to Docling DocumentStream
@@ -308,7 +327,57 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
         task_id: str,
     ):
-        pass
+        await websocket.accept()
+
+        if task_id not in orchestrator.tasks:
+            await websocket.send_text(
+                WebsocketMessage(
+                    message=MessageKind.ERROR, error="Task not found."
+                ).model_dump_json()
+            )
+            await websocket.close()
+            return
+
+        task = orchestrator.tasks[task_id]
+
+        # Track active WebSocket connections for this job
+        orchestrator.task_subscribers[task_id].add(websocket)
+
+        try:
+            task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
+            task_response = TaskStatusResponse(
+                task_id=task.task_id,
+                task_status=task.task_status,
+                task_position=task_queue_position,
+            )
+            await websocket.send_text(
+                WebsocketMessage(
+                    message=MessageKind.CONNECTION, task=task_response
+                ).model_dump_json()
+            )
+            while True:
+                task_queue_position = await orchestrator.get_queue_position(
+                    task_id=task_id
+                )
+                task_response = TaskStatusResponse(
+                    task_id=task.task_id,
+                    task_status=task.task_status,
+                    task_position=task_queue_position,
+                )
+                await websocket.send_text(
+                    WebsocketMessage(
+                        message=MessageKind.UPDATE, task=task_response
+                    ).model_dump_json()
+                )
+                # each client message will be interpreted as a request for update
+                msg = await websocket.receive_text()
+                _log.debug(f"Received message: {msg}")
+
+        except WebSocketDisconnect:
+            _log.info(f"WebSocket disconnected for job {task_id}")
+
+        finally:
+            orchestrator.task_subscribers[task_id].remove(websocket)
 
     # Task result
     @app.get(
