@@ -132,9 +132,9 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
       
-      - name: Inspect the image details
-        run: |
-          echo "${{ steps.ghcr_push.outputs.metadata }}"
+      # - name: Inspect the image details
+      #   run: |
+      #     echo "${{ steps.ghcr_push.outputs.metadata }}"
 
       - name: Remove Local Docker Images
         run: |
