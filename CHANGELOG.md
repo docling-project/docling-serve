@@ -1,3 +1,10 @@
+## [v0.4.0](https://github.com/DS4SD/docling-serve/releases/tag/v0.4.0) - 2025-02-26
+
+### Feature
+
+* New container images ([#68](https://github.com/DS4SD/docling-serve/issues/68)) ([`7e6d9cd`](https://github.com/DS4SD/docling-serve/commit/7e6d9cdef398df70a5b4d626aeb523c428c10d56))
+* Render DoclingDocument with npm docling-components in the example UI ([#65](https://github.com/DS4SD/docling-serve/issues/65)) ([`c430d9b`](https://github.com/DS4SD/docling-serve/commit/c430d9b1a162ab29104d86ebaa1ac5a5488b1f09))
+
 ## [v0.3.0](https://github.com/DS4SD/docling-serve/releases/tag/v0.3.0) - 2025-02-19
 
 ### Feature

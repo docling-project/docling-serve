@@ -24,6 +24,13 @@ action-lint-file:
 md-lint-file:
 	$(CMD_PREFIX) touch .markdown-lint
 
+.PHONY: docling-serve-image
+docling-serve-image: Containerfile
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve]"
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu" -f Containerfile -t ghcr.io/ds4sd/docling-serve:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) ghcr.io/ds4sd/docling-serve:main
+	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) quay.io/ds4sd/docling-serve:main
+
 .PHONY: docling-serve-cpu-image
 docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve CPU]"
@@ -31,12 +38,12 @@ docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" contain
 	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cpu:$(TAG) ghcr.io/ds4sd/docling-serve-cpu:main
 	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cpu:$(TAG) quay.io/ds4sd/docling-serve-cpu:main
 
-.PHONY: docling-serve-gpu-image
-docling-serve-gpu-image: Containerfile ## Build docling-serve container image with GPU support
-	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with GPU]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cpu" -f Containerfile --platform linux/amd64 -t ghcr.io/ds4sd/docling-serve:$(TAG) .
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) ghcr.io/ds4sd/docling-serve:main
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) quay.io/ds4sd/docling-serve:main
+.PHONY: docling-serve-cu124-image
+docling-serve-cu124-image: Containerfile ## Build docling-serve container image with GPU support
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.4]"
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cpu" -f Containerfile --platform linux/amd64 -t ghcr.io/ds4sd/docling-serve-cu124:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cu124:$(TAG) ghcr.io/ds4sd/docling-serve-cu124:main
+	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cu124:$(TAG) quay.io/ds4sd/docling-serve-cu124:main
 
 .PHONY: action-lint
 action-lint: .action-lint ##      Lint GitHub Action workflows

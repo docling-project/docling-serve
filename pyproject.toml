@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "0.3.0"  # DO NOT EDIT, updated automatically
+version = "0.4.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [

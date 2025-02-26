@@ -33,7 +33,7 @@ _log = logging.getLogger(__name__)
 
 
 # Document converters will be preloaded and stored in a dictionary
-converters: Dict[str, DocumentConverter] = {}
+converters: Dict[bytes, DocumentConverter] = {}
 
 
 # Custom serializer for PdfFormatOption
@@ -69,7 +69,7 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
-) -> Tuple[PdfFormatOption, str]:
+) -> Tuple[PdfFormatOption, bytes]:
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401
@@ -169,7 +169,7 @@ def get_pdf_pipeline_opts(  # noqa: C901
 
     serialized_data = _serialize_pdf_format_option(pdf_format_option)
 
-    options_hash = hashlib.sha1(serialized_data.encode()).hexdigest()
+    options_hash = hashlib.sha1(serialized_data.encode()).digest()
 
     return pdf_format_option, options_hash
 
