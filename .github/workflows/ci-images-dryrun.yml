@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   build_image:
-    name: Build container image
+    name: Build ${{ matrix.spec.name }} container image
     strategy:
       matrix:
         spec:

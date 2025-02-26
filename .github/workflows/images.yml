@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build_and_publish_images:
-    name: Build and push container image to GHCR and QUAY
+    name: Build and push ${{ matrix.spec.name }} container image to GHCR and QUAY
     strategy:
       matrix:
         spec:
