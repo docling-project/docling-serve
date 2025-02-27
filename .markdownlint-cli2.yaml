@@ -4,5 +4,7 @@ config:
   first-line-heading: false
   MD033:
     allowed_elements: ["details", "summary"]
+  MD024:
+    siblings_only: true
 globs:
   - "**/*.md"
