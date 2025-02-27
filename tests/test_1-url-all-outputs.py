@@ -83,7 +83,7 @@ async def test_convert_url(async_client):
         check.is_in(
             '{"schema_name": "DoclingDocument"',
             json.dumps(data["document"]["json_content"]),
-            msg=f"JSON document should contain '{{\\n  \"schema_name\": \"DoclingDocument'\". Received: {safe_slice(data['document']['json_content'])}",
+            msg=f'JSON document should contain \'{{\\n  "schema_name": "DoclingDocument\'". Received: {safe_slice(data["document"]["json_content"])}',
         )
     # HTML check
     check.is_in(

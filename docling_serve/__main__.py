@@ -298,5 +298,4 @@ def main() -> None:
 
 # Launch the CLI when calling python -m docling_serve
 if __name__ == "__main__":
-
     main()

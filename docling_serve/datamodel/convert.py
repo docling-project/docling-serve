@@ -125,7 +125,7 @@ class ConvertDocumentsOptions(BaseModel):
         bool,
         Field(
             description=(
-                "Abort on error if enabled. " "Boolean. Optional, defaults to false."
+                "Abort on error if enabled. Boolean. Optional, defaults to false."
             ),
             # examples=[False],
         ),

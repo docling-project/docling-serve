@@ -333,7 +333,6 @@ with gr.Blocks(
     title="Docling Serve",
     delete_cache=(3600, 3600),  # Delete all files older than 1 hour every hour
 ) as ui:
-
     # Constants stored in states to be able to pass them as inputs to functions
     processing_text = gr.State("Processing your document(s), please wait...")
     true_bool = gr.State(True)
@@ -593,9 +592,7 @@ with gr.Blocks(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
         outputs=[content_output, file_output],
-    ).then(
-        clear_url_input, inputs=None, outputs=[url_input]
-    )
+    ).then(clear_url_input, inputs=None, outputs=[url_input])
 
     # File processing
     file_process_btn.click(
@@ -664,6 +661,4 @@ with gr.Blocks(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
         outputs=[content_output, file_output],
-    ).then(
-        clear_file_input, inputs=None, outputs=[file_input]
-    )
+    ).then(clear_file_input, inputs=None, outputs=[file_input])
