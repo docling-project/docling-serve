@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import threading
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
@@ -21,8 +20,6 @@ _log = logging.getLogger(__name__)
 
 
 class AsyncLocalWorker:
-    _lock = threading.Lock()
-
     def __init__(self, worker_id: int, orchestrator: "AsyncLocalOrchestrator"):
         self.worker_id = worker_id
         self.orchestrator = orchestrator
@@ -64,22 +61,19 @@ class AsyncLocalWorker:
                             if headers is None and http_source.headers:
                                 headers = http_source.headers
 
-                    # TODO: When Docling will puts locks around Pypdfium2
-                    # we could run in parallel without the lock
-                    with AsyncLocalWorker._lock:
-                        # Note: results are only an iterator->lazy evaluation
-                        results = convert_documents(
-                            sources=sources,
-                            options=task.request.options,
-                            headers=headers,
-                        )
+                    # Note: results are only an iterator->lazy evaluation
+                    results = convert_documents(
+                        sources=sources,
+                        options=task.request.options,
+                        headers=headers,
+                    )
 
-                        # The real processing will happen here
-                        response = process_results(
-                            background_tasks=BackgroundTasks(),
-                            conversion_options=task.request.options,
-                            conv_results=results,
-                        )
+                    # The real processing will happen here
+                    response = process_results(
+                        background_tasks=BackgroundTasks(),
+                        conversion_options=task.request.options,
+                        conv_results=results,
+                    )
 
                     return response
 

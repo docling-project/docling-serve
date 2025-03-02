@@ -53,7 +53,7 @@ RUN echo "Downloading models..." && \
     chown -R 1001:0 /opt/app-root/src/.cache && \
     chmod -R g=u /opt/app-root/src/.cache
 
-COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
+COPY --chown=1001:0 ./docling_serve ./docling_serve
 RUN --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
 

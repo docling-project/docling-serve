@@ -1,4 +1,5 @@
 import json
+import random
 import time
 
 import httpx
@@ -16,6 +17,14 @@ async def async_client():
 async def test_convert_url(async_client):
     """Test convert URL to all outputs"""
 
+    example_docs = [
+        "https://arxiv.org/pdf/2411.19710",
+        "https://arxiv.org/pdf/2501.17887",
+        "https://www.nature.com/articles/s41467-024-50779-y.pdf",
+        "https://arxiv.org/pdf/2306.12802",
+        "https://arxiv.org/pdf/2311.18481",
+    ]
+
     base_url = "http://localhost:5001/v1alpha"
     payload = {
         "options": {
@@ -25,7 +34,7 @@ async def test_convert_url(async_client):
             "abort_on_error": False,
             "return_as_file": False,
         },
-        "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}],
+        "http_sources": [{"url": random.choice(example_docs)}],
     }
     print(json.dumps(payload, indent=2))
 
