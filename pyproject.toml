@@ -30,7 +30,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.23",
+    "docling~=2.25.1",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "pydantic~=2.10",
