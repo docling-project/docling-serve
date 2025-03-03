@@ -104,7 +104,7 @@ curl -X 'POST' \
     "return_as_file": false,
     "do_table_structure": true,
     "include_images": true,
-    "images_scale": 2,
+    "images_scale": 2
   },
   "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }'
