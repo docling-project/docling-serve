@@ -41,7 +41,6 @@ ENV \
     UV_PROJECT_ENVIRONMENT=/opt/app-root \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
-
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
