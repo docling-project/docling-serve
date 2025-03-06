@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 import tempfile
 from contextlib import asynccontextmanager
@@ -60,7 +61,6 @@ _log = logging.getLogger(__name__)
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
     # Converter with default options
     pdf_format_option, options_hash = get_pdf_pipeline_opts(ConvertDocumentsOptions())
     converters[options_hash] = DocumentConverter(
@@ -85,9 +85,17 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
+    try:
+        version = importlib.metadata.version("docling_serve")
+    except importlib.metadata.PackageNotFoundError:
+        _log.warning("Unable to get docling_serve version, falling back to 0.0.0")
+
+        version = "0.0.0"
+
     app = FastAPI(
         title="Docling Serve",
         lifespan=lifespan,
+        version=version,
     )
 
     origins = ["*"]
@@ -104,7 +112,6 @@ def create_app():
 
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
-
         try:
             import gradio as gr
 
@@ -207,7 +214,6 @@ def create_app():
             ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
         ],
     ):
-
         _log.info(f"Received {len(files)} files for processing.")
 
         # Load the uploaded files to Docling DocumentStream
