@@ -16,7 +16,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          prune-cache: false
 
       - name: pre-commit cache key
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
