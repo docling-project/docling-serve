@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from fastapi import BackgroundTasks
 
@@ -50,8 +50,8 @@ class AsyncLocalWorker:
                 # Define a callback function to send progress updates to the client.
                 # TODO: send partial updates, e.g. when a document in the batch is done
                 def run_conversion():
-                    sources: List[Union[str, DocumentStream]] = []
-                    headers: Optional[Dict[str, Any]] = None
+                    sources: list[Union[str, DocumentStream]] = []
+                    headers: Optional[dict[str, Any]] = None
                     if isinstance(task.request, ConvertDocumentFileSourcesRequest):
                         for file_source in task.request.file_sources:
                             sources.append(file_source.to_document_stream())

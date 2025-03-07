@@ -3,8 +3,9 @@ import os
 import shutil
 import tempfile
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Union
 
 from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse

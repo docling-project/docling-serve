@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from typing import Dict, List, Optional, Set
+from typing import Optional
 
 from fastapi import WebSocket
 
@@ -30,9 +30,9 @@ class TaskNotFoundError(OrchestratorError):
 class AsyncLocalOrchestrator(BaseOrchestrator):
     def __init__(self):
         self.task_queue = asyncio.Queue()
-        self.tasks: Dict[str, Task] = {}
-        self.queue_list: List[str] = []
-        self.task_subscribers: Dict[str, Set[WebSocket]] = {}
+        self.tasks: dict[str, Task] = {}
+        self.queue_list: list[str] = []
+        self.task_subscribers: dict[str, set[WebSocket]] = {}
 
     async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
         task_id = str(uuid.uuid4())

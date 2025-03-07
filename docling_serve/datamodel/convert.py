@@ -1,5 +1,5 @@
 # Define the input options for the API
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,7 @@ from docling_core.types.doc import ImageRefMode
 
 class ConvertDocumentsOptions(BaseModel):
     from_formats: Annotated[
-        List[InputFormat],
+        list[InputFormat],
         Field(
             description=(
                 "Input format(s) to convert from. String or list of strings. "
@@ -22,7 +22,7 @@ class ConvertDocumentsOptions(BaseModel):
     ] = list(InputFormat)
 
     to_formats: Annotated[
-        List[OutputFormat],
+        list[OutputFormat],
         Field(
             description=(
                 "Output format(s) to convert to. String or list of strings. "
@@ -83,7 +83,7 @@ class ConvertDocumentsOptions(BaseModel):
     ] = OcrEngine.EASYOCR
 
     ocr_lang: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         Field(
             description=(
                 "List of languages used by the OCR engine. "

@@ -1,8 +1,9 @@
 import hashlib
 import json
 import logging
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from fastapi import HTTPException
 
@@ -33,7 +34,7 @@ _log = logging.getLogger(__name__)
 
 
 # Document converters will be preloaded and stored in a dictionary
-converters: Dict[bytes, DocumentConverter] = {}
+converters: dict[bytes, DocumentConverter] = {}
 
 
 # Custom serializer for PdfFormatOption
@@ -69,7 +70,7 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
-) -> Tuple[PdfFormatOption, bytes]:
+) -> tuple[PdfFormatOption, bytes]:
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401
@@ -129,7 +130,7 @@ def get_pdf_pipeline_opts(  # noqa: C901
             pipeline_options.images_scale = request.images_scale
 
     if request.pdf_backend == PdfBackend.DLPARSE_V1:
-        backend: Type[PdfDocumentBackend] = DoclingParseDocumentBackend
+        backend: type[PdfDocumentBackend] = DoclingParseDocumentBackend
     elif request.pdf_backend == PdfBackend.DLPARSE_V2:
         backend = DoclingParseV2DocumentBackend
     elif request.pdf_backend == PdfBackend.PYPDFIUM2:
@@ -177,12 +178,12 @@ def get_pdf_pipeline_opts(  # noqa: C901
 def convert_documents(
     sources: Iterable[Union[Path, str, DocumentStream]],
     options: ConvertDocumentsOptions,
-    headers: Optional[Dict[str, Any]] = None,
+    headers: Optional[dict[str, Any]] = None,
 ):
     pdf_format_option, options_hash = get_pdf_pipeline_opts(options)
 
     if options_hash not in converters:
-        format_options: Dict[InputFormat, FormatOption] = {
+        format_options: dict[InputFormat, FormatOption] = {
             InputFormat.PDF: pdf_format_option,
             InputFormat.IMAGE: pdf_format_option,
         }

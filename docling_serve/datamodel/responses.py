@@ -1,5 +1,5 @@
 import enum
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -25,9 +25,9 @@ class DocumentResponse(BaseModel):
 class ConvertDocumentResponse(BaseModel):
     document: DocumentResponse
     status: ConversionStatus
-    errors: List[ErrorItem] = []
+    errors: list[ErrorItem] = []
     processing_time: float
-    timings: Dict[str, ProfilingItem] = {}
+    timings: dict[str, ProfilingItem] = {}
 
 
 class ConvertDocumentErrorResponse(BaseModel):

@@ -1,6 +1,6 @@
 import inspect
 import re
-from typing import List, Type, Union
+from typing import Union
 
 from fastapi import Depends, Form
 from pydantic import BaseModel
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 # Adapted from
 # https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
-def FormDepends(cls: Type[BaseModel]):
+def FormDepends(cls: type[BaseModel]):
     new_parameters = []
 
     for field_name, model_field in cls.model_fields.items():
@@ -34,8 +34,8 @@ def FormDepends(cls: Type[BaseModel]):
     return Depends(as_form_func)
 
 
-def _to_list_of_strings(input_value: Union[str, List[str]]) -> List[str]:
-    def split_and_strip(value: str) -> List[str]:
+def _to_list_of_strings(input_value: Union[str, list[str]]) -> list[str]:
+    def split_and_strip(value: str) -> list[str]:
         if re.search(r"[;,]", value):
             return [item.strip() for item in re.split(r"[;,]", value)]
         else:

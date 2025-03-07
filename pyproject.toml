@@ -145,7 +145,8 @@ select = [
     "S307", # eval
     # "T20",  # (disallow print statements) keep debugging statements out of the codebase
     "W",  # pycodestyle warnings
-    "ASYNC" # async
+    "ASYNC", # async
+    "UP", # pyupgrade
 ]
 
 ignore = [
@@ -154,6 +155,7 @@ ignore = [
     "F811", # "redefinition of the same function"
     "PL", # Pylint
     "RUF012", # Mutable Class Attributes
+    "UP007", # Option and Union
 ]
 
 #extend-select = []

@@ -1,6 +1,6 @@
 import base64
 from io import BytesIO
-from typing import Annotated, Any, Dict, List, Union
+from typing import Annotated, Any, Union
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +22,7 @@ class HttpSource(BaseModel):
         ),
     ]
     headers: Annotated[
-        Dict[str, Any],
+        dict[str, Any],
         Field(
             description="Additional headers used to fetch the urls, "
             "e.g. authorization, agent, etc"
@@ -50,11 +50,11 @@ class FileSource(BaseModel):
 
 
 class ConvertDocumentHttpSourcesRequest(DocumentsConvertBase):
-    http_sources: List[HttpSource]
+    http_sources: list[HttpSource]
 
 
 class ConvertDocumentFileSourcesRequest(DocumentsConvertBase):
-    file_sources: List[FileSource]
+    file_sources: list[FileSource]
 
 
 ConvertDocumentsRequest = Union[
