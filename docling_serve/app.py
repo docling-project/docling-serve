@@ -1,4 +1,5 @@
 import asyncio
+import importlib.metadata
 import logging
 import tempfile
 from contextlib import asynccontextmanager
@@ -121,9 +122,17 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():  # noqa: C901
+    try:
+        version = importlib.metadata.version("docling_serve")
+    except importlib.metadata.PackageNotFoundError:
+        _log.warning("Unable to get docling_serve version, falling back to 0.0.0")
+
+        version = "0.0.0"
+
     app = FastAPI(
         title="Docling Serve",
         lifespan=lifespan,
+        version=version,
     )
 
     origins = ["*"]

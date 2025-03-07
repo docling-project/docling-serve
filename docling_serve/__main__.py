@@ -1,4 +1,4 @@
-import importlib
+import importlib.metadata
 import logging
 import platform
 import sys
@@ -51,9 +51,7 @@ def version_callback(value: bool) -> None:
 def callback(
     version: Annotated[
         Union[bool, None],
-        typer.Option(
-            "--version", help="Show the version and exit.", callback=version_callback
-        ),
+        typer.Option(help="Show the version and exit.", callback=version_callback),
     ] = None,
     verbose: Annotated[
         int,
