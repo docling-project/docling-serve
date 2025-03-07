@@ -57,18 +57,18 @@ async def test_convert_file(async_client):
     content_disposition = response.headers.get("content-disposition")
 
     with check:
-        assert (
-            content_disposition is not None
-        ), "Content-Disposition header should be present"
+        assert content_disposition is not None, (
+            "Content-Disposition header should be present"
+        )
     with check:
         assert "attachment" in content_disposition, "Response should be an attachment"
     with check:
-        assert (
-            'filename="converted_docs.zip"' in content_disposition
-        ), "Attachment filename should be 'converted_docs.zip'"
+        assert 'filename="converted_docs.zip"' in content_disposition, (
+            "Attachment filename should be 'converted_docs.zip'"
+        )
 
     content_type = response.headers.get("content-type")
     with check:
-        assert (
-            content_type == "application/zip"
-        ), "Content-Type should be 'application/zip'"
+        assert content_type == "application/zip", (
+            "Content-Type should be 'application/zip'"
+        )

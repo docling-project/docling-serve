@@ -30,7 +30,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.23",
+    "docling~=2.25.1",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -38,6 +38,7 @@ dependencies = [
     "python-multipart>=0.0.14,<0.1.0",
     "typer~=0.12",
     "uvicorn[standard]>=0.29.0,<1.0.0",
+    "websockets~=14.0",
 ]
 
 [project.optional-dependencies]
@@ -164,9 +165,19 @@ ignore = [
 [tool.ruff.lint.mccabe]
 max-complexity = 15
 
+[tool.ruff.lint.isort.sections]
+"docling" = ["docling", "docling_core"]
+
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-third-party = ["docling", "docling_core"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "docling",
+  "first-party",
+  "local-folder",
+]
 
 [tool.mypy]
 pretty = true
@@ -180,10 +191,6 @@ module = [
     "easyocr.*",
     "tesserocr.*",
     "rapidocr_onnxruntime.*",
-    "docling_conversion.*",
-    "gradio_ui.*",
-    "response_preparation.*",
-    "helper_functions.*",
     "requests.*",
 ]
 ignore_missing_imports = true

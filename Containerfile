@@ -45,19 +45,19 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
+    uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
 RUN echo "Downloading models..." && \
     docling-tools models download -o "${DOCLING_SERVE_ARTIFACTS_PATH}" ${MODELS_LIST} && \
     chown -R 1001:0 /opt/app-root/src/.cache && \
     chmod -R g=u /opt/app-root/src/.cache
 
-COPY --chown=1001:0 --chmod=664 ./docling_serve ./docling_serve
+COPY --chown=1001:0 ./docling_serve ./docling_serve
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}   # --no-extra ${NO_EXTRA}
+    uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
 EXPOSE 5001
 

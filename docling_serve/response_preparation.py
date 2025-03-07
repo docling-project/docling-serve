@@ -4,40 +4,19 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Iterable, Union
 
-from docling.datamodel.base_models import OutputFormat
-from docling.datamodel.document import ConversionResult, ConversionStatus, ErrorItem
-from docling.utils.profiling import ProfilingItem
-from docling_core.types.doc import DoclingDocument, ImageRefMode
 from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
-from docling_serve.docling_conversion import ConvertDocumentsOptions
+from docling.datamodel.base_models import OutputFormat
+from docling.datamodel.document import ConversionResult, ConversionStatus
+from docling_core.types.doc import ImageRefMode
+
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse
 
 _log = logging.getLogger(__name__)
-
-
-class DocumentResponse(BaseModel):
-    filename: str
-    md_content: Optional[str] = None
-    json_content: Optional[DoclingDocument] = None
-    html_content: Optional[str] = None
-    text_content: Optional[str] = None
-    doctags_content: Optional[str] = None
-
-
-class ConvertDocumentResponse(BaseModel):
-    document: DocumentResponse
-    status: ConversionStatus
-    errors: List[ErrorItem] = []
-    processing_time: float
-    timings: Dict[str, ProfilingItem] = {}
-
-
-class ConvertDocumentErrorResponse(BaseModel):
-    status: ConversionStatus
 
 
 def _export_document_as_content(
@@ -49,7 +28,6 @@ def _export_document_as_content(
     export_doctags: bool,
     image_mode: ImageRefMode,
 ):
-
     document = DocumentResponse(filename=conv_res.input.file.name)
 
     if conv_res.status == ConversionStatus.SUCCESS:
@@ -86,7 +64,6 @@ def _export_documents_as_files(
     export_doctags: bool,
     image_export_mode: ImageRefMode,
 ):
-
     success_count = 0
     failure_count = 0
 
@@ -150,7 +127,6 @@ def process_results(
     conversion_options: ConvertDocumentsOptions,
     conv_results: Iterable[ConversionResult],
 ) -> Union[ConvertDocumentResponse, FileResponse]:
-
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()

@@ -1,27 +1,16 @@
-import base64
 import hashlib
 import json
 import logging
-from io import BytesIO
 from pathlib import Path
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple, Type, Union
+
+from fastapi import HTTPException
 
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
 from docling.backend.pdf_backend import PdfDocumentBackend
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
-from docling.datamodel.base_models import DocumentStream, InputFormat, OutputFormat
+from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
@@ -35,233 +24,12 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
 from docling_core.types.doc import ImageRefMode
-from fastapi import HTTPException
-from pydantic import BaseModel, Field
 
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings
 
 _log = logging.getLogger(__name__)
-
-
-# Define the input options for the API
-class ConvertDocumentsOptions(BaseModel):
-    from_formats: Annotated[
-        List[InputFormat],
-        Field(
-            description=(
-                "Input format(s) to convert from. String or list of strings. "
-                f"Allowed values: {', '.join([v.value for v in InputFormat])}. "
-                "Optional, defaults to all formats."
-            ),
-            examples=[[v.value for v in InputFormat]],
-        ),
-    ] = list(InputFormat)
-
-    to_formats: Annotated[
-        List[OutputFormat],
-        Field(
-            description=(
-                "Output format(s) to convert to. String or list of strings. "
-                f"Allowed values: {', '.join([v.value for v in OutputFormat])}. "
-                "Optional, defaults to Markdown."
-            ),
-            examples=[[OutputFormat.MARKDOWN]],
-        ),
-    ] = [OutputFormat.MARKDOWN]
-
-    image_export_mode: Annotated[
-        ImageRefMode,
-        Field(
-            description=(
-                "Image export mode for the document (in case of JSON,"
-                " Markdown or HTML). "
-                f"Allowed values: {', '.join([v.value for v in ImageRefMode])}. "
-                "Optional, defaults to Embedded."
-            ),
-            examples=[ImageRefMode.EMBEDDED.value],
-            # pattern="embedded|placeholder|referenced",
-        ),
-    ] = ImageRefMode.EMBEDDED
-
-    do_ocr: Annotated[
-        bool,
-        Field(
-            description=(
-                "If enabled, the bitmap content will be processed using OCR. "
-                "Boolean. Optional, defaults to true"
-            ),
-            # examples=[True],
-        ),
-    ] = True
-
-    force_ocr: Annotated[
-        bool,
-        Field(
-            description=(
-                "If enabled, replace existing text with OCR-generated "
-                "text over content. Boolean. Optional, defaults to false."
-            ),
-            # examples=[False],
-        ),
-    ] = False
-
-    # TODO: use a restricted list based on what is installed on the system
-    ocr_engine: Annotated[
-        OcrEngine,
-        Field(
-            description=(
-                "The OCR engine to use. String. "
-                "Allowed values: easyocr, tesseract, rapidocr. "
-                "Optional, defaults to easyocr."
-            ),
-            examples=[OcrEngine.EASYOCR],
-        ),
-    ] = OcrEngine.EASYOCR
-
-    ocr_lang: Annotated[
-        Optional[List[str]],
-        Field(
-            description=(
-                "List of languages used by the OCR engine. "
-                "Note that each OCR engine has "
-                "different values for the language names. String or list of strings. "
-                "Optional, defaults to empty."
-            ),
-            examples=[["fr", "de", "es", "en"]],
-        ),
-    ] = None
-
-    pdf_backend: Annotated[
-        PdfBackend,
-        Field(
-            description=(
-                "The PDF backend to use. String. "
-                f"Allowed values: {', '.join([v.value for v in PdfBackend])}. "
-                f"Optional, defaults to {PdfBackend.DLPARSE_V2.value}."
-            ),
-            examples=[PdfBackend.DLPARSE_V2],
-        ),
-    ] = PdfBackend.DLPARSE_V2
-
-    table_mode: Annotated[
-        TableFormerMode,
-        Field(
-            TableFormerMode.FAST,
-            description=(
-                "Mode to use for table structure, String. "
-                f"Allowed values: {', '.join([v.value for v in TableFormerMode])}. "
-                "Optional, defaults to fast."
-            ),
-            examples=[TableFormerMode.FAST],
-            # pattern="fast|accurate",
-        ),
-    ] = TableFormerMode.FAST
-
-    abort_on_error: Annotated[
-        bool,
-        Field(
-            description=(
-                "Abort on error if enabled. Boolean. Optional, defaults to false."
-            ),
-            # examples=[False],
-        ),
-    ] = False
-
-    return_as_file: Annotated[
-        bool,
-        Field(
-            description=(
-                "Return the output as a zip file "
-                "(will happen anyway if multiple files are generated). "
-                "Boolean. Optional, defaults to false."
-            ),
-            examples=[False],
-        ),
-    ] = False
-
-    do_table_structure: Annotated[
-        bool,
-        Field(
-            description=(
-                "If enabled, the table structure will be extracted. "
-                "Boolean. Optional, defaults to true."
-            ),
-            examples=[True],
-        ),
-    ] = True
-
-    include_images: Annotated[
-        bool,
-        Field(
-            description=(
-                "If enabled, images will be extracted from the document. "
-                "Boolean. Optional, defaults to true."
-            ),
-            examples=[True],
-        ),
-    ] = True
-
-    images_scale: Annotated[
-        float,
-        Field(
-            description="Scale factor for images. Float. Optional, defaults to 2.0.",
-            examples=[2.0],
-        ),
-    ] = 2.0
-
-
-class DocumentsConvertBase(BaseModel):
-    options: ConvertDocumentsOptions = ConvertDocumentsOptions()
-
-
-class HttpSource(BaseModel):
-    url: Annotated[
-        str,
-        Field(
-            description="HTTP url to process",
-            examples=["https://arxiv.org/pdf/2206.01062"],
-        ),
-    ]
-    headers: Annotated[
-        Dict[str, Any],
-        Field(
-            description="Additional headers used to fetch the urls, "
-            "e.g. authorization, agent, etc"
-        ),
-    ] = {}
-
-
-class FileSource(BaseModel):
-    base64_string: Annotated[
-        str,
-        Field(
-            description="Content of the file serialized in base64. "
-            "For example it can be obtained via "
-            "`base64 -w 0 /path/to/file/pdf-to-convert.pdf`."
-        ),
-    ]
-    filename: Annotated[
-        str,
-        Field(description="Filename of the uploaded document", examples=["file.pdf"]),
-    ]
-
-    def to_document_stream(self) -> DocumentStream:
-        buf = BytesIO(base64.b64decode(self.base64_string))
-        return DocumentStream(stream=buf, name=self.filename)
-
-
-class ConvertDocumentHttpSourcesRequest(DocumentsConvertBase):
-    http_sources: List[HttpSource]
-
-
-class ConvertDocumentFileSourcesRequest(DocumentsConvertBase):
-    file_sources: List[FileSource]
-
-
-ConvertDocumentsRequest = Union[
-    ConvertDocumentFileSourcesRequest, ConvertDocumentHttpSourcesRequest
-]
 
 
 # Document converters will be preloaded and stored in a dictionary
