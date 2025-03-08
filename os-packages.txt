@@ -4,5 +4,3 @@ tesseract-langpack-eng
 leptonica-devel
 libglvnd-glx
 glib2
-wget
-git
