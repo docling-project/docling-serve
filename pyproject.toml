@@ -102,7 +102,7 @@ url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [tool.setuptools.packages.find]
-include = ["docling_serve"]
+include = ["docling_serve*"]
 namespaces = true
 
 [project.scripts]
