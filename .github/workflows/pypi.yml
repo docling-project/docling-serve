@@ -25,6 +25,8 @@ jobs:
         run: uv sync --all-extras --no-extra cu124
       - name: Build
         run: uv build
+      - name: Check wheel
+        run: unzip -l dist/*.whl
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
