@@ -48,6 +48,8 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
 RUN echo "Downloading models..." && \
+    HF_HUB_DOWNLOAD_TIMEOUT="90" \
+    HF_HUB_ETAG_TIMEOUT="90" \
     docling-tools models download -o "${DOCLING_SERVE_ARTIFACTS_PATH}" ${MODELS_LIST} && \
     chown -R 1001:0 /opt/app-root/src/.cache && \
     chmod -R g=u /opt/app-root/src/.cache
