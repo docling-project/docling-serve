@@ -8,7 +8,13 @@ permissions:
   contents: read
 
 jobs:
+
+  build-package:
+    uses: ./.github/workflows/job-build.yml
+
   build-and-publish:
+    needs:
+      - build-package
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -16,17 +22,11 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
-      - uses: actions/checkout@v4
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v5
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
         with:
-          enable-cache: true
-      - name: Install dependencies
-        run: uv sync --all-extras --no-extra cu124
-      - name: Build
-        run: uv build
-      - name: Check wheel
-        run: unzip -l dist/*.whl
+          name: python-package-distributions
+          path: dist/
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

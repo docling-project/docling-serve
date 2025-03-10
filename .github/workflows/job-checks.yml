@@ -21,25 +21,32 @@ jobs:
       - name: Run styling check
         run: uv run --no-sync pre-commit run --all-files
 
+  build-package:
+    uses: ./.github/workflows/job-build.yml
+
   test-package:
+    needs:
+      - build-package
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.12']
     steps:
-      - uses: actions/checkout@v4
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - name: Install dependencies
-        run: uv sync --all-extras --no-extra cu124
-      - name: Build package
-        run: uv build
-      - name: Check content of wheel
-        run: unzip -l dist/*.whl
-      
+      - name: Install package
+        run: uv pip install dist/*.whl
+      - name: Create the server
+        run: python -c 'from docling_serve.app import create_app; create_app()'
+
   markdown-lint:
     runs-on: ubuntu-latest
     steps:
