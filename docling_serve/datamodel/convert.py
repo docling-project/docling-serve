@@ -172,3 +172,47 @@ class ConvertDocumentsOptions(BaseModel):
             examples=[2.0],
         ),
     ] = 2.0
+
+    do_code_enrichment: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, perform OCR code enrichment. "
+                "Boolean. Optional, defaults to false."
+            ),
+            examples=[False],
+        ),
+    ] = False
+
+    do_formula_enrichment: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, perform formula OCR, return Latex code. "
+                "Boolean. Optional, defaults to false."
+            ),
+            examples=[False],
+        ),
+    ] = False
+
+    do_picture_classification: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, classify pictures in documents. "
+                "Boolean. Optional, defaults to false."
+            ),
+            examples=[False],
+        ),
+    ] = False
+
+    do_picture_description: Annotated[
+        bool,
+        Field(
+            description=(
+                "If enabled, describe pictures in documents. "
+                "Boolean. Optional, defaults to false."
+            ),
+            examples=[False],
+        ),
+    ] = False

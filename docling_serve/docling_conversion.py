@@ -120,6 +120,10 @@ def get_pdf_pipeline_opts(  # noqa: C901
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
         do_table_structure=request.do_table_structure,
+        do_code_enrichment=request.do_code_enrichment,
+        do_formula_enrichment=request.do_formula_enrichment,
+        do_picture_classification=request.do_picture_classification,
+        do_picture_description=request.do_picture_description,
     )
     pipeline_options.table_structure_options.do_cell_matching = True  # do_cell_matching
     pipeline_options.table_structure_options.mode = TableFormerMode(request.table_mode)
