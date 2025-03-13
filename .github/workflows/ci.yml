@@ -8,7 +8,7 @@ on:
 
 jobs:
   code-checks:
-    # if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name != 'DS4SD/docling-serve' && github.event.pull_request.head.repo.full_name != 'ds4sd/docling-serve') }}
+    # if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name != 'docling-project/docling-serve' && github.event.pull_request.head.repo.full_name != 'docling-project/docling-serve') }}
     uses: ./.github/workflows/job-checks.yml
     permissions:
       packages: write

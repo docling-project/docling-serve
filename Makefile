@@ -27,23 +27,23 @@ md-lint-file:
 .PHONY: docling-serve-image
 docling-serve-image: Containerfile
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu" -f Containerfile -t ghcr.io/ds4sd/docling-serve:$(TAG) .
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) ghcr.io/ds4sd/docling-serve:main
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve:$(TAG) quay.io/ds4sd/docling-serve:main
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu" -f Containerfile -t ghcr.io/docling-project/docling-serve:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve:$(TAG) ghcr.io/docling-project/docling-serve:main
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve:$(TAG) quay.io/ds4sd/docling-serve:main
 
 .PHONY: docling-serve-cpu-image
 docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve CPU]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124" -f Containerfile -t ghcr.io/ds4sd/docling-serve-cpu:$(TAG) .
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cpu:$(TAG) ghcr.io/ds4sd/docling-serve-cpu:main
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cpu:$(TAG) quay.io/ds4sd/docling-serve-cpu:main
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) ghcr.io/docling-project/docling-serve-cpu:main
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) quay.io/ds4sd/docling-serve-cpu:main
 
 .PHONY: docling-serve-cu124-image
 docling-serve-cu124-image: Containerfile ## Build docling-serve container image with GPU support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.4]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cpu" -f Containerfile --platform linux/amd64 -t ghcr.io/ds4sd/docling-serve-cu124:$(TAG) .
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cu124:$(TAG) ghcr.io/ds4sd/docling-serve-cu124:main
-	$(CMD_PREFIX) docker tag ghcr.io/ds4sd/docling-serve-cu124:$(TAG) quay.io/ds4sd/docling-serve-cu124:main
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cpu" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu124:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) ghcr.io/docling-project/docling-serve-cu124:main
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) quay.io/ds4sd/docling-serve-cu124:main
 
 .PHONY: action-lint
 action-lint: .action-lint ##      Lint GitHub Action workflows
@@ -84,11 +84,11 @@ run-docling-cpu: ## Run the docling-serve container with CPU support and assign 
 	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
 	$(CMD_PREFIX) docker rm -f docling-serve-cpu 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with CPU support on port 5001...\n" "[RUN CPU]"
-	$(CMD_PREFIX) docker run -it --name docling-serve-cpu -p 5001:5001 ghcr.io/ds4sd/docling-serve-cpu:main
+	$(CMD_PREFIX) docker run -it --name docling-serve-cpu -p 5001:5001 ghcr.io/docling-project/docling-serve-cpu:main
 
 .PHONY: run-docling-gpu
 run-docling-gpu: ## Run the docling-serve container with GPU support and assign a container name
 	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
 	$(CMD_PREFIX) docker rm -f docling-serve-gpu 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN GPU]"
-	$(CMD_PREFIX) docker run -it --name docling-serve-gpu -p 5001:5001 ghcr.io/ds4sd/docling-serve:main
+	$(CMD_PREFIX) docker run -it --name docling-serve-gpu -p 5001:5001 ghcr.io/docling-project/docling-serve:main

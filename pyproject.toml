@@ -109,11 +109,11 @@ namespaces = true
 docling-serve = "docling_serve.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/DS4SD/docling-serve"
+Homepage = "https://github.com/docling-project/docling-serve"
 # Documentation = "https://ds4sd.github.io/docling"
-Repository = "https://github.com/DS4SD/docling-serve"
-Issues = "https://github.com/DS4SD/docling-serve/issues"
-Changelog = "https://github.com/DS4SD/docling-serve/blob/main/CHANGELOG.md"
+Repository = "https://github.com/docling-project/docling-serve"
+Issues = "https://github.com/docling-project/docling-serve/issues"
+Changelog = "https://github.com/docling-project/docling-serve/blob/main/CHANGELOG.md"
 
 [tool.ruff]
 target-version = "py310"

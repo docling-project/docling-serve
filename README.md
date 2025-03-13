@@ -1,6 +1,6 @@
 # Docling Serve
 
- Running [Docling](https://github.com/DS4SD/docling) as an API service.
+ Running [Docling](https://github.com/docling-project/docling) as an API service.
 
 ## Usage
 
@@ -421,11 +421,11 @@ Others:
 
 ## Get help and support
 
-Please feel free to connect with us using the [discussion section](https://github.com/DS4SD/docling/discussions).
+Please feel free to connect with us using the [discussion section](https://github.com/docling-project/docling/discussions).
 
 ## Contributing
 
-Please read [Contributing to Docling Serve](https://github.com/DS4SD/docling-serve/blob/main/CONTRIBUTING.md) for details.
+Please read [Contributing to Docling Serve](https://github.com/docling-project/docling-serve/blob/main/CONTRIBUTING.md) for details.
 
 ## References
 
