@@ -185,6 +185,10 @@ def process_url(
     table_mode,
     abort_on_error,
     return_as_file,
+    do_code_enrichment,
+    do_formula_enrichment,
+    do_picture_classification,
+    do_picture_description,
 ):
     parameters = {
         "http_sources": [{"url": source} for source in input_sources.split(",")],
@@ -199,6 +203,10 @@ def process_url(
             "table_mode": table_mode,
             "abort_on_error": abort_on_error,
             "return_as_file": return_as_file,
+            "do_code_enrichment": do_code_enrichment,
+            "do_formula_enrichment": do_formula_enrichment,
+            "do_picture_classification": do_picture_classification,
+            "do_picture_description": do_picture_description,
         },
     }
     if (
@@ -237,6 +245,10 @@ def process_file(
     table_mode,
     abort_on_error,
     return_as_file,
+    do_code_enrichment,
+    do_formula_enrichment,
+    do_picture_classification,
+    do_picture_description,
 ):
     if not files or len(files) == 0 or files[0] == "":
         logger.error("No files provided.")
@@ -254,6 +266,10 @@ def process_file(
         "table_mode": table_mode,
         "abort_on_error": str(abort_on_error).lower(),
         "return_as_file": str(return_as_file).lower(),
+        "do_code_enrichment": str(do_code_enrichment).lower(),
+        "do_formula_enrichment": str(do_formula_enrichment).lower(),
+        "do_picture_classification": str(do_picture_classification).lower(),
+        "do_picture_description": str(do_picture_description).lower(),
     }
 
     try:
@@ -478,6 +494,13 @@ with gr.Blocks(
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)
                 return_as_file = gr.Checkbox(label="Return as File", value=False)
+        with gr.Row():
+            with gr.Column():
+                do_code_enrichment = gr.Checkbox(label="Enable code enrichment", value=False)
+                do_formula_enrichment = gr.Checkbox(label="Enable formula enrichment", value=False)
+            with gr.Column():
+                do_picture_classification = gr.Checkbox(label="Enable picture classification", value=False)
+                do_picture_description = gr.Checkbox(label="Enable picture description", value=False)
 
     # Document output
     with gr.Row(visible=False) as content_output:
@@ -561,6 +584,10 @@ with gr.Blocks(
             table_mode,
             abort_on_error,
             return_as_file,
+            do_code_enrichment,
+            do_formula_enrichment,
+            do_picture_classification,
+            do_picture_description,
         ],
         outputs=[
             output_markdown,
@@ -630,6 +657,10 @@ with gr.Blocks(
             table_mode,
             abort_on_error,
             return_as_file,
+            do_code_enrichment,
+            do_formula_enrichment,
+            do_picture_classification,
+            do_picture_description,
         ],
         outputs=[
             output_markdown,
