@@ -496,11 +496,19 @@ with gr.Blocks(
                 return_as_file = gr.Checkbox(label="Return as File", value=False)
         with gr.Row():
             with gr.Column():
-                do_code_enrichment = gr.Checkbox(label="Enable code enrichment", value=False)
-                do_formula_enrichment = gr.Checkbox(label="Enable formula enrichment", value=False)
+                do_code_enrichment = gr.Checkbox(
+                    label="Enable code enrichment", value=False
+                )
+                do_formula_enrichment = gr.Checkbox(
+                    label="Enable formula enrichment", value=False
+                )
             with gr.Column():
-                do_picture_classification = gr.Checkbox(label="Enable picture classification", value=False)
-                do_picture_description = gr.Checkbox(label="Enable picture description", value=False)
+                do_picture_classification = gr.Checkbox(
+                    label="Enable picture classification", value=False
+                )
+                do_picture_description = gr.Checkbox(
+                    label="Enable picture description", value=False
+                )
 
     # Document output
     with gr.Row(visible=False) as content_output:
