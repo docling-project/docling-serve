@@ -178,7 +178,7 @@ def create_app():  # noqa: C901
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
         response = RedirectResponse(
-            url="https://ds4sd.github.io/docling/assets/logo.png"
+            url="https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
         )
         return response
 

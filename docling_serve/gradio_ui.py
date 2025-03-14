@@ -359,7 +359,7 @@ with gr.Blocks(
         # Logo
         with gr.Column(scale=1, min_width=90):
             gr.Image(
-                "https://ds4sd.github.io/docling/assets/logo.png",
+                "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
                 height=80,
                 width=80,
                 show_download_button=False,

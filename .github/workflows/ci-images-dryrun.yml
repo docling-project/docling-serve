@@ -13,15 +13,15 @@ jobs:
     strategy:
       matrix:
         spec:
-          - name: ds4sd/docling-serve
+          - name: docling-project/docling-serve
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra cpu
             platforms: linux/amd64, linux/arm64
-          - name: ds4sd/docling-serve-cpu
+          - name: docling-project/docling-serve-cpu
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-extra cu124
             platforms: linux/amd64, linux/arm64
-          - name: ds4sd/docling-serve-cu124
+          - name: docling-project/docling-serve-cu124
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-extra cpu
             platforms: linux/amd64
