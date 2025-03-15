@@ -135,9 +135,9 @@ def create_app():  # noqa: C901
         version=version,
     )
 
-    origins = ["*"]
-    methods = ["*"]
-    headers = ["*"]
+    origins = docling_serve_settings.cors_origins
+    methods = docling_serve_settings.cors_methods
+    headers = docling_serve_settings.cors_headers
 
     app.add_middleware(
         CORSMiddleware,

@@ -30,6 +30,10 @@ class DoclingServeSettings(BaseSettings):
     enable_ui: bool = False
     artifacts_path: Optional[Path] = None
 
+    cors_origins: list[str] = ["*"]
+    cors_methods: list[str] = ["*"]
+    cors_headers: list[str] = ["*"]
+
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
     eng_loc_num_workers: int = 2
 
