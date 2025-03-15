@@ -16,6 +16,7 @@ class UvicornSettings(BaseSettings):
     reload: bool = False
     root_path: str = ""
     proxy_headers: bool = True
+    timeout_keep_alive: int = 60
     workers: Union[int, None] = None
 
 
