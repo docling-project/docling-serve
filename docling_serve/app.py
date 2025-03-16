@@ -20,8 +20,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from docling.datamodel.base_models import DocumentStream, InputFormat
-from docling.document_converter import DocumentConverter
+from docling.datamodel.base_models import DocumentStream
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import (
@@ -37,7 +36,7 @@ from docling_serve.datamodel.responses import (
 )
 from docling_serve.docling_conversion import (
     convert_documents,
-    converters,
+    get_converter,
     get_pdf_pipeline_opts,
 )
 from docling_serve.engines import get_orchestrator
@@ -86,15 +85,8 @@ _log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Converter with default options
-    pdf_format_option, options_hash = get_pdf_pipeline_opts(ConvertDocumentsOptions())
-    converters[options_hash] = DocumentConverter(
-        format_options={
-            InputFormat.PDF: pdf_format_option,
-            InputFormat.IMAGE: pdf_format_option,
-        }
-    )
-
-    converters[options_hash].initialize_pipeline(InputFormat.PDF)
+    pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
+    get_converter(pdf_format_option)
 
     orchestrator = get_orchestrator()
 
@@ -109,11 +101,6 @@ async def lifespan(app: FastAPI):
         await queue_task
     except asyncio.CancelledError:
         _log.info("Queue processor cancelled.")
-
-    converters.clear()
-
-    # if WITH_UI:
-    #     gradio_ui.close()
 
 
 ##################################

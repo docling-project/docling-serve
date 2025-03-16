@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 from collections.abc import Iterable, Iterator
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -33,13 +34,9 @@ from docling_serve.settings import docling_serve_settings
 _log = logging.getLogger(__name__)
 
 
-# Document converters will be preloaded and stored in a dictionary
-converters: dict[bytes, DocumentConverter] = {}
-
-
 # Custom serializer for PdfFormatOption
 # (model_dump_json does not work with some classes)
-def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
+def _hash_pdf_format_option(pdf_format_option: PdfFormatOption) -> bytes:
     data = pdf_format_option.model_dump()
 
     # pipeline_options are not fully serialized by model_dump, dedicated pass
@@ -64,13 +61,36 @@ def _serialize_pdf_format_option(pdf_format_option: PdfFormatOption) -> str:
         )
 
     # Serialize the dictionary to JSON with sorted keys to have consistent hashes
-    return json.dumps(data, sort_keys=True)
+    serialized_data = json.dumps(data, sort_keys=True)
+    options_hash = hashlib.sha1(serialized_data.encode()).digest()
+    return options_hash
+
+
+# Cache of DocumentConverter objects
+_options_map: dict[bytes, PdfFormatOption] = {}
+
+
+@lru_cache(maxsize=docling_serve_settings.options_cache_size)
+def _get_converter_from_hash(options_hash: bytes) -> DocumentConverter:
+    pdf_format_option = _options_map[options_hash]
+    format_options: dict[InputFormat, FormatOption] = {
+        InputFormat.PDF: pdf_format_option,
+        InputFormat.IMAGE: pdf_format_option,
+    }
+
+    return DocumentConverter(format_options=format_options)
+
+
+def get_converter(pdf_format_option: PdfFormatOption) -> DocumentConverter:
+    options_hash = _hash_pdf_format_option(pdf_format_option)
+    _options_map[options_hash] = pdf_format_option
+    return _get_converter_from_hash(options_hash)
 
 
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
-) -> tuple[PdfFormatOption, bytes]:
+) -> PdfFormatOption:
     if request.ocr_engine == OcrEngine.EASYOCR:
         try:
             import easyocr  # noqa: F401
@@ -172,11 +192,7 @@ def get_pdf_pipeline_opts(  # noqa: C901
         backend=backend,
     )
 
-    serialized_data = _serialize_pdf_format_option(pdf_format_option)
-
-    options_hash = hashlib.sha1(serialized_data.encode()).digest()
-
-    return pdf_format_option, options_hash
+    return pdf_format_option
 
 
 def convert_documents(
@@ -184,18 +200,9 @@ def convert_documents(
     options: ConvertDocumentsOptions,
     headers: Optional[dict[str, Any]] = None,
 ):
-    pdf_format_option, options_hash = get_pdf_pipeline_opts(options)
-
-    if options_hash not in converters:
-        format_options: dict[InputFormat, FormatOption] = {
-            InputFormat.PDF: pdf_format_option,
-            InputFormat.IMAGE: pdf_format_option,
-        }
-
-        converters[options_hash] = DocumentConverter(format_options=format_options)
-        _log.info(f"We now have {len(converters)} converters in memory.")
-
-    results: Iterator[ConversionResult] = converters[options_hash].convert_all(
+    pdf_format_option = get_pdf_pipeline_opts(options)
+    converter = get_converter(pdf_format_option)
+    results: Iterator[ConversionResult] = converter.convert_all(
         sources,
         headers=headers,
     )
