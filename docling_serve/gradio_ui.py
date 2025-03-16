@@ -1,7 +1,6 @@
 import importlib
 import json
 import logging
-import os
 import tempfile
 from pathlib import Path
 
@@ -9,6 +8,7 @@ import gradio as gr
 import requests
 
 from docling_serve.helper_functions import _to_list_of_strings
+from docling_serve.settings import uvicorn_settings
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ file_output_path = None  # Will be set when a new file is generated
 
 
 def health_check():
-    response = requests.get(f"http://localhost:{int(os.getenv('PORT', '5001'))}/health")
+    response = requests.get(f"http://localhost:{uvicorn_settings.port}/health")
     if response.status_code == 200:
         return "Healthy"
     return "Unhealthy"
@@ -218,7 +218,7 @@ def process_url(
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/source",
+            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/source",
             json=parameters,
         )
     except Exception as e:
@@ -274,7 +274,7 @@ def process_file(
 
     try:
         response = requests.post(
-            f"http://localhost:{int(os.getenv('PORT', '5001'))}/v1alpha/convert/file",
+            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/file",
             files=files_data,
             data=parameters,
         )
@@ -358,17 +358,21 @@ with gr.Blocks(
     with gr.Row(elem_id="check_health"):
         # Logo
         with gr.Column(scale=1, min_width=90):
-            gr.Image(
-                "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
-                height=80,
-                width=80,
-                show_download_button=False,
-                show_label=False,
-                show_fullscreen_button=False,
-                container=False,
-                elem_id="logo",
-                scale=0,
-            )
+            try:
+                gr.Image(
+                    "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
+                    height=80,
+                    width=80,
+                    show_download_button=False,
+                    show_label=False,
+                    show_fullscreen_button=False,
+                    container=False,
+                    elem_id="logo",
+                    scale=0,
+                )
+            except Exception:
+                logger.warning("Logo not found.")
+
         # Title
         with gr.Column(scale=1, min_width=200):
             gr.Markdown(

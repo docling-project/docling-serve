@@ -74,11 +74,37 @@ def callback(
 def _run(
     *,
     command: str,
+    # Docling serve parameters
+    artifacts_path: Path | None,
+    enable_ui: bool,
 ) -> None:
     server_type = "development" if command == "dev" else "production"
 
     console.print(f"Starting {server_type} server 🚀")
 
+    run_subprocess = (
+        uvicorn_settings.workers is not None and uvicorn_settings.workers > 1
+    ) or uvicorn_settings.reload
+
+    if run_subprocess and docling_serve_settings.artifacts_path != artifacts_path:
+        err_console.print(
+            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
+            "The argument [bold]--artifacts-path[/bold] will be ignored, please set the value \n"
+            "using the environment variable [bold]DOCLING_SERVE_ARTIFACTS_PATH[/bold].[/yellow]"
+        )
+
+    if run_subprocess and docling_serve_settings.enable_ui != enable_ui:
+        err_console.print(
+            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
+            "The argument [bold]--enable-ui[/bold] will be ignored, please set the value \n"
+            "using the environment variable [bold]DOCLING_SERVE_ENABLE_UI[/bold].[/yellow]"
+        )
+
+    # Propagate the settings to the app settings
+    docling_serve_settings.artifacts_path = artifacts_path
+    docling_serve_settings.enable_ui = enable_ui
+
+    # Print documentation
     url = f"http://{uvicorn_settings.host}:{uvicorn_settings.port}"
     url_docs = f"{url}/docs"
     url_ui = f"{url}/ui"
@@ -99,6 +125,7 @@ def _run(
     console.print("")
     console.print("Logs:")
 
+    # Launch the server
     uvicorn.run(
         app="docling_serve.app:create_app",
         factory=True,
@@ -108,6 +135,7 @@ def _run(
         workers=uvicorn_settings.workers,
         root_path=uvicorn_settings.root_path,
         proxy_headers=uvicorn_settings.proxy_headers,
+        timeout_keep_alive=uvicorn_settings.timeout_keep_alive,
     )
 
 
@@ -159,6 +187,9 @@ def dev(
             )
         ),
     ] = uvicorn_settings.proxy_headers,
+    timeout_keep_alive: Annotated[
+        int, typer.Option(help="Timeout for the server response.")
+    ] = uvicorn_settings.timeout_keep_alive,
     # docling options
     artifacts_path: Annotated[
         Optional[Path],
@@ -186,12 +217,12 @@ def dev(
     uvicorn_settings.reload = reload
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
-
-    docling_serve_settings.artifacts_path = artifacts_path
-    docling_serve_settings.enable_ui = enable_ui
+    uvicorn_settings.timeout_keep_alive = timeout_keep_alive
 
     _run(
         command="dev",
+        artifacts_path=artifacts_path,
+        enable_ui=enable_ui,
     )
 
 
@@ -251,6 +282,9 @@ def run(
             )
         ),
     ] = uvicorn_settings.proxy_headers,
+    timeout_keep_alive: Annotated[
+        int, typer.Option(help="Timeout for the server response.")
+    ] = uvicorn_settings.timeout_keep_alive,
     # docling options
     artifacts_path: Annotated[
         Optional[Path],
@@ -281,12 +315,12 @@ def run(
     uvicorn_settings.workers = workers
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
-
-    docling_serve_settings.artifacts_path = artifacts_path
-    docling_serve_settings.enable_ui = enable_ui
+    uvicorn_settings.timeout_keep_alive = timeout_keep_alive
 
     _run(
         command="run",
+        artifacts_path=artifacts_path,
+        enable_ui=enable_ui,
     )
 
 
