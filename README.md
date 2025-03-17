@@ -16,8 +16,9 @@ podman run -p 5001:5001 quay.io/docling-project/docling-serve
 ```
 
 The server is available at
-- API http://127.0.0.1:5001
-- API documentation http://127.0.0.1:5001/docs
+
+- API <http://127.0.0.1:5001>
+- API documentation <http://127.0.0.1:5001/docs>
   ![swagger.png](img/swagger.png)
 
 Try it out with a simple conversion:
