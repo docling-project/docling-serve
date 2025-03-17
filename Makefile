@@ -66,7 +66,7 @@ action-lint: .action-lint ##      Lint GitHub Action workflows
 md-lint: .md-lint ##      Lint markdown files
 .md-lint: $(wildcard */**/*.md) | md-lint-file
 	$(ECHO_PREFIX) printf "  %-12s ./...\n" "[MD LINT]"
-	$(CMD_PREFIX) docker run --rm -v $$(pwd):/workdir davidanson/markdownlint-cli2:v0.14.0 "**/*.md"
+	$(CMD_PREFIX) docker run --rm -v $$(pwd):/workdir davidanson/markdownlint-cli2:v0.16.0 "**/*.md" "#.venv"
 	$(CMD_PREFIX) touch $@
 
 .PHONY: py-Lint
