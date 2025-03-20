@@ -2,9 +2,6 @@ ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
 FROM ${BASE_IMAGE}
 
-ARG MODELS_LIST="layout tableformer picture_classifier easyocr" \
-    UV_SYNC_EXTRA_ARGS=""
-
 USER 0
 
 ###################################################################################################
@@ -41,11 +38,15 @@ ENV \
     UV_PROJECT_ENVIRONMENT=/opt/app-root \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
+ARG UV_SYNC_EXTRA_ARGS=""
+
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
+
+ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
 
 RUN echo "Downloading models..." && \
     HF_HUB_DOWNLOAD_TIMEOUT="90" \
