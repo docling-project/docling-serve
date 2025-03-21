@@ -1,13 +1,22 @@
 
 from fastapi import WebSocket
 
+from docling_serve.datamodel.callback import ProgressCallbackRequest
 from docling_serve.datamodel.engines import Task, TaskStatus
 from docling_serve.datamodel.responses import (
     MessageKind,
     TaskStatusResponse,
     WebsocketMessage,
 )
-from docling_serve.engines.base_orchestrator import BaseOrchestrator, TaskNotFoundError
+from docling_serve.engines.base_orchestrator import (
+    BaseOrchestrator,
+    OrchestratorError,
+    TaskNotFoundError,
+)
+
+
+class ProgressInvalid(OrchestratorError):
+    pass
 
 
 class BaseAsyncOrchestrator(BaseOrchestrator):
@@ -21,21 +30,23 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
         self.tasks[task.task_id] = task
         self.task_subscribers[task_id] = set()
 
-    async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
+    async def get_raw_task(self, task_id: str) -> Task:
         if task_id not in self.tasks:
             raise TaskNotFoundError()
         return self.tasks[task_id]
 
+    async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
+        return await self.get_raw_task(task_id=task_id)
+
     async def task_result(self, task_id: str):
-        if task_id not in self.tasks:
-            raise TaskNotFoundError()
-        return self.tasks[task_id].result
+        task = await self.get_raw_task(task_id=task_id)
+        return task.result
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
             raise RuntimeError(f"Task {task_id} does not have a subscribers list.")
 
-        task = self.tasks[task_id]
+        task = await self.get_raw_task(task_id=task_id)
         task_queue_position = await self.get_queue_position(task_id)
         msg = TaskStatusResponse(
             task_id=task.task_id,
@@ -56,3 +67,6 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
                 continue
 
             await self.notify_task_subscribers(task_id)
+
+    async def receive_task_progress(task_id: str, progress: ProgressCallbackRequest):
+        raise NotImplementedError()

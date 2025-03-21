@@ -22,6 +22,7 @@ from fastapi.responses import RedirectResponse
 
 from docling.datamodel.base_models import DocumentStream
 
+from docling_serve.datamodel.callback import ProgressCallbackRequest, ProgressCallbackResponse
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import (
     ConvertDocumentFileSourcesRequest,
@@ -39,9 +40,7 @@ from docling_serve.docling_conversion import (
     get_converter,
     get_pdf_pipeline_opts,
 )
-from docling_serve.engines.async_local.orchestrator import (
-    AsyncLocalOrchestrator,
-)
+from docling_serve.engines.async_orchestrator import BaseAsyncOrchestrator, ProgressInvalid
 from docling_serve.engines.async_orchestrator_factory import get_async_orchestrator
 from docling_serve.engines.base_orchestrator import TaskNotFoundError
 from docling_serve.helper_functions import FormDepends
@@ -259,7 +258,7 @@ def create_app():  # noqa: C901
         response_model=TaskStatusResponse,
     )
     async def process_url_async(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         conversion_request: ConvertDocumentsRequest,
     ):
         task = await orchestrator.enqueue(request=conversion_request)
@@ -278,7 +277,7 @@ def create_app():  # noqa: C901
         response_model=TaskStatusResponse,
     )
     async def task_status_poll(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
         wait: Annotated[
             float, Query(help="Number of seconds to wait for a completed status.")
@@ -301,7 +300,7 @@ def create_app():  # noqa: C901
     )
     async def task_status_ws(
         websocket: WebSocket,
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
     ):
         await websocket.accept()
@@ -367,7 +366,7 @@ def create_app():  # noqa: C901
         },
     )
     async def task_result(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
     ):
         result = await orchestrator.task_result(task_id=task_id)
@@ -382,13 +381,19 @@ def create_app():  # noqa: C901
     # Update task progress
     @app.post(
         "/v1alpha/callback/task/progress/{task_id}",
-        response_model=TaskStatusResponse,
+        response_model=ProgressCallbackResponse,
     )
-    async def task_status_poll(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+    async def callback_task_progress(
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
-        body,
+        progress_req: ProgressCallbackRequest,
     ):
-        pass
+        try:
+            await orchestrator.receive_task_progress(task_id=task_id, progress=progress_req)
+            return ProgressCallbackResponse(status="ack")
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found.")
+        except ProgressInvalid as err:
+            raise HTTPException(status_code=400, detail=f"Invalid progress payload: {err}")
 
     return app
