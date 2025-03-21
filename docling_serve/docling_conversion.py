@@ -10,24 +10,21 @@ from fastapi import HTTPException
 
 from docling.backend.docling_parse_backend import DoclingParseDocumentBackend
 from docling.backend.docling_parse_v2_backend import DoclingParseV2DocumentBackend
+from docling.backend.docling_parse_v4_backend import DoclingParseV4DocumentBackend
 from docling.backend.pdf_backend import PdfDocumentBackend
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
-    EasyOcrOptions,
-    OcrEngine,
     OcrOptions,
     PdfBackend,
     PdfPipelineOptions,
-    RapidOcrOptions,
     TableFormerMode,
-    TesseractOcrOptions,
 )
 from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
 from docling_core.types.doc import ImageRefMode
 
-from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.convert import ConvertDocumentsOptions, ocr_factory
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings
 
@@ -91,44 +88,17 @@ def get_converter(pdf_format_option: PdfFormatOption) -> DocumentConverter:
 def get_pdf_pipeline_opts(  # noqa: C901
     request: ConvertDocumentsOptions,
 ) -> PdfFormatOption:
-    if request.ocr_engine == OcrEngine.EASYOCR:
-        try:
-            import easyocr  # noqa: F401
-        except ImportError:
-            raise HTTPException(
-                status_code=400,
-                detail="The requested OCR engine"
-                f" (ocr_engine={request.ocr_engine.value})"
-                " is not available on this system. Please choose another OCR engine "
-                "or contact your system administrator.",
-            )
-        ocr_options: OcrOptions = EasyOcrOptions(force_full_page_ocr=request.force_ocr)
-    elif request.ocr_engine == OcrEngine.TESSERACT:
-        try:
-            import tesserocr  # noqa: F401
-        except ImportError:
-            raise HTTPException(
-                status_code=400,
-                detail="The requested OCR engine"
-                f" (ocr_engine={request.ocr_engine.value})"
-                " is not available on this system. Please choose another OCR engine "
-                "or contact your system administrator.",
-            )
-        ocr_options = TesseractOcrOptions(force_full_page_ocr=request.force_ocr)
-    elif request.ocr_engine == OcrEngine.RAPIDOCR:
-        try:
-            from rapidocr_onnxruntime import RapidOCR  # noqa: F401
-        except ImportError:
-            raise HTTPException(
-                status_code=400,
-                detail="The requested OCR engine"
-                f" (ocr_engine={request.ocr_engine.value})"
-                " is not available on this system. Please choose another OCR engine "
-                "or contact your system administrator.",
-            )
-        ocr_options = RapidOcrOptions(force_full_page_ocr=request.force_ocr)
-    else:
-        raise RuntimeError(f"Unexpected OCR engine type {request.ocr_engine}")
+    try:
+        ocr_options: OcrOptions = ocr_factory.create_options(kind=request.ocr_engine.value, force_full_page_ocr=request.force_ocr)
+    except ImportError as err:
+        raise HTTPException(
+            status_code=400,
+            detail="The requested OCR engine"
+            f" (ocr_engine={request.ocr_engine.value})"
+            " is not available on this system. Please choose another OCR engine "
+            "or contact your system administrator.\n"
+            f"{err}",
+        )
 
     if request.ocr_lang is not None:
         if isinstance(request.ocr_lang, str):
@@ -157,6 +127,8 @@ def get_pdf_pipeline_opts(  # noqa: C901
         backend: type[PdfDocumentBackend] = DoclingParseDocumentBackend
     elif request.pdf_backend == PdfBackend.DLPARSE_V2:
         backend = DoclingParseV2DocumentBackend
+    elif request.pdf_backend == PdfBackend.DLPARSE_V4:
+        backend = DoclingParseV4DocumentBackend
     elif request.pdf_backend == PdfBackend.PYPDFIUM2:
         backend = PyPdfiumDocumentBackend
     else:

@@ -4,9 +4,18 @@ from typing import Annotated, Optional
 from pydantic import BaseModel, Field
 
 from docling.datamodel.base_models import InputFormat, OutputFormat
-from docling.datamodel.pipeline_options import OcrEngine, PdfBackend, TableFormerMode
+from docling.datamodel.pipeline_options import (
+    EasyOcrOptions,
+    PdfBackend,
+    TableFormerMode,
+)
+from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
 
+from docling_serve.settings import docling_serve_settings
+
+ocr_factory = get_ocr_factory(allow_external_plugins=docling_serve_settings.allow_external_plugins)
+ocr_engines_enum = ocr_factory.get_enum()
 
 class ConvertDocumentsOptions(BaseModel):
     from_formats: Annotated[
@@ -69,18 +78,17 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = False
 
-    # TODO: use a restricted list based on what is installed on the system
     ocr_engine: Annotated[
-        OcrEngine,
+        ocr_engines_enum,  # type: ignore
         Field(
             description=(
                 "The OCR engine to use. String. "
-                "Allowed values: easyocr, tesseract, rapidocr. "
+                f"Allowed values: {', '.join([v.value for v in ocr_engines_enum])}. "
                 "Optional, defaults to easyocr."
             ),
-            examples=[OcrEngine.EASYOCR],
+            examples=[EasyOcrOptions.kind],
         ),
-    ] = OcrEngine.EASYOCR
+    ] = ocr_engines_enum(EasyOcrOptions.kind)
 
     ocr_lang: Annotated[
         Optional[list[str]],
@@ -101,11 +109,11 @@ class ConvertDocumentsOptions(BaseModel):
             description=(
                 "The PDF backend to use. String. "
                 f"Allowed values: {', '.join([v.value for v in PdfBackend])}. "
-                f"Optional, defaults to {PdfBackend.DLPARSE_V2.value}."
+                f"Optional, defaults to {PdfBackend.DLPARSE_V4.value}."
             ),
-            examples=[PdfBackend.DLPARSE_V2],
+            examples=[PdfBackend.DLPARSE_V4],
         ),
-    ] = PdfBackend.DLPARSE_V2
+    ] = PdfBackend.DLPARSE_V4
 
     table_mode: Annotated[
         TableFormerMode,

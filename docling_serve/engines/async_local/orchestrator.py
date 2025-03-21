@@ -5,7 +5,8 @@ from typing import Optional
 
 from fastapi import WebSocket
 
-from docling_serve.datamodel.engines import Task, TaskStatus
+from docling_serve.datamodel.task import Task
+from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.responses import (
     MessageKind,
