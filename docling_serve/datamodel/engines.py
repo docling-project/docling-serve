@@ -16,6 +16,7 @@ class TaskStatus(str, enum.Enum):
 
 class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
+    KFP = "kfp"
 
 
 class Task(BaseModel):

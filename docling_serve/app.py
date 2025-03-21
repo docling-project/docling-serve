@@ -39,11 +39,11 @@ from docling_serve.docling_conversion import (
     get_converter,
     get_pdf_pipeline_opts,
 )
-from docling_serve.engines import get_orchestrator
 from docling_serve.engines.async_local.orchestrator import (
     AsyncLocalOrchestrator,
-    TaskNotFoundError,
 )
+from docling_serve.engines.async_orchestrator_factory import get_async_orchestrator
+from docling_serve.engines.base_orchestrator import TaskNotFoundError
 from docling_serve.helper_functions import FormDepends
 from docling_serve.response_preparation import process_results
 from docling_serve.settings import docling_serve_settings
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI):
     pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
     get_converter(pdf_format_option)
 
-    orchestrator = get_orchestrator()
+    orchestrator = get_async_orchestrator()
 
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())
@@ -259,7 +259,7 @@ def create_app():  # noqa: C901
         response_model=TaskStatusResponse,
     )
     async def process_url_async(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
         conversion_request: ConvertDocumentsRequest,
     ):
         task = await orchestrator.enqueue(request=conversion_request)
@@ -278,7 +278,7 @@ def create_app():  # noqa: C901
         response_model=TaskStatusResponse,
     )
     async def task_status_poll(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
         wait: Annotated[
             float, Query(help="Number of seconds to wait for a completed status.")
@@ -301,7 +301,7 @@ def create_app():  # noqa: C901
     )
     async def task_status_ws(
         websocket: WebSocket,
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
     ):
         await websocket.accept()
@@ -367,7 +367,7 @@ def create_app():  # noqa: C901
         },
     )
     async def task_result(
-        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_orchestrator)],
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
     ):
         result = await orchestrator.task_result(task_id=task_id)
@@ -377,5 +377,18 @@ def create_app():  # noqa: C901
                 detail="Task result not found. Please wait for a completion status.",
             )
         return result
+
+
+    # Update task progress
+    @app.post(
+        "/v1alpha/callback/task/progress/{task_id}",
+        response_model=TaskStatusResponse,
+    )
+    async def task_status_poll(
+        orchestrator: Annotated[AsyncLocalOrchestrator, Depends(get_async_orchestrator)],
+        task_id: str,
+        body,
+    ):
+        pass
 
     return app
