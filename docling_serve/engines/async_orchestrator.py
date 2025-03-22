@@ -1,4 +1,3 @@
-
 from fastapi import WebSocket
 
 from docling_serve.datamodel.callback import ProgressCallbackRequest
@@ -20,7 +19,6 @@ class ProgressInvalid(OrchestratorError):
 
 
 class BaseAsyncOrchestrator(BaseOrchestrator):
-
     def __init__(self):
         self.tasks: dict[str, Task] = {}
         self.task_subscribers: dict[str, set[WebSocket]] = {}
@@ -68,5 +66,7 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
 
             await self.notify_task_subscribers(task_id)
 
-    async def receive_task_progress(task_id: str, progress: ProgressCallbackRequest):
+    async def receive_task_progress(
+        self, task_id: str, progress: ProgressCallbackRequest
+    ):
         raise NotImplementedError()

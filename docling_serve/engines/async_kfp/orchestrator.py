@@ -37,7 +37,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
     async def process_queue(self):
         return
 
-    async def receive_task_progress(self, task_id: str, progress: ProgressCallbackRequest):
+    async def receive_task_progress(
+        self, task_id: str, progress: ProgressCallbackRequest
+    ):
         task = await self.get_raw_task(task_id=task_id)
 
         if isinstance(progress, ProgressSetNumDocs):
@@ -45,7 +47,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
 
         elif isinstance(progress, ProgressUpdateProcessed):
             if task.processing_meta is None:
-                raise ProgressInvalid("UpdateProcessed was called before setting the expected number of documents.")
+                raise ProgressInvalid(
+                    "UpdateProcessed was called before setting the expected number of documents."
+                )
             task.processing_meta.num_processed += progress.num_processed
             task.processing_meta.num_success += progress.num_success
             task.processing_meta.num_failed += progress.num_failed

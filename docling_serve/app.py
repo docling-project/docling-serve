@@ -22,7 +22,10 @@ from fastapi.responses import RedirectResponse
 
 from docling.datamodel.base_models import DocumentStream
 
-from docling_serve.datamodel.callback import ProgressCallbackRequest, ProgressCallbackResponse
+from docling_serve.datamodel.callback import (
+    ProgressCallbackRequest,
+    ProgressCallbackResponse,
+)
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import (
     ConvertDocumentFileSourcesRequest,
@@ -40,7 +43,10 @@ from docling_serve.docling_conversion import (
     get_converter,
     get_pdf_pipeline_opts,
 )
-from docling_serve.engines.async_orchestrator import BaseAsyncOrchestrator, ProgressInvalid
+from docling_serve.engines.async_orchestrator import (
+    BaseAsyncOrchestrator,
+    ProgressInvalid,
+)
 from docling_serve.engines.async_orchestrator_factory import get_async_orchestrator
 from docling_serve.engines.base_orchestrator import TaskNotFoundError
 from docling_serve.helper_functions import FormDepends
@@ -377,7 +383,6 @@ def create_app():  # noqa: C901
             )
         return result
 
-
     # Update task progress
     @app.post(
         "/v1alpha/callback/task/progress/{task_id}",
@@ -389,11 +394,15 @@ def create_app():  # noqa: C901
         progress_req: ProgressCallbackRequest,
     ):
         try:
-            await orchestrator.receive_task_progress(task_id=task_id, progress=progress_req)
+            await orchestrator.receive_task_progress(
+                task_id=task_id, progress=progress_req
+            )
             return ProgressCallbackResponse(status="ack")
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
         except ProgressInvalid as err:
-            raise HTTPException(status_code=400, detail=f"Invalid progress payload: {err}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid progress payload: {err}"
+            )
 
     return app

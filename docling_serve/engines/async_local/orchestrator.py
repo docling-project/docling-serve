@@ -47,4 +47,3 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
         # Wait for all workers to complete (they won't, as they run indefinitely)
         await asyncio.gather(*workers)
         _log.debug("All workers completed.")
-

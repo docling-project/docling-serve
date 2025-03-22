@@ -1,4 +1,3 @@
-
 import enum
 from typing import Annotated, Literal
 
@@ -29,7 +28,10 @@ class ProgressUpdateProcessed(BaseProgress):
 
 
 # ProgressCallbackRequest = TypeAdapter(Annotated[ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")])
-ProgressCallbackRequest = Annotated[ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")]
+ProgressCallbackRequest = Annotated[
+    ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")
+]
+
 
 class ProgressCallbackResponse(BaseModel):
     status: Literal["ack"] = "ack"
