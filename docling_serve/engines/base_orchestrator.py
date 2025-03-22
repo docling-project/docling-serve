@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from docling_serve.datamodel.engines import Task
+from docling_serve.datamodel.task import Task
 
 
 class BaseOrchestrator(ABC):
