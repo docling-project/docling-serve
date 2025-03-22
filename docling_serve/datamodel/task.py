@@ -1,10 +1,10 @@
 from typing import Optional
+
+from pydantic import BaseModel
+
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.responses import ConvertDocumentResponse
-
-
-from pydantic import BaseModel
 
 
 class Task(BaseModel):

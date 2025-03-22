@@ -5,7 +5,6 @@ from typing import Optional
 
 from fastapi import WebSocket
 
-from docling_serve.datamodel.task import Task
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.responses import (
@@ -13,6 +12,7 @@ from docling_serve.datamodel.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
+from docling_serve.datamodel.task import Task
 from docling_serve.engines.async_local.worker import AsyncLocalWorker
 from docling_serve.engines.base_orchestrator import BaseOrchestrator
 from docling_serve.settings import docling_serve_settings

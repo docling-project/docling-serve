@@ -85,16 +85,19 @@ def get_converter(pdf_format_option: PdfFormatOption) -> DocumentConverter:
 
 
 # Computes the PDF pipeline options and returns the PdfFormatOption and its hash
-def get_pdf_pipeline_opts(  # noqa: C901
+def get_pdf_pipeline_opts(
     request: ConvertDocumentsOptions,
 ) -> PdfFormatOption:
     try:
-        ocr_options: OcrOptions = ocr_factory.create_options(kind=request.ocr_engine.value, force_full_page_ocr=request.force_ocr)
+        ocr_options: OcrOptions = ocr_factory.create_options(
+            kind=request.ocr_engine.value,  # type: ignore
+            force_full_page_ocr=request.force_ocr,
+        )
     except ImportError as err:
         raise HTTPException(
             status_code=400,
             detail="The requested OCR engine"
-            f" (ocr_engine={request.ocr_engine.value})"
+            f" (ocr_engine={request.ocr_engine.value})"  # type: ignore
             " is not available on this system. Please choose another OCR engine "
             "or contact your system administrator.\n"
             f"{err}",

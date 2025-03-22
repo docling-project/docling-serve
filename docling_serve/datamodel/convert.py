@@ -14,8 +14,11 @@ from docling_core.types.doc import ImageRefMode
 
 from docling_serve.settings import docling_serve_settings
 
-ocr_factory = get_ocr_factory(allow_external_plugins=docling_serve_settings.allow_external_plugins)
+ocr_factory = get_ocr_factory(
+    allow_external_plugins=docling_serve_settings.allow_external_plugins
+)
 ocr_engines_enum = ocr_factory.get_enum()
+
 
 class ConvertDocumentsOptions(BaseModel):
     from_formats: Annotated[
@@ -78,8 +81,8 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = False
 
-    ocr_engine: Annotated[
-        ocr_engines_enum,  # type: ignore
+    ocr_engine: Annotated[  # type: ignore
+        ocr_engines_enum,
         Field(
             description=(
                 "The OCR engine to use. String. "
@@ -88,7 +91,7 @@ class ConvertDocumentsOptions(BaseModel):
             ),
             examples=[EasyOcrOptions.kind],
         ),
-    ] = ocr_engines_enum(EasyOcrOptions.kind)
+    ] = ocr_engines_enum(EasyOcrOptions.kind)  # type: ignore
 
     ocr_lang: Annotated[
         Optional[list[str]],
