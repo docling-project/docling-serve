@@ -1,4 +1,4 @@
-<p align="left">
+<p align="center">
   <a href="https://github.com/docling-project/docling-serve">
     <img loading="lazy" alt="Docling" src="docs/assets/docling-serve-pic.png" width="30%"/>
   </a>
