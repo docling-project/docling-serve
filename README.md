@@ -1,6 +1,6 @@
-<p align="center">
+<p align="left">
   <a href="https://github.com/docling-project/docling-serve">
-    <img loading="lazy" alt="Docling" src="docs/assets/docling-serve-pic.png" width="50%"/>
+    <img loading="lazy" alt="Docling" src="docs/assets/docling-serve-pic.png" width="30%"/>
   </a>
 </p>
 
