@@ -23,8 +23,7 @@ if (
     and docling_serve_settings.static_path.is_dir()
 ):
     logo_path = str(docling_serve_settings.static_path / "logo.svg")
-    js_components_url = "https://unpkg.com/@docling/docling-components@0.0.3"
-    # js_components_url = "/static/docling-components.js"
+    js_components_url = "/static/docling-components.js"
 
 
 ##############################
