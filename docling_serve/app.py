@@ -18,7 +18,13 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from docling.datamodel.base_models import DocumentStream
 
@@ -116,8 +122,18 @@ def create_app():  # noqa: C901
 
         version = "0.0.0"
 
+    offline_docs_assets = False
+    if (
+        docling_serve_settings.static_path is not None
+        and (docling_serve_settings.static_path).is_dir()
+    ):
+        offline_docs_assets = True
+        _log.info("Found static assets.")
+
     app = FastAPI(
         title="Docling Serve",
+        docs_url=None if offline_docs_assets else "/docs",
+        redoc_url=None if offline_docs_assets else "/redocs",
         lifespan=lifespan,
         version=version,
     )
@@ -158,15 +174,48 @@ def create_app():  # noqa: C901
             )
 
     #############################
+    # Offline assets definition #
+    #############################
+    if offline_docs_assets:
+        app.mount(
+            "/static",
+            StaticFiles(directory=docling_serve_settings.static_path),
+            name="static",
+        )
+
+        @app.get("/docs", include_in_schema=False)
+        async def custom_swagger_ui_html():
+            return get_swagger_ui_html(
+                openapi_url=app.openapi_url,
+                title=app.title + " - Swagger UI",
+                oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+                swagger_js_url="/static/swagger-ui-bundle.js",
+                swagger_css_url="/static/swagger-ui.css",
+            )
+
+        @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+        async def swagger_ui_redirect():
+            return get_swagger_ui_oauth2_redirect_html()
+
+        @app.get("/redoc", include_in_schema=False)
+        async def redoc_html():
+            return get_redoc_html(
+                openapi_url=app.openapi_url,
+                title=app.title + " - ReDoc",
+                redoc_js_url="/static/redoc.standalone.js",
+            )
+
+    #############################
     # API Endpoints definitions #
     #############################
 
     # Favicon
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
-        response = RedirectResponse(
-            url="https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
-        )
+        logo_url = "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
+        if offline_docs_assets:
+            logo_url = "/static/logo.svg"
+        response = RedirectResponse(url=logo_url)
         return response
 
     @app.get("/health")
