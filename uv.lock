@@ -128,6 +128,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cachetools"
+version = "5.5.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/81/3747dad6b14fa2cf53fcf10548cf5aea6913e96fab41a3c198676f8948a5/cachetools-5.5.2.tar.gz", hash = "sha256:1a661caa9175d26759571b2e19580f9d6393969e5dfca11fdb1f947a23e640d4", size = 28380 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/76/20fa66124dbe6be5cafeb312ece67de6b61dd91a0247d1ea13db4ebb33c2/cachetools-5.5.2-py3-none-any.whl", hash = "sha256:d26a22bcc62eb95c3beabd9f1ee5e820d3d2704fe2967cbe350e20c8ffcd3f0a", size = 10080 },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.1.31"
 source = { registry = "https://pypi.org/simple" }
@@ -288,6 +297,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudpickle"
+version = "3.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/39/069100b84d7418bc358d81669d5748efb14b9cceacd2f9c75f550424132f/cloudpickle-3.1.1.tar.gz", hash = "sha256:b216fa8ae4019d5482a8ac3c95d8f6346115d8835911fd4aefd1a445e4242c64", size = 22113 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/e8/64c37fadfc2816a7701fa8a6ed8d87327c7d54eacfbfb6edab14a2f2be75/cloudpickle-3.1.1-py3-none-any.whl", hash = "sha256:c8c5a44295039331ee9dad40ba100a9c7297b6f988e50e87ccdf3765a668350e", size = 20992 },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -347,6 +365,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/c7/2fe59fb085ab418acc82e91e040a6acaa7b1696fcc1c1055317537fbf0d3/cryptography-44.0.1-pp310-pypy310_pp73-manylinux_2_34_aarch64.whl", hash = "sha256:f4daefc971c2d1f82f03097dc6f216744a6cd2ac0f04c68fb935ea2ba2a0d420", size = 3887540 },
     { url = "https://files.pythonhosted.org/packages/48/89/09fc7b115f60f5bd970b80e32244f8e9aeeb9244bf870b63420cec3b5cd5/cryptography-44.0.1-pp310-pypy310_pp73-manylinux_2_34_x86_64.whl", hash = "sha256:94f99f2b943b354a5b6307d7e8d19f5c423a794462bde2bf310c770ba052b1c4", size = 4106040 },
     { url = "https://files.pythonhosted.org/packages/2e/38/3fd83c4690dc7d753a442a284b3826ea5e5c380a411443c66421cd823898/cryptography-44.0.1-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:d9c5b9f698a83c8bd71e0f4d3f9f839ef244798e5ffe96febfa9714717db7af7", size = 3134657 },
+]
+
+[[package]]
+name = "deprecated"
+version = "1.2.18"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wrapt", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/97/06afe62762c9a8a86af0cfb7bfdab22a43ad17138b07af5b1a58442690a2/deprecated-1.2.18.tar.gz", hash = "sha256:422b6f6d859da6f2ef57857761bfb392480502a64c3028ca9bbe86085d72115d", size = 2928744 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6e/c6/ac0b6c1e2d138f1002bcf799d330bd6d85084fece321e662a14223794041/Deprecated-1.2.18-py2.py3-none-any.whl", hash = "sha256:bd5011788200372a32418f888e326a09ff80d0214bd961147cfed01b5c018eec", size = 9998 },
 ]
 
 [[package]]
@@ -510,6 +540,8 @@ dependencies = [
     { name = "docling" },
     { name = "fastapi", extra = ["standard"] },
     { name = "httpx" },
+    { name = "kfp", version = "1.4.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kfp", version = "2.12.1", source = { registry = "https://pypi.org/simple" }, extra = ["kubernetes"], marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
@@ -557,6 +589,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = "~=0.115" },
     { name = "gradio", marker = "extra == 'ui'", specifier = "~=5.9" },
     { name = "httpx", specifier = "~=0.28" },
+    { name = "kfp", extras = ["kubernetes"], specifier = ">=1.4.0" },
     { name = "onnxruntime", marker = "extra == 'rapidocr'", specifier = "~=1.7" },
     { name = "pydantic", specifier = "~=2.10" },
     { name = "pydantic-settings", specifier = "~=2.4" },
@@ -582,6 +615,15 @@ dev = [
     { name = "pytest-check", specifier = "~=2.4" },
     { name = "python-semantic-release", specifier = "~=7.32" },
     { name = "ruff", specifier = ">=0.9.6" },
+]
+
+[[package]]
+name = "docstring-parser"
+version = "0.16"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/12/9c22a58c0b1e29271051222d8906257616da84135af9ed167c9e28f85cb3/docstring_parser-0.16.tar.gz", hash = "sha256:538beabd0af1e2db0146b6bd3caa526c35a34d61af9fd2887f3a8a27a739aa6e", size = 26565 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/7c/e9fcff7623954d86bdc17782036cbf715ecab1bec4847c008557affe1ca8/docstring_parser-0.16-py3-none-any.whl", hash = "sha256:bf0a1387354d3691d102edef7ec124f219ef639982d096e26e3b60aeffa90637", size = 36533 },
 ]
 
 [[package]]
@@ -732,6 +774,15 @@ wheels = [
 ]
 
 [[package]]
+name = "fire"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "termcolor", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/b6/82c7e601d6d3c3278c40b7bd35e17e82aa227f050aa9f66cb7b7fce29471/fire-0.7.0.tar.gz", hash = "sha256:961550f07936eaf65ad1dc8360f2b2bf8408fad46abbfa4d2a3794f8d2a95cdf", size = 87189 }
+
+[[package]]
 name = "flatbuffers"
 version = "25.2.10"
 source = { registry = "https://pypi.org/simple" }
@@ -774,6 +825,127 @@ wheels = [
 ]
 
 [[package]]
+name = "google-api-core"
+version = "2.24.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "googleapis-common-protos" },
+    { name = "proto-plus" },
+    { name = "protobuf", version = "3.20.3", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/09/5c/085bcb872556934bb119e5e09de54daa07873f6866b8f0303c49e72287f7/google_api_core-2.24.2.tar.gz", hash = "sha256:81718493daf06d96d6bc76a91c23874dbf2fac0adbbf542831b805ee6e974696", size = 163516 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/95/f472d85adab6e538da2025dfca9e976a0d125cc0af2301f190e77b76e51c/google_api_core-2.24.2-py3-none-any.whl", hash = "sha256:810a63ac95f3c441b7c0e43d344e372887f62ce9071ba972eacf32672e072de9", size = 160061 },
+]
+
+[[package]]
+name = "google-auth"
+version = "2.38.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cachetools" },
+    { name = "pyasn1-modules" },
+    { name = "rsa" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c6/eb/d504ba1daf190af6b204a9d4714d457462b486043744901a6eeea711f913/google_auth-2.38.0.tar.gz", hash = "sha256:8285113607d3b80a3f1543b75962447ba8a09fe85783432a784fdeef6ac094c4", size = 270866 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/47/603554949a37bca5b7f894d51896a9c534b9eab808e2520a748e081669d0/google_auth-2.38.0-py2.py3-none-any.whl", hash = "sha256:e7dae6694313f434a2727bf2906f27ad259bae090d7aa896590d86feec3d9d4a", size = 210770 },
+]
+
+[[package]]
+name = "google-cloud-core"
+version = "2.4.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "google-auth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d6/b8/2b53838d2acd6ec6168fd284a990c76695e84c65deee79c9f3a4276f6b4f/google_cloud_core-2.4.3.tar.gz", hash = "sha256:1fab62d7102844b278fe6dead3af32408b1df3eb06f5c7e8634cbd40edc4da53", size = 35861 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/86/bda7241a8da2d28a754aad2ba0f6776e35b67e37c36ae0c45d49370f1014/google_cloud_core-2.4.3-py2.py3-none-any.whl", hash = "sha256:5130f9f4c14b4fafdff75c79448f9495cfade0d8775facf1b09c3bf67e027f6e", size = 29348 },
+]
+
+[[package]]
+name = "google-cloud-storage"
+version = "2.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "google-auth" },
+    { name = "google-cloud-core" },
+    { name = "google-crc32c" },
+    { name = "google-resumable-media" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/76/4d965702e96bb67976e755bed9828fa50306dca003dbee08b67f41dd265e/google_cloud_storage-2.19.0.tar.gz", hash = "sha256:cd05e9e7191ba6cb68934d8eb76054d9be4562aa89dbc4236feee4d7d51342b2", size = 5535488 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/94/6db383d8ee1adf45dc6c73477152b82731fa4c4a46d9c1932cc8757e0fd4/google_cloud_storage-2.19.0-py2.py3-none-any.whl", hash = "sha256:aeb971b5c29cf8ab98445082cbfe7b161a1f48ed275822f59ed3f1524ea54fba", size = 131787 },
+]
+
+[[package]]
+name = "google-crc32c"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/c6/bd09366753b49353895ed73bad74574d9086b26b53bb5b9213962009719a/google_crc32c-1.7.0.tar.gz", hash = "sha256:c8c15a04b290c7556f277acc55ad98503a8bc0893ea6860fd5b5d210f3f558ce", size = 14546 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/4b/3aad7dfd25a5541120c74d80256b79506f3c2c6eecd37c3b4c92f2ff719c/google_crc32c-1.7.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:18f1dfc6baeb3b28b1537d54b3622363352f75fcb2d4b6ffcc37584fe431f122", size = 30303 },
+    { url = "https://files.pythonhosted.org/packages/b6/92/1acee90aec27235ac6054552b8e895e9df5324ed3cfcaf416e1af6e54923/google_crc32c-1.7.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:732378dc4ca08953eac0d13d1c312d99a54d5b483c90b4a5a536132669ed1c24", size = 30148 },
+    { url = "https://files.pythonhosted.org/packages/89/85/0c66e6b90d74990a9aee1008429ea3e87d31a3bd7d8029b6c85ea07efe1a/google_crc32c-1.7.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:14fdac94aa60d5794652f8ea6c2fcc532032e31f9050698b7ecdc6d4c3a61784", size = 37724 },
+    { url = "https://files.pythonhosted.org/packages/87/3b/a0b220e47b0867e5d39fb6cd633b4c6171bd6869598c18616f579ea63299/google_crc32c-1.7.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4bc14187a7fe5c61024c0dd1b578d7f9391df55459bf373c07f66426e09353b6", size = 32867 },
+    { url = "https://files.pythonhosted.org/packages/1e/b7/1c35c2bb03244a91b9f9116a4d7a0859cdf5527fdf0fc42ccbb738234ac3/google_crc32c-1.7.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:54af59a98a427d0f98b6b0446df52ad286948ab7745da80a1edeb32ad633b3ae", size = 37867 },
+    { url = "https://files.pythonhosted.org/packages/cd/ba/ee3e3534db570f023dcae03324e6f48a4c82239c452b43a7b68ed48f9591/google_crc32c-1.7.0-cp310-cp310-win_amd64.whl", hash = "sha256:2515aa89e46c6fa99190ec29bf27f33457ff98e5ca5c6c05602f74e0fb005752", size = 33464 },
+    { url = "https://files.pythonhosted.org/packages/15/e6/41a5f08bd93c572bb38af3840cc524f78702e06a03b9287a19990db4b299/google_crc32c-1.7.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:96e33b249776f5aa7017a494b78994cf3cc8461291d460b46e75f6bc6cc40dc8", size = 30305 },
+    { url = "https://files.pythonhosted.org/packages/68/df/7fb83b89075086cb3af128f9452a4f3666024f1adbe6e11198b2d5d1f5e8/google_crc32c-1.7.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:c2dc799827990dd06b777067e27f57c2a552ddde4c4cd2d883b1b615ee92f9cf", size = 30148 },
+    { url = "https://files.pythonhosted.org/packages/c4/6d/d6ea742127029644575baed5c48ab4f112a5759fdde8fab0c3d87bfe2454/google_crc32c-1.7.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e4c29f7718f48e32810a41b17126e0ca588a0ae6158b4da2926d8074241a155d", size = 32888 },
+    { url = "https://files.pythonhosted.org/packages/7f/27/e7d365804e7562a2d6ccf1410b8f16b6e5496b88a2d7aa87c1ce7ea5e289/google_crc32c-1.7.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5f30548e65291a4658c9e56f6f516159663f2b4a2c991b9af5846f0084ea25d4", size = 32510 },
+    { url = "https://files.pythonhosted.org/packages/5a/16/041eafb94a14902c820ca8ca090ec20f614ed0ba6d9a0619e5f676959c19/google_crc32c-1.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:9754f9eaa5ff82166512908f02745d5e883650d7b04d1732b5df3335986ad359", size = 33464 },
+    { url = "https://files.pythonhosted.org/packages/1d/e9/696a1b43fbe048a8ec246a6af2926662aec083d228a36bc17e800d3942ec/google_crc32c-1.7.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:11b3b2f16a534c76ce3c9503800c7c2578c13a56e8e409eac273330e25b5c521", size = 30311 },
+    { url = "https://files.pythonhosted.org/packages/01/84/355dad7a19758bcf34f0dbfcb2666c5d519cb9c9c6b1d5ea5c23201c5462/google_crc32c-1.7.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:fd3afea81a7c7b95f98c065edc5a0fdb58f1fea5960e166962b142ec037fe5e0", size = 30156 },
+    { url = "https://files.pythonhosted.org/packages/bb/38/affe1fa727763a03728eac51e038760c606999c6faa7c0e02924ec99a414/google_crc32c-1.7.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1d07ad3ff51f26cef5bbad66622004eca3639271230cfc2443845ec4650e1c57", size = 33021 },
+    { url = "https://files.pythonhosted.org/packages/2b/05/138347cbd18fb7e49c76ed8ef80ff2fdaebde675a3f2b8c7ad273b735065/google_crc32c-1.7.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:af6e80f83d882b247eef2c0366ec72b1ffb89433b9f35dc621d79190840f1ea6", size = 32634 },
+    { url = "https://files.pythonhosted.org/packages/88/2b/7a01e7b60ef5c4ac39301b9951bcc516001b5d30e9aced440f96d8f49994/google_crc32c-1.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:10721764a9434546b7961194fbb1f80efbcaf45b8498ed379d64f8891d4c155b", size = 33462 },
+    { url = "https://files.pythonhosted.org/packages/91/aa/2a7344796fb684c926d0002196e407453509e677b9eab8d562a5702e5f83/google_crc32c-1.7.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:76bb19d182b999f9c9d580b1d7ab6e9334ab23dd669bf91f501812103408c85b", size = 30306 },
+    { url = "https://files.pythonhosted.org/packages/24/8a/e2d52d4111d3ef48e0a8b2324e80b600f6c5339dae9827744b94325a0b6a/google_crc32c-1.7.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:6a40522958040051c755a173eb98c05ad4d64a6dd898888c3e5ccca2d1cbdcdc", size = 30149 },
+    { url = "https://files.pythonhosted.org/packages/da/60/8cd1605391da56c55db67ef64660e72b89787755a271ebe04f9418320b19/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f714fe5cdf5007d7064c57cf7471a99e0cbafda24ddfa829117fc3baafa424f7", size = 32972 },
+    { url = "https://files.pythonhosted.org/packages/3d/65/065ffe1bb324709e7704205261b429588ed17bbde8b7940eb12b140a6082/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f04e58dbe1bf0c9398e603a9be5aaa09e0ba7eb022a3293195d8749459a01069", size = 32616 },
+    { url = "https://files.pythonhosted.org/packages/16/b8/95e6a189f5764abd643e3df5ab06e291d379f26ff77ea97bbcb12ac9207b/google_crc32c-1.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:e545b51ddf97f604d30114f7c23eecaf4c06cd6c023ff1ae0b80dcd99af32833", size = 33496 },
+    { url = "https://files.pythonhosted.org/packages/1b/30/51b10f995be9bd09551d050117c571f9749297717fcc2e7946e242eb4830/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:364067b063664dd8d1fec75a3fe85edf05c46f688365269beccaf42ef5dfe889", size = 33080 },
+    { url = "https://files.pythonhosted.org/packages/4d/ec/a7ca773559c7ab6919ac0255d84c74571c8cecf0e8891036705f6861c04d/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1b0d6044799f6ac51d1cc2decb997280a83c448b3bef517a54b57a3b71921c0", size = 32708 },
+    { url = "https://files.pythonhosted.org/packages/35/9e/0fca77ec4a5d4651e33662c62d44418cb1c37bd04b22f6368a0f7a7abefa/google_crc32c-1.7.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b8f48dddd1451026a517d7eb1f8c4ee2491998bfa383abb5fdebf32b0aa333e", size = 28080 },
+    { url = "https://files.pythonhosted.org/packages/30/11/6372577447239a1791bd1121003971b044509176e09b43775cfd630179d2/google_crc32c-1.7.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:60f89e06ce462a65dd4d14a97bd29d92730713316b8b89720f9b2bb1aef270f7", size = 27886 },
+    { url = "https://files.pythonhosted.org/packages/e4/ce/2ceb7c6400d07e6ec6b783f0dda230ee1ea5337c5c32243cf7e97fa4fb15/google_crc32c-1.7.0-pp311-pypy311_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1277c27428a6cc89a51f5afbc04b81fae0288fb631117383f0de4f2bf78ffad6", size = 28079 },
+    { url = "https://files.pythonhosted.org/packages/ff/8b/f8f4af175f99ad209cac2787592322ab711eff0ea67777be938557a89d5c/google_crc32c-1.7.0-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:731921158ef113bf157b8e65f13303d627fb540f173a410260f2fb7570af644c", size = 27888 },
+]
+
+[[package]]
+name = "google-resumable-media"
+version = "2.7.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-crc32c" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/5a/0efdc02665dca14e0837b62c8a1a93132c264bd02054a15abb2218afe0ae/google_resumable_media-2.7.2.tar.gz", hash = "sha256:5280aed4629f2b60b847b0d42f9857fd4935c11af266744df33d8074cae92fe0", size = 2163099 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/35/b8d3baf8c46695858cb9d8835a53baa1eeb9906ddaf2f728a5f5b640fd1e/google_resumable_media-2.7.2-py2.py3-none-any.whl", hash = "sha256:3ce7551e9fe6d99e9a126101d2536612bb73486721951e9562fee0f90c6ababa", size = 81251 },
+]
+
+[[package]]
+name = "googleapis-common-protos"
+version = "1.69.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf", version = "3.20.3", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/d7/ee9d56af4e6dbe958562b5020f46263c8a4628e7952070241fc0e9b182ae/googleapis_common_protos-1.69.2.tar.gz", hash = "sha256:3e1b904a27a33c821b4b749fd31d334c0c9c30e6113023d495e48979a3dc9c5f", size = 144496 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/53/d35476d547a286506f0a6a634ccf1e5d288fffd53d48f0bd5fef61d68684/googleapis_common_protos-1.69.2-py3-none-any.whl", hash = "sha256:0b30452ff9c7a27d80bfc5718954063e8ab53dd3697093d3bc99581f5fd24212", size = 293215 },
+]
+
+[[package]]
 name = "gradio"
 version = "5.16.1"
 source = { registry = "https://pypi.org/simple" }
@@ -804,7 +976,7 @@ dependencies = [
     { name = "tomlkit" },
     { name = "typer", marker = "sys_platform != 'emscripten' or (extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
     { name = "typing-extensions" },
-    { name = "urllib3", marker = "sys_platform == 'emscripten' or (extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'emscripten' or (extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
     { name = "uvicorn", marker = "sys_platform != 'emscripten' or (extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
 ]
 wheels = [
@@ -1113,6 +1285,233 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/70/09/d904a6e96f76ff214be59e7aa6ef7190008f52a0ab6689760a98de0bf37d/keyring-25.6.0.tar.gz", hash = "sha256:0b39998aa941431eb3d9b0d4b2460bc773b9df6fed7621c2dfb291a7e0187a66", size = 62750 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d3/32/da7f44bcb1105d3e88a0b74ebdca50c59121d2ddf71c9e34ba47df7f3a56/keyring-25.6.0-py3-none-any.whl", hash = "sha256:552a3f7af126ece7ed5c89753650eec89c7eaae8617d0aa4d9ad2b75111266bd", size = 39085 },
+]
+
+[[package]]
+name = "kfp"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "click", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "cloudpickle", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "deprecated", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "docstring-parser", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "fire", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-auth", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-cloud-storage", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "jsonschema", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kfp-pipeline-spec", version = "0.1.16", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kfp-server-api", version = "1.8.5", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kubernetes", version = "11.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "pyyaml", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests-toolbelt", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "strip-hints", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "tabulate", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/13/0d298ac709aecdc2e52806de70071ad71c5d3f16bbeaeafab3a0987b28c3/kfp-1.4.0.tar.gz", hash = "sha256:56e28e0e760216d0ff71fe4c6596c2eda9342ecdfda27ee69f3b4b94784e3b2d", size = 159832 }
+
+[[package]]
+name = "kfp"
+version = "2.12.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "click", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "docstring-parser", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-api-core", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-auth", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-cloud-storage", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kfp-pipeline-spec", version = "0.6.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kfp-server-api", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "kubernetes", version = "30.1.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "pyyaml", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests-toolbelt", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "tabulate", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/12/73f332e84860ab601d331674e691570d4bf1c88eebb5602c140048ce507a/kfp-2.12.1.tar.gz", hash = "sha256:702e2fa62ef529e426b874666a2b3292edaaa9962da0f44defa3f1077c77efed", size = 345433 }
+
+[package.optional-dependencies]
+kubernetes = [
+    { name = "kfp-kubernetes", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+
+[[package]]
+name = "kfp-kubernetes"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "kfp", version = "2.12.1", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/92/5df7b43e06329132d15e43eaae75518b7e9b785cfa72c5cde1f902be88a3/kfp-kubernetes-1.4.0.tar.gz", hash = "sha256:bbb2ce9230be2cbf8b344897a518cc8debe008e153277675b16fd4634e81f358", size = 43663 }
+
+[[package]]
+name = "kfp-pipeline-spec"
+version = "0.1.16"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "protobuf", version = "3.20.3", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/69/79bc7456679b9e7bc57d2fc1dc94c5a20709134cb0e82617934e2d18db7b/kfp_pipeline_spec-0.1.16-py3-none-any.whl", hash = "sha256:4cefae00ac50145cf862127202a8b8a783ed7504c773d7d7c517bd115283be25", size = 19516 },
+]
+
+[[package]]
+name = "kfp-pipeline-spec"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/c4/5a42b32bddae9884b0ab23135f39e49ddb510b56ba9990757c6f873b87ae/kfp_pipeline_spec-0.6.0-py3-none-any.whl", hash = "sha256:9e319b62eaa54c6790a96f796d34f071458c9cae9585c662629eb090688555a7", size = 9081 },
+]
+
+[[package]]
+name = "kfp-server-api"
+version = "1.8.5"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "certifi", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "python-dateutil", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "six", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d7/4d/9f87b12e3d4935a08cef5dc6e5b9a9eefe917f3dc55bf00d8174e10cc6df/kfp-server-api-1.8.5.tar.gz", hash = "sha256:482d71765ba57c003164dbb980a8cb1a18d234b578d064dc88dbeb3e4c7ab6de", size = 58125 }
+
+[[package]]
+name = "kfp-server-api"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "certifi", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "python-dateutil", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "six", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/5c/10c7cd96cee27da45a1b90d2a95f7ec76876673fdcb0c391110ec7e75089/kfp_server_api-2.4.0.tar.gz", hash = "sha256:9d71ce49fc6757af14b052cc47e4cb531cb4e4584c2ea76ec02b9197ee9a674f", size = 83953 }
+
+[[package]]
+name = "kubernetes"
+version = "11.0.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "certifi", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-auth", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "python-dateutil", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "pyyaml", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests-oauthlib", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "setuptools", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "six", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "websocket-client", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/60/3f/2fef94fb65e8f94d768356e5fb9be222d18027e6167ccc65e2090917a771/kubernetes-11.0.0.tar.gz", hash = "sha256:1a2472f8b01bc6aa87e3a34781f859bded5a5c8ff791a53d889a8bd6cc550430", size = 724559 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/46/d4b9364fcab59b5f9248e014c7592df8de84ad6548a6fe3de2d805bb75fc/kubernetes-11.0.0-py3-none-any.whl", hash = "sha256:4af81201520977139a143f96123fb789fa351879df37f122916b9b6ed050bbaf", size = 1529332 },
+]
+
+[[package]]
+name = "kubernetes"
+version = "30.1.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "certifi", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "google-auth", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "oauthlib", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "python-dateutil", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "pyyaml", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "requests-oauthlib", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "six", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "websocket-client", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/82/3c/9f29f6cab7f35df8e54f019e5719465fa97b877be2454e99f989270b4f34/kubernetes-30.1.0.tar.gz", hash = "sha256:41e4c77af9f28e7a6c314e3bd06a8c6229ddd787cad684e0ab9f69b498e98ebc", size = 887810 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/a1/2027ddede72d33be2effc087580aeba07e733a7360780ae87226f1f91bd8/kubernetes-30.1.0-py2.py3-none-any.whl", hash = "sha256:e212e8b7579031dd2e512168b617373bc1e03888d41ac4e04039240a292d478d", size = 1706042 },
 ]
 
 [[package]]
@@ -1637,6 +2036,15 @@ wheels = [
 ]
 
 [[package]]
+name = "oauthlib"
+version = "3.2.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/fa/fbf4001037904031639e6bfbfc02badfc7e12f137a8afa254df6c4c8a670/oauthlib-3.2.2.tar.gz", hash = "sha256:9859c40929662bec5d64f34d01c99e093149682a3f38915dc0655d5a633dd918", size = 177352 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/80/cab10959dc1faead58dc8384a781dfbf93cb4d33d50988f7a69f1b7c9bbe/oauthlib-3.2.2-py3-none-any.whl", hash = "sha256:8139f29aac13e25d502680e9e19963e83f16838d48a0d71c287fe40e7067fbca", size = 151688 },
+]
+
+[[package]]
 name = "onnxruntime"
 version = "1.20.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1645,7 +2053,8 @@ dependencies = [
     { name = "flatbuffers" },
     { name = "numpy" },
     { name = "packaging" },
-    { name = "protobuf" },
+    { name = "protobuf", version = "3.20.3", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
     { name = "sympy" },
 ]
 wheels = [
@@ -1959,17 +2368,84 @@ wheels = [
 ]
 
 [[package]]
-name = "protobuf"
-version = "5.29.3"
+name = "proto-plus"
+version = "1.26.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f7/d1/e0a911544ca9993e0f17ce6d3cc0932752356c1b0a834397f28e63479344/protobuf-5.29.3.tar.gz", hash = "sha256:5da0f41edaf117bde316404bad1a486cb4ededf8e4a54891296f648e8e076620", size = 424945 }
+dependencies = [
+    { name = "protobuf", version = "3.20.3", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "protobuf", version = "4.25.6", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/ac/87285f15f7cce6d4a008f33f1757fb5a13611ea8914eb58c3d0d26243468/proto_plus-1.26.1.tar.gz", hash = "sha256:21a515a4c4c0088a773899e23c7bbade3d18f9c66c73edd4c7ee3816bc96a012", size = 56142 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/7a/1e38f3cafa022f477ca0f57a1f49962f21ad25850c3ca0acd3b9d0091518/protobuf-5.29.3-cp310-abi3-win32.whl", hash = "sha256:3ea51771449e1035f26069c4c7fd51fba990d07bc55ba80701c78f886bf9c888", size = 422708 },
-    { url = "https://files.pythonhosted.org/packages/61/fa/aae8e10512b83de633f2646506a6d835b151edf4b30d18d73afd01447253/protobuf-5.29.3-cp310-abi3-win_amd64.whl", hash = "sha256:a4fa6f80816a9a0678429e84973f2f98cbc218cca434abe8db2ad0bffc98503a", size = 434508 },
-    { url = "https://files.pythonhosted.org/packages/dd/04/3eaedc2ba17a088961d0e3bd396eac764450f431621b58a04ce898acd126/protobuf-5.29.3-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:a8434404bbf139aa9e1300dbf989667a83d42ddda9153d8ab76e0d5dcaca484e", size = 417825 },
-    { url = "https://files.pythonhosted.org/packages/4f/06/7c467744d23c3979ce250397e26d8ad8eeb2bea7b18ca12ad58313c1b8d5/protobuf-5.29.3-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:daaf63f70f25e8689c072cfad4334ca0ac1d1e05a92fc15c54eb9cf23c3efd84", size = 319573 },
-    { url = "https://files.pythonhosted.org/packages/a8/45/2ebbde52ad2be18d3675b6bee50e68cd73c9e0654de77d595540b5129df8/protobuf-5.29.3-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:c027e08a08be10b67c06bf2370b99c811c466398c357e615ca88c91c07f0910f", size = 319672 },
-    { url = "https://files.pythonhosted.org/packages/fd/b2/ab07b09e0f6d143dfb839693aa05765257bceaa13d03bf1a696b78323e7a/protobuf-5.29.3-py3-none-any.whl", hash = "sha256:0a18ed4a24198528f2333802eb075e59dea9d679ab7a6c5efb017a59004d849f", size = 172550 },
+    { url = "https://files.pythonhosted.org/packages/4e/6d/280c4c2ce28b1593a19ad5239c8b826871fc6ec275c21afc8e1820108039/proto_plus-1.26.1-py3-none-any.whl", hash = "sha256:13285478c2dcf2abb829db158e1047e2f1e8d63a077d94263c2b88b043c75a66", size = 50163 },
+]
+
+[[package]]
+name = "protobuf"
+version = "3.20.3"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/5b/e3d951e34f8356e5feecacd12a8e3b258a1da6d9a03ad1770f28925f29bc/protobuf-3.20.3.tar.gz", hash = "sha256:2e3427429c9cffebf259491be0af70189607f365c2f41c7c3764af6f337105f2", size = 216768 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/55/b80e8567ec327c060fa39b242392e25690c8899c489ecd7bb65b46b7bb55/protobuf-3.20.3-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:f4bd856d702e5b0d96a00ec6b307b0f51c1982c2bf9c0052cf9019e9a544ba99", size = 918427 },
+    { url = "https://files.pythonhosted.org/packages/31/be/80a9c6f16dfa4d41be3edbe655349778ae30882407fa8275eb46b4d34854/protobuf-3.20.3-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9aae4406ea63d825636cc11ffb34ad3379335803216ee3a856787bcf5ccc751e", size = 1051042 },
+    { url = "https://files.pythonhosted.org/packages/db/96/948d3fcc1fa816e7ae1d27af59b9d8c5c5e582f3994fd14394f31da95b99/protobuf-3.20.3-cp310-cp310-win32.whl", hash = "sha256:28545383d61f55b57cf4df63eebd9827754fd2dc25f80c5253f9184235db242c", size = 780167 },
+    { url = "https://files.pythonhosted.org/packages/6f/5e/fc6feb366b0a9f28e0a2de3b062667c521cd9517d4ff55077b8f351ba2f3/protobuf-3.20.3-cp310-cp310-win_amd64.whl", hash = "sha256:67a3598f0a2dcbc58d02dd1928544e7d88f764b47d4a286202913f0b2801c2e7", size = 904029 },
+    { url = "https://files.pythonhosted.org/packages/8d/14/619e24a4c70df2901e1f4dbc50a6291eb63a759172558df326347dce1f0d/protobuf-3.20.3-py2.py3-none-any.whl", hash = "sha256:a7ca6d488aa8ff7f329d4c545b2dbad8ac31464f1d8b1c87ad1346717731e4db", size = 162128 },
+]
+
+[[package]]
+name = "protobuf"
+version = "4.25.6"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/d5/cccc7e82bbda9909ced3e7a441a24205ea07fea4ce23a772743c0c7611fa/protobuf-4.25.6.tar.gz", hash = "sha256:f8cfbae7c5afd0d0eaccbe73267339bff605a2315860bb1ba08eb66670a9a91f", size = 380631 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/41/0ff3559d9a0fbdb37c9452f2b84e61f7784d8d7b9850182c7ef493f523ee/protobuf-4.25.6-cp310-abi3-win32.whl", hash = "sha256:61df6b5786e2b49fc0055f636c1e8f0aff263808bb724b95b164685ac1bcc13a", size = 392454 },
+    { url = "https://files.pythonhosted.org/packages/79/84/c700d6c3f3be770495b08a1c035e330497a31420e4a39a24c22c02cefc6c/protobuf-4.25.6-cp310-abi3-win_amd64.whl", hash = "sha256:b8f837bfb77513fe0e2f263250f423217a173b6d85135be4d81e96a4653bcd3c", size = 413443 },
+    { url = "https://files.pythonhosted.org/packages/b7/03/361e87cc824452376c2abcef0eabd18da78a7439479ec6541cf29076a4dc/protobuf-4.25.6-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:6d4381f2417606d7e01750e2729fe6fbcda3f9883aa0c32b51d23012bded6c91", size = 394246 },
+    { url = "https://files.pythonhosted.org/packages/64/d5/7dbeb69b74fa88f297c6d8f11b7c9cef0c2e2fb1fdf155c2ca5775cfa998/protobuf-4.25.6-cp37-abi3-manylinux2014_aarch64.whl", hash = "sha256:5dd800da412ba7f6f26d2c08868a5023ce624e1fdb28bccca2dc957191e81fb5", size = 293714 },
+    { url = "https://files.pythonhosted.org/packages/d4/f0/6d5c100f6b18d973e86646aa5fc09bc12ee88a28684a56fd95511bceee68/protobuf-4.25.6-cp37-abi3-manylinux2014_x86_64.whl", hash = "sha256:4434ff8bb5576f9e0c78f47c41cdf3a152c0b44de475784cd3fd170aef16205a", size = 294634 },
+    { url = "https://files.pythonhosted.org/packages/71/eb/be11a1244d0e58ee04c17a1f939b100199063e26ecca8262c04827fe0bf5/protobuf-4.25.6-py3-none-any.whl", hash = "sha256:07972021c8e30b870cfc0863409d033af940213e0e7f64e27fe017b929d2c9f7", size = 156466 },
+]
+
+[[package]]
+name = "pyasn1"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/e9/01f1a64245b89f039897cb0130016d79f77d52669aae6ee7b159a6c4c018/pyasn1-0.6.1.tar.gz", hash = "sha256:6f580d2bdd84365380830acf45550f2511469f673cb4a5ae3857a3170128b034", size = 145322 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/f1/d6a797abb14f6283c0ddff96bbdd46937f64122b8c925cab503dd37f8214/pyasn1-0.6.1-py3-none-any.whl", hash = "sha256:0d632f46f2ba09143da3a8afe9e33fb6f92fa2320ab7e886e2d0f7672af84629", size = 83135 },
+]
+
+[[package]]
+name = "pyasn1-modules"
+version = "0.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyasn1" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/67/6afbf0d507f73c32d21084a79946bfcfca5fbc62a72057e9c23797a737c9/pyasn1_modules-0.4.1.tar.gz", hash = "sha256:c28e2dbf9c06ad61c71a075c7e0f9fd0f1b0bb2d2ad4377f240d33ac2ab60a7c", size = 310028 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/89/bc88a6711935ba795a679ea6ebee07e128050d6382eaa35a0a47c8032bdc/pyasn1_modules-0.4.1-py3-none-any.whl", hash = "sha256:49bfa96b45a292b711e986f222502c1c9a5e1f4e568fc30e2574a6c7d07838fd", size = 181537 },
 ]
 
 [[package]]
@@ -2579,11 +3055,25 @@ dependencies = [
     { name = "certifi" },
     { name = "charset-normalizer" },
     { name = "idna" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6", size = 64928 },
+]
+
+[[package]]
+name = "requests-oauthlib"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "oauthlib" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/f2/05f29bc3913aea15eb670be136045bf5c5bbf4b99ecb839da9b422bb2c85/requests-oauthlib-2.0.0.tar.gz", hash = "sha256:b3dffaebd884d8cd778494369603a9e7b58d29111bf6b41bdc2dcd87203af4e9", size = 55650 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/5d/63d4ae3b9daea098d5d6f5da83984853c1bbacd5dc826764b249fe119d24/requests_oauthlib-2.0.0-py2.py3-none-any.whl", hash = "sha256:7dd8a5c40426b779b0868c404bdef9768deccf22749cde15852df527e6269b36", size = 24179 },
 ]
 
 [[package]]
@@ -2718,6 +3208,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/11/23/cd8f566de444a137bc1ee5795e47069a947e60810ba4152886fe5308e1b7/rpds_py-0.22.3-pp310-pypy310_pp73-musllinux_1_2_i686.whl", hash = "sha256:e35ba67d65d49080e8e5a1dd40101fccdd9798adb9b050ff670b7d74fa41c566", size = 583780 },
     { url = "https://files.pythonhosted.org/packages/8d/63/79c3602afd14d501f751e615a74a59040328da5ef29ed5754ae80d236b84/rpds_py-0.22.3-pp310-pypy310_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:26fd7cac7dd51011a245f29a2cc6489c4608b5a8ce8d75661bb4a1066c52dfbe", size = 553619 },
     { url = "https://files.pythonhosted.org/packages/9f/2e/c5c1689e80298d4e94c75b70faada4c25445739d91b94c211244a3ed7ed1/rpds_py-0.22.3-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:177c7c0fce2855833819c98e43c262007f42ce86651ffbb84f37883308cb0e7d", size = 233338 },
+]
+
+[[package]]
+name = "rsa"
+version = "4.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyasn1" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/aa/65/7d973b89c4d2351d7fb232c2e452547ddfa243e93131e7cfa766da627b52/rsa-4.9.tar.gz", hash = "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21", size = 29711 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/97/fa78e3d2f65c02c8e1268b9aba606569fe97f6c8f7c2d74394553347c145/rsa-4.9-py3-none-any.whl", hash = "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7", size = 34315 },
 ]
 
 [[package]]
@@ -3045,6 +3547,18 @@ wheels = [
 ]
 
 [[package]]
+name = "strip-hints"
+version = "0.1.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wheel", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/af/17ec9e52446330f60752687c7bc6328a68cb1aefe940f6d919a282b6a720/strip_hints-0.1.13.tar.gz", hash = "sha256:1feaebde61269ba0dea1e7f093df7ff9d4df4980cce7e3c22ed6d86ae43dbd06", size = 30332 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/43/93828236ade737789fc5a85cf2cdc363c4e2694a2afff9e7bb9e7590214e/strip_hints-0.1.13-py3-none-any.whl", hash = "sha256:7ba1b07a193b1cc843fd87f21072202404c25dbc42d3222ac32b2bce4b196c8a", size = 23259 },
+]
+
+[[package]]
 name = "sympy"
 version = "1.13.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3063,6 +3577,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ec/fe/802052aecb21e3797b8f7902564ab6ea0d60ff8ca23952079064155d1ae1/tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c", size = 81090 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f", size = 35252 },
+]
+
+[[package]]
+name = "termcolor"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/72/88311445fd44c455c7d553e61f95412cf89054308a1aa2434ab835075fc5/termcolor-2.5.0.tar.gz", hash = "sha256:998d8d27da6d48442e8e1f016119076b690d962507531df4890fcd2db2ef8a6f", size = 13057 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/be/df630c387a0a054815d60be6a97eb4e8f17385d5d6fe660e1c02750062b4/termcolor-2.5.0-py3-none-any.whl", hash = "sha256:37b17b5fc1e604945c2642c872a3764b5d547a48009871aea3edd3afa180afb8", size = 7755 },
 ]
 
 [[package]]
@@ -3457,6 +3980,10 @@ dependencies = [
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (extra != 'extra-13-docling-serve-cpu' and extra != 'extra-13-docling-serve-cu124')" },
 ]
 wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/20/72eb0b5b08fa293f20fc41c374e37cf899f0033076f0144d2cdc48f9faee/torchvision-0.21.0-1-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:5568c5a1ff1b2ec33127b629403adb530fab81378d9018ca4ed6508293f76e2b", size = 2327643 },
+    { url = "https://files.pythonhosted.org/packages/4e/3d/b7241abfa3e6651c6e00796f5de2bd1ce4d500bf5159bcbfeea47e711b93/torchvision-0.21.0-1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:ff96666b94a55e802ea6796cabe788541719e6f4905fc59c380fed3517b6a64d", size = 2329320 },
+    { url = "https://files.pythonhosted.org/packages/52/5b/76ca113a853b19c7b1da761f8a72cb6429b3bd0bf932537d8df4657f47c3/torchvision-0.21.0-1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:ffa2a16499508fe6798323e455f312c7c55f2a88901c9a7c0fb1efa86cf7e327", size = 2329878 },
+    { url = "https://files.pythonhosted.org/packages/4e/fe/5e193353706dab96fe73ae100d5a633ff635ce310e0d92f3bc2958d075b1/torchvision-0.21.0-1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:7e9e9afa150e40cd2a8f0701c43cb82a8d724f512896455c0918b987f94b84a4", size = 2280711 },
     { url = "https://files.pythonhosted.org/packages/8e/0d/143bd264876fad17c82096b6c2d433f1ac9b29cdc69ee45023096976ee3d/torchvision-0.21.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:044ea420b8c6c3162a234cada8e2025b9076fa82504758cd11ec5d0f8cd9fa37", size = 1784140 },
     { url = "https://files.pythonhosted.org/packages/5e/44/32e2d2d174391374d5ff3c4691b802e8efda9ae27ab9062eca2255b006af/torchvision-0.21.0-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:b0c0b264b89ab572888244f2e0bad5b7eaf5b696068fc0b93e96f7c3c198953f", size = 7237187 },
     { url = "https://files.pythonhosted.org/packages/0e/6b/4fca9373eda42c1b04096758306b7bd55f7d8f78ba273446490855a0f25d/torchvision-0.21.0-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:54815e0a56dde95cc6ec952577f67e0dc151eadd928e8d9f6a7f821d69a4a734", size = 14699067 },
@@ -3601,7 +4128,8 @@ dependencies = [
     { name = "requests-toolbelt" },
     { name = "rfc3986" },
     { name = "tqdm" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
+    { name = "urllib3", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124') or (sys_platform == 'linux' and extra == 'extra-13-docling-serve-cpu' and extra == 'extra-13-docling-serve-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d1/3e/ce331d7e215abdc16c53e65f8506bfccf4840ce191b709a37b8c83cc32c7/twine-3.8.0.tar.gz", hash = "sha256:8efa52658e0ae770686a13b675569328f1fba9837e5de1867bfe5f46a9aefe19", size = 214568 }
 wheels = [
@@ -3643,8 +4171,37 @@ wheels = [
 
 [[package]]
 name = "urllib3"
+version = "1.26.20"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e4/e8/6ff5e6bc22095cfc59b6ea711b687e2b7ed4bdb373f7eeec370a97d7392f/urllib3-1.26.20.tar.gz", hash = "sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32", size = 307380 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/cf/8435d5a7159e2a9c83a95896ed596f68cf798005fe107cc655b5c5c14704/urllib3-1.26.20-py2.py3-none-any.whl", hash = "sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e", size = 144225 },
+]
+
+[[package]]
+name = "urllib3"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/aa/63/e53da845320b757bf29ef6a9062f5c669fe997973f966045cb019c3f4b66/urllib3-2.3.0.tar.gz", hash = "sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d", size = 307268 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/19/4ec628951a74043532ca2cf5d97b7b14863931476d117c471e8e2b1eb39f/urllib3-2.3.0-py3-none-any.whl", hash = "sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df", size = 128369 },
@@ -3812,6 +4369,15 @@ wheels = [
 ]
 
 [[package]]
+name = "websocket-client"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/30/fba0d96b4b5fbf5948ed3f4681f7da2f9f64512e1d303f94b4cc174c24a5/websocket_client-1.8.0.tar.gz", hash = "sha256:3239df9f44da632f96012472805d40a23281a991027ce11d2f45a6f24ac4c3da", size = 54648 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/84/44687a29792a70e111c5c477230a72c4b957d88d16141199bf9acb7537a3/websocket_client-1.8.0-py3-none-any.whl", hash = "sha256:17b44cc997f5c498e809b22cdf2d9c7a9e71c02c8cc2b6c56e7c2d1239bfa526", size = 58826 },
+]
+
+[[package]]
 name = "websockets"
 version = "14.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3877,6 +4443,70 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8a/98/2d9906746cdc6a6ef809ae6338005b3f21bb568bea3165cfc6a243fdc25c/wheel-0.45.1.tar.gz", hash = "sha256:661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729", size = 107545 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/2c/87f3254fd8ffd29e4c02732eee68a83a1d3c346ae39bc6822dcbcb697f2b/wheel-0.45.1-py3-none-any.whl", hash = "sha256:708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248", size = 72494 },
+]
+
+[[package]]
+name = "wrapt"
+version = "1.17.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/fc/e91cc220803d7bc4db93fb02facd8461c37364151b8494762cc88b0fbcef/wrapt-1.17.2.tar.gz", hash = "sha256:41388e9d4d1522446fe79d3213196bd9e3b301a336965b9e27ca2788ebd122f3", size = 55531 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/d1/1daec934997e8b160040c78d7b31789f19b122110a75eca3d4e8da0049e1/wrapt-1.17.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3d57c572081fed831ad2d26fd430d565b76aa277ed1d30ff4d40670b1c0dd984", size = 53307 },
+    { url = "https://files.pythonhosted.org/packages/1b/7b/13369d42651b809389c1a7153baa01d9700430576c81a2f5c5e460df0ed9/wrapt-1.17.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b5e251054542ae57ac7f3fba5d10bfff615b6c2fb09abeb37d2f1463f841ae22", size = 38486 },
+    { url = "https://files.pythonhosted.org/packages/62/bf/e0105016f907c30b4bd9e377867c48c34dc9c6c0c104556c9c9126bd89ed/wrapt-1.17.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:80dd7db6a7cb57ffbc279c4394246414ec99537ae81ffd702443335a61dbf3a7", size = 38777 },
+    { url = "https://files.pythonhosted.org/packages/27/70/0f6e0679845cbf8b165e027d43402a55494779295c4b08414097b258ac87/wrapt-1.17.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0a6e821770cf99cc586d33833b2ff32faebdbe886bd6322395606cf55153246c", size = 83314 },
+    { url = "https://files.pythonhosted.org/packages/0f/77/0576d841bf84af8579124a93d216f55d6f74374e4445264cb378a6ed33eb/wrapt-1.17.2-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b60fb58b90c6d63779cb0c0c54eeb38941bae3ecf7a73c764c52c88c2dcb9d72", size = 74947 },
+    { url = "https://files.pythonhosted.org/packages/90/ec/00759565518f268ed707dcc40f7eeec38637d46b098a1f5143bff488fe97/wrapt-1.17.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b870b5df5b71d8c3359d21be8f0d6c485fa0ebdb6477dda51a1ea54a9b558061", size = 82778 },
+    { url = "https://files.pythonhosted.org/packages/f8/5a/7cffd26b1c607b0b0c8a9ca9d75757ad7620c9c0a9b4a25d3f8a1480fafc/wrapt-1.17.2-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:4011d137b9955791f9084749cba9a367c68d50ab8d11d64c50ba1688c9b457f2", size = 81716 },
+    { url = "https://files.pythonhosted.org/packages/7e/09/dccf68fa98e862df7e6a60a61d43d644b7d095a5fc36dbb591bbd4a1c7b2/wrapt-1.17.2-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:1473400e5b2733e58b396a04eb7f35f541e1fb976d0c0724d0223dd607e0f74c", size = 74548 },
+    { url = "https://files.pythonhosted.org/packages/b7/8e/067021fa3c8814952c5e228d916963c1115b983e21393289de15128e867e/wrapt-1.17.2-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:3cedbfa9c940fdad3e6e941db7138e26ce8aad38ab5fe9dcfadfed9db7a54e62", size = 81334 },
+    { url = "https://files.pythonhosted.org/packages/4b/0d/9d4b5219ae4393f718699ca1c05f5ebc0c40d076f7e65fd48f5f693294fb/wrapt-1.17.2-cp310-cp310-win32.whl", hash = "sha256:582530701bff1dec6779efa00c516496968edd851fba224fbd86e46cc6b73563", size = 36427 },
+    { url = "https://files.pythonhosted.org/packages/72/6a/c5a83e8f61aec1e1aeef939807602fb880e5872371e95df2137142f5c58e/wrapt-1.17.2-cp310-cp310-win_amd64.whl", hash = "sha256:58705da316756681ad3c9c73fd15499aa4d8c69f9fd38dc8a35e06c12468582f", size = 38774 },
+    { url = "https://files.pythonhosted.org/packages/cd/f7/a2aab2cbc7a665efab072344a8949a71081eed1d2f451f7f7d2b966594a2/wrapt-1.17.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:ff04ef6eec3eee8a5efef2401495967a916feaa353643defcc03fc74fe213b58", size = 53308 },
+    { url = "https://files.pythonhosted.org/packages/50/ff/149aba8365fdacef52b31a258c4dc1c57c79759c335eff0b3316a2664a64/wrapt-1.17.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:4db983e7bca53819efdbd64590ee96c9213894272c776966ca6306b73e4affda", size = 38488 },
+    { url = "https://files.pythonhosted.org/packages/65/46/5a917ce85b5c3b490d35c02bf71aedaa9f2f63f2d15d9949cc4ba56e8ba9/wrapt-1.17.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9abc77a4ce4c6f2a3168ff34b1da9b0f311a8f1cfd694ec96b0603dff1c79438", size = 38776 },
+    { url = "https://files.pythonhosted.org/packages/ca/74/336c918d2915a4943501c77566db41d1bd6e9f4dbc317f356b9a244dfe83/wrapt-1.17.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0b929ac182f5ace000d459c59c2c9c33047e20e935f8e39371fa6e3b85d56f4a", size = 83776 },
+    { url = "https://files.pythonhosted.org/packages/09/99/c0c844a5ccde0fe5761d4305485297f91d67cf2a1a824c5f282e661ec7ff/wrapt-1.17.2-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f09b286faeff3c750a879d336fb6d8713206fc97af3adc14def0cdd349df6000", size = 75420 },
+    { url = "https://files.pythonhosted.org/packages/b4/b0/9fc566b0fe08b282c850063591a756057c3247b2362b9286429ec5bf1721/wrapt-1.17.2-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1a7ed2d9d039bd41e889f6fb9364554052ca21ce823580f6a07c4ec245c1f5d6", size = 83199 },
+    { url = "https://files.pythonhosted.org/packages/9d/4b/71996e62d543b0a0bd95dda485219856def3347e3e9380cc0d6cf10cfb2f/wrapt-1.17.2-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:129a150f5c445165ff941fc02ee27df65940fcb8a22a61828b1853c98763a64b", size = 82307 },
+    { url = "https://files.pythonhosted.org/packages/39/35/0282c0d8789c0dc9bcc738911776c762a701f95cfe113fb8f0b40e45c2b9/wrapt-1.17.2-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:1fb5699e4464afe5c7e65fa51d4f99e0b2eadcc176e4aa33600a3df7801d6662", size = 75025 },
+    { url = "https://files.pythonhosted.org/packages/4f/6d/90c9fd2c3c6fee181feecb620d95105370198b6b98a0770cba090441a828/wrapt-1.17.2-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:9a2bce789a5ea90e51a02dfcc39e31b7f1e662bc3317979aa7e5538e3a034f72", size = 81879 },
+    { url = "https://files.pythonhosted.org/packages/8f/fa/9fb6e594f2ce03ef03eddbdb5f4f90acb1452221a5351116c7c4708ac865/wrapt-1.17.2-cp311-cp311-win32.whl", hash = "sha256:4afd5814270fdf6380616b321fd31435a462019d834f83c8611a0ce7484c7317", size = 36419 },
+    { url = "https://files.pythonhosted.org/packages/47/f8/fb1773491a253cbc123c5d5dc15c86041f746ed30416535f2a8df1f4a392/wrapt-1.17.2-cp311-cp311-win_amd64.whl", hash = "sha256:acc130bc0375999da18e3d19e5a86403667ac0c4042a094fefb7eec8ebac7cf3", size = 38773 },
+    { url = "https://files.pythonhosted.org/packages/a1/bd/ab55f849fd1f9a58ed7ea47f5559ff09741b25f00c191231f9f059c83949/wrapt-1.17.2-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:d5e2439eecc762cd85e7bd37161d4714aa03a33c5ba884e26c81559817ca0925", size = 53799 },
+    { url = "https://files.pythonhosted.org/packages/53/18/75ddc64c3f63988f5a1d7e10fb204ffe5762bc663f8023f18ecaf31a332e/wrapt-1.17.2-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:3fc7cb4c1c744f8c05cd5f9438a3caa6ab94ce8344e952d7c45a8ed59dd88392", size = 38821 },
+    { url = "https://files.pythonhosted.org/packages/48/2a/97928387d6ed1c1ebbfd4efc4133a0633546bec8481a2dd5ec961313a1c7/wrapt-1.17.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8fdbdb757d5390f7c675e558fd3186d590973244fab0c5fe63d373ade3e99d40", size = 38919 },
+    { url = "https://files.pythonhosted.org/packages/73/54/3bfe5a1febbbccb7a2f77de47b989c0b85ed3a6a41614b104204a788c20e/wrapt-1.17.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5bb1d0dbf99411f3d871deb6faa9aabb9d4e744d67dcaaa05399af89d847a91d", size = 88721 },
+    { url = "https://files.pythonhosted.org/packages/25/cb/7262bc1b0300b4b64af50c2720ef958c2c1917525238d661c3e9a2b71b7b/wrapt-1.17.2-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d18a4865f46b8579d44e4fe1e2bcbc6472ad83d98e22a26c963d46e4c125ef0b", size = 80899 },
+    { url = "https://files.pythonhosted.org/packages/2a/5a/04cde32b07a7431d4ed0553a76fdb7a61270e78c5fd5a603e190ac389f14/wrapt-1.17.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bc570b5f14a79734437cb7b0500376b6b791153314986074486e0b0fa8d71d98", size = 89222 },
+    { url = "https://files.pythonhosted.org/packages/09/28/2e45a4f4771fcfb109e244d5dbe54259e970362a311b67a965555ba65026/wrapt-1.17.2-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:6d9187b01bebc3875bac9b087948a2bccefe464a7d8f627cf6e48b1bbae30f82", size = 86707 },
+    { url = "https://files.pythonhosted.org/packages/c6/d2/dcb56bf5f32fcd4bd9aacc77b50a539abdd5b6536872413fd3f428b21bed/wrapt-1.17.2-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:9e8659775f1adf02eb1e6f109751268e493c73716ca5761f8acb695e52a756ae", size = 79685 },
+    { url = "https://files.pythonhosted.org/packages/80/4e/eb8b353e36711347893f502ce91c770b0b0929f8f0bed2670a6856e667a9/wrapt-1.17.2-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e8b2816ebef96d83657b56306152a93909a83f23994f4b30ad4573b00bd11bb9", size = 87567 },
+    { url = "https://files.pythonhosted.org/packages/17/27/4fe749a54e7fae6e7146f1c7d914d28ef599dacd4416566c055564080fe2/wrapt-1.17.2-cp312-cp312-win32.whl", hash = "sha256:468090021f391fe0056ad3e807e3d9034e0fd01adcd3bdfba977b6fdf4213ea9", size = 36672 },
+    { url = "https://files.pythonhosted.org/packages/15/06/1dbf478ea45c03e78a6a8c4be4fdc3c3bddea5c8de8a93bc971415e47f0f/wrapt-1.17.2-cp312-cp312-win_amd64.whl", hash = "sha256:ec89ed91f2fa8e3f52ae53cd3cf640d6feff92ba90d62236a81e4e563ac0e991", size = 38865 },
+    { url = "https://files.pythonhosted.org/packages/ce/b9/0ffd557a92f3b11d4c5d5e0c5e4ad057bd9eb8586615cdaf901409920b14/wrapt-1.17.2-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:6ed6ffac43aecfe6d86ec5b74b06a5be33d5bb9243d055141e8cabb12aa08125", size = 53800 },
+    { url = "https://files.pythonhosted.org/packages/c0/ef/8be90a0b7e73c32e550c73cfb2fa09db62234227ece47b0e80a05073b375/wrapt-1.17.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:35621ae4c00e056adb0009f8e86e28eb4a41a4bfa8f9bfa9fca7d343fe94f998", size = 38824 },
+    { url = "https://files.pythonhosted.org/packages/36/89/0aae34c10fe524cce30fe5fc433210376bce94cf74d05b0d68344c8ba46e/wrapt-1.17.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a604bf7a053f8362d27eb9fefd2097f82600b856d5abe996d623babd067b1ab5", size = 38920 },
+    { url = "https://files.pythonhosted.org/packages/3b/24/11c4510de906d77e0cfb5197f1b1445d4fec42c9a39ea853d482698ac681/wrapt-1.17.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5cbabee4f083b6b4cd282f5b817a867cf0b1028c54d445b7ec7cfe6505057cf8", size = 88690 },
+    { url = "https://files.pythonhosted.org/packages/71/d7/cfcf842291267bf455b3e266c0c29dcb675b5540ee8b50ba1699abf3af45/wrapt-1.17.2-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:49703ce2ddc220df165bd2962f8e03b84c89fee2d65e1c24a7defff6f988f4d6", size = 80861 },
+    { url = "https://files.pythonhosted.org/packages/d5/66/5d973e9f3e7370fd686fb47a9af3319418ed925c27d72ce16b791231576d/wrapt-1.17.2-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8112e52c5822fc4253f3901b676c55ddf288614dc7011634e2719718eaa187dc", size = 89174 },
+    { url = "https://files.pythonhosted.org/packages/a7/d3/8e17bb70f6ae25dabc1aaf990f86824e4fd98ee9cadf197054e068500d27/wrapt-1.17.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:9fee687dce376205d9a494e9c121e27183b2a3df18037f89d69bd7b35bcf59e2", size = 86721 },
+    { url = "https://files.pythonhosted.org/packages/6f/54/f170dfb278fe1c30d0ff864513cff526d624ab8de3254b20abb9cffedc24/wrapt-1.17.2-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:18983c537e04d11cf027fbb60a1e8dfd5190e2b60cc27bc0808e653e7b218d1b", size = 79763 },
+    { url = "https://files.pythonhosted.org/packages/4a/98/de07243751f1c4a9b15c76019250210dd3486ce098c3d80d5f729cba029c/wrapt-1.17.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:703919b1633412ab54bcf920ab388735832fdcb9f9a00ae49387f0fe67dad504", size = 87585 },
+    { url = "https://files.pythonhosted.org/packages/f9/f0/13925f4bd6548013038cdeb11ee2cbd4e37c30f8bfd5db9e5a2a370d6e20/wrapt-1.17.2-cp313-cp313-win32.whl", hash = "sha256:abbb9e76177c35d4e8568e58650aa6926040d6a9f6f03435b7a522bf1c487f9a", size = 36676 },
+    { url = "https://files.pythonhosted.org/packages/bf/ae/743f16ef8c2e3628df3ddfd652b7d4c555d12c84b53f3d8218498f4ade9b/wrapt-1.17.2-cp313-cp313-win_amd64.whl", hash = "sha256:69606d7bb691b50a4240ce6b22ebb319c1cfb164e5f6569835058196e0f3a845", size = 38871 },
+    { url = "https://files.pythonhosted.org/packages/3d/bc/30f903f891a82d402ffb5fda27ec1d621cc97cb74c16fea0b6141f1d4e87/wrapt-1.17.2-cp313-cp313t-macosx_10_13_universal2.whl", hash = "sha256:4a721d3c943dae44f8e243b380cb645a709ba5bd35d3ad27bc2ed947e9c68192", size = 56312 },
+    { url = "https://files.pythonhosted.org/packages/8a/04/c97273eb491b5f1c918857cd26f314b74fc9b29224521f5b83f872253725/wrapt-1.17.2-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:766d8bbefcb9e00c3ac3b000d9acc51f1b399513f44d77dfe0eb026ad7c9a19b", size = 40062 },
+    { url = "https://files.pythonhosted.org/packages/4e/ca/3b7afa1eae3a9e7fefe499db9b96813f41828b9fdb016ee836c4c379dadb/wrapt-1.17.2-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:e496a8ce2c256da1eb98bd15803a79bee00fc351f5dfb9ea82594a3f058309e0", size = 40155 },
+    { url = "https://files.pythonhosted.org/packages/89/be/7c1baed43290775cb9030c774bc53c860db140397047cc49aedaf0a15477/wrapt-1.17.2-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:40d615e4fe22f4ad3528448c193b218e077656ca9ccb22ce2cb20db730f8d306", size = 113471 },
+    { url = "https://files.pythonhosted.org/packages/32/98/4ed894cf012b6d6aae5f5cc974006bdeb92f0241775addad3f8cd6ab71c8/wrapt-1.17.2-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a5aaeff38654462bc4b09023918b7f21790efb807f54c000a39d41d69cf552cb", size = 101208 },
+    { url = "https://files.pythonhosted.org/packages/ea/fd/0c30f2301ca94e655e5e057012e83284ce8c545df7661a78d8bfca2fac7a/wrapt-1.17.2-cp313-cp313t-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9a7d15bbd2bc99e92e39f49a04653062ee6085c0e18b3b7512a4f2fe91f2d681", size = 109339 },
+    { url = "https://files.pythonhosted.org/packages/75/56/05d000de894c4cfcb84bcd6b1df6214297b8089a7bd324c21a4765e49b14/wrapt-1.17.2-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:e3890b508a23299083e065f435a492b5435eba6e304a7114d2f919d400888cc6", size = 110232 },
+    { url = "https://files.pythonhosted.org/packages/53/f8/c3f6b2cf9b9277fb0813418e1503e68414cd036b3b099c823379c9575e6d/wrapt-1.17.2-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:8c8b293cd65ad716d13d8dd3624e42e5a19cc2a2f1acc74b30c2c13f15cb61a6", size = 100476 },
+    { url = "https://files.pythonhosted.org/packages/a7/b1/0bb11e29aa5139d90b770ebbfa167267b1fc548d2302c30c8f7572851738/wrapt-1.17.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:4c82b8785d98cdd9fed4cac84d765d234ed3251bd6afe34cb7ac523cb93e8b4f", size = 106377 },
+    { url = "https://files.pythonhosted.org/packages/6a/e1/0122853035b40b3f333bbb25f1939fc1045e21dd518f7f0922b60c156f7c/wrapt-1.17.2-cp313-cp313t-win32.whl", hash = "sha256:13e6afb7fe71fe7485a4550a8844cc9ffbe263c0f1a1eea569bc7091d4898555", size = 37986 },
+    { url = "https://files.pythonhosted.org/packages/09/5e/1655cf481e079c1f22d0cabdd4e51733679932718dc23bf2db175f329b76/wrapt-1.17.2-cp313-cp313t-win_amd64.whl", hash = "sha256:eaf675418ed6b3b31c7a989fd007fa7c3be66ce14e5c3b27336383604c9da85c", size = 40750 },
+    { url = "https://files.pythonhosted.org/packages/2d/82/f56956041adef78f849db6b289b282e72b55ab8045a75abad81898c28d19/wrapt-1.17.2-py3-none-any.whl", hash = "sha256:b18f2d1533a71f069c7f82d524a52599053d4c7166e9dd374ae2136b7f40f7c8", size = 23594 },
 ]
 
 [[package]]

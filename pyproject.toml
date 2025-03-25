@@ -33,6 +33,7 @@ dependencies = [
     "docling~=2.25.1",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
+    "kfp[kubernetes]>=1.4.0",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
     "python-multipart>=0.0.14,<0.1.0",
