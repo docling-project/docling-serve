@@ -1,12 +1,13 @@
 from fastapi import WebSocket
 
 from docling_serve.datamodel.callback import ProgressCallbackRequest
-from docling_serve.datamodel.engines import Task, TaskStatus
+from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.responses import (
     MessageKind,
     TaskStatusResponse,
     WebsocketMessage,
 )
+from docling_serve.datamodel.task import Task
 from docling_serve.engines.base_orchestrator import (
     BaseOrchestrator,
     OrchestratorError,

@@ -7,8 +7,8 @@ from docling_serve.datamodel.callback import (
     ProgressSetNumDocs,
     ProgressUpdateProcessed,
 )
-from docling_serve.datamodel.engines import Task, TaskProcessingMeta
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
+from docling_serve.datamodel.task import Task, TaskProcessingMeta
 from docling_serve.engines.async_orchestrator import (
     BaseAsyncOrchestrator,
     ProgressInvalid,

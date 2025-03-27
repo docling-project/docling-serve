@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from docling_serve.datamodel.engines import Task
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
+from docling_serve.datamodel.task import Task
 
 
 class OrchestratorError(Exception):

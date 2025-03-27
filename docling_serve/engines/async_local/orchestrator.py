@@ -3,8 +3,8 @@ import logging
 import uuid
 from typing import Optional
 
-from docling_serve.datamodel.engines import Task
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
+from docling_serve.datamodel.task import Task
 from docling_serve.engines.async_local.worker import AsyncLocalWorker
 from docling_serve.engines.async_orchestrator import BaseAsyncOrchestrator
 from docling_serve.settings import docling_serve_settings

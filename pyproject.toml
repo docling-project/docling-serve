@@ -30,7 +30,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.25.1",
+    "docling~=2.28",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "kfp[kubernetes]>=1.4.0",
