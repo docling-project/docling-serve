@@ -30,6 +30,7 @@ class DoclingServeSettings(BaseSettings):
 
     enable_ui: bool = False
     artifacts_path: Optional[Path] = None
+    static_path: Optional[Path] = None
     options_cache_size: int = 2
     allow_external_plugins: bool = False
 

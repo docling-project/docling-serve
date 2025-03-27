@@ -8,15 +8,29 @@ import gradio as gr
 import requests
 
 from docling_serve.helper_functions import _to_list_of_strings
-from docling_serve.settings import uvicorn_settings
+from docling_serve.settings import docling_serve_settings, uvicorn_settings
 
 logger = logging.getLogger(__name__)
+
+############################
+# Path of static artifacts #
+############################
+
+logo_path = "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
+js_components_url = "https://unpkg.com/@docling/docling-components@0.0.3"
+if (
+    docling_serve_settings.static_path is not None
+    and docling_serve_settings.static_path.is_dir()
+):
+    logo_path = str(docling_serve_settings.static_path / "logo.svg")
+    js_components_url = "/static/docling-components.js"
+
 
 ##############################
 # Head JS for web components #
 ##############################
-head = """
-    <script src="https://unpkg.com/@docling/docling-components@0.0.3" type="module"></script>
+head = f"""
+    <script src="{js_components_url}" type="module"></script>
 """
 
 #################
@@ -360,7 +374,7 @@ with gr.Blocks(
         with gr.Column(scale=1, min_width=90):
             try:
                 gr.Image(
-                    "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
+                    logo_path,
                     height=80,
                     width=80,
                     show_download_button=False,
