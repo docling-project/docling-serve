@@ -1,0 +1,63 @@
+# ruff: noqa: E402
+
+from typing import Any
+
+from kfp import dsl
+
+PYTHON_BASE_IMAGE = "python:3.12"
+
+
+@dsl.component(
+    base_image=PYTHON_BASE_IMAGE,
+)
+def generate_chunks(
+    request: dict[str, Any],
+    batch_size: int,
+) -> list[list[dict[str, Any]]]:
+    sources = request["http_sources"]
+    splits = [sources[i::batch_size] for i in range(batch_size)]
+    return splits
+
+
+@dsl.component(
+    base_image=PYTHON_BASE_IMAGE,
+    packages_to_install=["pydantic", "docling-serve[cpu]"],
+)
+def convert_batch(
+    data_splits: list[dict[str, Any]],
+    request: dict[str, Any],
+    output_path: dsl.OutputPath("Directory"),  # type: ignore
+):
+    from pathlib import Path
+
+    from pydantic import AnyUrl
+
+    from docling_serve.datamodel.convert import ConvertDocumentsOptions
+    from docling_serve.datamodel.requests import HttpSource
+
+    convert_options = ConvertDocumentsOptions.model_validate(request["options"])
+    print(convert_options)
+
+    output_dir = Path(output_path)
+    output_dir.mkdir(exist_ok=True, parents=True)
+    for source_dict in data_splits:
+        source = HttpSource.model_validate(source_dict)
+        filename = Path(str(AnyUrl(source.url).path)).name
+        output_filename = output_dir / filename
+        print(f"Writing {output_filename}")
+        with output_filename.open("w") as f:
+            f.write(source.model_dump_json())
+
+
+@dsl.pipeline()
+def process(
+    batch_size: int,
+    request: dict[str, Any],
+):
+    chunks_task = generate_chunks(request=request, batch_size=batch_size)
+
+    with dsl.ParallelFor(chunks_task.output, parallelism=4) as data_splits:
+        convert_batch(
+            data_splits=data_splits,
+            request=request,
+        )

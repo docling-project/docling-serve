@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import Optional, Union
 
+from pydantic import AnyUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
 
 from docling_serve.datamodel.engines import AsyncEngine
 
@@ -39,7 +41,20 @@ class DoclingServeSettings(BaseSettings):
     cors_headers: list[str] = ["*"]
 
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
+    # Local engine
     eng_loc_num_workers: int = 2
+    # KFP engine
+    eng_kfp_endpoint: Optional[AnyUrl] = None
+    eng_kfp_token: Optional[str] = None
+    eng_kfp_ca_cert_path: Optional[str] = None
+
+    @model_validator(mode="after")
+    def engine_settings(self) -> Self:
+        # Validate KFP engine settings
+        if self.eng_kind == AsyncEngine.KFP:
+            if self.eng_kfp_endpoint is None:
+                raise ValueError("KFP endpoint is required when using the KFP engine.")
+        return self
 
 
 uvicorn_settings = UvicornSettings()
