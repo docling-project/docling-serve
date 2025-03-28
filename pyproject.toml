@@ -196,6 +196,8 @@ module = [
     "tesserocr.*",
     "rapidocr_onnxruntime.*",
     "requests.*",
+    "kfp.*",
+    "kfp_server_api.*",
 ]
 ignore_missing_imports = true
 
