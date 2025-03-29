@@ -65,12 +65,11 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
         self._client = kfp.Client(
             host=str(kfp_endpoint),
             existing_token=token,
-            # ssl_ca_cert=ssl_ca_cert,
+            ssl_ca_cert=ssl_ca_cert,
             # verify_ssl=False,
         )
 
     async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
-        # task_id = str(uuid.uuid4())
         kfp_run = self._client.create_run_from_pipeline_func(
             process,
             arguments={
