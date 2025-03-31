@@ -1,0 +1,209 @@
+# This example deployment configures Docling Serve with a OAuth-Proxy sidecar and TLS termination
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+  annotations:
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"docling-serve"}}'
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: docling-serve-oauth
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+rules:
+  - verbs:
+      - create
+    apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+  - verbs:
+      - create
+    apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: docling-serve-oauth
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+subjects:
+  - kind: ServiceAccount
+    name: docling-serve
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: docling-serve-oauth
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  to:
+    kind: Service
+    name: docling-serve
+  port:
+    targetPort: oauth
+  tls:
+    termination: Reencrypt
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: docling-serve-tls
+spec:
+  ports:
+  - name: oauth
+    port: 8443
+    targetPort: oauth
+  - name: http
+    port: 5001
+    targetPort: http
+  selector:
+    app: docling-serve
+    component: docling-serve-api
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      serviceAccountName: docling-serve
+      containers:
+        - name: api
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            timeoutSeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: 'true'
+            - name: UVICORN_SSL_CERTFILE
+              value: '/etc/tls/private/tls.crt'
+            - name: UVICORN_SSL_KEYFILE
+              value: '/etc/tls/private/tls.key'
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          volumeMounts:
+            - name: proxy-tls
+              mountPath: /etc/tls/private
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve:dev-ssl'
+        - name: oauth-proxy
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /oauth/healthz
+              port: oauth
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /oauth/healthz
+              port: oauth
+              scheme: HTTPS
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - name: oauth
+              containerPort: 8443
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: proxy-tls
+              mountPath: /etc/tls/private
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          image: 'registry.redhat.io/openshift4/ose-oauth-proxy:v4.13'
+          args:
+            - '--https-address=:8443'
+            - '--provider=openshift'
+            - '--openshift-service-account=docling-serve'
+            - '--upstream=https://docling-serve.$(NAMESPACE).svc.cluster.local:5001'
+            - '--upstream-ca=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt'
+            - '--tls-cert=/etc/tls/private/tls.crt'
+            - '--tls-key=/etc/tls/private/tls.key'
+            - '--cookie-secret=SECRET'
+            - '--openshift-delegate-urls={"/": {"group":"route.openshift.io","resource":"routes","verb":"get","name":"docling-serve","namespace":"$(NAMESPACE)"}}'
+            - '--openshift-sar={"namespace":"$(NAMESPACE)","resource":"routes","resourceName":"docling-serve","verb":"get","resourceAPIGroup":"route.openshift.io"}'
+            - '--skip-auth-regex=''(^/health|^/docs)'''
+      volumes:
+        - name: proxy-tls
+          secret:
+            secretName: docling-serve-tls
+            defaultMode: 420
