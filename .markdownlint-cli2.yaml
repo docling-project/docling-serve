@@ -3,7 +3,7 @@ config:
   no-emphasis-as-header: false
   first-line-heading: false
   MD033:
-    allowed_elements: ["details", "summary", "br"]
+    allowed_elements: ["details", "summary", "br", "a", "p", "img"]
   MD024:
     siblings_only: true
 globs:
