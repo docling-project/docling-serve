@@ -25,6 +25,9 @@ The following table shows the options which are propagated directly to the
 | `--root-path` | `UVICORN_ROOT_PATH` | `""` | The root path is used to tell your app that it is being served to the outside world with some |
 | `--proxy-headers` | `UVICORN_PROXY_HEADERS` | `true` | Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. |
 | `--timeout-keep-alive` | `UVICORN_TIMEOUT_KEEP_ALIVE` | `60` | Timeout for the server response. |
+| `--ssl-certfile` | `UVICORN_SSL_CERTFILE` |  | SSL certificate file. |
+| `--ssl-keyfile` | `UVICORN_SSL_KEYFILE` |  | SSL key file. |
+| `--ssl-keyfile-password` | `UVICORN_SSL_KEYFILE_PASSWORD` |  | SSL keyfile password. |
 
 ## Docling Serve configuration
 
