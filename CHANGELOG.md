@@ -1,3 +1,15 @@
+## [v0.7.0](https://github.com/docling-project/docling-serve/releases/tag/v0.7.0) - 2025-03-31
+
+### Feature
+
+* Expose TLS settings and example deploy with oauth-proxy ([#112](https://github.com/docling-project/docling-serve/issues/112)) ([`7a0faba`](https://github.com/docling-project/docling-serve/commit/7a0fabae07020c2659dbb22c3b0359909051a74c))
+* Offline static files ([#109](https://github.com/docling-project/docling-serve/issues/109)) ([`68772bb`](https://github.com/docling-project/docling-serve/commit/68772bb6f0a87b71094a08ff851f5754c6ca6163))
+* Update to Docling 2.28 ([#106](https://github.com/docling-project/docling-serve/issues/106)) ([`20ec87a`](https://github.com/docling-project/docling-serve/commit/20ec87a63a99145bc0ad7931549af8a0c30db641))
+
+### Fix
+
+* Move ARGs to prevent cache invalidation ([#104](https://github.com/docling-project/docling-serve/issues/104)) ([`e30f458`](https://github.com/docling-project/docling-serve/commit/e30f458923d34c169db7d5a5c296848716e8cac4))
+
 ## [v0.6.0](https://github.com/docling-project/docling-serve/releases/tag/v0.6.0) - 2025-03-17
 
 ### Feature

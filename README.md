@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://github.com/docling-project/docling-serve">
+    <img loading="lazy" alt="Docling" src="https://github.com/docling-project/docling-serve/raw/main/docs/assets/docling-serve-pic.png" width="30%"/>
+  </a>
+</p>
+
 # Docling Serve
 
 Running [Docling](https://github.com/docling-project/docling) as an API service.

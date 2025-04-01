@@ -86,6 +86,11 @@ def _run(
         uvicorn_settings.workers is not None and uvicorn_settings.workers > 1
     ) or uvicorn_settings.reload
 
+    run_ssl = (
+        uvicorn_settings.ssl_certfile is not None
+        and uvicorn_settings.ssl_keyfile is not None
+    )
+
     if run_subprocess and docling_serve_settings.artifacts_path != artifacts_path:
         err_console.print(
             "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
@@ -105,7 +110,8 @@ def _run(
     docling_serve_settings.enable_ui = enable_ui
 
     # Print documentation
-    url = f"http://{uvicorn_settings.host}:{uvicorn_settings.port}"
+    protocol = "https" if run_ssl else "http"
+    url = f"{protocol}://{uvicorn_settings.host}:{uvicorn_settings.port}"
     url_docs = f"{url}/docs"
     url_ui = f"{url}/ui"
 
@@ -136,6 +142,9 @@ def _run(
         root_path=uvicorn_settings.root_path,
         proxy_headers=uvicorn_settings.proxy_headers,
         timeout_keep_alive=uvicorn_settings.timeout_keep_alive,
+        ssl_certfile=uvicorn_settings.ssl_certfile,
+        ssl_keyfile=uvicorn_settings.ssl_keyfile,
+        ssl_keyfile_password=uvicorn_settings.ssl_keyfile_password,
     )
 
 
@@ -190,6 +199,15 @@ def dev(
     timeout_keep_alive: Annotated[
         int, typer.Option(help="Timeout for the server response.")
     ] = uvicorn_settings.timeout_keep_alive,
+    ssl_certfile: Annotated[
+        Optional[Path], typer.Option(help="SSL certificate file")
+    ] = uvicorn_settings.ssl_certfile,
+    ssl_keyfile: Annotated[
+        Optional[Path], typer.Option(help="SSL key file")
+    ] = uvicorn_settings.ssl_keyfile,
+    ssl_keyfile_password: Annotated[
+        Optional[str], typer.Option(help="SSL keyfile password")
+    ] = uvicorn_settings.ssl_keyfile_password,
     # docling options
     artifacts_path: Annotated[
         Optional[Path],
@@ -218,6 +236,9 @@ def dev(
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
     uvicorn_settings.timeout_keep_alive = timeout_keep_alive
+    uvicorn_settings.ssl_certfile = ssl_certfile
+    uvicorn_settings.ssl_keyfile = ssl_keyfile
+    uvicorn_settings.ssl_keyfile_password = ssl_keyfile_password
 
     _run(
         command="dev",
@@ -285,6 +306,15 @@ def run(
     timeout_keep_alive: Annotated[
         int, typer.Option(help="Timeout for the server response.")
     ] = uvicorn_settings.timeout_keep_alive,
+    ssl_certfile: Annotated[
+        Optional[Path], typer.Option(help="SSL certificate file")
+    ] = uvicorn_settings.ssl_certfile,
+    ssl_keyfile: Annotated[
+        Optional[Path], typer.Option(help="SSL key file")
+    ] = uvicorn_settings.ssl_keyfile,
+    ssl_keyfile_password: Annotated[
+        Optional[str], typer.Option(help="SSL keyfile password")
+    ] = uvicorn_settings.ssl_keyfile_password,
     # docling options
     artifacts_path: Annotated[
         Optional[Path],
@@ -316,6 +346,9 @@ def run(
     uvicorn_settings.root_path = root_path
     uvicorn_settings.proxy_headers = proxy_headers
     uvicorn_settings.timeout_keep_alive = timeout_keep_alive
+    uvicorn_settings.ssl_certfile = ssl_certfile
+    uvicorn_settings.ssl_keyfile = ssl_keyfile
+    uvicorn_settings.ssl_keyfile_password = ssl_keyfile_password
 
     _run(
         command="run",
