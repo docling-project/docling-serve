@@ -15,6 +15,7 @@ from docling_serve.datamodel.callback import (
     ProgressUpdateProcessed,
 )
 from docling_serve.datamodel.engines import TaskStatus
+from docling_serve.datamodel.kfp import CallbackSpec
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.task import Task, TaskProcessingMeta
 from docling_serve.engines.async_kfp.kfp_pipeline import process
@@ -70,11 +71,31 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
         )
 
     async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
+        callbacks = []
+        if docling_serve_settings.eng_kfp_self_callback_endpoint is not None:
+            headers = {}
+            if docling_serve_settings.eng_kfp_self_callback_token_path is not None:
+                token = (
+                    docling_serve_settings.eng_kfp_self_callback_token_path.read_text()
+                )
+                headers["Authorization"] = f"Bearer {token}"
+            ca_cert = ""
+            if docling_serve_settings.eng_kfp_self_callback_ca_cert_path is not None:
+                ca_cert = docling_serve_settings.eng_kfp_self_callback_ca_cert_path.read_text()
+            callbacks.append(
+                CallbackSpec(
+                    url=docling_serve_settings.eng_kfp_self_callback_endpoint,
+                    headers=headers,
+                    ca_cert=ca_cert,
+                )
+            )
+
         kfp_run = self._client.create_run_from_pipeline_func(
             process,
             arguments={
                 "batch_size": 10,
                 "request": request.model_dump(mode="json"),
+                "callbacks": callbacks,
             },
         )
         pprint(kfp_run)
@@ -174,7 +195,7 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
                     "UpdateProcessed was called before setting the expected number of documents."
                 )
             task.processing_meta.num_processed += progress.num_processed
-            task.processing_meta.num_success += progress.num_success
+            task.processing_meta.num_succeeded += progress.num_succeeded
             task.processing_meta.num_failed += progress.num_failed
 
         # TODO: could be moved to BackgroundTask

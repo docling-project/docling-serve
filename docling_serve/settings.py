@@ -50,6 +50,9 @@ class DoclingServeSettings(BaseSettings):
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
     eng_kfp_ca_cert_path: Optional[str] = None
+    eng_kfp_self_callback_endpoint: Optional[str] = None
+    eng_kfp_self_callback_token_path: Optional[Path] = None
+    eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
