@@ -147,7 +147,7 @@ spec:
             - name: proxy-tls
               mountPath: /etc/tls/private
           imagePullPolicy: Always
-          image: 'ghcr.io/docling-project/docling-serve:dev-ssl'
+          image: 'ghcr.io/docling-project/docling-serve'
         - name: oauth-proxy
           resources:
             limits:
