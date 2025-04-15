@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 ############################
 
 logo_path = "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
-js_components_url = "https://unpkg.com/@docling/docling-components@0.0.3"
+js_components_url = "https://unpkg.com/@docling/docling-components@0.0.6"
 if (
     docling_serve_settings.static_path is not None
     and docling_serve_settings.static_path.is_dir()
