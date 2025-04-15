@@ -67,7 +67,5 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
 
             await self.notify_task_subscribers(task_id)
 
-    async def receive_task_progress(
-        self, task_id: str, progress: ProgressCallbackRequest
-    ):
+    async def receive_task_progress(self, request: ProgressCallbackRequest):
         raise NotImplementedError()

@@ -434,18 +434,15 @@ def create_app():  # noqa: C901
 
     # Update task progress
     @app.post(
-        "/v1alpha/callback/task/progress/{task_id}",
+        "/v1alpha/callback/task/progress",
         response_model=ProgressCallbackResponse,
     )
     async def callback_task_progress(
         orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
-        task_id: str,
-        progress_req: ProgressCallbackRequest,
+        request: ProgressCallbackRequest,
     ):
         try:
-            await orchestrator.receive_task_progress(
-                task_id=task_id, progress=progress_req
-            )
+            await orchestrator.receive_task_progress(request=request)
             return ProgressCallbackResponse(status="ack")
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")

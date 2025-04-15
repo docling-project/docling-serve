@@ -4,8 +4,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from kfp_server_api.models.v2beta1_runtime_state import V2beta1RuntimeState
-from pydantic import BaseModel
+from kfp_server_api.models import V2beta1RuntimeState
+from pydantic import BaseModel, TypeAdapter
 from pydantic_settings import SettingsConfigDict
 from rich.pretty import pprint
 
@@ -90,12 +90,13 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
                 )
             )
 
+        CallbacksType = TypeAdapter(list[CallbackSpec])
         kfp_run = self._client.create_run_from_pipeline_func(
             process,
             arguments={
                 "batch_size": 10,
                 "request": request.model_dump(mode="json"),
-                "callbacks": callbacks,
+                "callbacks": CallbacksType.dump_python(callbacks, mode="json"),
             },
         )
         pprint(kfp_run)
@@ -181,9 +182,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
     async def process_queue(self):
         return
 
-    async def receive_task_progress(
-        self, task_id: str, progress: ProgressCallbackRequest
-    ):
+    async def receive_task_progress(self, request: ProgressCallbackRequest):
+        task_id = request.task_id
+        progress = request.progress
         task = await self.get_raw_task(task_id=task_id)
 
         if isinstance(progress, ProgressSetNumDocs):

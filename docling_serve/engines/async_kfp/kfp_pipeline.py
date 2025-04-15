@@ -1,6 +1,6 @@
-# ruff: noqa: E402
+# ruff: noqa: E402, UP006, UP035
 
-from typing import Any
+from typing import Any, Dict, List
 
 from kfp import dsl
 
@@ -9,59 +9,50 @@ PYTHON_BASE_IMAGE = "python:3.12"
 
 @dsl.component(
     base_image=PYTHON_BASE_IMAGE,
-)
-def generate_chunks(
-    request: dict[str, Any],
-    batch_size: int,
-) -> list[list[dict[str, Any]]]:
-    sources = request["http_sources"]
-    splits = [sources[i::batch_size] for i in range(batch_size)]
-    return splits
-
-
-@dsl.component(
-    base_image=PYTHON_BASE_IMAGE,
     packages_to_install=[
         "pydantic",
         "docling-serve[cpu] @ git+https://github.com/docling-project/docling-serve@feat-kfp-engine",
-        "httpx",
     ],
 )
-def notify_callbacks_totals(
-    chunks: list[list[dict[str, Any]]],
-    callbacks: list[dict[str, Any]],
-):
-    import ssl
+def generate_chunks(
+    job_id: str,
+    task_id: str,
+    request: Dict[str, Any],
+    batch_size: int,
+    callbacks: List[Dict[str, Any]],
+) -> List[List[Dict[str, Any]]]:
+    from pydantic import TypeAdapter
 
-    import certifi
-    import httpx
-
-    from docling_serve.datamodel.callback import ProgressSetNumDocs
+    from docling_serve.datamodel.callback import (
+        ProgressCallbackRequest,
+        ProgressSetNumDocs,
+    )
     from docling_serve.datamodel.kfp import CallbackSpec
+    from docling_serve.engines.async_kfp.notify import notify_callbacks
 
-    if len(callbacks) == 0:
-        return
+    CallbacksListType = TypeAdapter(list[CallbackSpec])
 
-    total = sum(len(chunk) for chunk in chunks)
-    payload = ProgressSetNumDocs(num_docs=total)
-    for callback_dict in callbacks:
-        callback = CallbackSpec.model_validate(callback_dict)
+    print(f"{job_id=}")
+    print(f"{task_id=}")
 
-        # https://www.python-httpx.org/advanced/ssl/#configuring-client-instances
-        if callback.ca_cert:
-            ctx = ssl.create_default_context(cadata=callback.ca_cert)
-        else:
-            ctx = ssl.create_default_context(cafile=certifi.where())
+    print(f"{dsl.PIPELINE_JOB_ID_PLACEHOLDER=}")
+    print(f"{dsl.PIPELINE_JOB_NAME_PLACEHOLDER=}")
+    print(f"{dsl.PIPELINE_TASK_ID_PLACEHOLDER=}")
+    print(f"{dsl.PIPELINE_TASK_NAME_PLACEHOLDER=}")
 
-        try:
-            httpx.post(
-                str(callback.url),
-                headers=callback.headers,
-                json=payload.model_dump(mode="json"),
-                verify=ctx,
-            )
-        except httpx.HTTPError as err:
-            print(f"Error notifying callback {callback.url}: {err}")
+    sources = request["http_sources"]
+    splits = [sources[i : i + batch_size] for i in range(0, len(sources), batch_size)]
+
+    total = sum(len(chunk) for chunk in splits)
+    payload = ProgressCallbackRequest(
+        task_id=job_id, progress=ProgressSetNumDocs(num_docs=total)
+    )
+    notify_callbacks(
+        payload=payload,
+        callbacks=CallbacksListType.validate_python(callbacks),
+    )
+
+    return splits
 
 
 @dsl.component(
@@ -72,22 +63,29 @@ def notify_callbacks_totals(
     ],
 )
 def convert_batch(
-    data_splits: list[dict[str, Any]],
-    request: dict[str, Any],
-    callbacks: list[dict[str, Any]],
+    job_id: str,
+    task_id: str,
+    data_splits: List[Dict[str, Any]],
+    request: Dict[str, Any],
+    callbacks: List[Dict[str, Any]],
     output_path: dsl.OutputPath("Directory"),  # type: ignore
 ):
     from pathlib import Path
 
-    from pydantic import AnyUrl
+    from pydantic import AnyUrl, TypeAdapter
 
     from docling_serve.datamodel.callback import (
         FailedDocsItem,
+        ProgressCallbackRequest,
         ProgressUpdateProcessed,
         SucceededDocsItem,
     )
     from docling_serve.datamodel.convert import ConvertDocumentsOptions
+    from docling_serve.datamodel.kfp import CallbackSpec
     from docling_serve.datamodel.requests import HttpSource
+    from docling_serve.engines.async_kfp.notify import notify_callbacks
+
+    CallbacksListType = TypeAdapter(list[CallbackSpec])
 
     convert_options = ConvertDocumentsOptions.model_validate(request["options"])
     print(convert_options)
@@ -105,29 +103,42 @@ def convert_batch(
             f.write(source.model_dump_json())
         docs_succeeded.append(SucceededDocsItem(source=source.url))
 
-    if len(callbacks) > 0:
-        payload = ProgressUpdateProcessed(
+    payload = ProgressCallbackRequest(
+        task_id=job_id,
+        progress=ProgressUpdateProcessed(
             num_failed=len(docs_failed),
             num_processed=len(docs_succeeded) + len(docs_failed),
             num_succeeded=len(docs_succeeded),
             docs_succeeded=docs_succeeded,
             docs_failed=docs_failed,
-        )
+        ),
+    )
 
-        # todo: send...
-        print(payload)
+    print(payload)
+    notify_callbacks(
+        payload=payload,
+        callbacks=CallbacksListType.validate_python(callbacks),
+    )
 
 
 @dsl.pipeline()
 def process(
     batch_size: int,
-    request: dict[str, Any],
-    callbacks: list[dict[str, Any]] = [],
+    request: Dict[str, Any],
+    callbacks: List[Dict[str, Any]] = [],
 ):
-    chunks_task = generate_chunks(request=request, batch_size=batch_size)
+    chunks_task = generate_chunks(
+        job_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+        task_id=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+        request=request,
+        batch_size=batch_size,
+        callbacks=callbacks,
+    )
 
     with dsl.ParallelFor(chunks_task.output, parallelism=4) as data_splits:
         convert_batch(
+            job_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+            task_id=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             data_splits=data_splits,
             request=request,
             callbacks=callbacks,

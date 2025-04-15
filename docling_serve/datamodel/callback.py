@@ -39,10 +39,11 @@ class ProgressUpdateProcessed(BaseProgress):
     docs_failed: list[FailedDocsItem]
 
 
-# ProgressCallbackRequest = TypeAdapter(Annotated[ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")])
-ProgressCallbackRequest = Annotated[
-    ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")
-]
+class ProgressCallbackRequest(BaseModel):
+    task_id: str
+    progress: Annotated[
+        ProgressSetNumDocs | ProgressUpdateProcessed, Field(discriminator="kind")
+    ]
 
 
 class ProgressCallbackResponse(BaseModel):
