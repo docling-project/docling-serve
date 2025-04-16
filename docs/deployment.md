@@ -1,4 +1,12 @@
-# Deployment
+# Deployment examples
+
+[Local GPU deployment](#local-gpu-deployment)
+
+[OpenShift Simple deployment](#simple-deployment)
+
+[OpenShift Secure deployment with oauth-proxy](#secure-deployment-with-oauth-proxy)
+
+_______
 
 ## Local GPU deployment
 
