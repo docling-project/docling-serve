@@ -46,7 +46,7 @@ def _export_document_as_content(
         if export_md:
             document.md_content = new_doc.export_to_markdown(image_mode=image_mode)
         if export_doctags:
-            document.doctags_content = new_doc.export_to_document_tokens()
+            document.doctags_content = new_doc.export_to_doctags()
     elif conv_res.status == ConversionStatus.SKIPPED:
         raise HTTPException(status_code=400, detail=conv_res.errors)
     else:
