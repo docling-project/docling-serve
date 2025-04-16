@@ -2,9 +2,8 @@
 
 [Local GPU deployment](#local-gpu-deployment)
 
-[OpenShift Simple deployment](#simple-deployment)
+[OpenShift deployment](#openshift)
 
-[OpenShift Secure deployment with oauth-proxy](#secure-deployment-with-oauth-proxy)
 
 _______
 
@@ -121,7 +120,7 @@ docker compose -f docs/deploy-examples/compose-gpu.yaml up -d
 
 Manifest example: [docling-serve-simple.yaml](./deploy-examples/docling-serve-simple.yaml)
 
-This deployment has the following features:
+This deployment example has the following features:
 
 - Deployment configuration
 - Service configuration
