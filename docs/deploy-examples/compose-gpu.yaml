@@ -1,7 +1,7 @@
 services:
   docling:
     image: ghcr.io/docling-project/docling-serve-cu124
-    container_name: docling
+    container_name: docling-serve
     ports:
       - 5001:5001
     environment:
