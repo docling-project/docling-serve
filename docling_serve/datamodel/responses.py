@@ -7,6 +7,8 @@ from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
 from docling_core.types.doc import DoclingDocument
 
+from docling_serve.datamodel.task_meta import TaskProcessingMeta
+
 
 # Status
 class HealthCheckResponse(BaseModel):
@@ -38,6 +40,7 @@ class TaskStatusResponse(BaseModel):
     task_id: str
     task_status: str
     task_position: Optional[int] = None
+    task_meta: Optional[TaskProcessingMeta] = None
 
 
 class MessageKind(str, enum.Enum):

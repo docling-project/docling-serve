@@ -11,12 +11,12 @@ PYTHON_BASE_IMAGE = "python:3.12"
     base_image=PYTHON_BASE_IMAGE,
     packages_to_install=[
         "pydantic",
-        "docling-serve[cpu] @ git+https://github.com/docling-project/docling-serve@feat-kfp-engine",
+        "docling-serve @ git+https://github.com/docling-project/docling-serve@feat-kfp-engine",
     ],
+    pip_index_urls=["https://download.pytorch.org/whl/cpu", "https://pypi.org/simple"],
 )
 def generate_chunks(
-    job_id: str,
-    task_id: str,
+    run_name: str,
     request: Dict[str, Any],
     batch_size: int,
     callbacks: List[Dict[str, Any]],
@@ -32,20 +32,12 @@ def generate_chunks(
 
     CallbacksListType = TypeAdapter(list[CallbackSpec])
 
-    print(f"{job_id=}")
-    print(f"{task_id=}")
-
-    print(f"{dsl.PIPELINE_JOB_ID_PLACEHOLDER=}")
-    print(f"{dsl.PIPELINE_JOB_NAME_PLACEHOLDER=}")
-    print(f"{dsl.PIPELINE_TASK_ID_PLACEHOLDER=}")
-    print(f"{dsl.PIPELINE_TASK_NAME_PLACEHOLDER=}")
-
     sources = request["http_sources"]
     splits = [sources[i : i + batch_size] for i in range(0, len(sources), batch_size)]
 
     total = sum(len(chunk) for chunk in splits)
     payload = ProgressCallbackRequest(
-        task_id=job_id, progress=ProgressSetNumDocs(num_docs=total)
+        task_id=run_name, progress=ProgressSetNumDocs(num_docs=total)
     )
     notify_callbacks(
         payload=payload,
@@ -59,12 +51,12 @@ def generate_chunks(
     base_image=PYTHON_BASE_IMAGE,
     packages_to_install=[
         "pydantic",
-        "docling-serve[cpu] @ git+https://github.com/docling-project/docling-serve@feat-kfp-engine",
+        "docling-serve @ git+https://github.com/docling-project/docling-serve@feat-kfp-engine",
     ],
+    pip_index_urls=["https://download.pytorch.org/whl/cpu", "https://pypi.org/simple"],
 )
 def convert_batch(
-    job_id: str,
-    task_id: str,
+    run_name: str,
     data_splits: List[Dict[str, Any]],
     request: Dict[str, Any],
     callbacks: List[Dict[str, Any]],
@@ -104,7 +96,7 @@ def convert_batch(
         docs_succeeded.append(SucceededDocsItem(source=source.url))
 
     payload = ProgressCallbackRequest(
-        task_id=job_id,
+        task_id=run_name,
         progress=ProgressUpdateProcessed(
             num_failed=len(docs_failed),
             num_processed=len(docs_succeeded) + len(docs_failed),
@@ -126,19 +118,19 @@ def process(
     batch_size: int,
     request: Dict[str, Any],
     callbacks: List[Dict[str, Any]] = [],
+    run_name: str = "",
 ):
     chunks_task = generate_chunks(
-        job_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
-        task_id=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+        run_name=run_name,
         request=request,
         batch_size=batch_size,
         callbacks=callbacks,
     )
+    chunks_task.set_caching_options(False)
 
     with dsl.ParallelFor(chunks_task.output, parallelism=4) as data_splits:
         convert_batch(
-            job_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
-            task_id=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+            run_name=run_name,
             data_splits=data_splits,
             request=request,
             callbacks=callbacks,

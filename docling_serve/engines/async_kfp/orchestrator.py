@@ -1,13 +1,13 @@
 import datetime
 import json
 import logging
+import uuid
 from pathlib import Path
 from typing import Optional
 
 from kfp_server_api.models import V2beta1RuntimeState
 from pydantic import BaseModel, TypeAdapter
 from pydantic_settings import SettingsConfigDict
-from rich.pretty import pprint
 
 from docling_serve.datamodel.callback import (
     ProgressCallbackRequest,
@@ -17,7 +17,8 @@ from docling_serve.datamodel.callback import (
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.kfp import CallbackSpec
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
-from docling_serve.datamodel.task import Task, TaskProcessingMeta
+from docling_serve.datamodel.task import Task
+from docling_serve.datamodel.task_meta import TaskProcessingMeta
 from docling_serve.engines.async_kfp.kfp_pipeline import process
 from docling_serve.engines.async_orchestrator import (
     BaseAsyncOrchestrator,
@@ -91,17 +92,20 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
             )
 
         CallbacksType = TypeAdapter(list[CallbackSpec])
+        # hack: since the current kfp backend is not resolving the job_id placeholder,
+        # we set the run_name and pass it as argument to the job itself.
+        run_name = f"docling-job-{uuid.uuid4()}"
         kfp_run = self._client.create_run_from_pipeline_func(
             process,
             arguments={
                 "batch_size": 10,
                 "request": request.model_dump(mode="json"),
                 "callbacks": CallbacksType.dump_python(callbacks, mode="json"),
+                "run_name": run_name,
             },
+            run_name=run_name,
         )
-        pprint(kfp_run)
         task_id = kfp_run.run_id
-        kfp_run.run_info.state
 
         task = Task(task_id=task_id, request=request)
         await self.init_task_tracking(task)
@@ -151,7 +155,6 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
                     }
                 ),
             )
-            pprint(res)
             if res.runs is not None:
                 for run in res.runs:
                     runs.append(
@@ -182,13 +185,32 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
     async def process_queue(self):
         return
 
+    async def _get_run_id(self, run_name: str) -> str:
+        res = self._client.list_runs(
+            filter=json.dumps(
+                {
+                    "predicates": [
+                        {
+                            "operation": "EQUALS",
+                            "key": "name",
+                            "stringValue": run_name,
+                        }
+                    ]
+                }
+            ),
+        )
+        if res.runs is not None and len(res.runs) > 0:
+            return res.runs[0].run_id
+        raise RuntimeError(f"Run with {run_name=} not found.")
+
     async def receive_task_progress(self, request: ProgressCallbackRequest):
-        task_id = request.task_id
+        task_id = await self._get_run_id(run_name=request.task_id)
         progress = request.progress
         task = await self.get_raw_task(task_id=task_id)
 
         if isinstance(progress, ProgressSetNumDocs):
             task.processing_meta = TaskProcessingMeta(num_docs=progress.num_docs)
+            task.task_status = TaskStatus.STARTED
 
         elif isinstance(progress, ProgressUpdateProcessed):
             if task.processing_meta is None:
@@ -198,6 +220,7 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
             task.processing_meta.num_processed += progress.num_processed
             task.processing_meta.num_succeeded += progress.num_succeeded
             task.processing_meta.num_failed += progress.num_failed
+            task.task_status = TaskStatus.STARTED
 
         # TODO: could be moved to BackgroundTask
         await self.notify_task_subscribers(task_id=task_id)

@@ -51,6 +51,7 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
             task_id=task.task_id,
             task_status=task.task_status,
             task_position=task_queue_position,
+            task_meta=task.processing_meta,
         )
         for websocket in self.task_subscribers[task_id]:
             await websocket.send_text(

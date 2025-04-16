@@ -324,6 +324,7 @@ def create_app():  # noqa: C901
             task_id=task.task_id,
             task_status=task.task_status,
             task_position=task_queue_position,
+            task_meta=task.processing_meta,
         )
 
     # Task status poll
@@ -347,6 +348,7 @@ def create_app():  # noqa: C901
             task_id=task.task_id,
             task_status=task.task_status,
             task_position=task_queue_position,
+            task_meta=task.processing_meta,
         )
 
     # Task status websocket
@@ -380,6 +382,7 @@ def create_app():  # noqa: C901
                 task_id=task.task_id,
                 task_status=task.task_status,
                 task_position=task_queue_position,
+                task_meta=task.processing_meta,
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -394,6 +397,7 @@ def create_app():  # noqa: C901
                     task_id=task.task_id,
                     task_status=task.task_status,
                     task_position=task_queue_position,
+                    task_meta=task.processing_meta,
                 )
                 await websocket.send_text(
                     WebsocketMessage(

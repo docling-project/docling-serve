@@ -5,13 +5,7 @@ from pydantic import BaseModel
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.responses import ConvertDocumentResponse
-
-
-class TaskProcessingMeta(BaseModel):
-    num_docs: int
-    num_processed: int = 0
-    num_succeeded: int = 0
-    num_failed: int = 0
+from docling_serve.datamodel.task_meta import TaskProcessingMeta
 
 
 class Task(BaseModel):
