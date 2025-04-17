@@ -38,6 +38,15 @@ spec:
       restartPolicy: Always
       containers:
         - name: api
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+              nvidia.com/gpu: 1  # Limit to one GPU
+            requests:
+              cpu: 250m
+              memory: 1Gi
+              nvidia.com/gpu: 1  # Limit to one GPU
           env:
             - name: DOCLING_SERVE_ENABLE_UI
               value: 'true'
