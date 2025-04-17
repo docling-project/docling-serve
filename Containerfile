@@ -8,7 +8,7 @@ USER 0
 # OS Layer                                                                                        #
 ###################################################################################################
 
-RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt,z \
+RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y install --best --nodocs --setopt=install_weak_deps=False dnf-plugins-core && \
     dnf config-manager --best --nodocs --setopt=install_weak_deps=False --save && \
     dnf config-manager --enable crb && \
@@ -44,8 +44,8 @@ ARG UV_SYNC_EXTRA_ARGS=""
 
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
-    --mount=type=bind,source=uv.lock,target=uv.lock,z \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml,z \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
 ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
@@ -60,8 +60,8 @@ RUN echo "Downloading models..." && \
 COPY --chown=1001:0 ./docling_serve ./docling_serve
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
-    --mount=type=bind,source=uv.lock,target=uv.lock,z \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml,z \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
 EXPOSE 5001
