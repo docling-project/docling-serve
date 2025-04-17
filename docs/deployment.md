@@ -1,13 +1,15 @@
-# Deployment examples
+# Deployment Examples
 
-[Local GPU deployment](#local-gpu-deployment)
+This document provides deployment examples for running the application in different environments.
 
-[OpenShift deployment](#openshift)
+Choose the deployment option that best fits your setup. 
 
+- **[Local GPU](#local-gpu)**: For deploying the application locally on a machine with a NVIDIA GPU (using Docker Compose).
+- **[OpenShift](#openshift)**: For deploying the application on an OpenShift cluster, designed for cloud-native environments.
 
-_______
+---
 
-## Local GPU deployment
+## Local GPU
 
 ### Docker compose
 
@@ -36,26 +38,30 @@ curl -X 'POST' \
   }'
 ```
 
-Requirements:
+<details>
+<summary><b>Requirements</b></summary>
 
-  - debian/ubuntu/rhel/fedora/opensuse
-  - docker
-  - nivida drivers >=550.54.14
-  - nvidia-container-toolkit 
+- debian/ubuntu/rhel/fedora/opensuse
+- docker
+- nvidia drivers >=550.54.14
+- nvidia-container-toolkit
 
 Docs:
 
-https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/supported-platforms.html
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/supported-platforms.html)
+- [CUDA Toolkit Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id6)
 
-https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id6
+</details>
 
-Steps:
+<details>
+<summary><b>Steps</b></summary>
 
 1. Check driver version and which GPU you want to use (0/1/2/3.. and update [compose-gpu.yaml](./deploy-examples/compose-gpu.yaml) file or use `count: all`)
 
 ```sh
 nvidia-smi
 ```
+
 2. Check if the NVIDIA Container Toolkit is installed/updated
 
 ```sh
@@ -79,15 +85,15 @@ https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install
 docker info | grep -i runtime
 ```
 
-4. If the default Docker runtime, changes back from 'nvidia' to 'default' after restarting the Docker service
+4. If the default Docker runtime changes back from 'nvidia' to 'default' after restarting the Docker service (optional):
 
-(optional) backup daemon.json file
+Backup the daemon.json file:
 
 ```sh
 sudo cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
 ```
 
-update the daemon.json file
+Update the daemon.json file:
 
 ```sh
 echo '{
@@ -100,19 +106,21 @@ echo '{
 }' | sudo tee /etc/docker/daemon.json > /dev/null
 ```
 
-restart the Docker service after updating the daemon.json file
+Restart the Docker service:
 
 ```sh
 sudo systemctl restart docker
 ```
 
-confirm 'nvidia' is the default runtime used by Docker by repeating step 3
+Confirm 'nvidia' is the default runtime used by Docker by repeating step 3.
 
-5. Run the container
+5. Run the container:
 
 ```sh
 docker compose -f docs/deploy-examples/compose-gpu.yaml up -d
 ```
+
+</details>
  
 ## OpenShift
 
