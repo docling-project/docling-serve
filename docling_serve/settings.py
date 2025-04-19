@@ -32,6 +32,7 @@ class DoclingServeSettings(BaseSettings):
     )
 
     enable_ui: bool = False
+    api_host: str = "localhost"
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
     options_cache_size: int = 2
