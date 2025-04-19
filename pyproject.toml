@@ -33,6 +33,7 @@ dependencies = [
     "docling~=2.28",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
+    "kfp[kubernetes]>=2.10.0",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
     "python-multipart>=0.0.14,<0.1.0",
@@ -79,6 +80,9 @@ conflicts = [
     { extra = "cpu" },
     { extra = "cu124" },
   ],
+]
+override-dependencies = [
+  "urllib3~=2.0"
 ]
 
 [tool.uv.sources]
@@ -195,6 +199,8 @@ module = [
     "tesserocr.*",
     "rapidocr_onnxruntime.*",
     "requests.*",
+    "kfp.*",
+    "kfp_server_api.*",
 ]
 ignore_missing_imports = true
 
