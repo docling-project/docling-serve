@@ -107,10 +107,10 @@ spec:
         - name: api
           resources:
             limits:
-              cpu: 500m
+              cpu: 2000m
               memory: 2Gi
             requests:
-              cpu: 250m
+              cpu: 800m
               memory: 1Gi
           readinessProbe:
             httpGet:
@@ -128,13 +128,19 @@ spec:
               port: http
               scheme: HTTPS
             initialDelaySeconds: 3
-            timeoutSeconds: 2
-            periodSeconds: 5
+            timeoutSeconds: 4
+            periodSeconds: 10
             successThreshold: 1
-            failureThreshold: 3
+            failureThreshold: 5
           env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: DOCLING_SERVE_ENABLE_UI
               value: 'true'
+            - name: DOCLING_SERVE_API_HOST
+              value: 'docling-serve.$(NAMESPACE).svc.cluster.local'
             - name: UVICORN_SSL_CERTFILE
               value: '/etc/tls/private/tls.crt'
             - name: UVICORN_SSL_KEYFILE

@@ -1,11 +1,13 @@
 import importlib
 import json
 import logging
+import ssl
 import tempfile
 from pathlib import Path
 
+import certifi
 import gradio as gr
-import requests
+import httpx
 
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
@@ -109,8 +111,29 @@ file_output_path = None  # Will be set when a new file is generated
 #############
 
 
+def get_api_endpoint() -> str:
+    protocol = "http"
+    if uvicorn_settings.ssl_keyfile is not None:
+        protocol = "https"
+    return f"{protocol}://{docling_serve_settings.api_host}:{uvicorn_settings.port}"
+
+
+def get_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    kube_sa_ca_cert_path = Path(
+        "/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+    )
+    if (
+        uvicorn_settings.ssl_keyfile is not None
+        and ".svc." in docling_serve_settings.api_host
+        and kube_sa_ca_cert_path.exists()
+    ):
+        ctx.load_verify_locations(cafile=kube_sa_ca_cert_path)
+    return ctx
+
+
 def health_check():
-    response = requests.get(f"http://localhost:{uvicorn_settings.port}/health")
+    response = httpx.get(f"{get_api_endpoint()}/health")
     if response.status_code == 200:
         return "Healthy"
     return "Unhealthy"
@@ -231,9 +254,12 @@ def process_url(
         logger.error("No input sources provided.")
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
-        response = requests.post(
-            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/source",
+        ssl_ctx = get_ssl_context()
+        response = httpx.post(
+            f"{get_api_endpoint()}/v1alpha/convert/source",
             json=parameters,
+            verify=ssl_ctx,
+            timeout=60,
         )
     except Exception as e:
         logger.error(f"Error processing URL: {e}")
@@ -287,10 +313,13 @@ def process_file(
     }
 
     try:
-        response = requests.post(
-            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/file",
+        ssl_ctx = get_ssl_context()
+        response = httpx.post(
+            f"{get_api_endpoint()}/v1alpha/convert/file",
             files=files_data,
             data=parameters,
+            verify=ssl_ctx,
+            timeout=60,
         )
     except Exception as e:
         logger.error(f"Error processing file(s): {e}")
