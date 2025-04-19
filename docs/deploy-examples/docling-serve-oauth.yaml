@@ -9,41 +9,18 @@ metadata:
   annotations:
     serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"docling-serve"}}'
 ---
-kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
   name: docling-serve-oauth
-  labels:
-    app: docling-serve
-    component: docling-serve-api
-rules:
-  - verbs:
-      - create
-    apiGroups:
-      - authorization.k8s.io
-    resources:
-      - subjectaccessreviews
-  - verbs:
-      - create
-    apiGroups:
-      - authentication.k8s.io
-    resources:
-      - tokenreviews
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: docling-serve-oauth
-  labels:
-    app: docling-serve
-    component: docling-serve-api
-subjects:
-  - kind: ServiceAccount
-    name: docling-serve
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: docling-serve-oauth
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: docling-serve
+  namespace: docling
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -153,7 +130,7 @@ spec:
             - name: proxy-tls
               mountPath: /etc/tls/private
           imagePullPolicy: Always
-          image: 'ghcr.io/docling-project/docling-serve'
+          image: 'ghcr.io/docling-project/docling-serve-cpu:fix-ui-with-https'
         - name: oauth-proxy
           resources:
             limits:
