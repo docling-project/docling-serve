@@ -378,7 +378,6 @@ def process_file(
         ssl_ctx = get_ssl_context()
         response = httpx.post(
             f"{get_api_endpoint()}/v1alpha/convert/source/async",
-            files=files_data,
             json=parameters,
             verify=ssl_ctx,
             timeout=60,
