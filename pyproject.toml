@@ -43,7 +43,8 @@ dependencies = [
 
 [project.optional-dependencies]
 ui = [
-    "gradio~=5.9"
+    "gradio~=5.9",
+    "pydantic<2.11.0",  # fix compatibility between gradio and new pydantic 2.11
 ]
 tesserocr = [
     "tesserocr~=2.7"
