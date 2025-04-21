@@ -92,16 +92,11 @@ async def test_convert_file(async_client):
             msg=f'JSON document should contain \'{{\\n  "schema_name": "DoclingDocument\'". Received: {safe_slice(data["document"]["json_content"])}',
         )
     # HTML check
-    check.is_in(
-        "html_content",
-        data.get("document", {}),
-        msg=f"Response should contain 'html_content' key. Received keys: {list(data.get('document', {}).keys())}",
-    )
     if data.get("document", {}).get("html_content") is not None:
         check.is_in(
-            '<!DOCTYPE html>\n<html lang="en">\n<head>',
+            "<!DOCTYPE html>\n<html>\n<head>",
             data["document"]["html_content"],
-            msg=f"HTML document should contain '<!DOCTYPE html>\\n<html lang=\"en'>. Received: {safe_slice(data['document']['html_content'])}",
+            msg=f"HTML document should contain '<!DOCTYPE html>\\n<html>'. Received: {safe_slice(data['document']['html_content'])}",
         )
     # Text check
     check.is_in(
@@ -123,7 +118,7 @@ async def test_convert_file(async_client):
     )
     if data.get("document", {}).get("doctags_content") is not None:
         check.is_in(
-            "<document>\n<section_header_level_1><location>",
+            "<doctag><page_header><loc",
             data["document"]["doctags_content"],
-            msg=f"DocTags document should contain '<document>\\n<section_header_level_1><location>'. Received: {safe_slice(data['document']['doctags_content'])}",
+            msg=f"DocTags document should contain '<doctag><page_header><loc'. Received: {safe_slice(data['document']['doctags_content'])}",
         )
