@@ -511,7 +511,7 @@ with gr.Blocks(
             with gr.Column(scale=4):
                 url_input = gr.Textbox(
                     label="URL Input Source",
-                    placeholder="https://arxiv.org/pdf/2206.01062",
+                    placeholder="https://arxiv.org/pdf/2501.17887",
                 )
             with gr.Column(scale=1):
                 url_process_btn = gr.Button("Process URL", scale=1)
@@ -551,14 +551,14 @@ with gr.Blocks(
             with gr.Column(scale=1):
                 to_formats = gr.CheckboxGroup(
                     [
-                        ("Markdown", "md"),
                         ("Docling (JSON)", "json"),
+                        ("Markdown", "md"),
                         ("HTML", "html"),
                         ("Plain Text", "text"),
                         ("Doc Tags", "doctags"),
                     ],
                     label="To Formats",
-                    value=["md"],
+                    value=["json", "md"],
                 )
             with gr.Column(scale=1):
                 image_export_mode = gr.Radio(
@@ -627,20 +627,20 @@ with gr.Blocks(
 
     # Document output
     with gr.Row(visible=False) as content_output:
+        with gr.Tab("Docling-Rendered"):
+            output_json_rendered = gr.HTML()
+        with gr.Tab("Docling (JSON)"):
+            output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
+        with gr.Tab("Markdown-Rendered"):
+            output_markdown_rendered = gr.Markdown(label="Response")
         with gr.Tab("Markdown"):
             output_markdown = gr.Code(
                 language="markdown", wrap_lines=True, show_label=False
             )
-        with gr.Tab("Markdown-Rendered"):
-            output_markdown_rendered = gr.Markdown(label="Response")
-        with gr.Tab("Docling (JSON)"):
-            output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
-        with gr.Tab("Docling-Rendered"):
-            output_json_rendered = gr.HTML()
-        with gr.Tab("HTML"):
-            output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
         with gr.Tab("HTML-Rendered"):
             output_html_rendered = gr.HTML(label="Response")
+        with gr.Tab("HTML"):
+            output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
         with gr.Tab("Text"):
             output_text = gr.Code(wrap_lines=True, show_label=False)
         with gr.Tab("DocTags"):
