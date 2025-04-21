@@ -180,6 +180,7 @@ def convert_documents(
     results: Iterator[ConversionResult] = converter.convert_all(
         sources,
         headers=headers,
+        page_range=options.page_range,
     )
 
     return results

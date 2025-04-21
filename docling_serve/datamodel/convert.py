@@ -10,6 +10,10 @@ from docling.datamodel.pipeline_options import (
     TableFormerMode,
     TableStructureOptions,
 )
+from docling.datamodel.settings import (
+    DEFAULT_PAGE_RANGE,
+    PageRange,
+)
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
 
@@ -122,7 +126,6 @@ class ConvertDocumentsOptions(BaseModel):
     table_mode: Annotated[
         TableFormerMode,
         Field(
-            TableFormerMode.FAST,
             description=(
                 "Mode to use for table structure, String. "
                 f"Allowed values: {', '.join([v.value for v in TableFormerMode])}. "
@@ -132,6 +135,14 @@ class ConvertDocumentsOptions(BaseModel):
             # pattern="fast|accurate",
         ),
     ] = TableStructureOptions().mode
+
+    page_range: Annotated[
+        PageRange,
+        Field(
+            description="Only convert a range of pages. The page number starts at 1.",
+            examples=[(1, 4)],
+        ),
+    ] = DEFAULT_PAGE_RANGE
 
     abort_on_error: Annotated[
         bool,
