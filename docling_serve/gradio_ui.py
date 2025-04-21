@@ -11,6 +11,12 @@ import certifi
 import gradio as gr
 import httpx
 
+from docling.datamodel.pipeline_options import (
+    PdfBackend,
+    TableFormerMode,
+    TableStructureOptions,
+)
+
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
 
@@ -530,6 +536,7 @@ with gr.Blocks(
                         ".pptx",
                         ".html",
                         ".xlsx",
+                        ".json",
                         ".asciidoc",
                         ".txt",
                         ".md",
@@ -590,15 +597,17 @@ with gr.Blocks(
                 )
             ocr_engine.change(change_ocr_lang, inputs=[ocr_engine], outputs=[ocr_lang])
         with gr.Row():
-            with gr.Column(scale=2):
+            with gr.Column(scale=4):
                 pdf_backend = gr.Radio(
-                    ["pypdfium2", "dlparse_v1", "dlparse_v2"],
+                    [v.value for v in PdfBackend],
                     label="PDF Backend",
-                    value="dlparse_v2",
+                    value=PdfBackend.DLPARSE_V4.value,
                 )
             with gr.Column(scale=2):
                 table_mode = gr.Radio(
-                    ["fast", "accurate"], label="Table Mode", value="fast"
+                    [(v.value.capitalize(), v.value) for v in TableFormerMode],
+                    label="Table Mode",
+                    value=TableStructureOptions().mode.value,
                 )
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)

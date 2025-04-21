@@ -8,6 +8,7 @@ from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     PdfBackend,
     TableFormerMode,
+    TableStructureOptions,
 )
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
@@ -127,10 +128,10 @@ class ConvertDocumentsOptions(BaseModel):
                 f"Allowed values: {', '.join([v.value for v in TableFormerMode])}. "
                 "Optional, defaults to fast."
             ),
-            examples=[TableFormerMode.FAST],
+            examples=[TableStructureOptions().mode],
             # pattern="fast|accurate",
         ),
-    ] = TableFormerMode.FAST
+    ] = TableStructureOptions().mode
 
     abort_on_error: Annotated[
         bool,
