@@ -364,20 +364,22 @@ def process_file(
 
     parameters = {
         "file_sources": files_data,
-        "to_formats": to_formats,
-        "image_export_mode": image_export_mode,
-        "ocr": str(ocr).lower(),
-        "force_ocr": str(force_ocr).lower(),
-        "ocr_engine": ocr_engine,
-        "ocr_lang": _to_list_of_strings(ocr_lang),
-        "pdf_backend": pdf_backend,
-        "table_mode": table_mode,
-        "abort_on_error": str(abort_on_error).lower(),
-        "return_as_file": str(return_as_file).lower(),
-        "do_code_enrichment": str(do_code_enrichment).lower(),
-        "do_formula_enrichment": str(do_formula_enrichment).lower(),
-        "do_picture_classification": str(do_picture_classification).lower(),
-        "do_picture_description": str(do_picture_description).lower(),
+        "options": {
+            "to_formats": to_formats,
+            "image_export_mode": image_export_mode,
+            "ocr": ocr,
+            "force_ocr": force_ocr,
+            "ocr_engine": ocr_engine,
+            "ocr_lang": _to_list_of_strings(ocr_lang),
+            "pdf_backend": pdf_backend,
+            "table_mode": table_mode,
+            "abort_on_error": abort_on_error,
+            "return_as_file": return_as_file,
+            "do_code_enrichment": do_code_enrichment,
+            "do_formula_enrichment": do_formula_enrichment,
+            "do_picture_classification": do_picture_classification,
+            "do_picture_description": do_picture_description,
+        },
     }
 
     try:
@@ -636,20 +638,20 @@ with gr.Blocks(
 
     # Document output
     with gr.Row(visible=False) as content_output:
-        with gr.Tab("Docling-Rendered"):
-            output_json_rendered = gr.HTML()
         with gr.Tab("Docling (JSON)"):
             output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
-        with gr.Tab("Markdown-Rendered"):
-            output_markdown_rendered = gr.Markdown(label="Response")
+        with gr.Tab("Docling-Rendered"):
+            output_json_rendered = gr.HTML(label="Response")
         with gr.Tab("Markdown"):
             output_markdown = gr.Code(
                 language="markdown", wrap_lines=True, show_label=False
             )
-        with gr.Tab("HTML-Rendered"):
-            output_html_rendered = gr.HTML(label="Response")
+        with gr.Tab("Markdown-Rendered"):
+            output_markdown_rendered = gr.Markdown(label="Response")
         with gr.Tab("HTML"):
             output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
+        with gr.Tab("HTML-Rendered"):
+            output_html_rendered = gr.HTML(label="Response")
         with gr.Tab("Text"):
             output_text = gr.Code(wrap_lines=True, show_label=False)
         with gr.Tab("DocTags"):
