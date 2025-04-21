@@ -144,6 +144,15 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = DEFAULT_PAGE_RANGE
 
+    document_timeout: Annotated[
+        float,
+        Field(
+            description="The timeout for processing each document, in seconds.",
+            gt=0,
+            le=docling_serve_settings.max_document_timeout,
+        ),
+    ] = docling_serve_settings.max_document_timeout
+
     abort_on_error: Annotated[
         bool,
         Field(

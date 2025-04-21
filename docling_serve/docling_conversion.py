@@ -110,6 +110,7 @@ def get_pdf_pipeline_opts(
             ocr_options.lang = request.ocr_lang
 
     pipeline_options = PdfPipelineOptions(
+        document_timeout=request.document_timeout,
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
         do_table_structure=request.do_table_structure,
@@ -181,6 +182,8 @@ def convert_documents(
         sources,
         headers=headers,
         page_range=options.page_range,
+        max_file_size=docling_serve_settings.max_file_size,
+        max_num_pages=docling_serve_settings.max_num_pages,
     )
 
     return results
