@@ -30,7 +30,8 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.28",
+    "docling[vlm]~=2.28",
+    "mlx-vlm~=0.1.12; sys_platform == 'darwin' and platform_machine == 'arm64'",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -196,6 +197,7 @@ module = [
     "tesserocr.*",
     "rapidocr_onnxruntime.*",
     "requests.*",
+    "mlx_vlm.*",
 ]
 ignore_missing_imports = true
 

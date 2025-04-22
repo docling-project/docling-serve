@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import sys
 from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
@@ -18,10 +19,15 @@ from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
     OcrOptions,
     PdfBackend,
+    PdfPipeline,
     PdfPipelineOptions,
     TableFormerMode,
+    VlmPipelineOptions,
+    smoldocling_vlm_conversion_options,
+    smoldocling_vlm_mlx_conversion_options,
 )
 from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
+from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling_core.types.doc import ImageRefMode
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions, ocr_factory
@@ -84,10 +90,9 @@ def get_converter(pdf_format_option: PdfFormatOption) -> DocumentConverter:
     return _get_converter_from_hash(options_hash)
 
 
-# Computes the PDF pipeline options and returns the PdfFormatOption and its hash
-def get_pdf_pipeline_opts(
-    request: ConvertDocumentsOptions,
-) -> PdfFormatOption:
+def _parse_standard_pdf_opts(
+    request: ConvertDocumentsOptions, artifacts_path: Optional[Path]
+) -> PdfPipelineOptions:
     try:
         ocr_options: OcrOptions = ocr_factory.create_options(
             kind=request.ocr_engine.value,  # type: ignore
@@ -110,6 +115,7 @@ def get_pdf_pipeline_opts(
             ocr_options.lang = request.ocr_lang
 
     pipeline_options = PdfPipelineOptions(
+        artifacts_path=artifacts_path,
         document_timeout=request.document_timeout,
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
@@ -119,7 +125,6 @@ def get_pdf_pipeline_opts(
         do_picture_classification=request.do_picture_classification,
         do_picture_description=request.do_picture_description,
     )
-    pipeline_options.table_structure_options.do_cell_matching = True  # do_cell_matching
     pipeline_options.table_structure_options.mode = TableFormerMode(request.table_mode)
 
     if request.image_export_mode != ImageRefMode.PLACEHOLDER:
@@ -127,6 +132,10 @@ def get_pdf_pipeline_opts(
         if request.images_scale:
             pipeline_options.images_scale = request.images_scale
 
+    return pipeline_options
+
+
+def _parse_backend(request: ConvertDocumentsOptions) -> type[PdfDocumentBackend]:
     if request.pdf_backend == PdfBackend.DLPARSE_V1:
         backend: type[PdfDocumentBackend] = DoclingParseDocumentBackend
     elif request.pdf_backend == PdfBackend.DLPARSE_V2:
@@ -138,35 +147,78 @@ def get_pdf_pipeline_opts(
     else:
         raise RuntimeError(f"Unexpected PDF backend type {request.pdf_backend}")
 
+    return backend
+
+
+def _parse_vlm_pdf_opts(
+    request: ConvertDocumentsOptions, artifacts_path: Optional[Path]
+) -> VlmPipelineOptions:
+    pipeline_options = VlmPipelineOptions(
+        artifacts_path=artifacts_path,
+        document_timeout=request.document_timeout,
+    )
+    pipeline_options.vlm_options = smoldocling_vlm_conversion_options
+    if sys.platform == "darwin":
+        try:
+            import mlx_vlm  # noqa: F401
+
+            pipeline_options.vlm_options = smoldocling_vlm_mlx_conversion_options
+        except ImportError:
+            _log.warning(
+                "To run SmolDocling faster, please install mlx-vlm:\n"
+                "pip install mlx-vlm"
+            )
+    return pipeline_options
+
+
+# Computes the PDF pipeline options and returns the PdfFormatOption and its hash
+def get_pdf_pipeline_opts(
+    request: ConvertDocumentsOptions,
+) -> PdfFormatOption:
+    artifacts_path: Optional[Path] = None
     if docling_serve_settings.artifacts_path is not None:
         if str(docling_serve_settings.artifacts_path.absolute()) == "":
             _log.info(
                 "artifacts_path is an empty path, model weights will be dowloaded "
                 "at runtime."
             )
-            pipeline_options.artifacts_path = None
+            artifacts_path = None
         elif docling_serve_settings.artifacts_path.is_dir():
             _log.info(
                 "artifacts_path is set to a valid directory. "
                 "No model weights will be downloaded at runtime."
             )
-            pipeline_options.artifacts_path = docling_serve_settings.artifacts_path
+            artifacts_path = docling_serve_settings.artifacts_path
         else:
             _log.warning(
                 "artifacts_path is set to an invalid directory. "
                 "The system will download the model weights at runtime."
             )
-            pipeline_options.artifacts_path = None
+            artifacts_path = None
     else:
         _log.info(
             "artifacts_path is unset. "
             "The system will download the model weights at runtime."
         )
 
-    pdf_format_option = PdfFormatOption(
-        pipeline_options=pipeline_options,
-        backend=backend,
-    )
+    pipeline_options: Union[PdfPipelineOptions, VlmPipelineOptions]
+    if request.pipeline == PdfPipeline.STANDARD:
+        pipeline_options = _parse_standard_pdf_opts(request, artifacts_path)
+        backend = _parse_backend(request)
+        pdf_format_option = PdfFormatOption(
+            pipeline_options=pipeline_options,
+            backend=backend,
+        )
+
+    elif request.pipeline == PdfPipeline.VLM:
+        pipeline_options = _parse_vlm_pdf_opts(request, artifacts_path)
+        pdf_format_option = PdfFormatOption(
+            pipeline_cls=VlmPipeline, pipeline_options=pipeline_options
+        )
+    else:
+        raise NotImplementedError(
+            f"The pipeline {request.pipeline} is not implemented."
+        )
 
     return pdf_format_option
 
