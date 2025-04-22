@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Optional, Union
 
@@ -34,10 +35,15 @@ class DoclingServeSettings(BaseSettings):
     )
 
     enable_ui: bool = False
+    api_host: str = "localhost"
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
     options_cache_size: int = 2
     allow_external_plugins: bool = False
+
+    max_document_timeout: float = 3_600 * 24 * 7  # 7 days
+    max_num_pages: int = sys.maxsize
+    max_file_size: int = sys.maxsize
 
     cors_origins: list[str] = ["*"]
     cors_methods: list[str] = ["*"]

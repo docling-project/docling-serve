@@ -1,0 +1,58 @@
+# This example deployment configures Docling Serve with a Service and cuda image
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  ports:
+  - name: http
+    port: 5001
+    targetPort: http
+  selector:
+    app: docling-serve
+    component: docling-serve-api
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: api
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+              nvidia.com/gpu: 1  # Limit to one GPU
+            requests:
+              cpu: 250m
+              memory: 1Gi
+              nvidia.com/gpu: 1  # Limit to one GPU
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: 'true'
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve-cu124'

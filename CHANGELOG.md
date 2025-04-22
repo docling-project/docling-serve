@@ -1,3 +1,23 @@
+## [v0.8.0](https://github.com/docling-project/docling-serve/releases/tag/v0.8.0) - 2025-04-22
+
+### Feature
+
+* Add option for vlm pipeline ([#143](https://github.com/docling-project/docling-serve/issues/143)) ([`ee89ee4`](https://github.com/docling-project/docling-serve/commit/ee89ee4daee5e916bd6a3bdb452f78934cd03f60))
+* Expose more conversion options ([#142](https://github.com/docling-project/docling-serve/issues/142)) ([`6b3d281`](https://github.com/docling-project/docling-serve/commit/6b3d281f02905c195ab75f25bb39f5c4d4e7b680))
+* **UI:** Change UI to use async endpoints ([#131](https://github.com/docling-project/docling-serve/issues/131)) ([`b598872`](https://github.com/docling-project/docling-serve/commit/b598872e5c48928ac44417a11bb7acc0e5c3f0c6))
+
+### Fix
+
+* **UI:** Use https when calling the api ([#139](https://github.com/docling-project/docling-serve/issues/139)) ([`57f9073`](https://github.com/docling-project/docling-serve/commit/57f9073bc0daf72428b068ea28e2bec7cd76c37b))
+* Fix permissions in docker image ([#136](https://github.com/docling-project/docling-serve/issues/136)) ([`c1ce471`](https://github.com/docling-project/docling-serve/commit/c1ce4719c933179ba3c59d73d0584853bbd6fa6a))
+* Picture caption visuals ([#129](https://github.com/docling-project/docling-serve/issues/129)) ([`5dfb75d`](https://github.com/docling-project/docling-serve/commit/5dfb75d3b9a7022d1daad12edbb8ec7bbf9aa264))
+
+### Documentation
+
+* Fix required permissions for oauth2-proxy requests ([#141](https://github.com/docling-project/docling-serve/issues/141)) ([`087417e`](https://github.com/docling-project/docling-serve/commit/087417e5c2387d4ed95500222058f34d8a8702aa))
+* Update deployment examples ([#135](https://github.com/docling-project/docling-serve/issues/135)) ([`525a43f`](https://github.com/docling-project/docling-serve/commit/525a43ff6f04b7cc80f9dd6a0e653a8d8c4ab317))
+* Fix image tag ([#124](https://github.com/docling-project/docling-serve/issues/124)) ([`420162e`](https://github.com/docling-project/docling-serve/commit/420162e674cc38b4c3c13673ffbee4c20a1b15f1))
+
 ## [v0.7.0](https://github.com/docling-project/docling-serve/releases/tag/v0.7.0) - 2025-03-31
 
 ### Feature

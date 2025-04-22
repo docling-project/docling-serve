@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "0.7.0"  # DO NOT EDIT, updated automatically
+version = "0.8.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -30,7 +30,8 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.28",
+    "docling[vlm]~=2.28",
+    "mlx-vlm~=0.1.12; sys_platform == 'darwin' and platform_machine == 'arm64'",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "kfp[kubernetes]>=2.10.0",
@@ -44,7 +45,8 @@ dependencies = [
 
 [project.optional-dependencies]
 ui = [
-    "gradio~=5.9"
+    "gradio~=5.9",
+    "pydantic<2.11.0",  # fix compatibility between gradio and new pydantic 2.11
 ]
 tesserocr = [
     "tesserocr~=2.7"
@@ -81,6 +83,7 @@ conflicts = [
     { extra = "cu124" },
   ],
 ]
+environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
 override-dependencies = [
   "urllib3~=2.0"
 ]
@@ -201,6 +204,7 @@ module = [
     "requests.*",
     "kfp.*",
     "kfp_server_api.*",
+    "mlx_vlm.*",
 ]
 ignore_missing_imports = true
 
