@@ -13,6 +13,7 @@ import httpx
 
 from docling.datamodel.pipeline_options import (
     PdfBackend,
+    PdfPipeline,
     TableFormerMode,
     TableStructureOptions,
 )
@@ -274,6 +275,7 @@ def process_url(
     input_sources,
     to_formats,
     image_export_mode,
+    pipeline,
     ocr,
     force_ocr,
     ocr_engine,
@@ -292,6 +294,7 @@ def process_url(
         "options": {
             "to_formats": to_formats,
             "image_export_mode": image_export_mode,
+            "pipeline": pipeline,
             "ocr": ocr,
             "force_ocr": force_ocr,
             "ocr_engine": ocr_engine,
@@ -344,6 +347,7 @@ def process_file(
     file,
     to_formats,
     image_export_mode,
+    pipeline,
     ocr,
     force_ocr,
     ocr_engine,
@@ -367,6 +371,7 @@ def process_file(
         "options": {
             "to_formats": to_formats,
             "image_export_mode": image_export_mode,
+            "pipeline": pipeline,
             "ocr": ocr,
             "force_ocr": force_ocr,
             "ocr_engine": ocr_engine,
@@ -581,6 +586,13 @@ with gr.Blocks(
                 )
         with gr.Row():
             with gr.Column(scale=1, min_width=200):
+                pipeline = gr.Radio(
+                    [(v.value.capitalize(), v.value) for v in PdfPipeline],
+                    label="Pipeline type",
+                    value=PdfPipeline.STANDARD.value,
+                )
+        with gr.Row():
+            with gr.Column(scale=1, min_width=200):
                 ocr = gr.Checkbox(label="Enable OCR", value=True)
                 force_ocr = gr.Checkbox(label="Force OCR", value=False)
             with gr.Column(scale=1):
@@ -712,6 +724,7 @@ with gr.Blocks(
             url_input,
             to_formats,
             image_export_mode,
+            pipeline,
             ocr,
             force_ocr,
             ocr_engine,
@@ -798,6 +811,7 @@ with gr.Blocks(
             file_input,
             to_formats,
             image_export_mode,
+            pipeline,
             ocr,
             force_ocr,
             ocr_engine,
