@@ -60,12 +60,21 @@ class DoclingServeSettings(BaseSettings):
     eng_kfp_self_callback_token_path: Optional[Path] = None
     eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
 
+    eng_kfp_experimental: bool = False
+
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
         # Validate KFP engine settings
         if self.eng_kind == AsyncEngine.KFP:
             if self.eng_kfp_endpoint is None:
                 raise ValueError("KFP endpoint is required when using the KFP engine.")
+
+        if self.eng_kind == AsyncEngine.KFP:
+            if not self.eng_kfp_experimental:
+                raise ValueError(
+                    "KFP is not yet working. To enable the development version, you must set DOCLING_SERVE_ENG_KFP_EXPERIMENTAL=true."
+                )
+
         return self
 
 
