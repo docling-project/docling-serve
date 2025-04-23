@@ -1,7 +1,10 @@
+import sys
 from pathlib import Path
 from typing import Optional, Union
 
+from pydantic import AnyUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
 
 from docling_serve.datamodel.engines import AsyncEngine
 
@@ -32,17 +35,47 @@ class DoclingServeSettings(BaseSettings):
     )
 
     enable_ui: bool = False
+    api_host: str = "localhost"
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
     options_cache_size: int = 2
     allow_external_plugins: bool = False
+
+    max_document_timeout: float = 3_600 * 24 * 7  # 7 days
+    max_num_pages: int = sys.maxsize
+    max_file_size: int = sys.maxsize
 
     cors_origins: list[str] = ["*"]
     cors_methods: list[str] = ["*"]
     cors_headers: list[str] = ["*"]
 
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
+    # Local engine
     eng_loc_num_workers: int = 2
+    # KFP engine
+    eng_kfp_endpoint: Optional[AnyUrl] = None
+    eng_kfp_token: Optional[str] = None
+    eng_kfp_ca_cert_path: Optional[str] = None
+    eng_kfp_self_callback_endpoint: Optional[str] = None
+    eng_kfp_self_callback_token_path: Optional[Path] = None
+    eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
+
+    eng_kfp_experimental: bool = False
+
+    @model_validator(mode="after")
+    def engine_settings(self) -> Self:
+        # Validate KFP engine settings
+        if self.eng_kind == AsyncEngine.KFP:
+            if self.eng_kfp_endpoint is None:
+                raise ValueError("KFP endpoint is required when using the KFP engine.")
+
+        if self.eng_kind == AsyncEngine.KFP:
+            if not self.eng_kfp_experimental:
+                raise ValueError(
+                    "KFP is not yet working. To enable the development version, you must set DOCLING_SERVE_ENG_KFP_EXPERIMENTAL=true."
+                )
+
+        return self
 
 
 uvicorn_settings = UvicornSettings()

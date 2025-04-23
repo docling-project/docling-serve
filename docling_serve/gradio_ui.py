@@ -1,11 +1,22 @@
+import base64
 import importlib
 import json
 import logging
+import ssl
 import tempfile
+import time
 from pathlib import Path
 
+import certifi
 import gradio as gr
-import requests
+import httpx
+
+from docling.datamodel.pipeline_options import (
+    PdfBackend,
+    PdfPipeline,
+    TableFormerMode,
+    TableStructureOptions,
+)
 
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
@@ -109,8 +120,29 @@ file_output_path = None  # Will be set when a new file is generated
 #############
 
 
+def get_api_endpoint() -> str:
+    protocol = "http"
+    if uvicorn_settings.ssl_keyfile is not None:
+        protocol = "https"
+    return f"{protocol}://{docling_serve_settings.api_host}:{uvicorn_settings.port}"
+
+
+def get_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    kube_sa_ca_cert_path = Path(
+        "/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+    )
+    if (
+        uvicorn_settings.ssl_keyfile is not None
+        and ".svc." in docling_serve_settings.api_host
+        and kube_sa_ca_cert_path.exists()
+    ):
+        ctx.load_verify_locations(cafile=kube_sa_ca_cert_path)
+    return ctx
+
+
 def health_check():
-    response = requests.get(f"http://localhost:{uvicorn_settings.port}/health")
+    response = httpx.get(f"{get_api_endpoint()}/health")
     if response.status_code == 200:
         return "Healthy"
     return "Unhealthy"
@@ -126,6 +158,11 @@ def set_outputs_visibility_direct(x, y):
     return content, file
 
 
+def set_task_id_visibility(x):
+    task_id_row = gr.Row(visible=x)
+    return task_id_row
+
+
 def set_outputs_visibility_process(x):
     content = gr.Row(visible=not x)
     file = gr.Row(visible=x)
@@ -137,6 +174,7 @@ def set_download_button_label(label_text: gr.State):
 
 
 def clear_outputs():
+    task_id_rendered = ""
     markdown_content = ""
     json_content = ""
     json_rendered_content = ""
@@ -145,6 +183,7 @@ def clear_outputs():
     doctags_content = ""
 
     return (
+        task_id_rendered,
         markdown_content,
         markdown_content,
         json_content,
@@ -187,10 +226,56 @@ def change_ocr_lang(ocr_engine):
         return "english,chinese"
 
 
+def wait_task_finish(task_id: str, return_as_file: bool):
+    conversion_sucess = False
+    task_finished = False
+    task_status = ""
+    ssl_ctx = get_ssl_context()
+    while not task_finished:
+        try:
+            response = httpx.get(
+                f"{get_api_endpoint()}/v1alpha/status/poll/{task_id}?wait=5",
+                verify=ssl_ctx,
+                timeout=15,
+            )
+            task_status = response.json()["task_status"]
+            if task_status == "success":
+                conversion_sucess = True
+                task_finished = True
+
+            if task_status in ("failure", "revoked"):
+                conversion_sucess = False
+                task_finished = True
+                raise RuntimeError(f"Task failed with status {task_status!r}")
+            time.sleep(5)
+        except Exception as e:
+            logger.error(f"Error processing file(s): {e}")
+            conversion_sucess = False
+            task_finished = True
+            raise gr.Error(f"Error processing file(s): {e}", print_exception=False)
+
+    if conversion_sucess:
+        try:
+            response = httpx.get(
+                f"{get_api_endpoint()}/v1alpha/result/{task_id}",
+                timeout=15,
+                verify=ssl_ctx,
+            )
+            output = response_to_output(response, return_as_file)
+            return output
+        except Exception as e:
+            logger.error(f"Error getting task result: {e}")
+
+    raise gr.Error(
+        f"Error getting task result, conversion finished with status: {task_status}"
+    )
+
+
 def process_url(
     input_sources,
     to_formats,
     image_export_mode,
+    pipeline,
     ocr,
     force_ocr,
     ocr_engine,
@@ -209,6 +294,7 @@ def process_url(
         "options": {
             "to_formats": to_formats,
             "image_export_mode": image_export_mode,
+            "pipeline": pipeline,
             "ocr": ocr,
             "force_ocr": force_ocr,
             "ocr_engine": ocr_engine,
@@ -231,9 +317,12 @@ def process_url(
         logger.error("No input sources provided.")
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
-        response = requests.post(
-            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/source",
+        ssl_ctx = get_ssl_context()
+        response = httpx.post(
+            f"{get_api_endpoint()}/v1alpha/convert/source/async",
             json=parameters,
+            verify=ssl_ctx,
+            timeout=60,
         )
     except Exception as e:
         logger.error(f"Error processing URL: {e}")
@@ -243,14 +332,22 @@ def process_url(
         error_message = data.get("detail", "An unknown error occurred.")
         logger.error(f"Error processing file: {error_message}")
         raise gr.Error(f"Error processing file: {error_message}", print_exception=False)
-    output = response_to_output(response, return_as_file)
-    return output
+
+    task_id_rendered = response.json()["task_id"]
+    return task_id_rendered
+
+
+def file_to_base64(file):
+    with open(file.name, "rb") as f:
+        encoded_string = base64.b64encode(f.read()).decode("utf-8")
+    return encoded_string
 
 
 def process_file(
-    files,
+    file,
     to_formats,
     image_export_mode,
+    pipeline,
     ocr,
     force_ocr,
     ocr_engine,
@@ -264,33 +361,39 @@ def process_file(
     do_picture_classification,
     do_picture_description,
 ):
-    if not files or len(files) == 0 or files[0] == "":
+    if not file or file == "":
         logger.error("No files provided.")
         raise gr.Error("No files provided.", print_exception=False)
-    files_data = [("files", (file.name, open(file.name, "rb"))) for file in files]
+    files_data = [{"base64_string": file_to_base64(file), "filename": file.name}]
 
     parameters = {
-        "to_formats": to_formats,
-        "image_export_mode": image_export_mode,
-        "ocr": str(ocr).lower(),
-        "force_ocr": str(force_ocr).lower(),
-        "ocr_engine": ocr_engine,
-        "ocr_lang": _to_list_of_strings(ocr_lang),
-        "pdf_backend": pdf_backend,
-        "table_mode": table_mode,
-        "abort_on_error": str(abort_on_error).lower(),
-        "return_as_file": str(return_as_file).lower(),
-        "do_code_enrichment": str(do_code_enrichment).lower(),
-        "do_formula_enrichment": str(do_formula_enrichment).lower(),
-        "do_picture_classification": str(do_picture_classification).lower(),
-        "do_picture_description": str(do_picture_description).lower(),
+        "file_sources": files_data,
+        "options": {
+            "to_formats": to_formats,
+            "image_export_mode": image_export_mode,
+            "pipeline": pipeline,
+            "ocr": ocr,
+            "force_ocr": force_ocr,
+            "ocr_engine": ocr_engine,
+            "ocr_lang": _to_list_of_strings(ocr_lang),
+            "pdf_backend": pdf_backend,
+            "table_mode": table_mode,
+            "abort_on_error": abort_on_error,
+            "return_as_file": return_as_file,
+            "do_code_enrichment": do_code_enrichment,
+            "do_formula_enrichment": do_formula_enrichment,
+            "do_picture_classification": do_picture_classification,
+            "do_picture_description": do_picture_description,
+        },
     }
 
     try:
-        response = requests.post(
-            f"http://localhost:{uvicorn_settings.port}/v1alpha/convert/file",
-            files=files_data,
-            data=parameters,
+        ssl_ctx = get_ssl_context()
+        response = httpx.post(
+            f"{get_api_endpoint()}/v1alpha/convert/source/async",
+            json=parameters,
+            verify=ssl_ctx,
+            timeout=60,
         )
     except Exception as e:
         logger.error(f"Error processing file(s): {e}")
@@ -300,8 +403,9 @@ def process_file(
         error_message = data.get("detail", "An unknown error occurred.")
         logger.error(f"Error processing file: {error_message}")
         raise gr.Error(f"Error processing file: {error_message}", print_exception=False)
-    output = response_to_output(response, return_as_file)
-    return output
+
+    task_id_rendered = response.json()["task_id"]
+    return task_id_rendered
 
 
 def response_to_output(response, return_as_file):
@@ -415,30 +519,31 @@ with gr.Blocks(
             )
 
     # URL Processing Tab
-    with gr.Tab("Convert URL(s)"):
+    with gr.Tab("Convert URL"):
         with gr.Row():
             with gr.Column(scale=4):
                 url_input = gr.Textbox(
-                    label="Input Sources (comma-separated URLs)",
-                    placeholder="https://arxiv.org/pdf/2206.01062",
+                    label="URL Input Source",
+                    placeholder="https://arxiv.org/pdf/2501.17887",
                 )
             with gr.Column(scale=1):
-                url_process_btn = gr.Button("Process URL(s)", scale=1)
+                url_process_btn = gr.Button("Process URL", scale=1)
                 url_reset_btn = gr.Button("Reset", scale=1)
 
     # File Processing Tab
-    with gr.Tab("Convert File(s)"):
+    with gr.Tab("Convert File"):
         with gr.Row():
             with gr.Column(scale=4):
                 file_input = gr.File(
                     elem_id="file_input_zone",
-                    label="Upload Files",
+                    label="Upload File",
                     file_types=[
                         ".pdf",
                         ".docx",
                         ".pptx",
                         ".html",
                         ".xlsx",
+                        ".json",
                         ".asciidoc",
                         ".txt",
                         ".md",
@@ -447,11 +552,11 @@ with gr.Blocks(
                         ".png",
                         ".gif",
                     ],
-                    file_count="multiple",
+                    file_count="single",
                     scale=4,
                 )
             with gr.Column(scale=1):
-                file_process_btn = gr.Button("Process File(s)", scale=1)
+                file_process_btn = gr.Button("Process File", scale=1)
                 file_reset_btn = gr.Button("Reset", scale=1)
 
     # Options
@@ -460,14 +565,14 @@ with gr.Blocks(
             with gr.Column(scale=1):
                 to_formats = gr.CheckboxGroup(
                     [
-                        ("Markdown", "md"),
                         ("Docling (JSON)", "json"),
+                        ("Markdown", "md"),
                         ("HTML", "html"),
                         ("Plain Text", "text"),
                         ("Doc Tags", "doctags"),
                     ],
                     label="To Formats",
-                    value=["md"],
+                    value=["json", "md"],
                 )
             with gr.Column(scale=1):
                 image_export_mode = gr.Radio(
@@ -478,6 +583,13 @@ with gr.Blocks(
                     ],
                     label="Image Export Mode",
                     value="embedded",
+                )
+        with gr.Row():
+            with gr.Column(scale=1, min_width=200):
+                pipeline = gr.Radio(
+                    [(v.value.capitalize(), v.value) for v in PdfPipeline],
+                    label="Pipeline type",
+                    value=PdfPipeline.STANDARD.value,
                 )
         with gr.Row():
             with gr.Column(scale=1, min_width=200):
@@ -499,19 +611,23 @@ with gr.Blocks(
                 )
             ocr_engine.change(change_ocr_lang, inputs=[ocr_engine], outputs=[ocr_lang])
         with gr.Row():
-            with gr.Column(scale=2):
+            with gr.Column(scale=4):
                 pdf_backend = gr.Radio(
-                    ["pypdfium2", "dlparse_v1", "dlparse_v2"],
+                    [v.value for v in PdfBackend],
                     label="PDF Backend",
-                    value="dlparse_v2",
+                    value=PdfBackend.DLPARSE_V4.value,
                 )
             with gr.Column(scale=2):
                 table_mode = gr.Radio(
-                    ["fast", "accurate"], label="Table Mode", value="fast"
+                    [(v.value.capitalize(), v.value) for v in TableFormerMode],
+                    label="Table Mode",
+                    value=TableStructureOptions().mode.value,
                 )
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)
-                return_as_file = gr.Checkbox(label="Return as File", value=False)
+                return_as_file = gr.Checkbox(
+                    label="Return as File", visible=False, value=False
+                )  # Disable until async handle output as file
         with gr.Row():
             with gr.Column():
                 do_code_enrichment = gr.Checkbox(
@@ -528,18 +644,22 @@ with gr.Blocks(
                     label="Enable picture description", value=False
                 )
 
+    # Task id output
+    with gr.Row(visible=False) as task_id_output:
+        task_id_rendered = gr.Textbox(label="Task id", interactive=False)
+
     # Document output
     with gr.Row(visible=False) as content_output:
+        with gr.Tab("Docling (JSON)"):
+            output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
+        with gr.Tab("Docling-Rendered"):
+            output_json_rendered = gr.HTML(label="Response")
         with gr.Tab("Markdown"):
             output_markdown = gr.Code(
                 language="markdown", wrap_lines=True, show_label=False
             )
         with gr.Tab("Markdown-Rendered"):
             output_markdown_rendered = gr.Markdown(label="Response")
-        with gr.Tab("Docling (JSON)"):
-            output_json = gr.Code(language="json", wrap_lines=True, show_label=False)
-        with gr.Tab("Docling-Rendered"):
-            output_json_rendered = gr.HTML()
         with gr.Tab("HTML"):
             output_html = gr.Code(language="html", wrap_lines=True, show_label=False)
         with gr.Tab("HTML-Rendered"):
@@ -557,22 +677,23 @@ with gr.Blocks(
     # UI Actions #
     ##############
 
+    # Disable until async handle output as file
     # Handle Return as File
-    url_input.change(
-        auto_set_return_as_file,
-        inputs=[url_input, file_input, image_export_mode],
-        outputs=[return_as_file],
-    )
-    file_input.change(
-        auto_set_return_as_file,
-        inputs=[url_input, file_input, image_export_mode],
-        outputs=[return_as_file],
-    )
-    image_export_mode.change(
-        auto_set_return_as_file,
-        inputs=[url_input, file_input, image_export_mode],
-        outputs=[return_as_file],
-    )
+    # url_input.change(
+    #     auto_set_return_as_file,
+    #     inputs=[url_input, file_input, image_export_mode],
+    #     outputs=[return_as_file],
+    # )
+    # file_input.change(
+    #     auto_set_return_as_file,
+    #     inputs=[url_input, file_input, image_export_mode],
+    #     outputs=[return_as_file],
+    # )
+    # image_export_mode.change(
+    #     auto_set_return_as_file,
+    #     inputs=[url_input, file_input, image_export_mode],
+    #     outputs=[return_as_file],
+    # )
 
     # URL processing
     url_process_btn.click(
@@ -580,13 +701,10 @@ with gr.Blocks(
     ).then(
         set_download_button_label, inputs=[processing_text], outputs=[download_file_btn]
     ).then(
-        set_outputs_visibility_process,
-        inputs=[return_as_file],
-        outputs=[content_output, file_output],
-    ).then(
         clear_outputs,
         inputs=None,
         outputs=[
+            task_id_rendered,
             output_markdown,
             output_markdown_rendered,
             output_json,
@@ -597,11 +715,16 @@ with gr.Blocks(
             output_doctags,
         ],
     ).then(
+        set_task_id_visibility,
+        inputs=[true_bool],
+        outputs=[task_id_output],
+    ).then(
         process_url,
         inputs=[
             url_input,
             to_formats,
             image_export_mode,
+            pipeline,
             ocr,
             force_ocr,
             ocr_engine,
@@ -615,6 +738,16 @@ with gr.Blocks(
             do_picture_classification,
             do_picture_description,
         ],
+        outputs=[
+            task_id_rendered,
+        ],
+    ).then(
+        set_outputs_visibility_process,
+        inputs=[return_as_file],
+        outputs=[content_output, file_output],
+    ).then(
+        wait_task_finish,
+        inputs=[task_id_rendered, return_as_file],
         outputs=[
             output_markdown,
             output_markdown_rendered,
@@ -645,7 +778,9 @@ with gr.Blocks(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
         outputs=[content_output, file_output],
-    ).then(clear_url_input, inputs=None, outputs=[url_input])
+    ).then(set_task_id_visibility, inputs=[false_bool], outputs=[task_id_output]).then(
+        clear_url_input, inputs=None, outputs=[url_input]
+    )
 
     # File processing
     file_process_btn.click(
@@ -653,13 +788,10 @@ with gr.Blocks(
     ).then(
         set_download_button_label, inputs=[processing_text], outputs=[download_file_btn]
     ).then(
-        set_outputs_visibility_process,
-        inputs=[return_as_file],
-        outputs=[content_output, file_output],
-    ).then(
         clear_outputs,
         inputs=None,
         outputs=[
+            task_id_rendered,
             output_markdown,
             output_markdown_rendered,
             output_json,
@@ -670,11 +802,16 @@ with gr.Blocks(
             output_doctags,
         ],
     ).then(
+        set_task_id_visibility,
+        inputs=[true_bool],
+        outputs=[task_id_output],
+    ).then(
         process_file,
         inputs=[
             file_input,
             to_formats,
             image_export_mode,
+            pipeline,
             ocr,
             force_ocr,
             ocr_engine,
@@ -688,6 +825,16 @@ with gr.Blocks(
             do_picture_classification,
             do_picture_description,
         ],
+        outputs=[
+            task_id_rendered,
+        ],
+    ).then(
+        set_outputs_visibility_process,
+        inputs=[return_as_file],
+        outputs=[content_output, file_output],
+    ).then(
+        wait_task_finish,
+        inputs=[task_id_rendered, return_as_file],
         outputs=[
             output_markdown,
             output_markdown_rendered,
@@ -718,4 +865,6 @@ with gr.Blocks(
         set_outputs_visibility_direct,
         inputs=[false_bool, false_bool],
         outputs=[content_output, file_output],
-    ).then(clear_file_input, inputs=None, outputs=[file_input])
+    ).then(set_task_id_visibility, inputs=[false_bool], outputs=[task_id_output]).then(
+        clear_file_input, inputs=None, outputs=[file_input]
+    )

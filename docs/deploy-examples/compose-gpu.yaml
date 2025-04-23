@@ -1,0 +1,15 @@
+services:
+  docling:
+    image: ghcr.io/docling-project/docling-serve-cu124
+    container_name: docling-serve
+    ports:
+      - 5001:5001
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all # nvidia-smi 
+            capabilities: [gpu]

@@ -7,7 +7,13 @@ from docling.datamodel.base_models import InputFormat, OutputFormat
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     PdfBackend,
+    PdfPipeline,
     TableFormerMode,
+    TableStructureOptions,
+)
+from docling.datamodel.settings import (
+    DEFAULT_PAGE_RANGE,
+    PageRange,
 )
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
@@ -121,16 +127,37 @@ class ConvertDocumentsOptions(BaseModel):
     table_mode: Annotated[
         TableFormerMode,
         Field(
-            TableFormerMode.FAST,
             description=(
                 "Mode to use for table structure, String. "
                 f"Allowed values: {', '.join([v.value for v in TableFormerMode])}. "
                 "Optional, defaults to fast."
             ),
-            examples=[TableFormerMode.FAST],
+            examples=[TableStructureOptions().mode],
             # pattern="fast|accurate",
         ),
-    ] = TableFormerMode.FAST
+    ] = TableStructureOptions().mode
+
+    pipeline: Annotated[
+        PdfPipeline,
+        Field(description="Choose the pipeline to process PDF or image files."),
+    ] = PdfPipeline.STANDARD
+
+    page_range: Annotated[
+        PageRange,
+        Field(
+            description="Only convert a range of pages. The page number starts at 1.",
+            examples=[(1, 4)],
+        ),
+    ] = DEFAULT_PAGE_RANGE
+
+    document_timeout: Annotated[
+        float,
+        Field(
+            description="The timeout for processing each document, in seconds.",
+            gt=0,
+            le=docling_serve_settings.max_document_timeout,
+        ),
+    ] = docling_serve_settings.max_document_timeout
 
     abort_on_error: Annotated[
         bool,
