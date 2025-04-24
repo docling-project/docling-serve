@@ -3,8 +3,10 @@ import logging
 import uuid
 from typing import Optional
 
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import ConvertDocumentsRequest
 from docling_serve.datamodel.task import Task
+from docling_serve.docling_conversion import get_converter, get_pdf_pipeline_opts
 from docling_serve.engines.async_local.worker import AsyncLocalWorker
 from docling_serve.engines.async_orchestrator import BaseAsyncOrchestrator
 from docling_serve.settings import docling_serve_settings
@@ -47,3 +49,8 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
         # Wait for all workers to complete (they won't, as they run indefinitely)
         await asyncio.gather(*workers)
         _log.debug("All workers completed.")
+
+    async def warm_up_caches(self):
+        # Converter with default options
+        pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
+        get_converter(pdf_format_option)

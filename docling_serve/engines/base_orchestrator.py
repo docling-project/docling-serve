@@ -37,3 +37,7 @@ class BaseOrchestrator(ABC):
     @abstractmethod
     async def process_queue(self):
         pass
+
+    @abstractmethod
+    async def warm_up_caches(self):
+        pass

@@ -46,8 +46,6 @@ from docling_serve.datamodel.responses import (
 )
 from docling_serve.docling_conversion import (
     convert_documents,
-    get_converter,
-    get_pdf_pipeline_opts,
 )
 from docling_serve.engines.async_orchestrator import (
     BaseAsyncOrchestrator,
@@ -95,11 +93,10 @@ _log = logging.getLogger(__name__)
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Converter with default options
-    pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
-    get_converter(pdf_format_option)
-
     orchestrator = get_async_orchestrator()
+
+    # Warm up processing cache
+    await orchestrator.warm_up_caches()
 
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())

@@ -185,6 +185,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
     async def process_queue(self):
         return
 
+    async def warm_up_caches(self):
+        return
+
     async def _get_run_id(self, run_name: str) -> str:
         res = self._client.list_runs(
             filter=json.dumps(
