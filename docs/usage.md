@@ -269,7 +269,6 @@ The local option is specified with:
 
 The possible values for `generation_config` are documented in the [Hugging Face text generation docs](https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig).
 
-
 The api option is specified with:
 
 ```jsonc
@@ -315,7 +314,6 @@ Example URLs are:
     ```  
 
 Note that when using `picture_description_api`, the server must be launched with `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true`.
-
 
 ## Response format
 
