@@ -44,7 +44,7 @@ class PictureDescriptionLocal(BaseModel):
             description="Prompt used when calling the vision-language model.",
             examples=[
                 "Describe this image in a few sentences.",
-                "This is a figures from a document. Provide a detailed description of it.",
+                "This is a figure from a document. Provide a detailed description of it.",
             ],
         ),
     ] = "Describe this image in a few sentences."
@@ -361,7 +361,7 @@ class ConvertDocumentsOptions(BaseModel):
             and self.picture_description_api is not None
         ):
             raise ValueError(
-                "This parameters picture_description_local and picture_description_api are mutually exclusive, only one of them can be set."
+                "The parameters picture_description_local and picture_description_api are mutually exclusive, only one of them can be set."
             )
 
         return self
