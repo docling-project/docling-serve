@@ -1,7 +1,8 @@
 # Define the input options for the API
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, model_validator
+from typing_extensions import Self
 
 from docling.datamodel.base_models import InputFormat, OutputFormat
 from docling.datamodel.pipeline_options import (
@@ -24,6 +25,83 @@ ocr_factory = get_ocr_factory(
     allow_external_plugins=docling_serve_settings.allow_external_plugins
 )
 ocr_engines_enum = ocr_factory.get_enum()
+
+
+class PictureDescriptionLocal(BaseModel):
+    repo_id: Annotated[
+        str,
+        Field(
+            description="Repository id from the Hugging Face Hub.",
+            examples=[
+                "HuggingFaceTB/SmolVLM-256M-Instruct",
+                "ibm-granite/granite-vision-3.2-2b",
+            ],
+        ),
+    ]
+    prompt: Annotated[
+        str,
+        Field(
+            description="Prompt used when calling the vision-language model.",
+            examples=[
+                "Describe this image in a few sentences.",
+                "This is a figures from a document. Provide a detailed description of it.",
+            ],
+        ),
+    ] = "Describe this image in a few sentences."
+    generation_config: Annotated[
+        dict[str, Any],
+        Field(
+            description="Config from https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig",
+            examples=[{"max_new_tokens": 200, "do_sample": False}],
+        ),
+    ] = {"max_new_tokens": 200, "do_sample": False}
+
+
+class PictureDescriptionApi(BaseModel):
+    url: Annotated[
+        AnyUrl,
+        Field(
+            description="Endpoint which accepts openai-api compatible requests.",
+            examples=[
+                AnyUrl("http://localhost:8000/v1/chat/completions"),
+                AnyUrl("http://localhost:11434/v1/chat/completions"),
+            ],
+        ),
+    ]
+    headers: Annotated[
+        dict[str, str],
+        Field(
+            description="Headers used for calling the API endpoint. For example, it could include authentication headers."
+        ),
+    ] = {}
+    params: Annotated[
+        dict[str, Any],
+        Field(
+            description="Model parameters.",
+            examples=[
+                {
+                    "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+                    "max_completion_tokens": 200,
+                },
+                {
+                    "model": "ibm-granite/granite-vision-3.2-2b",
+                    "max_completion_tokens": 200,
+                },
+                {"model": "granite3.2-vision:2b"},
+            ],
+        ),
+    ] = {}
+    timeout: Annotated[float, Field(description="Timeout for the API request.")] = 20
+    prompt: Annotated[
+        str,
+        Field(
+            description="Prompt used when calling the vision-language model.",
+            examples=[
+                "Describe this image in a few sentences.",
+                "This is a figures from a document. Provide a detailed description of it.",
+            ],
+        ),
+    ] = "Describe this image in a few sentences."
 
 
 class ConvertDocumentsOptions(BaseModel):
@@ -254,3 +332,30 @@ class ConvertDocumentsOptions(BaseModel):
             examples=[False],
         ),
     ] = False
+
+    picture_description_local: Annotated[
+        Optional[PictureDescriptionLocal],
+        Field(
+            description="Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api."
+        ),
+    ] = None
+
+    picture_description_api: Annotated[
+        Optional[PictureDescriptionApi],
+        Field(
+            description="API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local."
+        ),
+    ] = None
+
+    @model_validator(mode="after")
+    def picture_description_exclusivity(self) -> Self:
+        # Validate picture description options
+        if (
+            self.picture_description_local is not None
+            and self.picture_description_api is not None
+        ):
+            raise ValueError(
+                "This parameters picture_description_local and picture_description_api are mutually exclusive, only one of them can be set."
+            )
+
+        return self

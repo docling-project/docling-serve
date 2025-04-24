@@ -28,6 +28,16 @@ async def test_convert_url(async_client: httpx.AsyncClient):
             "ocr": True,
             "abort_on_error": False,
             "return_as_file": False,
+            # "do_picture_description": True,
+            # "picture_description_api": {
+            #     "url": "http://localhost:11434/v1/chat/completions",
+            #     "params": {
+            #         "model": "granite3.2-vision:2b",
+            #     }
+            # },
+            # "picture_description_local": {
+            #     "repo_id": "HuggingFaceTB/SmolVLM-256M-Instruct",
+            # },
         },
         # "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}],
         "file_sources": [{"base64_string": encoded_doc, "filename": doc_filename.name}],
