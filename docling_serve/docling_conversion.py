@@ -118,6 +118,7 @@ def _parse_standard_pdf_opts(
 
     pipeline_options = PdfPipelineOptions(
         artifacts_path=artifacts_path,
+        enable_remote_services=docling_serve_settings.enable_remote_services,
         document_timeout=request.document_timeout,
         do_ocr=request.do_ocr,
         ocr_options=ocr_options,
@@ -142,7 +143,6 @@ def _parse_standard_pdf_opts(
         )
 
     if request.picture_description_api is not None:
-        pipeline_options.enable_remote_services = True
         pipeline_options.picture_description_options = (
             PictureDescriptionApiOptions.model_validate(
                 request.picture_description_api.model_dump()
