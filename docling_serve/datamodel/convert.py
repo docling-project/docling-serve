@@ -310,7 +310,7 @@ class ConvertDocumentsOptions(BaseModel):
         bool,
         Field(
             description=(
-                "If enabled, perform formula OCR, return Latex code. "
+                "If enabled, perform formula OCR, return LaTeX code. "
                 "Boolean. Optional, defaults to false."
             ),
             examples=[False],

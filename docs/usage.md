@@ -8,6 +8,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 - `from_format` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
 - `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
+- `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
@@ -18,7 +19,13 @@ On top of the source of file (see below), both endpoints support the same parame
 - `abort_on_error` (bool): If enabled, abort on error. Defaults to false.
 - `return_as_file` (boo): If enabled, return the output as a file. Defaults to false.
 - `do_table_structure` (bool): If enabled, the table structure will be extracted. Defaults to true.
-- `include_images` (bool): If enabled, images will be extracted from the document. Defaults to true.
+- `do_code_enrichment` (bool): If enabled, perform OCR code enrichment. Defaults to false.
+- `do_formula_enrichment` (bool): If enabled, perform formula OCR, return LaTeX code. Defaults to false.
+- `do_picture_classification` (bool): If enabled, classify pictures in documents. Defaults to false.
+- `do_picture_description` (bool): If enabled, describe pictures in documents. Defaults to false.
+- `picture_description_local` (dict): Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api.
+- `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local.
+- `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
 - `images_scale` (float): Scale factor for images. Defaults to 2.0.
 
 ## Convert endpoints
@@ -243,6 +250,72 @@ data = response.json()
 ```
 
 </details>
+
+### Picture description options
+
+When the picture description enrichment is activated, users may specify which model and which execution mode to use for this task. There are two choices for the execution mode: _local_ will run the vision-language model directly, _api_ will invoke an external API endpoint.
+
+The local option is specified with:
+
+```jsonc
+{
+  "picture_description_local": {
+    "repo_id": "",  // Repository id from the Hugging Face Hub.
+    "generation_config": {"max_new_tokens": 200, "do_sample": false},  // HF generation config.
+    "prompt": "Describe this image in a few sentences. ",  // Prompt used when calling the vision-language model.
+  }
+}
+```
+
+The possible values for `generation_config` are documented in the [Hugging Face text generation docs](https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig).
+
+
+The api option is specified with:
+
+```jsonc
+{
+  "picture_description_api": {
+    "url": "",  // Endpoint which accepts openai-api compatible requests.
+    "headers": {},  // Headers used for calling the API endpoint. For example, it could include authentication headers.
+    "params": {},  // Model parameters.
+    "timeout": 20,  // Timeout for the API request.
+    "prompt": "Describe this image in a few sentences. ",  // Prompt used when calling the vision-language model.
+  }
+}
+```
+
+Example URLs are:
+
+- `http://localhost:8000/v1/chat/completions` for the local vllm api, with example `params`:
+  - the `HuggingFaceTB/SmolVLM-256M-Instruct` model
+
+    ```json
+    {
+        "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+        "max_completion_tokens": 200,
+    }
+    ```
+  
+  - the `ibm-granite/granite-vision-3.2-2b` model
+
+    ```json
+    {
+        "model": "ibm-granite/granite-vision-3.2-2b",
+        "max_completion_tokens": 200,
+    }
+    ```
+
+- `http://localhost:11434/v1/chat/completions` for the local ollama api, with example `params`:
+  - the `granite3.2-vision:2b` model
+
+    ```json
+    {
+        "model": "granite3.2-vision:2b"
+    }
+    ```  
+
+Note that when using `picture_description_api`, the server must be launched with `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true`.
+
 
 ## Response format
 
