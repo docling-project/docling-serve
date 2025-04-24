@@ -63,8 +63,12 @@ class PictureDescriptionApi(BaseModel):
         Field(
             description="Endpoint which accepts openai-api compatible requests.",
             examples=[
-                AnyUrl("http://localhost:8000/v1/chat/completions"),
-                AnyUrl("http://localhost:11434/v1/chat/completions"),
+                AnyUrl(
+                    "http://localhost:8000/v1/chat/completions"
+                ),  # example of a local vllm api
+                AnyUrl(
+                    "http://localhost:11434/v1/chat/completions"
+                ),  # example of ollama
             ],
         ),
     ]
@@ -79,15 +83,17 @@ class PictureDescriptionApi(BaseModel):
         Field(
             description="Model parameters.",
             examples=[
-                {
+                {  # on vllm
                     "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
                     "max_completion_tokens": 200,
                 },
-                {
+                {  # on vllm
                     "model": "ibm-granite/granite-vision-3.2-2b",
                     "max_completion_tokens": 200,
                 },
-                {"model": "granite3.2-vision:2b"},
+                {  # on ollama
+                    "model": "granite3.2-vision:2b"
+                },
             ],
         ),
     ] = {}
