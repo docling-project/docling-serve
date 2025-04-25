@@ -14,10 +14,11 @@ from docling_serve.datamodel.callback import (
     ProgressSetNumDocs,
     ProgressUpdateProcessed,
 )
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.kfp import CallbackSpec
-from docling_serve.datamodel.requests import ConvertDocumentsRequest
-from docling_serve.datamodel.task import Task
+from docling_serve.datamodel.requests import HttpSource
+from docling_serve.datamodel.task import Task, TaskSource
 from docling_serve.datamodel.task_meta import TaskProcessingMeta
 from docling_serve.engines.async_kfp.kfp_pipeline import process
 from docling_serve.engines.async_orchestrator import (
@@ -71,7 +72,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
             # verify_ssl=False,
         )
 
-    async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
+    async def enqueue(
+        self, sources: list[TaskSource], options: ConvertDocumentsOptions
+    ) -> Task:
         callbacks = []
         if docling_serve_settings.eng_kfp_self_callback_endpoint is not None:
             headers = {}
@@ -92,6 +95,8 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
             )
 
         CallbacksType = TypeAdapter(list[CallbackSpec])
+        SourcesListType = TypeAdapter(list[HttpSource])
+        http_sources = [s for s in sources if isinstance(s, HttpSource)]
         # hack: since the current kfp backend is not resolving the job_id placeholder,
         # we set the run_name and pass it as argument to the job itself.
         run_name = f"docling-job-{uuid.uuid4()}"
@@ -99,7 +104,8 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
             process,
             arguments={
                 "batch_size": 10,
-                "request": request.model_dump(mode="json"),
+                "sources": SourcesListType.dump_python(http_sources, mode="json"),
+                "options": options.model_dump(mode="json"),
                 "callbacks": CallbacksType.dump_python(callbacks, mode="json"),
                 "run_name": run_name,
             },
@@ -107,7 +113,7 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
         )
         task_id = kfp_run.run_id
 
-        task = Task(task_id=task_id, request=request)
+        task = Task(task_id=task_id, sources=sources, options=options)
         await self.init_task_tracking(task)
         return task
 

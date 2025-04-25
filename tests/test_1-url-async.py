@@ -38,7 +38,7 @@ async def test_convert_url(async_client):
     }
     print(json.dumps(payload, indent=2))
 
-    for n in range(1):
+    for n in range(3):
         response = await async_client.post(
             f"{base_url}/convert/source/async", json=payload
         )

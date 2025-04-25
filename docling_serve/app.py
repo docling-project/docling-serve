@@ -35,6 +35,7 @@ from docling_serve.datamodel.callback import (
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import (
     ConvertDocumentFileSourcesRequest,
+    ConvertDocumentHttpSourcesRequest,
     ConvertDocumentsRequest,
 )
 from docling_serve.datamodel.responses import (
@@ -44,6 +45,7 @@ from docling_serve.datamodel.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
+from docling_serve.datamodel.task import TaskSource
 from docling_serve.docling_conversion import (
     convert_documents,
 )
@@ -250,7 +252,7 @@ def create_app():  # noqa: C901
                 sources.append(file_source.to_document_stream())
         else:
             for http_source in conversion_request.http_sources:
-                sources.append(http_source.url)
+                sources.append(str(http_source.url))
                 if headers is None and http_source.headers:
                     headers = http_source.headers
 
@@ -288,10 +290,11 @@ def create_app():  # noqa: C901
         _log.info(f"Received {len(files)} files for processing.")
 
         # Load the uploaded files to Docling DocumentStream
-        file_sources = []
-        for file in files:
+        file_sources: list[Union[Path, str, DocumentStream]] = []
+        for i, file in enumerate(files):
             buf = BytesIO(file.file.read())
-            name = file.filename if file.filename else "file.pdf"
+            suffix = "" if len(file_sources) == 1 else f"_{i}"
+            name = file.filename if file.filename else f"file{suffix}.pdf"
             file_sources.append(DocumentStream(name=name, stream=buf))
 
         results = convert_documents(sources=file_sources, options=options)
@@ -313,7 +316,49 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         conversion_request: ConvertDocumentsRequest,
     ):
-        task = await orchestrator.enqueue(request=conversion_request)
+        sources: list[TaskSource] = []
+        if isinstance(conversion_request, ConvertDocumentFileSourcesRequest):
+            sources.extend(conversion_request.file_sources)
+        if isinstance(conversion_request, ConvertDocumentHttpSourcesRequest):
+            sources.extend(conversion_request.http_sources)
+
+        task = await orchestrator.enqueue(
+            sources=sources, options=conversion_request.options
+        )
+        task_queue_position = await orchestrator.get_queue_position(
+            task_id=task.task_id
+        )
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_status=task.task_status,
+            task_position=task_queue_position,
+            task_meta=task.processing_meta,
+        )
+
+    # Convert a document from file(s) using the async api
+    @app.post(
+        "/v1alpha/convert/file/async",
+        response_model=TaskStatusResponse,
+    )
+    async def process_file_async(
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
+        background_tasks: BackgroundTasks,
+        files: list[UploadFile],
+        options: Annotated[
+            ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
+        ],
+    ):
+        _log.info(f"Received {len(files)} files for processing.")
+
+        # Load the uploaded files to Docling DocumentStream
+        file_sources: list[TaskSource] = []
+        for i, file in enumerate(files):
+            buf = BytesIO(file.file.read())
+            suffix = "" if len(file_sources) == 1 else f"_{i}"
+            name = file.filename if file.filename else f"file{suffix}.pdf"
+            file_sources.append(DocumentStream(name=name, stream=buf))
+
+        task = await orchestrator.enqueue(sources=file_sources, options=options)
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
         )
@@ -423,9 +468,12 @@ def create_app():  # noqa: C901
     )
     async def task_result(
         orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
+        background_tasks: BackgroundTasks,
         task_id: str,
     ):
-        result = await orchestrator.task_result(task_id=task_id)
+        result = await orchestrator.task_result(
+            task_id=task_id, background_tasks=background_tasks
+        )
         if result is None:
             raise HTTPException(
                 status_code=404,

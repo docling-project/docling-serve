@@ -2,7 +2,7 @@ import base64
 from io import BytesIO
 from typing import Annotated, Any, Union
 
-from pydantic import BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 from docling.datamodel.base_models import DocumentStream
 
@@ -15,7 +15,7 @@ class DocumentsConvertBase(BaseModel):
 
 class HttpSource(BaseModel):
     url: Annotated[
-        str,
+        AnyHttpUrl,
         Field(
             description="HTTP url to process",
             examples=["https://arxiv.org/pdf/2206.01062"],

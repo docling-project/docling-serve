@@ -4,8 +4,7 @@ import uuid
 from typing import Optional
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
-from docling_serve.datamodel.requests import ConvertDocumentsRequest
-from docling_serve.datamodel.task import Task
+from docling_serve.datamodel.task import Task, TaskSource
 from docling_serve.docling_conversion import get_converter, get_pdf_pipeline_opts
 from docling_serve.engines.async_local.worker import AsyncLocalWorker
 from docling_serve.engines.async_orchestrator import BaseAsyncOrchestrator
@@ -20,9 +19,11 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
         self.task_queue = asyncio.Queue()
         self.queue_list: list[str] = []
 
-    async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
+    async def enqueue(
+        self, sources: list[TaskSource], options: ConvertDocumentsOptions
+    ) -> Task:
         task_id = str(uuid.uuid4())
-        task = Task(task_id=task_id, request=request)
+        task = Task(task_id=task_id, sources=sources, options=options)
         await self.init_task_tracking(task)
 
         self.queue_list.append(task_id)

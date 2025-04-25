@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from docling_serve.datamodel.requests import ConvertDocumentsRequest
-from docling_serve.datamodel.task import Task
+from fastapi import BackgroundTasks
+
+from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.task import Task, TaskSource
 
 
 class OrchestratorError(Exception):
@@ -15,7 +17,9 @@ class TaskNotFoundError(OrchestratorError):
 
 class BaseOrchestrator(ABC):
     @abstractmethod
-    async def enqueue(self, request: ConvertDocumentsRequest) -> Task:
+    async def enqueue(
+        self, sources: list[TaskSource], options: ConvertDocumentsOptions
+    ) -> Task:
         pass
 
     @abstractmethod
@@ -31,7 +35,7 @@ class BaseOrchestrator(ABC):
         pass
 
     @abstractmethod
-    async def task_result(self, task_id: str):
+    async def task_result(self, task_id: str, background_tasks: BackgroundTasks):
         pass
 
     @abstractmethod

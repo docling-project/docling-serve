@@ -1,4 +1,4 @@
-from fastapi import WebSocket
+from fastapi import BackgroundTasks, WebSocket
 
 from docling_serve.datamodel.callback import ProgressCallbackRequest
 from docling_serve.datamodel.engines import TaskStatus
@@ -37,8 +37,9 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         return await self.get_raw_task(task_id=task_id)
 
-    async def task_result(self, task_id: str):
+    async def task_result(self, task_id: str, background_tasks: BackgroundTasks):
         task = await self.get_raw_task(task_id=task_id)
+        # if task.is_completed() and
         return task.result
 
     async def notify_task_subscribers(self, task_id: str):
