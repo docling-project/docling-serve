@@ -6,7 +6,7 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 
 On top of the source of file (see below), both endpoints support the same parameters, which are almost the same as the Docling CLI.
 
-- `from_format` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
+- `from_formats` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
 - `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
 - `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
