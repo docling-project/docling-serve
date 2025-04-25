@@ -6,6 +6,7 @@ import ssl
 import tempfile
 import time
 from pathlib import Path
+from typing import Optional
 
 import certifi
 import gradio as gr
@@ -203,12 +204,16 @@ def clear_file_input():
     return None
 
 
-def auto_set_return_as_file(url_input, file_input, image_export_mode):
+def auto_set_return_as_file(
+    url_input_value: str,
+    file_input_value: Optional[list[str]],
+    image_export_mode_value: str,
+):
     # If more than one input source is provided, return as file
     if (
-        (len(url_input.split(",")) > 1)
-        or (file_input and len(file_input) > 1)
-        or (image_export_mode == "referenced")
+        (len(url_input_value.split(",")) > 1)
+        or (file_input_value and len(file_input_value) > 1)
+        or (image_export_mode_value == "referenced")
     ):
         return True
     else:
@@ -344,7 +349,7 @@ def file_to_base64(file):
 
 
 def process_file(
-    file,
+    files,
     to_formats,
     image_export_mode,
     pipeline,
@@ -361,10 +366,12 @@ def process_file(
     do_picture_classification,
     do_picture_description,
 ):
-    if not file or file == "":
+    if not files or len(files) == 0:
         logger.error("No files provided.")
         raise gr.Error("No files provided.", print_exception=False)
-    files_data = [{"base64_string": file_to_base64(file), "filename": file.name}]
+    files_data = [
+        {"base64_string": file_to_base64(file), "filename": file.name} for file in files
+    ]
 
     parameters = {
         "file_sources": files_data,
@@ -552,7 +559,7 @@ with gr.Blocks(
                         ".png",
                         ".gif",
                     ],
-                    file_count="single",
+                    file_count="multiple",
                     scale=4,
                 )
             with gr.Column(scale=1):
@@ -625,9 +632,7 @@ with gr.Blocks(
                 )
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)
-                return_as_file = gr.Checkbox(
-                    label="Return as File", visible=False, value=False
-                )  # Disable until async handle output as file
+                return_as_file = gr.Checkbox(label="Return as File", value=False)
         with gr.Row():
             with gr.Column():
                 do_code_enrichment = gr.Checkbox(
@@ -677,23 +682,22 @@ with gr.Blocks(
     # UI Actions #
     ##############
 
-    # Disable until async handle output as file
     # Handle Return as File
-    # url_input.change(
-    #     auto_set_return_as_file,
-    #     inputs=[url_input, file_input, image_export_mode],
-    #     outputs=[return_as_file],
-    # )
-    # file_input.change(
-    #     auto_set_return_as_file,
-    #     inputs=[url_input, file_input, image_export_mode],
-    #     outputs=[return_as_file],
-    # )
-    # image_export_mode.change(
-    #     auto_set_return_as_file,
-    #     inputs=[url_input, file_input, image_export_mode],
-    #     outputs=[return_as_file],
-    # )
+    url_input.change(
+        auto_set_return_as_file,
+        inputs=[url_input, file_input, image_export_mode],
+        outputs=[return_as_file],
+    )
+    file_input.change(
+        auto_set_return_as_file,
+        inputs=[url_input, file_input, image_export_mode],
+        outputs=[return_as_file],
+    )
+    image_export_mode.change(
+        auto_set_return_as_file,
+        inputs=[url_input, file_input, image_export_mode],
+        outputs=[return_as_file],
+    )
 
     # URL processing
     url_process_btn.click(
