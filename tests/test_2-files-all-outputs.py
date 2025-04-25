@@ -1,4 +1,3 @@
-import json
 import os
 
 import httpx
@@ -48,9 +47,7 @@ async def test_convert_file(async_client):
         ("files", ("2408.09869v5.pdf", open(file_path, "rb"), "application/pdf")),
     ]
 
-    response = await async_client.post(
-        url, files=files, data={"options": json.dumps(options)}
-    )
+    response = await async_client.post(url, files=files, data=options)
     assert response.status_code == 200, "Response should be 200 OK"
 
     # Check for zip file attachment

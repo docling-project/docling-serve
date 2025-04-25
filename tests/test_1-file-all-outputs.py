@@ -47,9 +47,7 @@ async def test_convert_file(async_client):
         "files": ("2206.01062v1.pdf", open(file_path, "rb"), "application/pdf"),
     }
 
-    response = await async_client.post(
-        url, files=files, data={"options": json.dumps(options)}
-    )
+    response = await async_client.post(url, files=files, data=options)
     assert response.status_code == 200, "Response should be 200 OK"
 
     data = response.json()
