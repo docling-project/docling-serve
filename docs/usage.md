@@ -42,7 +42,7 @@ Simple payload example:
 
 ```json
 {
-  "http_sources": [{ "url": "https://arxiv.org/pdf/2206.01062" }]
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
 ```
 
@@ -53,16 +53,7 @@ Simple payload example:
 ```json
 {
   "options": {
-    "from_formats": [
-      "docx",
-      "pptx",
-      "html",
-      "image",
-      "pdf",
-      "asciidoc",
-      "md",
-      "xlsx"
-    ],
+    "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
     "to_formats": ["md", "json", "html", "text", "doctags"],
     "image_export_mode": "placeholder",
     "do_ocr": true,
@@ -72,9 +63,9 @@ Simple payload example:
     "pdf_backend": "dlparse_v2",
     "table_mode": "fast",
     "abort_on_error": false,
-    "return_as_file": false
+    "return_as_file": false,
   },
-  "http_sources": [{ "url": "https://arxiv.org/pdf/2206.01062" }]
+  "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
 ```
 
@@ -269,9 +260,9 @@ The local option is specified with:
 ```jsonc
 {
   "picture_description_local": {
-    "repo_id": "", // Repository id from the Hugging Face Hub.
-    "generation_config": { "max_new_tokens": 200, "do_sample": false }, // HF generation config.
-    "prompt": "Describe this image in a few sentences. " // Prompt used when calling the vision-language model.
+    "repo_id": "",  // Repository id from the Hugging Face Hub.
+    "generation_config": {"max_new_tokens": 200, "do_sample": false},  // HF generation config.
+    "prompt": "Describe this image in a few sentences. ",  // Prompt used when calling the vision-language model.
   }
 }
 ```
@@ -283,11 +274,11 @@ The api option is specified with:
 ```jsonc
 {
   "picture_description_api": {
-    "url": "", // Endpoint which accepts openai-api compatible requests.
-    "headers": {}, // Headers used for calling the API endpoint. For example, it could include authentication headers.
-    "params": {}, // Model parameters.
-    "timeout": 20, // Timeout for the API request.
-    "prompt": "Describe this image in a few sentences. " // Prompt used when calling the vision-language model.
+    "url": "",  // Endpoint which accepts openai-api compatible requests.
+    "headers": {},  // Headers used for calling the API endpoint. For example, it could include authentication headers.
+    "params": {},  // Model parameters.
+    "timeout": 20,  // Timeout for the API request.
+    "prompt": "Describe this image in a few sentences. ",  // Prompt used when calling the vision-language model.
   }
 }
 ```
@@ -295,34 +286,32 @@ The api option is specified with:
 Example URLs are:
 
 - `http://localhost:8000/v1/chat/completions` for the local vllm api, with example `params`:
-
   - the `HuggingFaceTB/SmolVLM-256M-Instruct` model
 
     ```json
     {
-      "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
-      "max_completion_tokens": 200
+        "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+        "max_completion_tokens": 200,
     }
     ```
-
+  
   - the `ibm-granite/granite-vision-3.2-2b` model
 
     ```json
     {
-      "model": "ibm-granite/granite-vision-3.2-2b",
-      "max_completion_tokens": 200
+        "model": "ibm-granite/granite-vision-3.2-2b",
+        "max_completion_tokens": 200,
     }
     ```
 
 - `http://localhost:11434/v1/chat/completions` for the local ollama api, with example `params`:
-
   - the `granite3.2-vision:2b` model
 
     ```json
     {
-      "model": "granite3.2-vision:2b"
+        "model": "granite3.2-vision:2b"
     }
-    ```
+    ```  
 
 Note that when using `picture_description_api`, the server must be launched with `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true`.
 
@@ -340,7 +329,7 @@ The response can be a JSON Document or a File.
       "html_content": "",
       "text_content": "",
       "doctags_content": ""
-    },
+      },
     "status": "<success|partial_success|skipped|failure>",
     "processing_time": 0.0,
     "timings": {},
