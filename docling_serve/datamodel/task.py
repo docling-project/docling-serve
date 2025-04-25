@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Optional, Union
 
-from pydantic import BaseModel
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, ConfigDict
 
 from docling.datamodel.base_models import DocumentStream
 
@@ -14,11 +16,14 @@ TaskSource = Union[HttpSource, FileSource, DocumentStream]
 
 
 class Task(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     task_id: str
     task_status: TaskStatus = TaskStatus.PENDING
     sources: list[TaskSource] = []
     options: Optional[ConvertDocumentsOptions]
-    result: Optional[ConvertDocumentResponse] = None
+    result: Optional[Union[ConvertDocumentResponse, FileResponse]] = None
+    scratch_dir: Optional[Path] = None
     processing_meta: Optional[TaskProcessingMeta] = None
 
     def is_completed(self) -> bool:

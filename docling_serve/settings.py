@@ -38,6 +38,8 @@ class DoclingServeSettings(BaseSettings):
     api_host: str = "localhost"
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
+    scratch_path: Optional[Path] = None
+    single_use_results: bool = True
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False

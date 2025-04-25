@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import BackgroundTasks
+from fastapi.responses import FileResponse
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.responses import ConvertDocumentResponse
 from docling_serve.datamodel.task import Task, TaskSource
 
 
@@ -35,7 +37,9 @@ class BaseOrchestrator(ABC):
         pass
 
     @abstractmethod
-    async def task_result(self, task_id: str, background_tasks: BackgroundTasks):
+    async def task_result(
+        self, task_id: str, background_tasks: BackgroundTasks
+    ) -> Union[ConvertDocumentResponse, FileResponse, None]:
         pass
 
     @abstractmethod

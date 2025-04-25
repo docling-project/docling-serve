@@ -1,6 +1,7 @@
 import asyncio
 import importlib.metadata
 import logging
+import shutil
 import tempfile
 from contextlib import asynccontextmanager
 from io import BytesIO
@@ -58,6 +59,7 @@ from docling_serve.engines.base_orchestrator import TaskNotFoundError
 from docling_serve.helper_functions import FormDepends
 from docling_serve.response_preparation import process_results
 from docling_serve.settings import docling_serve_settings
+from docling_serve.storage import get_scratch
 
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging
@@ -96,6 +98,7 @@ _log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     orchestrator = get_async_orchestrator()
+    scratch_dir = get_scratch()
 
     # Warm up processing cache
     await orchestrator.warm_up_caches()
@@ -111,6 +114,10 @@ async def lifespan(app: FastAPI):
         await queue_task
     except asyncio.CancelledError:
         _log.info("Queue processor cancelled.")
+
+    # Remove scratch directory in case it was a tempfile
+    if docling_serve_settings.scratch_path is not None:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
 
 
 ##################################
@@ -161,7 +168,8 @@ def create_app():  # noqa: C901
 
             from docling_serve.gradio_ui import ui as gradio_ui
 
-            tmp_output_dir = Path(tempfile.mkdtemp())
+            tmp_output_dir = get_scratch() / "gradio"
+            tmp_output_dir.mkdir(exist_ok=True, parents=True)
             gradio_ui.gradio_output_dir = tmp_output_dir
             app = gr.mount_gradio_app(
                 app,
@@ -262,11 +270,13 @@ def create_app():  # noqa: C901
         )
 
         # The real processing will happen here
+        work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
         response = process_results(
-            background_tasks=background_tasks,
             conversion_options=conversion_request.options,
             conv_results=results,
+            work_dir=work_dir,
         )
+        background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
         return response
 
@@ -299,11 +309,13 @@ def create_app():  # noqa: C901
 
         results = convert_documents(sources=file_sources, options=options)
 
+        work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
         response = process_results(
-            background_tasks=background_tasks,
             conversion_options=options,
             conv_results=results,
+            work_dir=work_dir,
         )
+        background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
         return response
 

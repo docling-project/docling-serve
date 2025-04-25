@@ -1,13 +1,12 @@
 import logging
 import os
 import shutil
-import tempfile
 import time
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Union
 
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import HTTPException
 from fastapi.responses import FileResponse
 
 from docling.datamodel.base_models import OutputFormat
@@ -124,9 +123,9 @@ def _export_documents_as_files(
 
 
 def process_results(
-    background_tasks: BackgroundTasks,
     conversion_options: ConvertDocumentsOptions,
     conv_results: Iterable[ConversionResult],
+    work_dir: Path,
 ) -> Union[ConvertDocumentResponse, FileResponse]:
     # Let's start by processing the documents
     try:
@@ -183,7 +182,6 @@ def process_results(
     # Multiple documents were processed, or we are forced returning as a file
     else:
         # Temporary directory to store the outputs
-        work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
         output_dir = work_dir / "output"
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -203,7 +201,6 @@ def process_results(
         )
 
         files = os.listdir(output_dir)
-
         if len(files) == 0:
             raise HTTPException(status_code=500, detail="No documents were exported.")
 
@@ -216,7 +213,7 @@ def process_results(
 
         # Other cleanups after the response is sent
         # Output directory
-        background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
+        # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
         response = FileResponse(
             file_path, filename=file_path.name, media_type="application/zip"

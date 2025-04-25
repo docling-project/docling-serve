@@ -1,8 +1,13 @@
+import shutil
+from typing import Union
+
 from fastapi import BackgroundTasks, WebSocket
+from fastapi.responses import FileResponse
 
 from docling_serve.datamodel.callback import ProgressCallbackRequest
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.responses import (
+    ConvertDocumentResponse,
     MessageKind,
     TaskStatusResponse,
     WebsocketMessage,
@@ -13,6 +18,7 @@ from docling_serve.engines.base_orchestrator import (
     OrchestratorError,
     TaskNotFoundError,
 )
+from docling_serve.settings import docling_serve_settings
 
 
 class ProgressInvalid(OrchestratorError):
@@ -37,9 +43,15 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         return await self.get_raw_task(task_id=task_id)
 
-    async def task_result(self, task_id: str, background_tasks: BackgroundTasks):
+    async def task_result(
+        self, task_id: str, background_tasks: BackgroundTasks
+    ) -> Union[ConvertDocumentResponse, FileResponse, None]:
         task = await self.get_raw_task(task_id=task_id)
-        # if task.is_completed() and
+        if task.is_completed() and task.scratch_dir is not None:
+            if docling_serve_settings.single_use_results:
+                background_tasks.add_task(
+                    shutil.rmtree, task.scratch_dir, ignore_errors=True
+                )
         return task.result
 
     async def notify_task_subscribers(self, task_id: str):
