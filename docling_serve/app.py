@@ -323,22 +323,6 @@ def create_app():  # noqa: C901
             )
         return result
 
-        # # Note: results are only an iterator->lazy evaluation
-        # results = convert_documents(
-        #     sources=sources, options=conversion_request.options, headers=headers
-        # )
-
-        # # The real processing will happen here
-        # work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
-        # response = process_results(
-        #     conversion_options=conversion_request.options,
-        #     conv_results=results,
-        #     work_dir=work_dir,
-        # )
-        # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
-
-        # return response
-
     # Convert a document from file(s)
     @app.post(
         "/v1alpha/convert/file",
@@ -379,18 +363,6 @@ def create_app():  # noqa: C901
                 detail="Task result not found. Please wait for a completion status.",
             )
         return result
-
-        # results = convert_documents(sources=file_sources, options=options)
-
-        # work_dir = Path(tempfile.mkdtemp(prefix="docling_"))
-        # response = process_results(
-        #     conversion_options=options,
-        #     conv_results=results,
-        #     work_dir=work_dir,
-        # )
-        # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
-
-        # return response
 
     # Convert a document from URL(s) using the async api
     @app.post(
