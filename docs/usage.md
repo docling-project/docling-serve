@@ -14,7 +14,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
 - `ocr_engine` (str): OCR engine to use. Allowed values: `easyocr`, `tesseract_cli`, `tesseract`, `rapidocr`, `ocrmac`. Defaults to `easyocr`.
 - `ocr_lang` (List[str]): List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. Defaults to empty.
-- `pdf_backend` (str): PDF backend to use. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`. Defaults to `dlparse_v2`.
+- `pdf_backend` (str): PDF backend to use. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Defaults to `dlparse_v4`.
 - `table_mode` (str): Table mode to use. Allowed values: `fast`, `accurate`. Defaults to `fast`.
 - `abort_on_error` (bool): If enabled, abort on error. Defaults to false.
 - `return_as_file` (boo): If enabled, return the output as a file. Defaults to false.
