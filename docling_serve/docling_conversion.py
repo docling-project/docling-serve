@@ -198,7 +198,7 @@ def get_pdf_pipeline_opts(
     if docling_serve_settings.artifacts_path is not None:
         if str(docling_serve_settings.artifacts_path.absolute()) == "":
             _log.info(
-                "artifacts_path is an empty path, model weights will be dowloaded "
+                "artifacts_path is an empty path, model weights will be downloaded "
                 "at runtime."
             )
             artifacts_path = None
