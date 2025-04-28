@@ -1,3 +1,18 @@
+## [v0.9.0](https://github.com/docling-project/docling-serve/releases/tag/v0.9.0) - 2025-04-25
+
+### Feature
+
+* Expose picture description options ([#148](https://github.com/docling-project/docling-serve/issues/148)) ([`4c9571a`](https://github.com/docling-project/docling-serve/commit/4c9571a052d5ec0044e49225bc5615e13cdb0a56))
+* Add parameters for Kubeflow pipeline engine (WIP) ([#107](https://github.com/docling-project/docling-serve/issues/107)) ([`26bef5b`](https://github.com/docling-project/docling-serve/commit/26bef5bec060f0afd8d358816b68c3f2c0dd4bc2))
+
+### Fix
+
+* Produce image artifacts in referenced mode ([#151](https://github.com/docling-project/docling-serve/issues/151)) ([`71c5fae`](https://github.com/docling-project/docling-serve/commit/71c5fae505366459fd481d2ecdabc5ebed94d49c))
+
+### Documentation
+
+* Vlm and picture description options ([#149](https://github.com/docling-project/docling-serve/issues/149)) ([`91956cb`](https://github.com/docling-project/docling-serve/commit/91956cbf4e91cf82bb4d54ace397cdbbfaf594ba))
+
 ## [v0.8.0](https://github.com/docling-project/docling-serve/releases/tag/v0.8.0) - 2025-04-22
 
 ### Feature
