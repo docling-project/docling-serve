@@ -1,22 +1,50 @@
+import asyncio
 import json
 import os
 
-from fastapi.testclient import TestClient
+import pytest
+import pytest_asyncio
+from asgi_lifespan import LifespanManager
+from httpx import ASGITransport, AsyncClient
 from pytest_check import check
 
 from docling_serve.app import create_app
 
-client = TestClient(create_app())
+
+@pytest.fixture(scope="session")
+def event_loop():
+    return asyncio.get_event_loop()
 
 
-def test_health():
-    response = client.get("/health")
+@pytest_asyncio.fixture(scope="session")
+async def app():
+    app = create_app()
+
+    async with LifespanManager(app) as manager:
+        print("Launching lifespan of app.")
+        yield manager.app
+
+
+@pytest_asyncio.fixture(scope="session")
+async def client(app):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        print("Client is ready")
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_health(client: AsyncClient):
+    response = await client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_convert_file():
+@pytest.mark.asyncio
+async def test_convert_file(client: AsyncClient):
     """Test convert single file to all outputs"""
+
     endpoint = "/v1alpha/convert/file"
     options = {
         "from_formats": [
@@ -48,7 +76,7 @@ def test_convert_file():
         "files": ("2206.01062v1.pdf", open(file_path, "rb"), "application/pdf"),
     }
 
-    response = client.post(endpoint, files=files, data=options)
+    response = await client.post(endpoint, files=files, data=options)
     assert response.status_code == 200, "Response should be 200 OK"
 
     data = response.json()
