@@ -63,6 +63,9 @@ cu124 = [
   "torch>=2.6.0",
   "torchvision>=0.21.0",
 ]
+flash-attn = [
+  "flash-attn~=2.7.0; sys_platform == 'linux' and platform_machine == 'x86_64'"
+]
 
 [dependency-groups]
 dev = [
@@ -83,7 +86,10 @@ conflicts = [
     { extra = "cpu" },
     { extra = "cu124" },
   ],
-]
+  [
+    { extra = "cpu" },
+    { extra = "flash-attn" },
+  ],]
 environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
 override-dependencies = [
   "urllib3~=2.0"

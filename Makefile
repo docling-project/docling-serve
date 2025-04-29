@@ -35,7 +35,7 @@ docling-serve-image: Containerfile
 .PHONY: docling-serve-cpu-image
 docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve CPU]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-extra cu124 --no-extra flash-attn" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) ghcr.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) quay.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
 
