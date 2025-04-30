@@ -23,6 +23,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `do_formula_enrichment` (bool): If enabled, perform formula OCR, return LaTeX code. Defaults to false.
 - `do_picture_classification` (bool): If enabled, classify pictures in documents. Defaults to false.
 - `do_picture_description` (bool): If enabled, describe pictures in documents. Defaults to false.
+- `picture_description_area_threshold` (float): Minimum percentage of the area for a picture to processed with the models. Defaults to 0.05.
 - `picture_description_local` (dict): Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api.
 - `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local.
 - `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.

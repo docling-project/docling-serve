@@ -150,6 +150,9 @@ def _parse_standard_pdf_opts(
                 request.picture_description_api.model_dump()
             )
         )
+    pipeline_options.picture_description_options.picture_area_threshold = (
+        request.picture_description_area_threshold
+    )
 
     return pipeline_options
 

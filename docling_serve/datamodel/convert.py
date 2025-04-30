@@ -9,6 +9,7 @@ from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     PdfBackend,
     PdfPipeline,
+    PictureDescriptionBaseOptions,
     TableFormerMode,
     TableStructureOptions,
 )
@@ -338,6 +339,14 @@ class ConvertDocumentsOptions(BaseModel):
             examples=[False],
         ),
     ] = False
+
+    picture_description_area_threshold: Annotated[
+        float,
+        Field(
+            description="Minimum percentage of the area for a picture to processed with the models.",
+            examples=[PictureDescriptionBaseOptions().picture_area_threshold],
+        ),
+    ] = PictureDescriptionBaseOptions().picture_area_threshold
 
     picture_description_local: Annotated[
         Optional[PictureDescriptionLocal],
