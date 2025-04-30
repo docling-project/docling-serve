@@ -42,15 +42,12 @@ _log = logging.getLogger(__name__)
 # Custom serializer for PdfFormatOption
 # (model_dump_json does not work with some classes)
 def _hash_pdf_format_option(pdf_format_option: PdfFormatOption) -> bytes:
-    data = pdf_format_option.model_dump()
+    data = pdf_format_option.model_dump(serialize_as_any=True)
 
     # pipeline_options are not fully serialized by model_dump, dedicated pass
     if pdf_format_option.pipeline_options:
-        data["pipeline_options"] = pdf_format_option.pipeline_options.model_dump()
-
-        # Replace `artifacts_path` with a string representation
-        data["pipeline_options"]["artifacts_path"] = repr(
-            data["pipeline_options"]["artifacts_path"]
+        data["pipeline_options"] = pdf_format_option.pipeline_options.model_dump(
+            serialize_as_any=True, mode="json"
         )
 
     # Replace `pipeline_cls` with a string representation
@@ -58,12 +55,6 @@ def _hash_pdf_format_option(pdf_format_option: PdfFormatOption) -> bytes:
 
     # Replace `backend` with a string representation
     data["backend"] = repr(data["backend"])
-
-    # Handle `device` in `accelerator_options`
-    if "accelerator_options" in data and "device" in data["accelerator_options"]:
-        data["accelerator_options"]["device"] = repr(
-            data["accelerator_options"]["device"]
-        )
 
     # Serialize the dictionary to JSON with sorted keys to have consistent hashes
     serialized_data = json.dumps(data, sort_keys=True)
