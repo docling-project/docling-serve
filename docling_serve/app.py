@@ -251,7 +251,6 @@ def create_app():  # noqa: C901
     async def _wait_task_complete(
         orchestrator: BaseAsyncOrchestrator, task_id: str
     ) -> bool:
-        MAX_WAIT = 120
         start_time = time.monotonic()
         while True:
             task = await orchestrator.task_status(task_id=task_id)
@@ -259,7 +258,7 @@ def create_app():  # noqa: C901
                 return True
             await asyncio.sleep(5)
             elapsed_time = time.monotonic() - start_time
-            if elapsed_time > MAX_WAIT:
+            if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
 
     #############################
@@ -310,7 +309,8 @@ def create_app():  # noqa: C901
         if not success:
             # TODO: abort task!
             return HTTPException(
-                status_code=504, detail="Conversion is taking too long."
+                status_code=504,
+                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
         result = await orchestrator.task_result(
@@ -351,7 +351,8 @@ def create_app():  # noqa: C901
         if not success:
             # TODO: abort task!
             return HTTPException(
-                status_code=504, detail="Conversion is taking too long."
+                status_code=504,
+                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
         result = await orchestrator.task_result(
