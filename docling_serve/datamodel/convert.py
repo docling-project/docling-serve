@@ -343,7 +343,7 @@ class ConvertDocumentsOptions(BaseModel):
     picture_description_area_threshold: Annotated[
         float,
         Field(
-            description="Minimum percentage of the area for a picture to processed with the models.",
+            description="Minimum percentage of the area for a picture to be processed with the models.",
             examples=[PictureDescriptionBaseOptions().picture_area_threshold],
         ),
     ] = PictureDescriptionBaseOptions().picture_area_threshold
