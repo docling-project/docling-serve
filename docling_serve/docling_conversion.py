@@ -58,7 +58,9 @@ def _hash_pdf_format_option(pdf_format_option: PdfFormatOption) -> bytes:
 
     # Serialize the dictionary to JSON with sorted keys to have consistent hashes
     serialized_data = json.dumps(data, sort_keys=True)
-    options_hash = hashlib.sha1(serialized_data.encode()).digest()
+    options_hash = hashlib.sha1(
+        serialized_data.encode(), usedforsecurity=False
+    ).digest()
     return options_hash
 
 
