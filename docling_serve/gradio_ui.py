@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 ############################
 
 logo_path = "https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg"
-js_components_url = "https://unpkg.com/@docling/docling-components@0.0.6"
+js_components_url = "https://unpkg.com/@docling/docling-components@0.0.7"
 if (
     docling_serve_settings.static_path is not None
     and docling_serve_settings.static_path.is_dir()
@@ -83,7 +83,7 @@ css = """
     height: 140px;
 }
 
-docling-img::part(pages) {
+docling-img {
     gap: 1rem;
 }
 
@@ -443,7 +443,7 @@ def response_to_output(response, return_as_file):
         )
         # Embed document JSON and trigger load at client via an image.
         json_rendered_content = f"""
-            <docling-img id="dclimg" pagenumbers tooltip="parsed"></docling-img>
+            <docling-img id="dclimg" pagenumbers><docling-tooltip></docling-tooltip></docling-img>
             <script id="dcljson" type="application/json" onload="document.getElementById('dclimg').src = JSON.parse(document.getElementById('dcljson').textContent);">{json_content}</script>
             <img src onerror="document.getElementById('dclimg').src = JSON.parse(document.getElementById('dcljson').textContent);" />
             """
