@@ -39,6 +39,7 @@ from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
 )
 from docling_serve.datamodel.responses import (
+    ClearResponse,
     ConvertDocumentResponse,
     HealthCheckResponse,
     MessageKind,
@@ -46,6 +47,7 @@ from docling_serve.datamodel.responses import (
     WebsocketMessage,
 )
 from docling_serve.datamodel.task import Task, TaskSource
+from docling_serve.docling_conversion import _get_converter_from_hash
 from docling_serve.engines.async_orchestrator import (
     BaseAsyncOrchestrator,
     ProgressInvalid,
@@ -543,5 +545,14 @@ def create_app():  # noqa: C901
             raise HTTPException(
                 status_code=400, detail=f"Invalid progress payload: {err}"
             )
+
+    # Offload models
+    @app.get(
+        "/v1alpha/clear/converters",
+        response_model=ClearResponse,
+    )
+    async def clear_converters():
+        _get_converter_from_hash.cache_clear()
+        return ClearResponse()
 
     return app

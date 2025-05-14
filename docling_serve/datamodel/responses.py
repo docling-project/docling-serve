@@ -15,6 +15,10 @@ class HealthCheckResponse(BaseModel):
     status: str = "ok"
 
 
+class ClearResponse(BaseModel):
+    status: str = "ok"
+
+
 class DocumentResponse(BaseModel):
     filename: str
     md_content: Optional[str] = None
