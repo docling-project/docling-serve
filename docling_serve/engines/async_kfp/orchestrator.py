@@ -130,13 +130,13 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
         # CANCELED = "CANCELED"
         # PAUSED = "PAUSED"
         if run_info.state == V2beta1RuntimeState.SUCCEEDED:
-            task.task_status = TaskStatus.SUCCESS
+            task.set_status(TaskStatus.SUCCESS)
         elif run_info.state == V2beta1RuntimeState.PENDING:
-            task.task_status = TaskStatus.PENDING
+            task.set_status(TaskStatus.PENDING)
         elif run_info.state == V2beta1RuntimeState.RUNNING:
-            task.task_status = TaskStatus.STARTED
+            task.set_status(TaskStatus.STARTED)
         else:
-            task.task_status = TaskStatus.FAILURE
+            task.set_status(TaskStatus.FAILURE)
 
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         await self._update_task_from_run(task_id=task_id, wait=wait)

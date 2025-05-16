@@ -36,7 +36,7 @@ class AsyncLocalWorker:
             task = self.orchestrator.tasks[task_id]
 
             try:
-                task.task_status = TaskStatus.STARTED
+                task.set_status(TaskStatus.STARTED)
                 _log.info(f"Worker {self.worker_id} processing task {task_id}")
 
                 # Notify clients about task updates
@@ -106,7 +106,7 @@ class AsyncLocalWorker:
                 task.sources = []
                 task.options = None
 
-                task.task_status = TaskStatus.SUCCESS
+                task.set_status(TaskStatus.SUCCESS)
                 _log.info(
                     f"Worker {self.worker_id} completed job {task_id} "
                     f"in {processing_time:.2f} seconds"
@@ -116,7 +116,7 @@ class AsyncLocalWorker:
                 _log.error(
                     f"Worker {self.worker_id} failed to process job {task_id}: {e}"
                 )
-                task.task_status = TaskStatus.FAILURE
+                task.set_status(TaskStatus.FAILURE)
 
             finally:
                 await self.orchestrator.notify_task_subscribers(task_id)

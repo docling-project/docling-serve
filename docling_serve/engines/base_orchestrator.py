@@ -43,6 +43,10 @@ class BaseOrchestrator(ABC):
         pass
 
     @abstractmethod
+    async def clear_results(self, older_than: float = 0.0):
+        pass
+
+    @abstractmethod
     async def process_queue(self):
         pass
 
