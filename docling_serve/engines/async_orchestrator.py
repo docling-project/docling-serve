@@ -1,3 +1,4 @@
+import datetime
 import shutil
 from typing import Union
 
@@ -46,13 +47,33 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
     async def task_result(
         self, task_id: str, background_tasks: BackgroundTasks
     ) -> Union[ConvertDocumentResponse, FileResponse, None]:
-        task = await self.get_raw_task(task_id=task_id)
-        if task.is_completed() and task.scratch_dir is not None:
-            if docling_serve_settings.single_use_results:
-                background_tasks.add_task(
-                    shutil.rmtree, task.scratch_dir, ignore_errors=True
-                )
-        return task.result
+        try:
+            task = await self.get_raw_task(task_id=task_id)
+            if task.is_completed() and task.scratch_dir is not None:
+                if docling_serve_settings.single_use_results:
+                    background_tasks.add_task(
+                        shutil.rmtree, task.scratch_dir, ignore_errors=True
+                    )
+            return task.result
+        except TaskNotFoundError:
+            return None
+
+    async def clear_results(self, older_than: float = 0.0):
+        cutoff_time = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            seconds=older_than
+        )
+
+        tasks_to_delete = [
+            task_id
+            for task_id, task in self.tasks.items()
+            if task.finished_at is not None and task.finished_at < cutoff_time
+        ]
+        for task_id in tasks_to_delete:
+            for websocket in self.task_subscribers[task_id]:
+                await websocket.close()
+
+            del self.task_subscribers[task_id]
+            del self.tasks[task_id]
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
