@@ -64,8 +64,8 @@ cpu = [
       "torchvision>=0.21.0",
     ]
     cu128 = [
-      "torch==2.7.0",       # For PyTorch 2.7.0
-      "torchvision>=0.22.0", # For PyTorch 2.7.0 (typically paired with 2.7.0)
+      "torch==2.7.0",
+      "torchvision>=0.22.0", 
     ]
     flash-attn = [
       "flash-attn~=2.7.0; sys_platform == 'linux' and platform_machine == 'x86_64'"
