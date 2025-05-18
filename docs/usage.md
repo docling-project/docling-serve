@@ -9,6 +9,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `from_formats` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
 - `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
 - `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
+- `page_range` (tuple). If speficied, only convert a range of pages. The page number starts at 1.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
