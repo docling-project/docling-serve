@@ -296,6 +296,14 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = 2.0
 
+    md_page_break_placeholder: Annotated[
+        str,
+        Field(
+            description="Add this placeholder betweek pages in the markdown output.",
+            examples=["<!-- page-break -->"],
+        ),
+    ] = ""
+
     do_code_enrichment: Annotated[
         bool,
         Field(
