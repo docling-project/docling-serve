@@ -244,7 +244,7 @@ files = {
     'files': ('2206.01062v1.pdf', open(file_path, 'rb'), 'application/pdf'),
 }
 
-response = await async_client.post(url, files=files, data={"parameters": json.dumps(parameters)})
+response = await async_client.post(url, files=files, data=parameters)
 assert response.status_code == 200, "Response should be 200 OK"
 
 data = response.json()
