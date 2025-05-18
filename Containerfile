@@ -13,7 +13,7 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf config-manager --best --nodocs --setopt=install_weak_deps=False --save && \
     dnf config-manager --enable crb && \
     dnf -y update && \
-    dnf install -y $(cat /tmp/os-packages.txt) && \
+    dnf install -y --allowerasing $(cat /tmp/os-packages.txt) && \
     dnf -y clean all && \
     rm -rf /var/cache/dnf
 
@@ -41,15 +41,23 @@ ENV \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
 ARG UV_SYNC_EXTRA_ARGS=""
+ARG FLASH_ATTN_WHEEL_URL="https://github.com/Zarrac/flashattention-blackwell-wheels-whl-ONLY-5090-5080-5070-5060-flash-attention-/releases/download/FlashAttention/flash_attn-2.7.4.post1-rtx5090-torch2.7.0cu128cxx11abiTRUE-cp312-linux_x86_64.whl"
+ARG FLASH_ATTN_WHEEL_FILENAME="flash_attn-2.7.4.post1-rtx5090-torch2.7.0cu128cxx11abiTRUE-cp312-linux_x86_64.whl"
 
 RUN --mount=from=ghcr.io/astral-sh/uv:0.6.1,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     umask 002 && \
-    UV_SYNC_ARGS="--frozen --no-install-project --no-dev --all-extras" && \
-    uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-extra flash-attn && \
-    FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-build-isolation-package=flash-attn
+    uv sync --frozen --no-install-project --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS} --no-extra flash-attn && \
+    # Download the custom flash-attn wheel
+    curl -L -o "${FLASH_ATTN_WHEEL_FILENAME}" "${FLASH_ATTN_WHEEL_URL}" && \
+    # Rename the wheel to have a valid build tag for pip/uv
+    RENAMED_FLASH_ATTN_WHEEL_FILENAME="flash_attn-2.7.4.post1-0rtx5090torch270cu128cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" && \
+    mv "${FLASH_ATTN_WHEEL_FILENAME}" "${RENAMED_FLASH_ATTN_WHEEL_FILENAME}" && \
+    uv pip install --no-deps "${RENAMED_FLASH_ATTN_WHEEL_FILENAME}" && \
+    # Clean up the downloaded wheel
+    rm "${RENAMED_FLASH_ATTN_WHEEL_FILENAME}"
 
 ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
 
