@@ -348,4 +348,92 @@ The response can be a JSON Document or a File.
 
 ## Asynchronous API
 
-TBA
+Both `/v1alpha/convert/source` and `/v1alpha/convert/file` endpoints are available as asynchronous variants.
+The advantage of the asynchronous endpoints is the possible to interrupt the connection, check for the progress update and fetch the result.
+This approach is more resilient against network stabilities and allows the client application logic to easily interleave conversion with other tasks.
+
+Launch an asynchronous conversion with:
+
+- `POST /v1alpha/convert/source/async` when providing the input as sources.
+- `POST /v1alpha/convert/file/async` when providing the input as multipart-form files.
+
+The response format is a task detail:
+
+```jsonc
+{
+  "task_id": "<task_id>",  // the task_id which can be used for the next operations
+  "task_status": "pending|started|success|failure",  // the task status
+  "task_position": 1,  // the position in the queue
+  "task_meta": null,  // metadata e.g. how many documents are in the total job and how many have been converted
+}
+```
+
+### Polling status
+
+For checking the progress of the conversion task and wait for its completion, use the endpoint:
+
+- `GET /v1alpha/status/poll/{task_id}`
+
+<details>
+<summary>Example waiting loop:</summary>
+
+```python
+import time
+import httpx
+
+# ...
+# response from the async task submission
+task = response.json()
+
+while task["task_status"] not in ("success", "failure"):
+    response = httpx.get(f"{base_url}/status/poll/{task['task_id']}")
+    task = response.json()
+
+    time.sleep(5)
+```
+
+<details>
+
+### Subscribe with websockets
+
+Using websocket you can get the client application being notified about updates of the conversion task.
+To start the websocker connection, use the endpoint:
+
+- `/v1alpha/status/ws/{task_id}`
+
+Websocket messages are JSON object with the following structure:
+
+```jsonc
+{
+  "message": "connection|update|error",  // type of message being sent
+  "task": {},  // the same content of the task description
+  "error": "",  // description of the error
+}
+```
+
+<details>
+<summary>Example websocker usage:</summary>
+
+```python
+from websockets.sync.client import connect
+
+uri = f"ws://{base_url}/v1alpha/status/ws/{task['task_id']}"
+with connect(uri) as websocket:
+    for message in websocket:
+        try:
+            payload = json.loads(message)
+            if payload["message"] == "error":
+                break
+            if payload["message"] == "error" and payload["task"]["task_status"] in ("success", "failure"):
+                break
+        except:
+          break
+```
+
+</details>
+
+### Fetch results
+
+When the task is completed, the result can be fetched with the endpoint:
+
+- `GET /v1alpha/result/{task_id}`
