@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import json
-import time
 from pathlib import Path
 
 import pytest
@@ -10,6 +9,7 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
 from docling_serve.app import create_app
+from docling_serve.settings import docling_serve_settings
 
 
 @pytest.fixture(scope="session")
@@ -35,17 +35,7 @@ async def client(app):
         yield client
 
 
-@pytest.mark.asyncio
-async def test_health(client: AsyncClient):
-    response = await client.get("/health")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-
-
-@pytest.mark.asyncio
-async def test_convert_file(client: AsyncClient):
-    """Test convert single file to all outputs"""
-
+async def convert_file(client: AsyncClient):
     doc_filename = Path("tests/2408.09869v5.pdf")
     encoded_doc = base64.b64encode(doc_filename.read_bytes()).decode()
 
@@ -70,9 +60,24 @@ async def test_convert_file(client: AsyncClient):
         print(f"{task['task_status']=}")
         print(f"{task['task_position']=}")
 
-        time.sleep(2)
+        await asyncio.sleep(2)
 
     assert task["task_status"] == "success"
+
+    return task
+
+
+@pytest.mark.asyncio
+async def test_clear_results(client: AsyncClient):
+    """Test removal of task."""
+
+    # Set long delay deletion
+    docling_serve_settings.result_removal_delay = 100
+
+    # TODO: test not fully working, because the background task is not executed in background.
+
+    # Convert and wait for completion
+    task = await convert_file(client)
 
     # Get result once
     result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
@@ -93,6 +98,32 @@ async def test_convert_file(client: AsyncClient):
     assert clear_response.status_code == 200, "Response should be 200 OK"
     print("Clear ok.")
 
-    # Get result twice
+    # Get deleted result
+    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    assert result_response.status_code == 404, "Response should be removed"
+    print("Rrsult was not found anymore.")
+
+
+@pytest.mark.asyncio
+async def test_delay_remove(client: AsyncClient):
+    """Test automatic removal of task with delay."""
+
+    # Set short delay deletion
+    docling_serve_settings.result_removal_delay = 5
+
+    # Convert and wait for completion
+    task = await convert_file(client)
+
+    # Get result once
+    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    assert result_response.status_code == 200, "Response should be 200 OK"
+    print("Result ok.")
+    result = result_response.json()
+    assert result["document"]["json_content"]["schema_name"] == "DoclingDocument"
+
+    print("Sleeping to wait the automatic task deletion.")
+    await asyncio.sleep(10)
+
+    # Get deleted result
     result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
     assert result_response.status_code == 404, "Response should be removed"

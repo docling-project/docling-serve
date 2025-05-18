@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import shutil
 from typing import Union
@@ -49,14 +50,37 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
     ) -> Union[ConvertDocumentResponse, FileResponse, None]:
         try:
             task = await self.get_raw_task(task_id=task_id)
-            if task.is_completed() and task.scratch_dir is not None:
-                if docling_serve_settings.single_use_results:
+            if task.is_completed() and docling_serve_settings.single_use_results:
+                if task.scratch_dir is not None:
                     background_tasks.add_task(
                         shutil.rmtree, task.scratch_dir, ignore_errors=True
                     )
+
+                async def _remove_task():
+                    print("Backgound task started!")
+                    print(
+                        f"Going to sleep for {docling_serve_settings.result_removal_delay} seconds."
+                    )
+                    await asyncio.sleep(docling_serve_settings.result_removal_delay)
+                    print("Removing task.")
+                    await self.delete_task(task_id=task.task_id)
+
+                background_tasks.add_task(_remove_task)
+
             return task.result
         except TaskNotFoundError:
             return None
+
+    async def delete_task(self, task_id: str):
+        print(f"Deleting {task_id=}")
+        if task_id in self.task_subscribers:
+            for websocket in self.task_subscribers[task_id]:
+                await websocket.close()
+
+            del self.task_subscribers[task_id]
+
+        if task_id in self.tasks:
+            del self.tasks[task_id]
 
     async def clear_results(self, older_than: float = 0.0):
         cutoff_time = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
@@ -69,11 +93,7 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
             if task.finished_at is not None and task.finished_at < cutoff_time
         ]
         for task_id in tasks_to_delete:
-            for websocket in self.task_subscribers[task_id]:
-                await websocket.close()
-
-            del self.task_subscribers[task_id]
-            del self.tasks[task_id]
+            await self.delete_task(task_id=task_id)
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
