@@ -4,7 +4,7 @@ import shutil
 import time
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
@@ -27,7 +27,7 @@ def _export_document_as_content(
     export_txt: bool,
     export_doctags: bool,
     image_mode: ImageRefMode,
-    md_page_break_placeholder: str,
+    md_page_break_placeholder: Optional[str],
 ):
     document = DocumentResponse(filename=conv_res.input.file.name)
 
@@ -43,10 +43,12 @@ def _export_document_as_content(
             document.text_content = new_doc.export_to_markdown(
                 strict_text=True,
                 image_mode=image_mode,
-                page_break_placeholder=md_page_break_placeholder,
             )
         if export_md:
-            document.md_content = new_doc.export_to_markdown(image_mode=image_mode)
+            document.md_content = new_doc.export_to_markdown(
+                image_mode=image_mode,
+                page_break_placeholder=md_page_break_placeholder,
+            )
         if export_doctags:
             document.doctags_content = new_doc.export_to_doctags()
     elif conv_res.status == ConversionStatus.SKIPPED:
@@ -66,7 +68,7 @@ def _export_documents_as_files(
     export_txt: bool,
     export_doctags: bool,
     image_export_mode: ImageRefMode,
-    md_page_break_placeholder: str,
+    md_page_break_placeholder: Optional[str],
 ):
     success_count = 0
     failure_count = 0
