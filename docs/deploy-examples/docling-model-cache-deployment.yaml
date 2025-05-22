@@ -1,0 +1,47 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: api
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: 'true'
+            - name: DOCLING_SERVE_ARTIFACTS_PATH
+              value: '/modelcache'
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve-cpu'
+          volumeMounts:
+            - name: docling-model-cache
+              mountPath: /modelcache
+      volumes:
+        - name: docling-model-cache
+          persistentVolumeClaim:
+            claimName: docling-model-cache-pvc

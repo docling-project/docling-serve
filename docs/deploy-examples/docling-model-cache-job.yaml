@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: docling-model-cache-load
+spec:
+  selector: {}
+  template:
+    metadata:
+      name: docling-model-load
+    spec:
+      containers:
+        - name: loader
+          image: ghcr.io/docling-project/docling-serve-cpu:main
+          command:
+            - docling-tools
+            - models
+            - download
+            - '--output-dir=/modelcache'
+            - 'layout'
+            - 'tableformer'
+            - 'code_formula'
+            - 'picture_classifier'
+            - 'smolvlm'
+            - 'granite_vision'
+            - 'easyocr'
+          volumeMounts:
+            - name: docling-model-cache
+              mountPath: /modelcache
+      volumes:
+        - name: docling-model-cache
+          persistentVolumeClaim:
+            claimName: docling-model-cache-pvc
+      restartPolicy: Never

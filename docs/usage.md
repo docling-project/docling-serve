@@ -9,6 +9,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `from_formats` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
 - `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
 - `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
+- `page_range` (tuple). If speficied, only convert a range of pages. The page number starts at 1.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
@@ -244,7 +245,7 @@ files = {
     'files': ('2206.01062v1.pdf', open(file_path, 'rb'), 'application/pdf'),
 }
 
-response = await async_client.post(url, files=files, data={"parameters": json.dumps(parameters)})
+response = await async_client.post(url, files=files, data=parameters)
 assert response.status_code == 200, "Response should be 200 OK"
 
 data = response.json()
@@ -348,4 +349,92 @@ The response can be a JSON Document or a File.
 
 ## Asynchronous API
 
-TBA
+Both `/v1alpha/convert/source` and `/v1alpha/convert/file` endpoints are available as asynchronous variants.
+The advantage of the asynchronous endpoints is the possible to interrupt the connection, check for the progress update and fetch the result.
+This approach is more resilient against network stabilities and allows the client application logic to easily interleave conversion with other tasks.
+
+Launch an asynchronous conversion with:
+
+- `POST /v1alpha/convert/source/async` when providing the input as sources.
+- `POST /v1alpha/convert/file/async` when providing the input as multipart-form files.
+
+The response format is a task detail:
+
+```jsonc
+{
+  "task_id": "<task_id>",  // the task_id which can be used for the next operations
+  "task_status": "pending|started|success|failure",  // the task status
+  "task_position": 1,  // the position in the queue
+  "task_meta": null,  // metadata e.g. how many documents are in the total job and how many have been converted
+}
+```
+
+### Polling status
+
+For checking the progress of the conversion task and wait for its completion, use the endpoint:
+
+- `GET /v1alpha/status/poll/{task_id}`
+
+<details>
+<summary>Example waiting loop:</summary>
+
+```python
+import time
+import httpx
+
+# ...
+# response from the async task submission
+task = response.json()
+
+while task["task_status"] not in ("success", "failure"):
+    response = httpx.get(f"{base_url}/status/poll/{task['task_id']}")
+    task = response.json()
+
+    time.sleep(5)
+```
+
+<details>
+
+### Subscribe with websockets
+
+Using websocket you can get the client application being notified about updates of the conversion task.
+To start the websocker connection, use the endpoint:
+
+- `/v1alpha/status/ws/{task_id}`
+
+Websocket messages are JSON object with the following structure:
+
+```jsonc
+{
+  "message": "connection|update|error",  // type of message being sent
+  "task": {},  // the same content of the task description
+  "error": "",  // description of the error
+}
+```
+
+<details>
+<summary>Example websocker usage:</summary>
+
+```python
+from websockets.sync.client import connect
+
+uri = f"ws://{base_url}/v1alpha/status/ws/{task['task_id']}"
+with connect(uri) as websocket:
+    for message in websocket:
+        try:
+            payload = json.loads(message)
+            if payload["message"] == "error":
+                break
+            if payload["message"] == "error" and payload["task"]["task_status"] in ("success", "failure"):
+                break
+        except:
+          break
+```
+
+</details>
+
+### Fetch results
+
+When the task is completed, the result can be fetched with the endpoint:
+
+- `GET /v1alpha/result/{task_id}`
