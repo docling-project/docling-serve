@@ -47,7 +47,7 @@ def _export_document_as_content(
         if export_md:
             document.md_content = new_doc.export_to_markdown(
                 image_mode=image_mode,
-                page_break_placeholder=md_page_break_placeholder,
+                page_break_placeholder=md_page_break_placeholder or None,
             )
         if export_doctags:
             document.doctags_content = new_doc.export_to_doctags()
@@ -111,7 +111,7 @@ def _export_documents_as_files(
                 conv_res.document.save_as_markdown(
                     filename=fname,
                     image_mode=image_export_mode,
-                    page_break_placeholder=md_page_break_placeholder,
+                    page_break_placeholder=md_page_break_placeholder or None,
                 )
 
             # Export Document Tags format:
