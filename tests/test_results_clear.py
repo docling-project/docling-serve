@@ -74,8 +74,6 @@ async def test_clear_results(client: AsyncClient):
     # Set long delay deletion
     docling_serve_settings.result_removal_delay = 100
 
-    # TODO: test not fully working, because the background task is not executed in background.
-
     # Convert and wait for completion
     task = await convert_file(client)
 
@@ -101,7 +99,7 @@ async def test_clear_results(client: AsyncClient):
     # Get deleted result
     result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
     assert result_response.status_code == 404, "Response should be removed"
-    print("Rrsult was not found anymore.")
+    print("Result was no longer found.")
 
 
 @pytest.mark.asyncio

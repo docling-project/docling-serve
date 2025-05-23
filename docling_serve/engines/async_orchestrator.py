@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import shutil
 from typing import Union
 
@@ -21,6 +22,8 @@ from docling_serve.engines.base_orchestrator import (
     TaskNotFoundError,
 )
 from docling_serve.settings import docling_serve_settings
+
+_log = logging.getLogger(__name__)
 
 
 class ProgressInvalid(OrchestratorError):
@@ -56,14 +59,12 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
                         shutil.rmtree, task.scratch_dir, ignore_errors=True
                     )
 
-                async def _remove_task():
-                    print("Backgound task started!")
-                    print(
-                        f"Going to sleep for {docling_serve_settings.result_removal_delay} seconds."
-                    )
+                async def _remove_task_impl():
                     await asyncio.sleep(docling_serve_settings.result_removal_delay)
-                    print("Removing task.")
                     await self.delete_task(task_id=task.task_id)
+
+                async def _remove_task():
+                    asyncio.create_task(_remove_task_impl())  # noqa: RUF006
 
                 background_tasks.add_task(_remove_task)
 
@@ -72,7 +73,7 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
             return None
 
     async def delete_task(self, task_id: str):
-        print(f"Deleting {task_id=}")
+        _log.info(f"Deleting {task_id=}")
         if task_id in self.task_subscribers:
             for websocket in self.task_subscribers[task_id]:
                 await websocket.close()
