@@ -1,7 +1,8 @@
 # Define the input options for the API
 from typing import Annotated, Any, Optional
 
-from pydantic import AnyUrl, BaseModel, Field, model_validator
+from fastapi import Form, HTTPException, status
+from pydantic import AnyUrl, BaseModel, Field, ValidationError, model_validator
 from typing_extensions import Self
 
 from docling.datamodel.base_models import InputFormat, OutputFormat
@@ -173,7 +174,7 @@ class ConvertDocumentsOptions(BaseModel):
     ] = False
 
     ocr_engine: Annotated[  # type: ignore
-        ocr_engines_enum,
+        ocr_engines_enum,  # type: ignore
         Field(
             description=(
                 "The OCR engine to use. String. "
@@ -382,3 +383,158 @@ class ConvertDocumentsOptions(BaseModel):
             )
 
         return self
+
+    @classmethod
+    def as_form(
+        cls,
+        from_formats: list[InputFormat] = Form(
+            default=list(InputFormat),
+            description="Input format(s) to convert from.",
+        ),
+        to_formats: list[OutputFormat] = Form(
+            default=[OutputFormat.MARKDOWN],
+            description="Output format(s) to convert to.",
+        ),
+        image_export_mode: ImageRefMode = Form(
+            default=ImageRefMode.EMBEDDED,
+            description="Image export mode for the document.",
+        ),
+        do_ocr: bool = Form(
+            default=True,
+            description="If enabled, the bitmap content will be processed using OCR.",
+        ),
+        force_ocr: bool = Form(
+            default=False,
+            description="If enabled, replace existing text with OCR-generated text over content.",
+        ),
+        ocr_engine: ocr_engines_enum = Form(  # type: ignore
+            default=ocr_engines_enum(EasyOcrOptions.kind),  # type: ignore[operator]
+            description="The OCR engine to use.",
+        ),
+        ocr_lang: Optional[list[str]] = Form(
+            default=None,
+            description="List of languages used by the OCR engine.",
+        ),
+        pdf_backend: PdfBackend = Form(
+            default=PdfBackend.DLPARSE_V4,
+            description="The PDF backend to use.",
+        ),
+        table_mode: TableFormerMode = Form(
+            default=TableStructureOptions().mode,
+            description="Mode to use for table structure.",
+        ),
+        pipeline: PdfPipeline = Form(
+            default=PdfPipeline.STANDARD,
+            description="Choose the pipeline to process PDF or image files.",
+        ),
+        page_range: PageRange = Form(
+            default=DEFAULT_PAGE_RANGE,
+            description="Only convert a range of pages. The page number starts at 1.",
+        ),
+        document_timeout: float = Form(
+            default=docling_serve_settings.max_document_timeout,
+            description="The timeout for processing each document, in seconds.",
+        ),
+        abort_on_error: bool = Form(
+            default=False,
+            description="Abort on error if enabled.",
+        ),
+        return_as_file: bool = Form(
+            default=False,
+            description="Return the output as a zip file.",
+        ),
+        do_table_structure: bool = Form(
+            default=True,
+            description="If enabled, the table structure will be extracted.",
+        ),
+        include_images: bool = Form(
+            default=True,
+            description="If enabled, images will be extracted from the document.",
+        ),
+        images_scale: float = Form(
+            default=2.0,
+            description="Scale factor for images.",
+        ),
+        md_page_break_placeholder: str = Form(
+            default="",
+            description="Add this placeholder betweek pages in the markdown output.",
+        ),
+        do_code_enrichment: bool = Form(
+            default=False,
+            description="If enabled, perform OCR code enrichment.",
+        ),
+        do_formula_enrichment: bool = Form(
+            default=False,
+            description="If enabled, perform formula OCR, return LaTeX code.",
+        ),
+        do_picture_classification: bool = Form(
+            default=False,
+            description="If enabled, classify pictures in documents.",
+        ),
+        do_picture_description: bool = Form(
+            default=False,
+            description="If enabled, describe pictures in documents.",
+        ),
+        picture_description_area_threshold: float = Form(
+            default=PictureDescriptionBaseOptions().picture_area_threshold,
+            description="Minimum percentage of the area for a picture to be processed with the models.",
+        ),
+        picture_description_local: Optional[dict | str] = Form(
+            default=None,
+            description="Options for running a local vision-language model in the picture description.",
+        ),
+        picture_description_api: Optional[dict | str] = Form(
+            default=None,
+            description="API details for using a vision-language model in the picture description.",
+        ),
+    ) -> "ConvertDocumentsOptions":
+        """Helper function to convert form data to the model."""
+        try:
+            # Handle empty form values for picutre description params
+            if picture_description_api == "" or picture_description_api == {}:
+                picture_description_api = None
+            if picture_description_api:
+                picture_description_api_obj = PictureDescriptionApi.model_validate(
+                    picture_description_api
+                )
+            if picture_description_local == "" or picture_description_local == {}:
+                picture_description_local = None
+            if picture_description_local:
+                picture_description_local_obj = PictureDescriptionLocal.model_validate(
+                    picture_description_local
+                )
+
+            ocr_lang_value = None if not ocr_lang or ocr_lang == [""] else ocr_lang
+
+            return cls(
+                from_formats=from_formats,
+                to_formats=to_formats,
+                image_export_mode=image_export_mode,
+                do_ocr=do_ocr,
+                force_ocr=force_ocr,
+                ocr_engine=ocr_engine,
+                ocr_lang=ocr_lang_value,
+                pdf_backend=pdf_backend,
+                table_mode=table_mode,
+                pipeline=pipeline,
+                page_range=page_range,
+                document_timeout=document_timeout,
+                abort_on_error=abort_on_error,
+                return_as_file=return_as_file,
+                do_table_structure=do_table_structure,
+                include_images=include_images,
+                images_scale=images_scale,
+                md_page_break_placeholder=md_page_break_placeholder,
+                do_code_enrichment=do_code_enrichment,
+                do_formula_enrichment=do_formula_enrichment,
+                do_picture_classification=do_picture_classification,
+                do_picture_description=do_picture_description,
+                picture_description_area_threshold=picture_description_area_threshold,
+                picture_description_local=picture_description_local_obj,
+                picture_description_api=picture_description_api_obj,
+            )
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=e.errors(),
+            )

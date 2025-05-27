@@ -340,7 +340,7 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
         files: list[UploadFile],
         options: Annotated[
-            ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
+            ConvertDocumentsOptions, Depends(ConvertDocumentsOptions.as_form)
         ],
     ):
         task = await _enque_file(
