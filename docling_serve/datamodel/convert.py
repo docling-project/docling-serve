@@ -1,4 +1,6 @@
 # Define the input options for the API
+import json
+from json import JSONDecodeError
 from typing import Annotated, Any, Optional
 
 from fastapi import Form, HTTPException, status
@@ -494,15 +496,33 @@ class ConvertDocumentsOptions(BaseModel):
             if picture_description_api == "" or picture_description_api == {}:
                 picture_description_api = None
             if picture_description_api:
-                picture_description_api_obj = PictureDescriptionApi.model_validate(
+                if isinstance(picture_description_api, str):
+                    try:
+                        picture_description_api = json.loads(picture_description_api)
+                    except JSONDecodeError:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Cannot process `picture_description_api` param.",
+                        )
+                picture_description_api = PictureDescriptionApi.model_validate(
                     picture_description_api
-                )
+                )  # type: ignore[assignment]
             if picture_description_local == "" or picture_description_local == {}:
                 picture_description_local = None
             if picture_description_local:
-                picture_description_local_obj = PictureDescriptionLocal.model_validate(
+                if isinstance(picture_description_local, str):
+                    try:
+                        picture_description_local = json.loads(
+                            picture_description_local
+                        )
+                    except JSONDecodeError:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Cannot process `picture_description_local` param.",
+                        )
+                picture_description_local = PictureDescriptionLocal.model_validate(
                     picture_description_local
-                )
+                )  # type: ignore[assignment]
 
             ocr_lang_value = None if not ocr_lang or ocr_lang == [""] else ocr_lang
 
@@ -530,8 +550,8 @@ class ConvertDocumentsOptions(BaseModel):
                 do_picture_classification=do_picture_classification,
                 do_picture_description=do_picture_description,
                 picture_description_area_threshold=picture_description_area_threshold,
-                picture_description_local=picture_description_local_obj,
-                picture_description_api=picture_description_api_obj,
+                picture_description_local=picture_description_local,
+                picture_description_api=picture_description_api,
             )
         except ValidationError as e:
             raise HTTPException(

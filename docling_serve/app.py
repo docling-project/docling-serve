@@ -54,7 +54,6 @@ from docling_serve.engines.async_orchestrator import (
 )
 from docling_serve.engines.async_orchestrator_factory import get_async_orchestrator
 from docling_serve.engines.base_orchestrator import TaskNotFoundError
-from docling_serve.helper_functions import FormDepends
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 
@@ -399,7 +398,7 @@ def create_app():  # noqa: C901
         background_tasks: BackgroundTasks,
         files: list[UploadFile],
         options: Annotated[
-            ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
+            ConvertDocumentsOptions, Depends(ConvertDocumentsOptions.as_form)
         ],
     ):
         task = await _enque_file(
