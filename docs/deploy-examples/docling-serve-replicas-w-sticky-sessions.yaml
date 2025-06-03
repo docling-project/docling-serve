@@ -8,9 +8,8 @@ metadata:
     app: docling-serve
     component: docling-serve-api
   annotations:
-    haproxy.router.openshift.io/disable_cookies: "false"
+    haproxy.router.openshift.io/disable_cookies: "false" # this annotation enables the sticky sessions
 spec:
-  host: '${MY_HOSTNAME}'
   path: /
   to:
     kind: Service
@@ -63,11 +62,9 @@ spec:
             limits:
               cpu: 500m
               memory: 2Gi
-              nvidia.com/gpu: 1  # Limit to one GPU
             requests:
               cpu: 250m
               memory: 1Gi
-              nvidia.com/gpu: 1  # Limit to one GPU
           env:
             - name: DOCLING_SERVE_ENABLE_UI
               value: 'true'
@@ -76,4 +73,4 @@ spec:
               containerPort: 5001
               protocol: TCP
           imagePullPolicy: Always
-          image: 'ghcr.io/docling-project/docling-serve-cu124'
+          image: 'ghcr.io/docling-project/docling-serve'

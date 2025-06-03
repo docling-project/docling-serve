@@ -202,19 +202,23 @@ This deployment has the following features:
 - Deployment configuration with 3 replicas
 - Service configuration
 - Expose the service using a OpenShift `Route` and enables sticky sessions
-- NVIDIA cuda enabled
 
 Install the app with:
 
 ```sh
-export MY_HOSTNAME="docling-serve.your-cluster.example.com"
-envsubst < docs/deploy-examples/docling-serve-replicas-w-sticky-sessions.yaml | oc apply -f -
+oc apply -f docs/deploy-examples/docling-serve-replicas-w-sticky-sessions.yaml
 ```
 
+For using the API:
+
 ```sh
+# Retrieve the endpoint
+DOCLING_NAME=docling-serve
+DOCLING_ROUTE="https://$(oc get routes $DOCLING_NAME --template={{.spec.host}})"
+
 # Make a test query, store the cookie and taskid
 task_id=$(curl -s -X 'POST' \
-    "https://$MY_HOSTNAME/v1alpha/convert/source/async" \
+    "${DOCLING_ROUTE}/v1alpha/convert/source/async" \
     -H "accept: application/json" \
     -H "Content-Type: application/json" \
     -d '{
@@ -226,7 +230,7 @@ task_id=$(curl -s -X 'POST' \
 ```sh
 # Grab the taskid and cookie to check the task status
 curl -v -X 'GET' \
-  "https://$MY_HOSTNAME/v1alpha/status/poll/$task_id?wait=0" \
+  "${DOCLING_ROUTE}/v1alpha/status/poll/$task_id?wait=0" \
   -H "accept: application/json" \
   -b "cookies.txt"
 ```
