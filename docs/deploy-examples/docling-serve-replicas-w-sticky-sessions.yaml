@@ -1,4 +1,4 @@
-# This example deployment configures Docling Serve with a Route + Sticky sessions, a Service and cuda image
+# This example deployment configures Docling Serve with a Route + Sticky sessions, a Service and cpu image
 ---
 kind: Route
 apiVersion: route.openshift.io/v1
