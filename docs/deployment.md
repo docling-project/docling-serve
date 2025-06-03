@@ -199,7 +199,7 @@ Manifest example: [docling-serve-replicas-w-sticky-sessions.yaml](./deploy-examp
 
 This deployment has the following features:
 
-- Deployment configuration
+- Deployment configuration with 3 replicas
 - Service configuration
 - Expose the service using a OpenShift `Route` and enables sticky sessions
 - NVIDIA cuda enabled
