@@ -444,3 +444,5 @@ pip-selfcheck.json
 # Makefile
 .action-lint
 .markdown-lint
+
+cookies.txt

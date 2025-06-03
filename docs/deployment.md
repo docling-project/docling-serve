@@ -192,3 +192,41 @@ curl -X 'POST' \
     "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
+
+### ReplicaSets with `sticky sessions`
+
+Manifest example: [docling-serve-replicas-w-sticky-sessions.yaml](./deploy-examples/docling-serve-replicas-w-sticky-sessions.yaml)
+
+This deployment has the following features:
+
+- Deployment configuration
+- Service configuration
+- Expose the service using a OpenShift `Route` and enables sticky sessions
+- NVIDIA cuda enabled
+
+Install the app with:
+
+```sh
+export MY_HOSTNAME="docling-serve.your-cluster.example.com"
+envsubst < docs/deploy-examples/docling-serve-replicas-w-sticky-sessions.yaml | oc apply -f -
+```
+
+```sh
+# Make a test query, store the cookie and taskid
+task_id=$(curl -s -X 'POST' \
+    "https://$MY_HOSTNAME/v1alpha/convert/source/async" \
+    -H "accept: application/json" \
+    -H "Content-Type: application/json" \
+    -d '{
+    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    }' \
+    -c cookies.txt | grep -oP '"task_id":"\K[^"]+')
+```
+
+```sh
+# Grab the taskid and cookie to check the task status
+curl -v -X 'GET' \
+  "https://$MY_HOSTNAME/v1alpha/status/poll/$task_id?wait=0" \
+  -H "accept: application/json" \
+  -b "cookies.txt"
+```
