@@ -233,3 +233,9 @@ class AsyncKfpOrchestrator(BaseAsyncOrchestrator):
 
         # TODO: could be moved to BackgroundTask
         await self.notify_task_subscribers(task_id=task_id)
+
+    async def check_connection(self):
+        pass
+
+    async def kill_workers(self):
+        pass

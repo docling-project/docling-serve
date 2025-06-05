@@ -66,6 +66,9 @@ class DoclingServeSettings(BaseSettings):
     eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
 
     eng_kfp_experimental: bool = False
+    # RQ engine host, default localhost
+    eng_rq_host: str = "localhost"
+    eng_rq_port: int = 6379
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
