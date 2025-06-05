@@ -1,3 +1,6 @@
+import asyncio
+import datetime
+import logging
 import shutil
 from typing import Union
 
@@ -19,6 +22,8 @@ from docling_serve.engines.base_orchestrator import (
     TaskNotFoundError,
 )
 from docling_serve.settings import docling_serve_settings
+
+_log = logging.getLogger(__name__)
 
 
 class ProgressInvalid(OrchestratorError):
@@ -46,13 +51,50 @@ class BaseAsyncOrchestrator(BaseOrchestrator):
     async def task_result(
         self, task_id: str, background_tasks: BackgroundTasks
     ) -> Union[ConvertDocumentResponse, FileResponse, None]:
-        task = await self.get_raw_task(task_id=task_id)
-        if task.is_completed() and task.scratch_dir is not None:
-            if docling_serve_settings.single_use_results:
-                background_tasks.add_task(
-                    shutil.rmtree, task.scratch_dir, ignore_errors=True
-                )
-        return task.result
+        try:
+            task = await self.get_raw_task(task_id=task_id)
+            if task.is_completed() and docling_serve_settings.single_use_results:
+                if task.scratch_dir is not None:
+                    background_tasks.add_task(
+                        shutil.rmtree, task.scratch_dir, ignore_errors=True
+                    )
+
+                async def _remove_task_impl():
+                    await asyncio.sleep(docling_serve_settings.result_removal_delay)
+                    await self.delete_task(task_id=task.task_id)
+
+                async def _remove_task():
+                    asyncio.create_task(_remove_task_impl())  # noqa: RUF006
+
+                background_tasks.add_task(_remove_task)
+
+            return task.result
+        except TaskNotFoundError:
+            return None
+
+    async def delete_task(self, task_id: str):
+        _log.info(f"Deleting {task_id=}")
+        if task_id in self.task_subscribers:
+            for websocket in self.task_subscribers[task_id]:
+                await websocket.close()
+
+            del self.task_subscribers[task_id]
+
+        if task_id in self.tasks:
+            del self.tasks[task_id]
+
+    async def clear_results(self, older_than: float = 0.0):
+        cutoff_time = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            seconds=older_than
+        )
+
+        tasks_to_delete = [
+            task_id
+            for task_id, task in self.tasks.items()
+            if task.finished_at is not None and task.finished_at < cutoff_time
+        ]
+        for task_id in tasks_to_delete:
+            await self.delete_task(task_id=task_id)
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:

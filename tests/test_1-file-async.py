@@ -51,10 +51,12 @@ async def test_convert_url(async_client):
         time.sleep(2)
 
     assert task["task_status"] == "success"
+    print(f"Task completed with status {task['task_status']=}")
 
     result_resp = await async_client.get(f"{base_url}/result/{task['task_id']}")
     assert result_resp.status_code == 200, "Response should be 200 OK"
     result = result_resp.json()
+    print("Got result.")
 
     assert "md_content" in result["document"]
     assert result["document"]["md_content"] is not None

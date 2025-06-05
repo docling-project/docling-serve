@@ -1,0 +1,76 @@
+# This example deployment configures Docling Serve with a Route + Sticky sessions, a Service and cpu image
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+  annotations:
+    haproxy.router.openshift.io/disable_cookies: "false" # this annotation enables the sticky sessions
+spec:
+  path: /
+  to:
+    kind: Service
+    name: docling-serve
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  ports:
+  - name: http
+    port: 5001
+    targetPort: http
+  selector:
+    app: docling-serve
+    component: docling-serve-api
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: api
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: 'true'
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve'

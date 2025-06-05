@@ -552,6 +552,8 @@ def create_app():  # noqa: C901
                 status_code=400, detail=f"Invalid progress payload: {err}"
             )
 
+    #### Clear requests
+
     # Offload models
     @app.get(
         "/v1alpha/clear/converters",
@@ -559,6 +561,18 @@ def create_app():  # noqa: C901
     )
     async def clear_converters():
         _get_converter_from_hash.cache_clear()
+        return ClearResponse()
+
+    # Clean results
+    @app.get(
+        "/v1alpha/clear/results",
+        response_model=ClearResponse,
+    )
+    async def clear_results(
+        orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],
+        older_then: float = 3600,
+    ):
+        await orchestrator.clear_results(older_than=older_then)
         return ClearResponse()
 
     return app

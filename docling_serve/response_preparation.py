@@ -27,6 +27,7 @@ def _export_document_as_content(
     export_txt: bool,
     export_doctags: bool,
     image_mode: ImageRefMode,
+    md_page_break_placeholder: str,
 ):
     document = DocumentResponse(filename=conv_res.input.file.name)
 
@@ -40,10 +41,14 @@ def _export_document_as_content(
             document.html_content = new_doc.export_to_html(image_mode=image_mode)
         if export_txt:
             document.text_content = new_doc.export_to_markdown(
-                strict_text=True, image_mode=image_mode
+                strict_text=True,
+                image_mode=image_mode,
             )
         if export_md:
-            document.md_content = new_doc.export_to_markdown(image_mode=image_mode)
+            document.md_content = new_doc.export_to_markdown(
+                image_mode=image_mode,
+                page_break_placeholder=md_page_break_placeholder or None,
+            )
         if export_doctags:
             document.doctags_content = new_doc.export_to_doctags()
     elif conv_res.status == ConversionStatus.SKIPPED:
@@ -63,6 +68,7 @@ def _export_documents_as_files(
     export_txt: bool,
     export_doctags: bool,
     image_export_mode: ImageRefMode,
+    md_page_break_placeholder: str,
 ):
     success_count = 0
     failure_count = 0
@@ -103,7 +109,9 @@ def _export_documents_as_files(
                 fname = output_dir / f"{doc_filename}.md"
                 _log.info(f"writing Markdown output to {fname}")
                 conv_res.document.save_as_markdown(
-                    filename=fname, image_mode=image_export_mode
+                    filename=fname,
+                    image_mode=image_export_mode,
+                    page_break_placeholder=md_page_break_placeholder or None,
                 )
 
             # Export Document Tags format:
@@ -170,6 +178,7 @@ def process_results(
             export_txt=export_txt,
             export_doctags=export_doctags,
             image_mode=conversion_options.image_export_mode,
+            md_page_break_placeholder=conversion_options.md_page_break_placeholder,
         )
 
         response = ConvertDocumentResponse(
@@ -198,6 +207,7 @@ def process_results(
             export_txt=export_txt,
             export_doctags=export_doctags,
             image_export_mode=conversion_options.image_export_mode,
+            md_page_break_placeholder=conversion_options.md_page_break_placeholder,
         )
 
         files = os.listdir(output_dir)

@@ -1,5 +1,6 @@
 import base64
 import importlib
+import itertools
 import json
 import logging
 import ssl
@@ -12,6 +13,7 @@ import certifi
 import gradio as gr
 import httpx
 
+from docling.datamodel.base_models import FormatToExtensions
 from docling.datamodel.pipeline_options import (
     PdfBackend,
     PdfPipeline,
@@ -589,19 +591,10 @@ with gr.Blocks(
                     elem_id="file_input_zone",
                     label="Upload File",
                     file_types=[
-                        ".pdf",
-                        ".docx",
-                        ".pptx",
-                        ".html",
-                        ".xlsx",
-                        ".json",
-                        ".asciidoc",
-                        ".txt",
-                        ".md",
-                        ".jpg",
-                        ".jpeg",
-                        ".png",
-                        ".gif",
+                        f".{v}"
+                        for v in itertools.chain.from_iterable(
+                            FormatToExtensions.values()
+                        )
                     ],
                     file_count="multiple",
                     scale=4,

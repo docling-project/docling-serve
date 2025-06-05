@@ -1,3 +1,42 @@
+## [v0.13.0](https://github.com/docling-project/docling-serve/releases/tag/v0.13.0) - 2025-06-04
+
+### Feature
+
+* Upgrade docling to 2.36 ([#212](https://github.com/docling-project/docling-serve/issues/212)) ([`ffea347`](https://github.com/docling-project/docling-serve/commit/ffea34732b24fdd438fabd6df02d3d9ce66b4534))
+
+## [v0.12.0](https://github.com/docling-project/docling-serve/releases/tag/v0.12.0) - 2025-06-03
+
+### Feature
+
+* Export annotations in markdown and html (Docling upgrade) ([#202](https://github.com/docling-project/docling-serve/issues/202)) ([`c4c41f1`](https://github.com/docling-project/docling-serve/commit/c4c41f16dff83c5d2a0b8a4c625b5de19b36b7c5))
+
+### Fix
+
+* Processing complex params in multipart-form ([#210](https://github.com/docling-project/docling-serve/issues/210)) ([`7066f35`](https://github.com/docling-project/docling-serve/commit/7066f3520a88c07df1c80a0cc6c4339eaac4d6a7))
+
+### Documentation
+
+* Add openshift replicasets examples ([#209](https://github.com/docling-project/docling-serve/issues/209)) ([`6a8190c`](https://github.com/docling-project/docling-serve/commit/6a8190c315792bd1e0e2b0af310656baaa5551e5))
+
+## [v0.11.0](https://github.com/docling-project/docling-serve/releases/tag/v0.11.0) - 2025-05-23
+
+### Feature
+
+* Page break placeholder in markdown exports options ([#194](https://github.com/docling-project/docling-serve/issues/194)) ([`32b8a80`](https://github.com/docling-project/docling-serve/commit/32b8a809f348bf9fbde657f93589a56935d3749d))
+* Clear results registry ([#192](https://github.com/docling-project/docling-serve/issues/192)) ([`de002df`](https://github.com/docling-project/docling-serve/commit/de002dfcdc111c942a08b156c84b7fa22b3fbaf3))
+* Upgrade to Docling 2.33.0 ([#198](https://github.com/docling-project/docling-serve/issues/198)) ([`abe5aa0`](https://github.com/docling-project/docling-serve/commit/abe5aa03f54d44ecf5c6d76e3258028997a53e68))
+* Api to trigger offloading the models ([#188](https://github.com/docling-project/docling-serve/issues/188)) ([`00be428`](https://github.com/docling-project/docling-serve/commit/00be4284904d55b78c75c5475578ef11c2ade94c))
+* Figure annotations @ docling components 0.0.7 ([#181](https://github.com/docling-project/docling-serve/issues/181)) ([`3ff1b2f`](https://github.com/docling-project/docling-serve/commit/3ff1b2f9834aca37472a895a0e3da47560457d77))
+
+### Fix
+
+* Usage of hashlib for FIPS ([#171](https://github.com/docling-project/docling-serve/issues/171)) ([`8406fb9`](https://github.com/docling-project/docling-serve/commit/8406fb9b59d83247b8379974cabed497703dfc4d))
+
+### Documentation
+
+* Example and instructions on how to load model weights to persistent volume ([#197](https://github.com/docling-project/docling-serve/issues/197)) ([`3f090b7`](https://github.com/docling-project/docling-serve/commit/3f090b7d15eaf696611d89bbbba5b98569610828))
+* Async api usage and fixes ([#195](https://github.com/docling-project/docling-serve/issues/195)) ([`21c1791`](https://github.com/docling-project/docling-serve/commit/21c1791e427f5b1946ed46c68dfda03c957dca8f))
+
 ## [v0.10.1](https://github.com/docling-project/docling-serve/releases/tag/v0.10.1) - 2025-04-30
 
 ### Fix

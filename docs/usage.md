@@ -19,6 +19,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `table_mode` (str): Table mode to use. Allowed values: `fast`, `accurate`. Defaults to `fast`.
 - `abort_on_error` (bool): If enabled, abort on error. Defaults to false.
 - `return_as_file` (boo): If enabled, return the output as a file. Defaults to false.
+- `md_page_break_placeholder` (str): Add this placeholder betweek pages in the markdown output.
 - `do_table_structure` (bool): If enabled, the table structure will be extracted. Defaults to true.
 - `do_code_enrichment` (bool): If enabled, perform OCR code enrichment. Defaults to false.
 - `do_formula_enrichment` (bool): If enabled, perform formula OCR, return LaTeX code. Defaults to false.

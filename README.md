@@ -70,7 +70,7 @@ An easy to use UI is available at the `/ui` endpoint.
 
 ## Documentation and advance usages
 
-Visit the [Docling Serve documentation](./docs/README.md) for learning how to [configure the webserver](./docs/configuration.md), use all the [runtime options](./docs/usage.md) of the API and [deployment examples](./docs/deployment.md).
+Visit the [Docling Serve documentation](./docs/README.md) for learning how to [configure the webserver](./docs/configuration.md), use all the [runtime options](./docs/usage.md) of the API and [deployment examples](./docs/deployment.md), pre-load model weights into a persistent volume [model weights on persistent volume](./docs/pre-loading-models.md)
 
 ## Get help and support
 

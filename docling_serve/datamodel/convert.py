@@ -296,6 +296,14 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = 2.0
 
+    md_page_break_placeholder: Annotated[
+        str,
+        Field(
+            description="Add this placeholder betweek pages in the markdown output.",
+            examples=["<!-- page-break -->", ""],
+        ),
+    ] = ""
+
     do_code_enrichment: Annotated[
         bool,
         Field(
@@ -351,14 +359,24 @@ class ConvertDocumentsOptions(BaseModel):
     picture_description_local: Annotated[
         Optional[PictureDescriptionLocal],
         Field(
-            description="Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api."
+            description="Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api.",
+            examples=[
+                PictureDescriptionLocal(repo_id="ibm-granite/granite-vision-3.2-2b"),
+                PictureDescriptionLocal(repo_id="HuggingFaceTB/SmolVLM-256M-Instruct"),
+            ],
         ),
     ] = None
 
     picture_description_api: Annotated[
         Optional[PictureDescriptionApi],
         Field(
-            description="API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local."
+            description="API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local.",
+            examples=[
+                PictureDescriptionApi(
+                    url="http://localhost:11434/v1/chat/completions",
+                    params={"model": "granite3.2-vision:2b"},
+                )
+            ],
         ),
     ] = None
 
