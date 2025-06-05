@@ -29,6 +29,7 @@ class AsyncRQOrchestrator(BaseAsyncOrchestrator):
         self.task_queue = Queue(connection=self.redis_conn, default_timeout=7200)
 
     async def notify_end_job(self, task_id):
+        # TODO: check if this is necessary
         pass
 
     async def enqueue(
