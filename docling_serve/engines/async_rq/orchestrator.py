@@ -21,7 +21,6 @@ _log = logging.getLogger(__name__)
 class AsyncRQOrchestrator(BaseAsyncOrchestrator):
     def __init__(self):
         super().__init__()
-        self.queue_list: list[str] = []
         self.worker_processes: list[Popen] = []
         self.redis_conn = Redis(
             host=docling_serve_settings.eng_rq_host,
@@ -47,7 +46,6 @@ class AsyncRQOrchestrator(BaseAsyncOrchestrator):
         )
         await self.init_task_tracking(task)
 
-        self.queue_list.append(task_id)
         return task
 
     async def queue_size(self) -> int:
@@ -55,6 +53,8 @@ class AsyncRQOrchestrator(BaseAsyncOrchestrator):
 
     async def get_queue_position(self, task_id: str) -> Optional[int]:
         try:
+            # On fetching Job to get queue position, we also get the status
+            # in order to keep the status updated in the tasks list
             job = Job.fetch(task_id, connection=self.redis_conn)
             status = job.get_status()
             queue_pos = job.get_position()
