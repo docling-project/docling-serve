@@ -5,7 +5,7 @@ import shutil
 import time
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import (
     BackgroundTasks,
@@ -43,6 +43,7 @@ from docling_serve.datamodel.responses import (
     ConvertDocumentResponse,
     HealthCheckResponse,
     MessageKind,
+    RemoteFileResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -505,12 +506,15 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1alpha/result/{task_id}",
-        response_model=ConvertDocumentResponse,
+        response_model=Union[ConvertDocumentResponse, RemoteFileResponse],
         responses={
             200: {
-                "content": {"application/zip": {}},
+                "content": {
+                    "application/zip": {},
+                    "application/json": {},
+                }
             }
-        },
+        }
     )
     async def task_result(
         orchestrator: Annotated[BaseAsyncOrchestrator, Depends(get_async_orchestrator)],

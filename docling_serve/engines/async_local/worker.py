@@ -10,6 +10,7 @@ from docling.datamodel.base_models import DocumentStream
 
 from docling_serve.datamodel.engines import TaskStatus
 from docling_serve.datamodel.requests import FileSource, HttpSource
+from docling_serve.datamodel.responses import RemoteFileResponse
 from docling_serve.docling_conversion import convert_documents
 from docling_serve.response_preparation import process_results
 from docling_serve.storage import get_scratch
@@ -77,7 +78,7 @@ class AsyncLocalWorker:
 
                     if work_dir.exists():
                         task.scratch_dir = work_dir
-                        if not isinstance(response, FileResponse):
+                        if not (isinstance(response, FileResponse) or isinstance(response, RemoteFileResponse)):
                             _log.warning(
                                 f"Task {task_id=} produced content in {work_dir=} but the response is not a file."
                             )
