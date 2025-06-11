@@ -266,6 +266,19 @@ class ConvertDocumentsOptions(BaseModel):
         ),
     ] = False
 
+    remote_storage_url: Annotated[
+        Optional[AnyUrl],
+        Field(
+            description=(
+                "If set, the output will be stored in the cloud storage. "
+                "The URL should point to a PUT-able, pre-signed cloud storage URL (e.g. GCS, S3 pre-signed URL)."
+            ),
+            examples=[
+                AnyUrl("https://example.com/upload?key=value"),
+            ],
+        ),
+    ] = None
+
     do_table_structure: Annotated[
         bool,
         Field(
@@ -390,5 +403,13 @@ class ConvertDocumentsOptions(BaseModel):
             raise ValueError(
                 "The parameters picture_description_local and picture_description_api are mutually exclusive, only one of them can be set."
             )
+
+        return self
+
+    @model_validator(mode="after")
+    def force_file_if_upload_result(self) -> Self:
+        # If cloud storage URL is set, force return_as_file to True
+        if self.remote_storage_url is not None:
+            self.return_as_file = True
 
         return self

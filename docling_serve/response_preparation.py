@@ -1,5 +1,6 @@
 import logging
 import os
+import requests
 import shutil
 import time
 from collections.abc import Iterable
@@ -14,7 +15,7 @@ from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
-from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse
+from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse, RemoteFileResponse
 
 _log = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ def process_results(
     conversion_options: ConvertDocumentsOptions,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
-) -> Union[ConvertDocumentResponse, FileResponse]:
+) -> Union[ConvertDocumentResponse, FileResponse, RemoteFileResponse]:
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()
@@ -158,7 +159,7 @@ def process_results(
         )
 
     # We have some results, let's prepare the response
-    response: Union[FileResponse, ConvertDocumentResponse]
+    response: Union[FileResponse, ConvertDocumentResponse, RemoteFileResponse]
 
     # Booleans to know what to export
     export_json = OutputFormat.JSON in conversion_options.to_formats
@@ -188,7 +189,7 @@ def process_results(
             timings=conv_res.timings,
         )
 
-    # Multiple documents were processed, or we are forced returning as a file
+    # Multiple documents were processed, or we are forced returning as a file (including cloud storage)
     else:
         # Temporary directory to store the outputs
         output_dir = work_dir / "output"
@@ -225,8 +226,29 @@ def process_results(
         # Output directory
         # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
-        response = FileResponse(
-            file_path, filename=file_path.name, media_type="application/zip"
+        if conversion_options.remote_storage_url:
+            # Upload the zipfile to cloud storage with PUT
+            _log.info("Uploading result to remote storage...")
+            with open(file_path, "rb") as f:
+                result=requests.put(
+                    conversion_options.remote_storage_url,
+                    data=f,
+                    headers={
+                        "Content-Type": "application/zip",
+                        "Content-Disposition": f'attachment; filename="{file_path.name}"',
+                    }
+                )
+            if result.status_code != 200:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to upload result to cloud storage: {result.text}",
+                )
+            response = RemoteFileResponse(
+                url=conversion_options.remote_storage_url
+            )
+        else:
+            response = FileResponse(
+                file_path, filename=file_path.name, media_type="application/zip"
         )
 
     return response

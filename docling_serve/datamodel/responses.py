@@ -1,7 +1,7 @@
 import enum
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, AnyUrl
 
 from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
@@ -35,6 +35,8 @@ class ConvertDocumentResponse(BaseModel):
     processing_time: float
     timings: dict[str, ProfilingItem] = {}
 
+class RemoteFileResponse(BaseModel):
+    url: AnyUrl
 
 class ConvertDocumentErrorResponse(BaseModel):
     status: ConversionStatus
