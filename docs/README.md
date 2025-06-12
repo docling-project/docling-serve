@@ -1,4 +1,4 @@
-# Dolcing Serve documentation
+# Docling Serve documentation
 
 This documentation pages explore the webserver configurations, runtime options, deployment examples as well as development best practices.
 
