@@ -113,11 +113,13 @@ def _run(
     protocol = "https" if run_ssl else "http"
     url = f"{protocol}://{uvicorn_settings.host}:{uvicorn_settings.port}"
     url_docs = f"{url}/docs"
+    url_scalar = f"{url}/scalar"
     url_ui = f"{url}/ui"
 
     console.print("")
     console.print(f"Server started at [link={url}]{url}[/]")
     console.print(f"Documentation at [link={url_docs}]{url_docs}[/]")
+    console.print(f"Scalar docs at [link={url_docs}]{url_scalar}[/]")
     if docling_serve_settings.enable_ui:
         console.print(f"UI at [link={url_ui}]{url_ui}[/]")
 

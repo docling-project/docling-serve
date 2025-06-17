@@ -42,6 +42,7 @@ dependencies = [
     "typer~=0.12",
     "uvicorn[standard]>=0.29.0,<1.0.0",
     "websockets~=14.0",
+    "scalar-fastapi>=1.0.3",
 ]
 
 [project.optional-dependencies]
@@ -213,6 +214,7 @@ module = [
     "kfp.*",
     "kfp_server_api.*",
     "mlx_vlm.*",
+    "scalar_fastapi.*",
 ]
 ignore_missing_imports = true
 

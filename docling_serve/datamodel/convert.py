@@ -132,7 +132,11 @@ class ConvertDocumentsOptions(BaseModel):
                 f"Allowed values: {', '.join([v.value for v in OutputFormat])}. "
                 "Optional, defaults to Markdown."
             ),
-            examples=[[OutputFormat.MARKDOWN]],
+            examples=[
+                [OutputFormat.MARKDOWN],
+                [OutputFormat.MARKDOWN, OutputFormat.JSON],
+                [v.value for v in OutputFormat],
+            ],
         ),
     ] = [OutputFormat.MARKDOWN]
 
@@ -231,7 +235,7 @@ class ConvertDocumentsOptions(BaseModel):
         PageRange,
         Field(
             description="Only convert a range of pages. The page number starts at 1.",
-            examples=[(1, 4)],
+            examples=[DEFAULT_PAGE_RANGE, (1, 4)],
         ),
     ] = DEFAULT_PAGE_RANGE
 
