@@ -117,6 +117,7 @@ theme = gr.themes.Default(
 
 gradio_output_dir = None  # Will be set by FastAPI when mounted
 file_output_path = None  # Will be set when a new file is generated
+current_task_status: dict = {}  # Will store task status in while waiting task to finish
 
 #############
 # Functions #
@@ -233,6 +234,14 @@ def change_ocr_lang(ocr_engine):
         return "english,chinese"
 
 
+def get_task_status(task_id):
+    if task_id == "" or task_id is None:
+        return None, None
+    status = current_task_status.get(task_id, {}).get("task_status")
+    queue_pos = current_task_status.get(task_id, {}).get("task_queue_position")
+    return status, queue_pos
+
+
 def wait_task_finish(task_id: str, return_as_file: bool):
     conversion_sucess = False
     task_finished = False
@@ -245,7 +254,18 @@ def wait_task_finish(task_id: str, return_as_file: bool):
                 verify=ssl_ctx,
                 timeout=15,
             )
-            task_status = response.json()["task_status"]
+            r = response.json()
+            task_status = r["task_status"]
+            task_queue_position = r["task_position"]
+            global current_task_status
+            current_task_status.update(
+                {
+                    task_id: {
+                        "task_status": task_status,
+                        "task_queue_position": task_queue_position,
+                    }
+                }
+            )
             if task_status == "success":
                 conversion_sucess = True
                 task_finished = True
@@ -340,8 +360,20 @@ def process_url(
         logger.error(f"Error processing file: {error_message}")
         raise gr.Error(f"Error processing file: {error_message}", print_exception=False)
 
-    task_id_rendered = response.json()["task_id"]
-    return task_id_rendered
+    r = response.json()
+    task_id_rendered = r["task_id"]
+    task_queue_position = r["task_position"]
+    task_status = r["task_status"]
+    global current_task_status
+    current_task_status.update(
+        {
+            task_id_rendered: {
+                "task_status": task_status,
+                "task_queue_position": task_queue_position,
+            }
+        }
+    )
+    return task_id_rendered, task_queue_position, task_status
 
 
 def file_to_base64(file):
@@ -413,8 +445,19 @@ def process_file(
         logger.error(f"Error processing file: {error_message}")
         raise gr.Error(f"Error processing file: {error_message}", print_exception=False)
 
-    task_id_rendered = response.json()["task_id"]
-    return task_id_rendered
+    r = response.json()
+    task_id_rendered = r["task_id"]
+    task_queue_position = r["task_position"]
+    task_status = r["task_status"]
+    current_task_status.update(
+        {
+            task_id_rendered: {
+                "task_status": task_status,
+                "task_queue_position": task_queue_position,
+            }
+        }
+    )
+    return task_id_rendered, task_queue_position, task_status
 
 
 def response_to_output(response, return_as_file):
@@ -480,6 +523,7 @@ with gr.Blocks(
     processing_text = gr.State("Processing your document(s), please wait...")
     true_bool = gr.State(True)
     false_bool = gr.State(False)
+    check = gr.Timer(value=5)
 
     # Banner
     with gr.Row(elem_id="check_health"):
@@ -645,6 +689,13 @@ with gr.Blocks(
     # Task id output
     with gr.Row(visible=False) as task_id_output:
         task_id_rendered = gr.Textbox(label="Task id", interactive=False)
+        task_queue_position = gr.Textbox(label="Task queue position", interactive=False)
+        task_status = gr.Textbox(label="Task status", interactive=False)
+        check.tick(
+            get_task_status,
+            inputs=[task_id_rendered],
+            outputs=[task_status, task_queue_position],
+        )
 
     # Document output
     with gr.Row(visible=False) as content_output:
@@ -735,9 +786,7 @@ with gr.Blocks(
             do_picture_classification,
             do_picture_description,
         ],
-        outputs=[
-            task_id_rendered,
-        ],
+        outputs=[task_id_rendered, task_queue_position, task_status],
     ).then(
         set_outputs_visibility_process,
         inputs=[return_as_file],
@@ -822,9 +871,7 @@ with gr.Blocks(
             do_picture_classification,
             do_picture_description,
         ],
-        outputs=[
-            task_id_rendered,
-        ],
+        outputs=[task_id_rendered, task_queue_position, task_status],
     ).then(
         set_outputs_visibility_process,
         inputs=[return_as_file],
