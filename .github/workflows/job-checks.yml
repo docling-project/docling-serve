@@ -25,7 +25,7 @@ jobs:
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install dependencies
-        run: uv sync --frozen --all-extras --no-extra cu124 --no-extra flash-attn
+        run: uv sync --frozen --all-extras --no-extra flash-attn
 
       - name: Run styling check
         run: pre-commit run --all-files
