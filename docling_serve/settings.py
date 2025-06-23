@@ -70,6 +70,7 @@ class DoclingServeSettings(BaseSettings):
     # RQ engine host, default localhost
     eng_rq_host: str = "localhost"
     eng_rq_port: int = 6379
+    eng_rq_dev_mode: bool = False  # If true, will spawn local workers and does not need containers workers to run
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:

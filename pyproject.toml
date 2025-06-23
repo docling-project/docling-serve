@@ -42,6 +42,7 @@ dependencies = [
     "typer~=0.12",
     "uvicorn[standard]>=0.29.0,<1.0.0",
     "websockets~=14.0",
+    "rq>=2.3.3",
 ]
 
 [project.optional-dependencies]

@@ -3,17 +3,31 @@ import shutil
 from typing import Any, Optional, Union
 
 from fastapi.responses import FileResponse
+from rq import Worker as BaseClass
 
 from docling.datamodel.base_models import DocumentStream
 
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.requests import FileSource, HttpSource
 from docling_serve.datamodel.task import Task
-from docling_serve.docling_conversion import convert_documents
+from docling_serve.docling_conversion import (
+    convert_documents,
+    get_converter,
+    get_pdf_pipeline_opts,
+)
 from docling_serve.response_preparation import process_results
 from docling_serve.storage import get_scratch
 
 _log = logging.getLogger(__name__)
+
+
+class Worker(BaseClass):
+    def __init__(self, queues=None, *args, **kwargs):
+        _log.debug("warming caches")
+        pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
+        get_converter(pdf_format_option)
+
+        super().__init__(queues, *args, **kwargs)
 
 
 def conversion_task(task_data: dict):

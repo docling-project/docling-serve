@@ -21,6 +21,6 @@ def get_async_orchestrator() -> BaseAsyncOrchestrator:
     elif docling_serve_settings.eng_kind == AsyncEngine.RQ:
         from docling_serve.engines.async_rq.orchestrator import AsyncRQOrchestrator
 
-        return AsyncRQOrchestrator()
+        return AsyncRQOrchestrator(dev_mode=docling_serve_settings.eng_rq_dev_mode)
 
     raise RuntimeError(f"Engine {docling_serve_settings.eng_kind} not recognized.")

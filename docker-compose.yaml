@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  worker:
+    build: .
+    depends_on:
+      - valkey
+    # command: rq worker --url redis://valkey.docling-serve.local conversion_queue 
+    networks:
+      default:
+        aliases:
+          - worker.docling-serve.local
+
+  valkey:
+    image: valkey/valkey
+    ports:
+      - 6379:6379
+    cpus: 0.25
+    volumes:
+      - ./data:/data
+    networks:
+      default:
+        aliases:
+          - valkey.docling-serve.local
+  
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  default:
+    name: docling-serve.local
