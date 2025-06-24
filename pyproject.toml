@@ -95,7 +95,7 @@ cu128 = [
 
 [tool.uv]
 package = true
-default-groups = ["pypi"]
+default-groups = ["dev", "pypi"]
 conflicts = [
   [
     { group = "pypi" },
