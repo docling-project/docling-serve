@@ -35,28 +35,28 @@ docling-serve-image: Containerfile ## Build docling-serve container image
 .PHONY: docling-serve-cpu-image
 docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve CPU]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--group cpu --no-extra flash-attn" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) ghcr.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) quay.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
 
 .PHONY: docling-serve-cu124-image
 docling-serve-cu124-image: Containerfile ## Build docling-serve container image with CUDA 12.4 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.4]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--group cu124" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu124:$(TAG) .
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu124:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) ghcr.io/docling-project/docling-serve-cu124:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) quay.io/docling-project/docling-serve-cu124:$(BRANCH_TAG)
 
 .PHONY: docling-serve-cu126-image
 docling-serve-cu126-image: Containerfile ## Build docling-serve container image with CUDA 12.6 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.6]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--group cu126" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu126:$(TAG) .
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu126:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu126:$(TAG) ghcr.io/docling-project/docling-serve-cu126:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu126:$(TAG) quay.io/docling-project/docling-serve-cu126:$(BRANCH_TAG)
 
 .PHONY: docling-serve-cu128-image
 docling-serve-cu128-image: Containerfile ## Build docling-serve container image with CUDA 12.8 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.8]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--group cu128" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu128:$(TAG) .
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu128:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) ghcr.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) quay.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
 

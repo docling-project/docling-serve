@@ -72,6 +72,10 @@ dev = [
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
 ]
+pypi = [
+  "torch>=2.6.0",
+  "torchvision>=0.21.0",
+]
 cpu = [
   "torch>=2.6.0",
   "torchvision>=0.21.0",
@@ -91,8 +95,10 @@ cu128 = [
 
 [tool.uv]
 package = true
+default-groups = ["pypi"]
 conflicts = [
   [
+    { group = "pypi" },
     { group = "cpu" },
     { group = "cu124" },
     { group = "cu126" },
@@ -106,17 +112,24 @@ override-dependencies = [
 
 [tool.uv.sources]
 torch = [
+  { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
   { index = "pytorch-cu124", group = "cu124" },
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
 torchvision = [
+  { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
   { index = "pytorch-cu124", group = "cu124" },
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
+
+[[tool.uv.index]]
+name = "pytorch-pypi"
+url = "https://pypi.org/simple"
+explicit = true
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

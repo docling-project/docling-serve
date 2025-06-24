@@ -23,19 +23,19 @@ jobs:
             platforms: linux/amd64, linux/arm64
           - name: docling-project/docling-serve-cpu
             build_args: |
-              UV_SYNC_EXTRA_ARGS=--group cpu --no-extra flash-attn
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn
             platforms: linux/amd64, linux/arm64
           - name: docling-project/docling-serve-cu124
             build_args: |
-              UV_SYNC_EXTRA_ARGS=--group cu124
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124
             platforms: linux/amd64
           - name: docling-project/docling-serve-cu126
             build_args: |
-              UV_SYNC_EXTRA_ARGS=--group cu126
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126
             platforms: linux/amd64
           - name: docling-project/docling-serve-cu128
             build_args: |
-              UV_SYNC_EXTRA_ARGS=--group cu128
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128
             platforms: linux/amd64
 
     permissions:
