@@ -22,8 +22,8 @@ spec:
         - name: api
           resources:
             limits:
-              cpu: 500m
-              memory: 2Gi
+              cpu: 2
+              memory: 4Gi
             requests:
               cpu: 250m
               memory: 1Gi
