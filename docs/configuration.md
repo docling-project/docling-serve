@@ -60,7 +60,7 @@ The selected compute engine will be running all the async jobs.
 
 #### Local engine
 
-The following table describes the options to configure the Docling Serve KFP engine.
+The following table describes the options to configure the Docling Serve local engine.
 
 | ENV | Default | Description |
 |-----|---------|-------------|
