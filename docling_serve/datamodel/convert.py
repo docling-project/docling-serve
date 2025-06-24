@@ -8,8 +8,8 @@ from docling.datamodel.base_models import InputFormat, OutputFormat
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     PdfBackend,
-    PdfPipeline,
     PictureDescriptionBaseOptions,
+    ProcessingPipeline,
     TableFormerMode,
     TableStructureOptions,
 )
@@ -227,9 +227,9 @@ class ConvertDocumentsOptions(BaseModel):
     ] = TableStructureOptions().mode
 
     pipeline: Annotated[
-        PdfPipeline,
+        ProcessingPipeline,
         Field(description="Choose the pipeline to process PDF or image files."),
-    ] = PdfPipeline.STANDARD
+    ] = ProcessingPipeline.STANDARD
 
     page_range: Annotated[
         PageRange,

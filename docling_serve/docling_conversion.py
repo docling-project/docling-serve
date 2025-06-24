@@ -19,10 +19,10 @@ from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
     OcrOptions,
     PdfBackend,
-    PdfPipeline,
     PdfPipelineOptions,
     PictureDescriptionApiOptions,
     PictureDescriptionVlmOptions,
+    ProcessingPipeline,
     TableFormerMode,
     VlmPipelineOptions,
     smoldocling_vlm_conversion_options,
@@ -217,7 +217,7 @@ def get_pdf_pipeline_opts(
         )
 
     pipeline_options: Union[PdfPipelineOptions, VlmPipelineOptions]
-    if request.pipeline == PdfPipeline.STANDARD:
+    if request.pipeline == ProcessingPipeline.STANDARD:
         pipeline_options = _parse_standard_pdf_opts(request, artifacts_path)
         backend = _parse_backend(request)
         pdf_format_option = PdfFormatOption(
@@ -225,7 +225,7 @@ def get_pdf_pipeline_opts(
             backend=backend,
         )
 
-    elif request.pipeline == PdfPipeline.VLM:
+    elif request.pipeline == ProcessingPipeline.VLM:
         pipeline_options = _parse_vlm_pdf_opts(request, artifacts_path)
         pdf_format_option = PdfFormatOption(
             pipeline_cls=VlmPipeline, pipeline_options=pipeline_options

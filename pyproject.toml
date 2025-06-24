@@ -30,7 +30,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling[vlm]~=2.28",
+    "docling[vlm]~=2.38",
     "docling-core>=2.32.0",
     "mlx-vlm~=0.1.12; sys_platform == 'darwin' and platform_machine == 'arm64'",
     "fastapi[standard]~=0.115",
