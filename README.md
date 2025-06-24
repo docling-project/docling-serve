@@ -9,11 +9,11 @@
 Running [Docling](https://github.com/docling-project/docling) as an API service.
 
 📚 [Docling Serve documentation](./docs/README.md)
-  - Learning how to [configure the webserver](./docs/configuration.md)
-  - Get to know all [runtime options](./docs/usage.md) of the API
-  - Explore usefule [deployment examples](./docs/deployment.md)
-  - And more
 
+- Learning how to [configure the webserver](./docs/configuration.md)
+- Get to know all [runtime options](./docs/usage.md) of the API
+- Explore usefule [deployment examples](./docs/deployment.md)
+- And more
 
 ## Getting started
 
