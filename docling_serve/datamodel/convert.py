@@ -8,8 +8,8 @@ from docling.datamodel.base_models import InputFormat, OutputFormat
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     PdfBackend,
-    PdfPipeline,
     PictureDescriptionBaseOptions,
+    ProcessingPipeline,
     TableFormerMode,
     TableStructureOptions,
 )
@@ -132,7 +132,11 @@ class ConvertDocumentsOptions(BaseModel):
                 f"Allowed values: {', '.join([v.value for v in OutputFormat])}. "
                 "Optional, defaults to Markdown."
             ),
-            examples=[[OutputFormat.MARKDOWN]],
+            examples=[
+                [OutputFormat.MARKDOWN],
+                [OutputFormat.MARKDOWN, OutputFormat.JSON],
+                [v.value for v in OutputFormat],
+            ],
         ),
     ] = [OutputFormat.MARKDOWN]
 
@@ -223,15 +227,15 @@ class ConvertDocumentsOptions(BaseModel):
     ] = TableStructureOptions().mode
 
     pipeline: Annotated[
-        PdfPipeline,
+        ProcessingPipeline,
         Field(description="Choose the pipeline to process PDF or image files."),
-    ] = PdfPipeline.STANDARD
+    ] = ProcessingPipeline.STANDARD
 
     page_range: Annotated[
         PageRange,
         Field(
             description="Only convert a range of pages. The page number starts at 1.",
-            examples=[(1, 4)],
+            examples=[DEFAULT_PAGE_RANGE, (1, 4)],
         ),
     ] = DEFAULT_PAGE_RANGE
 

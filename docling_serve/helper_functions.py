@@ -36,7 +36,7 @@ def FormDepends(cls: type[BaseModel]):
         annotation = model_field.annotation
         description = model_field.description
         default = (
-            Form(..., description=description)
+            Form(..., description=description, examples=model_field.examples)
             if model_field.is_required()
             else Form(
                 model_field.default,

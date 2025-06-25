@@ -40,8 +40,8 @@ spec:
         - name: api
           resources:
             limits:
-              cpu: 500m
-              memory: 2Gi
+              cpu: 1
+              memory: 4Gi
               nvidia.com/gpu: 1  # Limit to one GPU
             requests:
               cpu: 250m

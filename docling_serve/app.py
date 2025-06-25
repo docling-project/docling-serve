@@ -25,6 +25,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
 
@@ -143,8 +144,8 @@ def create_app():  # noqa: C901
 
     app = FastAPI(
         title="Docling Serve",
-        docs_url=None if offline_docs_assets else "/docs",
-        redoc_url=None if offline_docs_assets else "/redocs",
+        docs_url=None if offline_docs_assets else "/swagger",
+        redoc_url=None if offline_docs_assets else "/docs",
         lifespan=lifespan,
         version=version,
     )
@@ -195,7 +196,7 @@ def create_app():  # noqa: C901
             name="static",
         )
 
-        @app.get("/docs", include_in_schema=False)
+        @app.get("/swagger", include_in_schema=False)
         async def custom_swagger_ui_html():
             return get_swagger_ui_html(
                 openapi_url=app.openapi_url,
@@ -209,13 +210,22 @@ def create_app():  # noqa: C901
         async def swagger_ui_redirect():
             return get_swagger_ui_oauth2_redirect_html()
 
-        @app.get("/redoc", include_in_schema=False)
+        @app.get("/docs", include_in_schema=False)
         async def redoc_html():
             return get_redoc_html(
                 openapi_url=app.openapi_url,
                 title=app.title + " - ReDoc",
                 redoc_js_url="/static/redoc.standalone.js",
             )
+
+    @app.get("/scalar", include_in_schema=False)
+    async def scalar_html():
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title=app.title,
+            scalar_favicon_url="https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
+            # hide_client_button=True,  # not yet released but in main
+        )
 
     ########################
     # Async / Sync helpers #
