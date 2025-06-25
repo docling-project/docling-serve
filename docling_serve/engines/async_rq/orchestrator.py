@@ -20,8 +20,6 @@ _log = logging.getLogger(__name__)
 
 
 def run_worker():
-    from rq import Worker
-
     # create a new connection in thread, in newer versions of python Redis connections are not pickle
     redis_conn = Redis(
         host=docling_serve_settings.eng_rq_host,
