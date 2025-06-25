@@ -58,6 +58,3 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
 
     async def check_connection(self):
         pass
-
-    async def kill_workers(self):
-        pass

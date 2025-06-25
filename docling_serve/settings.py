@@ -55,7 +55,7 @@ class DoclingServeSettings(BaseSettings):
     cors_methods: list[str] = ["*"]
     cors_headers: list[str] = ["*"]
 
-    eng_kind: AsyncEngine = AsyncEngine.LOCAL
+    eng_kind: AsyncEngine = AsyncEngine.RQ
     # Local engine
     eng_loc_num_workers: int = 2
     # KFP engine
@@ -70,7 +70,9 @@ class DoclingServeSettings(BaseSettings):
     # RQ engine host, default localhost
     eng_rq_host: str = "localhost"
     eng_rq_port: int = 6379
-    eng_rq_dev_mode: bool = False  # If true, will spawn local workers and does not need containers workers to run
+    eng_rq_api_only: bool = (
+        False  # If true, will not spawn workers and need workers container(s) to run
+    )
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:

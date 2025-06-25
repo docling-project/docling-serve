@@ -108,9 +108,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Kill all spawned workers
-    await orchestrator.kill_workers()
-
     # Cancel the background queue processor on shutdown
     queue_task.cancel()
     try:

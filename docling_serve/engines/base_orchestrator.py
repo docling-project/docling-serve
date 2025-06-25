@@ -57,7 +57,3 @@ class BaseOrchestrator(ABC):
     @abstractmethod
     async def check_connection(self):
         pass
-
-    @abstractmethod
-    async def kill_workers(self):
-        pass

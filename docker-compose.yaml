@@ -2,10 +2,11 @@ version: "3.9"
 
 services:
   worker:
-    build: .
+    build:
+      context: .
+      dockerfile: Containerfile
     depends_on:
       - valkey
-    # command: rq worker --url redis://valkey.docling-serve.local conversion_queue 
     networks:
       default:
         aliases:

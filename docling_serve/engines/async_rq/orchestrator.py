@@ -1,6 +1,7 @@
 import logging
+import multiprocessing
 import uuid
-from subprocess import PIPE, Popen
+from subprocess import Popen
 from typing import Optional
 
 from redis import Redis
@@ -18,10 +19,23 @@ from docling_serve.settings import docling_serve_settings
 _log = logging.getLogger(__name__)
 
 
+def run_worker():
+    from rq import Worker
+
+    # create a new connection in thread, in newer versions of python Redis connections are not pickle
+    redis_conn = Redis(
+        host=docling_serve_settings.eng_rq_host,
+        port=docling_serve_settings.eng_rq_port,
+    )
+    queue = Queue("conversion_queue", connection=redis_conn, default_timeout=7200)
+    worker = Worker([queue], connection=redis_conn)
+    worker.work()
+
+
 class AsyncRQOrchestrator(BaseAsyncOrchestrator):
-    def __init__(self, dev_mode=False):
+    def __init__(self, api_only=False):
         super().__init__()
-        self.dev_mode = dev_mode
+        self.api_only = api_only
         self.worker_processes: list[Popen] = []
         self.redis_conn = Redis(
             host=docling_serve_settings.eng_rq_host,
@@ -84,24 +98,15 @@ class AsyncRQOrchestrator(BaseAsyncOrchestrator):
             _log.error("An error occour getting queue position.", exc_info=e)
             return None
 
-    def run_local_worker(self):
-        # Command to run the RQ worker
-        command = ["rq", "worker", "conversion_queue"]
-
-        # Start the RQ worker as a subprocess
-        process = Popen(command, stdout=PIPE, stderr=PIPE)
-        return process
-
     async def process_queue(self):
-        if self.dev_mode:
+        if not self.api_only:
             for i in range(docling_serve_settings.eng_loc_num_workers):
-                _log.debug(f"Starting worker {i}")
-                self.worker_processes.append(self.run_local_worker())
+                _log.info(f"Starting worker {i}")
+                multiprocessing.Process(target=run_worker).start()
 
     async def warm_up_caches(self):
-        # if not local, warm up caches will run in worker container
-        if self.dev_mode:
-            # Converter with default options
+        # Converter with default options
+        if not self.api_only:
             _log.debug("warming caches")
             pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
             get_converter(pdf_format_option)
@@ -113,13 +118,8 @@ class AsyncRQOrchestrator(BaseAsyncOrchestrator):
         except Exception:
             raise RuntimeError("No connection to Redis")
 
-        if not self.dev_mode:
+        if not self.api_only:
             # Count the number of workers in redis connection
             workers = Worker.count(connection=self.redis_conn)
             if workers == 0:
                 raise RuntimeError("No workers connected to Redis")
-
-    async def kill_workers(self):
-        for i, process in enumerate(self.worker_processes):
-            process.terminate()
-            _log.debug(f"Killed worker {i}")
