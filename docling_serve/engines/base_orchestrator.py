@@ -53,3 +53,7 @@ class BaseOrchestrator(ABC):
     @abstractmethod
     async def warm_up_caches(self):
         pass
+
+    @abstractmethod
+    async def check_connection(self):
+        pass

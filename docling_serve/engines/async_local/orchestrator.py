@@ -55,3 +55,6 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
         # Converter with default options
         pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
         get_converter(pdf_format_option)
+
+    async def check_connection(self):
+        pass
