@@ -20,14 +20,13 @@ async def test_convert_url(async_client: httpx.AsyncClient):
     doc_filename = Path("tests/2408.09869v5.pdf")
     encoded_doc = base64.b64encode(doc_filename.read_bytes()).decode()
 
-    base_url = "http://localhost:5001/v1alpha"
+    base_url = "http://localhost:5001/v1"
     payload = {
         "options": {
             "to_formats": ["md", "json"],
             "image_export_mode": "placeholder",
             "ocr": True,
             "abort_on_error": False,
-            "return_as_file": False,
             # "do_picture_description": True,
             # "picture_description_api": {
             #     "url": "http://localhost:11434/v1/chat/completions",
@@ -39,8 +38,14 @@ async def test_convert_url(async_client: httpx.AsyncClient):
             #     "repo_id": "HuggingFaceTB/SmolVLM-256M-Instruct",
             # },
         },
-        # "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}],
-        "file_sources": [{"base64_string": encoded_doc, "filename": doc_filename.name}],
+        # "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}],
+        "sources": [
+            {
+                "kind": "file",
+                "base64_string": encoded_doc,
+                "filename": doc_filename.name,
+            }
+        ],
     }
     # print(json.dumps(payload, indent=2))
 
@@ -52,7 +57,7 @@ async def test_convert_url(async_client: httpx.AsyncClient):
 
     task = response.json()
 
-    uri = f"ws://localhost:5001/v1alpha/status/ws/{task['task_id']}"
+    uri = f"ws://localhost:5001/v1/status/ws/{task['task_id']}"
     with connect(uri) as websocket:
         for message in websocket:
             print(message)

@@ -241,7 +241,7 @@ def wait_task_finish(task_id: str, return_as_file: bool):
     while not task_finished:
         try:
             response = httpx.get(
-                f"{get_api_endpoint()}/v1alpha/status/poll/{task_id}?wait=5",
+                f"{get_api_endpoint()}/v1/status/poll/{task_id}?wait=5",
                 verify=ssl_ctx,
                 timeout=15,
             )
@@ -264,7 +264,7 @@ def wait_task_finish(task_id: str, return_as_file: bool):
     if conversion_sucess:
         try:
             response = httpx.get(
-                f"{get_api_endpoint()}/v1alpha/result/{task_id}",
+                f"{get_api_endpoint()}/v1/result/{task_id}",
                 timeout=15,
                 verify=ssl_ctx,
             )
@@ -296,8 +296,11 @@ def process_url(
     do_picture_classification,
     do_picture_description,
 ):
+    target = {"kind": "zip" if return_as_file else "inbody"}
     parameters = {
-        "http_sources": [{"url": source} for source in input_sources.split(",")],
+        "sources": [
+            {"kind": "http", "url": source} for source in input_sources.split(",")
+        ],
         "options": {
             "to_formats": to_formats,
             "image_export_mode": image_export_mode,
@@ -309,24 +312,24 @@ def process_url(
             "pdf_backend": pdf_backend,
             "table_mode": table_mode,
             "abort_on_error": abort_on_error,
-            "return_as_file": return_as_file,
             "do_code_enrichment": do_code_enrichment,
             "do_formula_enrichment": do_formula_enrichment,
             "do_picture_classification": do_picture_classification,
             "do_picture_description": do_picture_description,
         },
+        "target": target,
     }
     if (
-        not parameters["http_sources"]
-        or len(parameters["http_sources"]) == 0
-        or parameters["http_sources"][0]["url"] == ""
+        not parameters["sources"]
+        or len(parameters["sources"]) == 0
+        or parameters["sources"][0]["url"] == ""
     ):
         logger.error("No input sources provided.")
         raise gr.Error("No input sources provided.", print_exception=False)
     try:
         ssl_ctx = get_ssl_context()
         response = httpx.post(
-            f"{get_api_endpoint()}/v1alpha/convert/source/async",
+            f"{get_api_endpoint()}/v1/convert/source/async",
             json=parameters,
             verify=ssl_ctx,
             timeout=60,
@@ -372,11 +375,13 @@ def process_file(
         logger.error("No files provided.")
         raise gr.Error("No files provided.", print_exception=False)
     files_data = [
-        {"base64_string": file_to_base64(file), "filename": file.name} for file in files
+        {"kind": "file", "base64_string": file_to_base64(file), "filename": file.name}
+        for file in files
     ]
+    target = {"kind": "zip" if return_as_file else "inbody"}
 
     parameters = {
-        "file_sources": files_data,
+        "sources": files_data,
         "options": {
             "to_formats": to_formats,
             "image_export_mode": image_export_mode,
@@ -394,12 +399,13 @@ def process_file(
             "do_picture_classification": do_picture_classification,
             "do_picture_description": do_picture_description,
         },
+        "target": target,
     }
 
     try:
         ssl_ctx = get_ssl_context()
         response = httpx.post(
-            f"{get_api_endpoint()}/v1alpha/convert/source/async",
+            f"{get_api_endpoint()}/v1/convert/source/async",
             json=parameters,
             verify=ssl_ctx,
             timeout=60,

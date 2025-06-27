@@ -43,10 +43,16 @@ async def convert_file(client: AsyncClient):
         "options": {
             "to_formats": ["json"],
         },
-        "file_sources": [{"base64_string": encoded_doc, "filename": doc_filename.name}],
+        "sources": [
+            {
+                "kind": "file",
+                "base64_string": encoded_doc,
+                "filename": doc_filename.name,
+            }
+        ],
     }
 
-    response = await client.post("/v1alpha/convert/source/async", json=payload)
+    response = await client.post("/v1/convert/source/async", json=payload)
     assert response.status_code == 200, "Response should be 200 OK"
 
     task = response.json()
@@ -54,7 +60,7 @@ async def convert_file(client: AsyncClient):
     print(json.dumps(task, indent=2))
 
     while task["task_status"] not in ("success", "failure"):
-        response = await client.get(f"/v1alpha/status/poll/{task['task_id']}")
+        response = await client.get(f"/v1/status/poll/{task['task_id']}")
         assert response.status_code == 200, "Response should be 200 OK"
         task = response.json()
         print(f"{task['task_status']=}")
@@ -78,26 +84,26 @@ async def test_clear_results(client: AsyncClient):
     task = await convert_file(client)
 
     # Get result once
-    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    result_response = await client.get(f"/v1/result/{task['task_id']}")
     assert result_response.status_code == 200, "Response should be 200 OK"
     print("Result 1 ok.")
     result = result_response.json()
     assert result["document"]["json_content"]["schema_name"] == "DoclingDocument"
 
     # Get result twice
-    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    result_response = await client.get(f"/v1/result/{task['task_id']}")
     assert result_response.status_code == 200, "Response should be 200 OK"
     print("Result 2 ok.")
     result = result_response.json()
     assert result["document"]["json_content"]["schema_name"] == "DoclingDocument"
 
     # Clear
-    clear_response = await client.get("/v1alpha/clear/results?older_then=0")
+    clear_response = await client.get("/v1/clear/results?older_then=0")
     assert clear_response.status_code == 200, "Response should be 200 OK"
     print("Clear ok.")
 
     # Get deleted result
-    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    result_response = await client.get(f"/v1/result/{task['task_id']}")
     assert result_response.status_code == 404, "Response should be removed"
     print("Result was no longer found.")
 
@@ -113,7 +119,7 @@ async def test_delay_remove(client: AsyncClient):
     task = await convert_file(client)
 
     # Get result once
-    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    result_response = await client.get(f"/v1/result/{task['task_id']}")
     assert result_response.status_code == 200, "Response should be 200 OK"
     print("Result ok.")
     result = result_response.json()
@@ -123,5 +129,5 @@ async def test_delay_remove(client: AsyncClient):
     await asyncio.sleep(10)
 
     # Get deleted result
-    result_response = await client.get(f"/v1alpha/result/{task['task_id']}")
+    result_response = await client.get(f"/v1/result/{task['task_id']}")
     assert result_response.status_code == 404, "Response should be removed"

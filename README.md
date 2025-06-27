@@ -39,7 +39,7 @@ Try it out with a simple conversion:
 
 ```bash
 curl -X 'POST' \
-  'http://localhost:5001/v1alpha/convert/source' \
+  'http://localhost:5001/v1/convert/source' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

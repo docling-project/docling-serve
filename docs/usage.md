@@ -35,7 +35,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 ### Source endpoint
 
-The endpoint is `/v1alpha/convert/source`, listening for POST requests of JSON payloads.
+The endpoint is `/v1/convert/source`, listening for POST requests of JSON payloads.
 
 On top of the above parameters, you must send the URL(s) of the document you want process with either the `http_sources` or `file_sources` fields.
 The first is fetching URL(s) (optionally using with extra headers), the second allows to provide documents as base64-encoded strings.
@@ -80,7 +80,7 @@ Simple payload example:
 
 ```sh
 curl -X 'POST' \
-  'http://localhost:5001/v1alpha/convert/source' \
+  'http://localhost:5001/v1/convert/source' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -127,7 +127,7 @@ curl -X 'POST' \
 import httpx
 
 async_client = httpx.AsyncClient(timeout=60.0)
-url = "http://localhost:5001/v1alpha/convert/source"
+url = "http://localhost:5001/v1/convert/source"
 payload = {
   "options": {
     "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
@@ -179,7 +179,7 @@ cat <<EOF > /tmp/request_body.json
 EOF
 
 # 3. POST the request to the docling service
-curl -X POST "localhost:5001/v1alpha/convert/source" \
+curl -X POST "localhost:5001/v1/convert/source" \
      -H "Content-Type: application/json" \
      -d @/tmp/request_body.json
 ```
@@ -188,14 +188,14 @@ curl -X POST "localhost:5001/v1alpha/convert/source" \
 
 ### File endpoint
 
-The endpoint is: `/v1alpha/convert/file`, listening for POST requests of Form payloads (necessary as the files are sent as multipart/form data). You can send one or multiple files.
+The endpoint is: `/v1/convert/file`, listening for POST requests of Form payloads (necessary as the files are sent as multipart/form data). You can send one or multiple files.
 
 <details>
 <summary>CURL example:</summary>
 
 ```sh
 curl -X 'POST' \
-  'http://127.0.0.1:5001/v1alpha/convert/file' \
+  'http://127.0.0.1:5001/v1/convert/file' \
   -H 'accept: application/json' \
   -H 'Content-Type: multipart/form-data' \
   -F 'ocr_engine=easyocr' \
@@ -224,7 +224,7 @@ curl -X 'POST' \
 import httpx
 
 async_client = httpx.AsyncClient(timeout=60.0)
-url = "http://localhost:5001/v1alpha/convert/file"
+url = "http://localhost:5001/v1/convert/file"
 parameters = {
 "from_formats": ["docx", "pptx", "html", "image", "pdf", "asciidoc", "md", "xlsx"],
 "to_formats": ["md", "json", "html", "text", "doctags"],
@@ -350,14 +350,14 @@ The response can be a JSON Document or a File.
 
 ## Asynchronous API
 
-Both `/v1alpha/convert/source` and `/v1alpha/convert/file` endpoints are available as asynchronous variants.
+Both `/v1/convert/source` and `/v1/convert/file` endpoints are available as asynchronous variants.
 The advantage of the asynchronous endpoints is the possible to interrupt the connection, check for the progress update and fetch the result.
 This approach is more resilient against network stabilities and allows the client application logic to easily interleave conversion with other tasks.
 
 Launch an asynchronous conversion with:
 
-- `POST /v1alpha/convert/source/async` when providing the input as sources.
-- `POST /v1alpha/convert/file/async` when providing the input as multipart-form files.
+- `POST /v1/convert/source/async` when providing the input as sources.
+- `POST /v1/convert/file/async` when providing the input as multipart-form files.
 
 The response format is a task detail:
 
@@ -374,7 +374,7 @@ The response format is a task detail:
 
 For checking the progress of the conversion task and wait for its completion, use the endpoint:
 
-- `GET /v1alpha/status/poll/{task_id}`
+- `GET /v1/status/poll/{task_id}`
 
 <details>
 <summary>Example waiting loop:</summary>
@@ -401,7 +401,7 @@ while task["task_status"] not in ("success", "failure"):
 Using websocket you can get the client application being notified about updates of the conversion task.
 To start the websocker connection, use the endpoint:
 
-- `/v1alpha/status/ws/{task_id}`
+- `/v1/status/ws/{task_id}`
 
 Websocket messages are JSON object with the following structure:
 
@@ -419,7 +419,7 @@ Websocket messages are JSON object with the following structure:
 ```python
 from websockets.sync.client import connect
 
-uri = f"ws://{base_url}/v1alpha/status/ws/{task['task_id']}"
+uri = f"ws://{base_url}/v1/status/ws/{task['task_id']}"
 with connect(uri) as websocket:
     for message in websocket:
         try:
@@ -438,4 +438,4 @@ with connect(uri) as websocket:
 
 When the task is completed, the result can be fetched with the endpoint:
 
-- `GET /v1alpha/result/{task_id}`
+- `GET /v1/result/{task_id}`
