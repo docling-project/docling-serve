@@ -99,7 +99,8 @@ async def lifespan(app: FastAPI):
     scratch_dir = get_scratch()
 
     # Warm up processing cache
-    await orchestrator.warm_up_caches()
+    if docling_serve_settings.load_models_at_boot:
+        await orchestrator.warm_up_caches()
 
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())

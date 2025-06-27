@@ -3,6 +3,8 @@ import logging
 import uuid
 from typing import Optional
 
+from docling.datamodel.base_models import InputFormat
+
 from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.task import Task, TaskSource
 from docling_serve.docling_conversion import get_converter, get_pdf_pipeline_opts
@@ -54,4 +56,5 @@ class AsyncLocalOrchestrator(BaseAsyncOrchestrator):
     async def warm_up_caches(self):
         # Converter with default options
         pdf_format_option = get_pdf_pipeline_opts(ConvertDocumentsOptions())
-        get_converter(pdf_format_option)
+        converter = get_converter(pdf_format_option)
+        converter.initialize_pipeline(InputFormat.PDF)
