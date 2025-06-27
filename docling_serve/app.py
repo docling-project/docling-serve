@@ -32,6 +32,7 @@ from docling_jobkit.datamodel.callback import (
     ProgressCallbackRequest,
     ProgressCallbackResponse,
 )
+from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.task import Task, TaskSource
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
@@ -41,9 +42,9 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.datamodel.requests import (
-    ConvertDocumentFileSourcesRequest,
-    ConvertDocumentHttpSourcesRequest,
     ConvertDocumentsRequest,
+    FileSourceRequest,
+    HttpSourceRequest,
 )
 from docling_serve.datamodel.responses import (
     ClearResponse,
@@ -237,10 +238,11 @@ def create_app():  # noqa: C901
         orchestrator: BaseOrchestrator, conversion_request: ConvertDocumentsRequest
     ) -> Task:
         sources: list[TaskSource] = []
-        if isinstance(conversion_request, ConvertDocumentFileSourcesRequest):
-            sources.extend(conversion_request.file_sources)
-        if isinstance(conversion_request, ConvertDocumentHttpSourcesRequest):
-            sources.extend(conversion_request.http_sources)
+        for s in conversion_request.sources:
+            if isinstance(s, FileSourceRequest):
+                sources.append(FileSource.model_validate(s))
+            elif isinstance(s, HttpSourceRequest):
+                sources.append(HttpSource.model_validate(s))
 
         task = await orchestrator.enqueue(
             sources=sources, options=conversion_request.options
@@ -300,7 +302,7 @@ def create_app():  # noqa: C901
 
     # Convert a document from URL(s)
     @app.post(
-        "/v1alpha/convert/source",
+        "/v1/convert/source",
         response_model=ConvertDocumentResponse,
         responses={
             200: {
@@ -336,7 +338,7 @@ def create_app():  # noqa: C901
 
     # Convert a document from file(s)
     @app.post(
-        "/v1alpha/convert/file",
+        "/v1/convert/file",
         response_model=ConvertDocumentResponse,
         responses={
             200: {
@@ -374,7 +376,7 @@ def create_app():  # noqa: C901
 
     # Convert a document from URL(s) using the async api
     @app.post(
-        "/v1alpha/convert/source/async",
+        "/v1/convert/source/async",
         response_model=TaskStatusResponse,
     )
     async def process_url_async(
@@ -396,7 +398,7 @@ def create_app():  # noqa: C901
 
     # Convert a document from file(s) using the async api
     @app.post(
-        "/v1alpha/convert/file/async",
+        "/v1/convert/file/async",
         response_model=TaskStatusResponse,
     )
     async def process_file_async(
@@ -422,7 +424,7 @@ def create_app():  # noqa: C901
 
     # Task status poll
     @app.get(
-        "/v1alpha/status/poll/{task_id}",
+        "/v1/status/poll/{task_id}",
         response_model=TaskStatusResponse,
     )
     async def task_status_poll(
@@ -446,7 +448,7 @@ def create_app():  # noqa: C901
 
     # Task status websocket
     @app.websocket(
-        "/v1alpha/status/ws/{task_id}",
+        "/v1/status/ws/{task_id}",
     )
     async def task_status_ws(
         websocket: WebSocket,
@@ -510,7 +512,7 @@ def create_app():  # noqa: C901
 
     # Task result
     @app.get(
-        "/v1alpha/result/{task_id}",
+        "/v1/result/{task_id}",
         response_model=ConvertDocumentResponse,
         responses={
             200: {
@@ -534,7 +536,7 @@ def create_app():  # noqa: C901
 
     # Update task progress
     @app.post(
-        "/v1alpha/callback/task/progress",
+        "/v1/callback/task/progress",
         response_model=ProgressCallbackResponse,
     )
     async def callback_task_progress(
@@ -555,7 +557,7 @@ def create_app():  # noqa: C901
 
     # Offload models
     @app.get(
-        "/v1alpha/clear/converters",
+        "/v1/clear/converters",
         response_model=ClearResponse,
     )
     async def clear_converters(
@@ -566,7 +568,7 @@ def create_app():  # noqa: C901
 
     # Clean results
     @app.get(
-        "/v1alpha/clear/results",
+        "/v1/clear/results",
         response_model=ClearResponse,
     )
     async def clear_results(

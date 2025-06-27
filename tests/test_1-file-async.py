@@ -17,13 +17,12 @@ async def async_client():
 async def test_convert_url(async_client):
     """Test convert URL to all outputs"""
 
-    base_url = "http://localhost:5001/v1alpha"
+    base_url = "http://localhost:5001/v1"
     payload = {
         "to_formats": ["md", "json", "html"],
         "image_export_mode": "placeholder",
         "ocr": False,
         "abort_on_error": False,
-        "return_as_file": False,
     }
 
     file_path = Path(__file__).parent / "2206.01062v1.pdf"

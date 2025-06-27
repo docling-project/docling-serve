@@ -15,7 +15,7 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_convert_file(async_client):
     """Test convert single file to all outputs"""
-    url = "http://localhost:5001/v1alpha/convert/file"
+    url = "http://localhost:5001/v1/convert/file"
     options = {
         "from_formats": [
             "docx",
@@ -36,7 +36,6 @@ async def test_convert_file(async_client):
         "pdf_backend": "dlparse_v2",
         "table_mode": "fast",
         "abort_on_error": False,
-        "return_as_file": False,
     }
 
     current_dir = os.path.dirname(__file__)
