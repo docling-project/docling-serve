@@ -23,7 +23,7 @@ readme = "README.md"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    # "Development Status :: 5 - Production/Stable",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Typing :: Typed",
     "Programming Language :: Python :: 3",
@@ -34,12 +34,11 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling[vlm]~=2.38",
+    "docling~=2.38",
     "docling-core>=2.32.0",
-    "mlx-vlm~=0.1.12; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "docling-jobkit[kfp,vlm]",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
-    "kfp[kubernetes]>=2.10.0",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
     "python-multipart>=0.0.14,<0.1.0",
@@ -129,6 +128,8 @@ torchvision = [
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "refactor" }
+# docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
@@ -223,7 +224,7 @@ ignore = [
 max-complexity = 15
 
 [tool.ruff.lint.isort.sections]
-"docling" = ["docling", "docling_core"]
+"docling" = ["docling", "docling_core", "docling_jobkit"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

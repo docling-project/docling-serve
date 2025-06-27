@@ -1,3 +1,4 @@
+import enum
 import sys
 from pathlib import Path
 from typing import Optional, Union
@@ -5,8 +6,6 @@ from typing import Optional, Union
 from pydantic import AnyUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
-
-from docling_serve.datamodel.engines import AsyncEngine
 
 
 class UvicornSettings(BaseSettings):
@@ -24,6 +23,11 @@ class UvicornSettings(BaseSettings):
     ssl_keyfile: Optional[Path] = None
     ssl_keyfile_password: Optional[str] = None
     workers: Union[int, None] = None
+
+
+class AsyncEngine(str, enum.Enum):
+    LOCAL = "local"
+    KFP = "kfp"
 
 
 class DoclingServeSettings(BaseSettings):

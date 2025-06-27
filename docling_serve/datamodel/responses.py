@@ -6,8 +6,7 @@ from pydantic import BaseModel
 from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
 from docling_core.types.doc import DoclingDocument
-
-from docling_serve.datamodel.task_meta import TaskProcessingMeta
+from docling_jobkit.datamodel.task_meta import TaskProcessingMeta
 
 
 # Status
