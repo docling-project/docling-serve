@@ -7,7 +7,7 @@ server and the actual app-specific configurations.
 
  > [!WARNING]
 > When the server is running with `reload` or with multiple `workers`, uvicorn
-> will spawn multiple subprocessed. This invalides all the values configured
+> will spawn multiple subprocessed. This invalidates all the values configured
 > via the CLI command line options. Please use environment variables in this
 > type of deployments.
 
