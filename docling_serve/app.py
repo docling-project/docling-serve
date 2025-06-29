@@ -59,6 +59,9 @@ from docling_serve.helper_functions import FormDepends
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 
+# CUSTOM: Import the new ingestion router
+from docling_serve.api.ingest import router as ingest_router
+
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging
 class ColoredLogFormatter(logging.Formatter):
@@ -277,6 +280,10 @@ def create_app():  # noqa: C901
     #############################
     # API Endpoints definitions #
     #############################
+
+    # CUSTOM: Include the ingestion router
+    # Note: The /v1 prefix is applied here, so ingest.py routes are e.g. /v1/ingest
+    app.include_router(ingest_router, prefix="/v1")
 
     # Favicon
     @app.get("/favicon.ico", include_in_schema=False)
