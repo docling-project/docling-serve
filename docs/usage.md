@@ -288,33 +288,42 @@ The api option is specified with:
 
 Example URLs are:
 
-- `http://localhost:8000/v1/chat/completions` for the local vllm api, with example `params`:
+- `http://localhost:8000/v1/chat/completions` for the local vllm api, with example `picture_description_api`:
   - the `HuggingFaceTB/SmolVLM-256M-Instruct` model
 
     ```json
     {
+      "url": "http://localhost:8000/v1/chat/completions",
+      "params": {
         "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
         "max_completion_tokens": 200,
+      }
     }
     ```
-  
+
   - the `ibm-granite/granite-vision-3.2-2b` model
 
     ```json
     {
+      "url": "http://localhost:8000/v1/chat/completions",
+      "params": {
         "model": "ibm-granite/granite-vision-3.2-2b",
         "max_completion_tokens": 200,
+      }
     }
     ```
 
-- `http://localhost:11434/v1/chat/completions` for the local ollama api, with example `params`:
+- `http://localhost:11434/v1/chat/completions` for the local ollama api, with example `picture_description_api`:
   - the `granite3.2-vision:2b` model
 
     ```json
     {
+      "url": "http://localhost:11434/v1/chat/completions",
+      "params": {
         "model": "granite3.2-vision:2b"
+      }
     }
-    ```  
+    ```
 
 Note that when using `picture_description_api`, the server must be launched with `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true`.
 
