@@ -65,7 +65,6 @@ Simple payload example:
     "pdf_backend": "dlparse_v2",
     "table_mode": "fast",
     "abort_on_error": false,
-    "return_as_file": false,
   },
   "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
@@ -108,7 +107,6 @@ curl -X 'POST' \
     "pdf_backend": "dlparse_v2",
     "table_mode": "fast",
     "abort_on_error": false,
-    "return_as_file": false,
     "do_table_structure": true,
     "include_images": true,
     "images_scale": 2
@@ -139,7 +137,6 @@ payload = {
     "pdf_backend": "dlparse_v2",
     "table_mode": "fast",
     "abort_on_error": False,
-    "return_as_file": False,
   },
   "http_sources": [{"url": "https://arxiv.org/pdf/2206.01062"}]
 }
@@ -210,7 +207,6 @@ curl -X 'POST' \
   -F 'abort_on_error=false' \
   -F 'to_formats=md' \
   -F 'to_formats=text' \
-  -F 'return_as_file=false' \
   -F 'do_ocr=true'
 ```
 
@@ -235,7 +231,6 @@ parameters = {
 "pdf_backend": "dlparse_v2",
 "table_mode": "fast",
 "abort_on_error": False,
-"return_as_file": False
 }
 
 current_dir = os.path.dirname(__file__)
@@ -353,8 +348,8 @@ The response can be a JSON Document or a File.
   `processing_time` is the Docling processing time in seconds, and `timings` (when enabled in the backend) provides the detailed
   timing of all the internal Docling components.
 
-- If you set the parameter `return_as_file` to True, the response will be a zip file.
-- If multiple files are generated (multiple inputs, or one input but multiple outputs with `return_as_file` True), the response will be a zip file.
+- If you set the parameter `target` to the zip mode, the response will be a zip file.
+- If multiple files are generated (multiple inputs, or one input but multiple outputs with the zip target mode), the response will be a zip file.
 
 ## Asynchronous API
 
