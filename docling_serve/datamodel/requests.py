@@ -1,8 +1,10 @@
+import enum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget, ZipTarget
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 
@@ -17,28 +19,20 @@ class HttpSourceRequest(HttpSource):
     kind: Literal["http"] = "http"
 
 
-## Targets
-
-
-class InBodyTargetRequest(BaseModel):
-    kind: Literal["inbody"] = "inbody"
-
-
-class ZipTargetRequest(BaseModel):
-    kind: Literal["zip"] = "zip"
+## Multipart targets
+class TargetName(str, enum.Enum):
+    INBODY = InBodyTarget().kind
+    ZIP = ZipTarget().kind
 
 
 ## Aliases
 SourceRequestItem = Annotated[
     FileSourceRequest | HttpSourceRequest, Field(discriminator="kind")
 ]
-TargetRequest = Annotated[
-    InBodyTargetRequest | ZipTargetRequest, Field(discriminator="kind")
-]
 
 
-## Complete request
+## Complete Source request
 class ConvertDocumentsRequest(BaseModel):
     options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
     sources: list[SourceRequestItem]
-    target: TargetRequest = InBodyTargetRequest()
+    target: TaskTarget = InBodyTarget()

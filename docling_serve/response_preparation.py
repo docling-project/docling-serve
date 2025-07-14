@@ -15,6 +15,7 @@ from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
 from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
@@ -139,6 +140,7 @@ def _export_documents_as_files(
 
 def process_results(
     conversion_options: ConvertDocumentsOptions,
+    target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
 ) -> Union[ConvertDocumentResponse, FileResponse]:
@@ -175,7 +177,7 @@ def process_results(
     export_doctags = OutputFormat.DOCTAGS in conversion_options.to_formats
 
     # Only 1 document was processed, and we are not returning it as a file
-    if len(conv_results) == 1 and not conversion_options.return_as_file:
+    if len(conv_results) == 1 and isinstance(target, InBodyTarget):
         conv_res = conv_results[0]
         document = _export_document_as_content(
             conv_res,
@@ -252,6 +254,7 @@ async def prepare_response(
     work_dir = get_scratch() / task.task_id
     response = process_results(
         conversion_options=task.options,
+        target=task.target,
         conv_results=task.results,
         work_dir=work_dir,
     )

@@ -11,6 +11,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     FastAPI,
+    Form,
     HTTPException,
     Query,
     UploadFile,
@@ -34,6 +35,7 @@ from docling_jobkit.datamodel.callback import (
 )
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.task import Task, TaskSource
+from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget, ZipTarget
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -45,6 +47,7 @@ from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
     FileSourceRequest,
     HttpSourceRequest,
+    TargetName,
 )
 from docling_serve.datamodel.responses import (
     ClearResponse,
@@ -245,7 +248,9 @@ def create_app():  # noqa: C901
                 sources.append(HttpSource.model_validate(s))
 
         task = await orchestrator.enqueue(
-            sources=sources, options=conversion_request.options
+            sources=sources,
+            options=conversion_request.options,
+            target=conversion_request.target,
         )
         return task
 
@@ -253,6 +258,7 @@ def create_app():  # noqa: C901
         orchestrator: BaseOrchestrator,
         files: list[UploadFile],
         options: ConvertDocumentsRequestOptions,
+        target: TaskTarget,
     ) -> Task:
         _log.info(f"Received {len(files)} files for processing.")
 
@@ -264,7 +270,9 @@ def create_app():  # noqa: C901
             name = file.filename if file.filename else f"file{suffix}.pdf"
             file_sources.append(DocumentStream(name=name, stream=buf))
 
-        task = await orchestrator.enqueue(sources=file_sources, options=options)
+        task = await orchestrator.enqueue(
+            sources=file_sources, options=options, target=target
+        )
         return task
 
     async def _wait_task_complete(orchestrator: BaseOrchestrator, task_id: str) -> bool:
@@ -353,9 +361,11 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
     ):
+        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
-            orchestrator=orchestrator, files=files, options=options
+            orchestrator=orchestrator, files=files, options=options, target=target
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -408,9 +418,11 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
     ):
+        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
-            orchestrator=orchestrator, files=files, options=options
+            orchestrator=orchestrator, files=files, options=options, target=target
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
