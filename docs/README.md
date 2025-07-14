@@ -6,3 +6,4 @@ This documentation pages explore the webserver configurations, runtime options, 
 - [Advance usage](./usage.md)
 - [Deployment](./deployment.md)
 - [Development](./development.md)
+- [`v1` migration](./v1_migration.md)
