@@ -34,8 +34,12 @@ from docling_jobkit.datamodel.callback import (
     ProgressCallbackResponse,
 )
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task, TaskSource
-from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget, ZipTarget
+from docling_jobkit.datamodel.task_targets import (
+    InBodyTarget,
+    TaskTarget,
+)
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -47,13 +51,14 @@ from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
     FileSourceRequest,
     HttpSourceRequest,
-    TargetName,
+    S3SourceRequest,
 )
 from docling_serve.datamodel.responses import (
     ClearResponse,
     ConvertDocumentResponse,
     HealthCheckResponse,
     MessageKind,
+    PresignUrlConvertDocumentResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -171,7 +176,7 @@ def create_app():  # noqa: C901
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
         try:
-            import gradio as gr
+            import gradio as gr  # type: ignore
 
             from docling_serve.gradio_ui import ui as gradio_ui
 
@@ -246,6 +251,8 @@ def create_app():  # noqa: C901
                 sources.append(FileSource.model_validate(s))
             elif isinstance(s, HttpSourceRequest):
                 sources.append(HttpSource.model_validate(s))
+            elif isinstance(s, S3SourceRequest):
+                sources.append(S3Coordinates.model_validate(s))
 
         task = await orchestrator.enqueue(
             sources=sources,
@@ -361,9 +368,8 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        target: Annotated[TaskTarget, Form()] = InBodyTarget(),
     ):
-        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             orchestrator=orchestrator, files=files, options=options, target=target
         )
@@ -418,9 +424,8 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        target: Annotated[TaskTarget, Form()] = InBodyTarget(),
     ):
-        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             orchestrator=orchestrator, files=files, options=options, target=target
         )
@@ -525,7 +530,7 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1/result/{task_id}",
-        response_model=ConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | PresignUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},

@@ -13,14 +13,23 @@ from fastapi.responses import FileResponse
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
+from docling_jobkit.connectors.s3_helper import (
+    generate_presign_url,
+    get_s3_connection,
+    upload_file,
+)
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
 from docling_jobkit.datamodel.task import Task
-from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget
+from docling_jobkit.datamodel.task_targets import InBodyTarget, PutTarget, TaskTarget
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
 
-from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse
+from docling_serve.datamodel.responses import (
+    ConvertDocumentResponse,
+    DocumentResponse,
+    PresignUrlConvertDocumentResponse,
+)
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 
@@ -143,7 +152,8 @@ def process_results(
     target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
-) -> Union[ConvertDocumentResponse, FileResponse]:
+    task_id: str,
+) -> Union[ConvertDocumentResponse, FileResponse, PresignUrlConvertDocumentResponse]:
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()
@@ -167,7 +177,9 @@ def process_results(
         )
 
     # We have some results, let's prepare the response
-    response: Union[FileResponse, ConvertDocumentResponse]
+    response: Union[
+        FileResponse, ConvertDocumentResponse, PresignUrlConvertDocumentResponse
+    ]
 
     # Booleans to know what to export
     export_json = OutputFormat.JSON in conversion_options.to_formats
@@ -234,9 +246,34 @@ def process_results(
         # Output directory
         # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
-        response = FileResponse(
-            file_path, filename=file_path.name, media_type="application/zip"
-        )
+        if isinstance(target, PutTarget):
+            s3_client, _ = get_s3_connection(target)
+            key_prefix = (
+                target.key_prefix
+                if target.key_prefix.endswith("/")
+                else target.key_prefix + "/"
+            )
+            object_key = f"{key_prefix}{task_id}.zip"
+            if upload_file(
+                client=s3_client,
+                bucket=target.bucket,
+                object_key=object_key,
+                file_name=file_path,
+            ):
+                presign_url = generate_presign_url(
+                    s3_client=s3_client,
+                    s3_source_bucket=target.bucket,
+                    source_key=object_key,
+                )
+                response = PresignUrlConvertDocumentResponse(url=presign_url)
+            else:
+                raise HTTPException(
+                    status_code=500, detail="An error occour while uploading zip to s3."
+                )
+        else:
+            response = FileResponse(
+                file_path, filename=file_path.name, media_type="application/zip"
+            )
 
     return response
 
@@ -257,6 +294,7 @@ async def prepare_response(
         target=task.target,
         conv_results=task.results,
         work_dir=work_dir,
+        task_id=task.task_id,
     )
 
     if work_dir.exists():

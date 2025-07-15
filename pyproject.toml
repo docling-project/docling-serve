@@ -128,7 +128,7 @@ torchvision = [
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "refactor" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "snt/converter" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
