@@ -261,11 +261,17 @@ def process_results(
                 file_name=file_path,
             ):
                 presign_url = generate_presign_url(
-                    s3_client=s3_client,
-                    s3_source_bucket=target.bucket,
-                    source_key=object_key,
+                    client=s3_client,
+                    bucket=target.bucket,
+                    object_key=object_key,
                 )
-                response = PresignUrlConvertDocumentResponse(url=presign_url)
+                if presign_url:
+                    response = PresignUrlConvertDocumentResponse(url=presign_url)
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="An error occour while creating presign url.",
+                    )
             else:
                 raise HTTPException(
                     status_code=500, detail="An error occour while uploading zip to s3."
