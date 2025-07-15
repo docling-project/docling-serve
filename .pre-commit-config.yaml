@@ -30,8 +30,7 @@ repos:
         args: [sync, "--config=.github/vale.ini"]
       - id: vale
         name: Spell and Style Check with Vale
-        args: [--output=line, "--config=.github/vale.ini"]
-        # args: ["--config", ".github/vale.ini", "--no-wrap"]
+        args: ["--config=.github/vale.ini"]
         files: \.md$
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
