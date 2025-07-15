@@ -74,7 +74,7 @@ This document provides examples for pre-loading docling models to a persistent v
     Manifest example: [docling-model-cache-job.yaml](./deploy-examples/docling-model-cache-job.yaml)
 
 3. Now we can mount volume in the docling-serve deployment and set env `DOCLING_SERVE_ARTIFACTS_PATH` to point to it.
-    Following additions to deploymeny should be made:
+    Following additions to deployment should be made:
 
     ```yaml
     spec:
@@ -98,6 +98,6 @@ This document provides examples for pre-loading docling models to a persistent v
 
     Make sure that value of `DOCLING_SERVE_ARTIFACTS_PATH` is the same as where models were downloaded and where volume is mounted.
 
-    Now when docling-serve is executing tasks, the underlying docling installation will load model weights from mouted volume.
+    Now when docling-serve is executing tasks, the underlying docling installation will load model weights from mounted volume.
 
     Manifest example: [docling-model-cache-deployment.yaml](./deploy-examples/docling-model-cache-deployment.yaml)

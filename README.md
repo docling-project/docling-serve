@@ -12,7 +12,7 @@ Running [Docling](https://github.com/docling-project/docling) as an API service.
 
 - Learning how to [configure the webserver](./docs/configuration.md)
 - Get to know all [runtime options](./docs/usage.md) of the API
-- Explore usefule [deployment examples](./docs/deployment.md)
+- Explore useful [deployment examples](./docs/deployment.md)
 - And more
 
  > [!NOTE] Migration to the `v1` API
@@ -62,15 +62,15 @@ Available container images:
 | [`ghcr.io/docling-project/docling-serve-cu126`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu126) <br /> [`quay.io/docling-project/docling-serve-cu126`](https://quay.io/repository/docling-project/docling-serve-cu126) | Cuda 12.6 image which installs `torch` from the pytorch cu126 index. | `linux/amd64` | 8.7 GB |
 | [`ghcr.io/docling-project/docling-serve-cu128`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu128) <br /> [`quay.io/docling-project/docling-serve-cu128`](https://quay.io/repository/docling-project/docling-serve-cu128) | Cuda 12.8 image which installs `torch` from the pytorch cu128 index. | `linux/amd64` | 8.7 GB |
 
-Coming soon: `docling-serve-slim` images will reduce the size by skipping the model weights download.
+Coming son: `docling-serve-slim` images will reduce the size by skipping the model weights download.
 
 ### Demonstration UI
 
 An easy to use UI is available at the `/ui` endpoint.
 
-![ui-input.png](img/ui-input.png)
+![Input controllers in the UI](img/ui-input.png)
 
-![ui-output.png](img/ui-output.png)
+![Output visualization in the UI](img/ui-output.png)
 
 ## Get help and support
 

@@ -9,7 +9,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `from_formats` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
 - `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
 - `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
-- `page_range` (tuple). If speficied, only convert a range of pages. The page number starts at 1.
+- `page_range` (tuple). If specified, only convert a range of pages. The page number starts at 1.
 - `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
 - `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
 - `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
@@ -25,8 +25,8 @@ On top of the source of file (see below), both endpoints support the same parame
 - `do_picture_classification` (bool): If enabled, classify pictures in documents. Defaults to false.
 - `do_picture_description` (bool): If enabled, describe pictures in documents. Defaults to false.
 - `picture_description_area_threshold` (float): Minimum percentage of the area for a picture to be processed with the models. Defaults to 0.05.
-- `picture_description_local` (dict): Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with picture_description_api.
-- `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with picture_description_local.
+- `picture_description_local` (dict): Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`.
+- `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`.
 - `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
 - `images_scale` (float): Scale factor for images. Defaults to 2.0.
 
@@ -307,7 +307,7 @@ Example URLs are:
     }
     ```
 
-- `http://localhost:11434/v1/chat/completions` for the local ollama api, with example `picture_description_api`:
+- `http://localhost:11434/v1/chat/completions` for the local Ollama api, with example `picture_description_api`:
   - the `granite3.2-vision:2b` model
 
     ```json
@@ -355,7 +355,7 @@ The response can be a JSON Document or a File.
 
 Both `/v1/convert/source` and `/v1/convert/file` endpoints are available as asynchronous variants.
 The advantage of the asynchronous endpoints is the possible to interrupt the connection, check for the progress update and fetch the result.
-This approach is more resilient against network stabilities and allows the client application logic to easily interleave conversion with other tasks.
+This approach is more resilient against network instabilities and allows the client application logic to easily interleave conversion with other tasks.
 
 Launch an asynchronous conversion with:
 
@@ -402,7 +402,7 @@ while task["task_status"] not in ("success", "failure"):
 ### Subscribe with websockets
 
 Using websocket you can get the client application being notified about updates of the conversion task.
-To start the websocker connection, use the endpoint:
+To start the websocket connection, use the endpoint:
 
 - `/v1/status/ws/{task_id}`
 
@@ -417,7 +417,7 @@ Websocket messages are JSON object with the following structure:
 ```
 
 <details>
-<summary>Example websocker usage:</summary>
+<summary>Example websocket usage:</summary>
 
 ```python
 from websockets.sync.client import connect

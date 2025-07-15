@@ -7,7 +7,7 @@ server and the actual app-specific configurations.
 
  > [!WARNING]
 > When the server is running with `reload` or with multiple `workers`, uvicorn
-> will spawn multiple subprocessed. This invalidates all the values configured
+> will spawn multiple subprocesses. This invalidates all the values configured
 > via the CLI command line options. Please use environment variables in this
 > type of deployments.
 
@@ -36,7 +36,7 @@ THe following table describes the options to configure the Docling Serve app.
 | CLI option | ENV | Default | Description |
 | -----------|-----|---------|-------------|
 | `--artifacts-path` | `DOCLING_SERVE_ARTIFACTS_PATH` | unset | If set to a valid directory, the model weights will be loaded from this path |
-|  | `DOCLING_SERVE_STATIC_PATH` | unset | If set to a valid directory, the static assets for the docs and ui will be loaded from this path |
+|  | `DOCLING_SERVE_STATIC_PATH` | unset | If set to a valid directory, the static assets for the docs and UI will be loaded from this path |
 |  | `DOCLING_SERVE_SCRATCH_PATH` |  | If set, this directory will be used as scratch workspace, e.g. storing the results before they get requested. If unset, a temporary created is created for this purpose. |
 | `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
 |  | `DOCLING_SERVE_ENABLE_REMOTE_SERVICES` | `false` | Allow pipeline components making remote connections. For example, this is needed when using a vision-language model via APIs. |
