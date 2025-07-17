@@ -15,6 +15,9 @@ Running [Docling](https://github.com/docling-project/docling) as an API service.
 - Explore usefule [deployment examples](./docs/deployment.md)
 - And more
 
+ > [!NOTE] Migration to the `v1` API
+> Docling Serve now has a stable v1 API. Read more on the [migration to v1](./docs/v1_migration.md).
+
 ## Getting started
 
 Install the `docling-serve` package and run the server.
@@ -39,7 +42,7 @@ Try it out with a simple conversion:
 
 ```bash
 curl -X 'POST' \
-  'http://localhost:5001/v1alpha/convert/source' \
+  'http://localhost:5001/v1/convert/source' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

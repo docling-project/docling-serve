@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import shutil
@@ -6,15 +7,22 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Union
 
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
+from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
+from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget
+from docling_jobkit.orchestrators.base_orchestrator import (
+    BaseOrchestrator,
+)
 
-from docling_serve.datamodel.convert import ConvertDocumentsOptions
 from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse
+from docling_serve.settings import docling_serve_settings
+from docling_serve.storage import get_scratch
 
 _log = logging.getLogger(__name__)
 
@@ -118,7 +126,7 @@ def _export_documents_as_files(
             if export_doctags:
                 fname = output_dir / f"{doc_filename}.doctags"
                 _log.info(f"writing Doc Tags output to {fname}")
-                conv_res.document.save_as_document_tokens(filename=fname)
+                conv_res.document.save_as_doctags(filename=fname)
 
         else:
             _log.warning(f"Document {conv_res.input.file} failed to convert.")
@@ -132,6 +140,7 @@ def _export_documents_as_files(
 
 def process_results(
     conversion_options: ConvertDocumentsOptions,
+    target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
 ) -> Union[ConvertDocumentResponse, FileResponse]:
@@ -168,7 +177,7 @@ def process_results(
     export_doctags = OutputFormat.DOCTAGS in conversion_options.to_formats
 
     # Only 1 document was processed, and we are not returning it as a file
-    if len(conv_results) == 1 and not conversion_options.return_as_file:
+    if len(conv_results) == 1 and isinstance(target, InBodyTarget):
         conv_res = conv_results[0]
         document = _export_document_as_content(
             conv_res,
@@ -228,5 +237,49 @@ def process_results(
         response = FileResponse(
             file_path, filename=file_path.name, media_type="application/zip"
         )
+
+    return response
+
+
+async def prepare_response(
+    task: Task, orchestrator: BaseOrchestrator, background_tasks: BackgroundTasks
+):
+    if task.results is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Task result not found. Please wait for a completion status.",
+        )
+    assert task.options is not None
+
+    work_dir = get_scratch() / task.task_id
+    response = process_results(
+        conversion_options=task.options,
+        target=task.target,
+        conv_results=task.results,
+        work_dir=work_dir,
+    )
+
+    if work_dir.exists():
+        task.scratch_dir = work_dir
+        if not isinstance(response, FileResponse):
+            _log.warning(
+                f"Task {task.task_id=} produced content in {work_dir=} but the response is not a file."
+            )
+            shutil.rmtree(work_dir, ignore_errors=True)
+
+    if docling_serve_settings.single_use_results:
+        if task.scratch_dir is not None:
+            background_tasks.add_task(
+                shutil.rmtree, task.scratch_dir, ignore_errors=True
+            )
+
+        async def _remove_task_impl():
+            await asyncio.sleep(docling_serve_settings.result_removal_delay)
+            await orchestrator.delete_task(task_id=task.task_id)
+
+        async def _remove_task():
+            asyncio.create_task(_remove_task_impl())  # noqa: RUF006
+
+        background_tasks.add_task(_remove_task)
 
     return response

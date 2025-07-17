@@ -25,16 +25,15 @@ async def test_convert_url(async_client):
         "https://arxiv.org/pdf/2311.18481",
     ]
 
-    base_url = "http://localhost:5001/v1alpha"
+    base_url = "http://localhost:5001/v1"
     payload = {
         "options": {
             "to_formats": ["md", "json"],
             "image_export_mode": "placeholder",
             "ocr": True,
             "abort_on_error": False,
-            "return_as_file": False,
         },
-        "http_sources": [{"url": random.choice(example_docs)}],
+        "sources": [{"kind": "http", "url": random.choice(example_docs)}],
     }
     print(json.dumps(payload, indent=2))
 

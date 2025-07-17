@@ -45,7 +45,7 @@ async def test_health(client: AsyncClient):
 async def test_convert_file(client: AsyncClient):
     """Test convert single file to all outputs"""
 
-    endpoint = "/v1alpha/convert/file"
+    endpoint = "/v1/convert/file"
     options = {
         "from_formats": [
             "docx",
@@ -66,7 +66,6 @@ async def test_convert_file(client: AsyncClient):
         "pdf_backend": "dlparse_v2",
         "table_mode": "fast",
         "abort_on_error": False,
-        "return_as_file": False,
     }
 
     current_dir = os.path.dirname(__file__)

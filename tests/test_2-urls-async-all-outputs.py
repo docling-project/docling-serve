@@ -16,7 +16,7 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_convert_url(async_client):
     """Test convert URL to all outputs"""
-    base_url = "http://localhost:5001/v1alpha"
+    base_url = "http://localhost:5001/v1"
     payload = {
         "options": {
             "from_formats": [
@@ -38,12 +38,12 @@ async def test_convert_url(async_client):
             "pdf_backend": "dlparse_v2",
             "table_mode": "fast",
             "abort_on_error": False,
-            "return_as_file": False,
         },
-        "http_sources": [
-            {"url": "https://arxiv.org/pdf/2206.01062"},
-            {"url": "https://arxiv.org/pdf/2408.09869"},
+        "sources": [
+            {"kind": "http", "url": "https://arxiv.org/pdf/2206.01062"},
+            {"kind": "http", "url": "https://arxiv.org/pdf/2408.09869"},
         ],
+        "target": {"kind": "zip"},
     }
 
     response = await async_client.post(f"{base_url}/convert/source/async", json=payload)

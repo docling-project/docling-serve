@@ -1,3 +1,4 @@
+import enum
 import sys
 from pathlib import Path
 from typing import Optional, Union
@@ -5,8 +6,6 @@ from typing import Optional, Union
 from pydantic import AnyUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
-
-from docling_serve.datamodel.engines import AsyncEngine
 
 
 class UvicornSettings(BaseSettings):
@@ -26,6 +25,12 @@ class UvicornSettings(BaseSettings):
     workers: Union[int, None] = None
 
 
+class AsyncEngine(str, enum.Enum):
+    LOCAL = "local"
+    KFP = "kfp"
+    RQ = "rq"
+
+
 class DoclingServeSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCLING_SERVE_",
@@ -41,6 +46,7 @@ class DoclingServeSettings(BaseSettings):
     scratch_path: Optional[Path] = None
     single_use_results: bool = True
     result_removal_delay: float = 300  # 5 minutes
+    load_models_at_boot: bool = True
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False

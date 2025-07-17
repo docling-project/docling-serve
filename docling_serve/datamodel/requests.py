@@ -1,62 +1,38 @@
-import base64
-from io import BytesIO
-from typing import Annotated, Any, Union
+import enum
+from typing import Annotated, Literal
 
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import BaseModel, Field
 
-from docling.datamodel.base_models import DocumentStream
+from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget, ZipTarget
 
-from docling_serve.datamodel.convert import ConvertDocumentsOptions
+from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 
-
-class DocumentsConvertBase(BaseModel):
-    options: ConvertDocumentsOptions = ConvertDocumentsOptions()
+## Sources
 
 
-class HttpSource(BaseModel):
-    url: Annotated[
-        AnyHttpUrl,
-        Field(
-            description="HTTP url to process",
-            examples=["https://arxiv.org/pdf/2206.01062"],
-        ),
-    ]
-    headers: Annotated[
-        dict[str, Any],
-        Field(
-            description="Additional headers used to fetch the urls, "
-            "e.g. authorization, agent, etc"
-        ),
-    ] = {}
+class FileSourceRequest(FileSource):
+    kind: Literal["file"] = "file"
 
 
-class FileSource(BaseModel):
-    base64_string: Annotated[
-        str,
-        Field(
-            description="Content of the file serialized in base64. "
-            "For example it can be obtained via "
-            "`base64 -w 0 /path/to/file/pdf-to-convert.pdf`."
-        ),
-    ]
-    filename: Annotated[
-        str,
-        Field(description="Filename of the uploaded document", examples=["file.pdf"]),
-    ]
-
-    def to_document_stream(self) -> DocumentStream:
-        buf = BytesIO(base64.b64decode(self.base64_string))
-        return DocumentStream(stream=buf, name=self.filename)
+class HttpSourceRequest(HttpSource):
+    kind: Literal["http"] = "http"
 
 
-class ConvertDocumentHttpSourcesRequest(DocumentsConvertBase):
-    http_sources: list[HttpSource]
+## Multipart targets
+class TargetName(str, enum.Enum):
+    INBODY = InBodyTarget().kind
+    ZIP = ZipTarget().kind
 
 
-class ConvertDocumentFileSourcesRequest(DocumentsConvertBase):
-    file_sources: list[FileSource]
-
-
-ConvertDocumentsRequest = Union[
-    ConvertDocumentFileSourcesRequest, ConvertDocumentHttpSourcesRequest
+## Aliases
+SourceRequestItem = Annotated[
+    FileSourceRequest | HttpSourceRequest, Field(discriminator="kind")
 ]
+
+
+## Complete Source request
+class ConvertDocumentsRequest(BaseModel):
+    options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
+    sources: list[SourceRequestItem]
+    target: TaskTarget = InBodyTarget()

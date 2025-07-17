@@ -44,7 +44,7 @@ ARG UV_SYNC_EXTRA_ARGS=""
 # define extras
 ARG UV_SYNC_ARGS="--frozen --no-dev --extra cpu --extra tesserocr --extra rapidocr" 
 
-RUN --mount=from=ghcr.io/astral-sh/uv:0.7.15,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.7.19,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -62,7 +62,7 @@ RUN echo "Downloading models..." && \
     chmod -R g=u ${DOCLING_SERVE_ARTIFACTS_PATH}
 
 COPY --chown=1001:0 ./docling_serve ./docling_serve
-RUN --mount=from=ghcr.io/astral-sh/uv:0.7.15,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.7.19,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \

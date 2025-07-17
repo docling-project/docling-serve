@@ -40,7 +40,7 @@ async def client(app):
 async def test_convert_file(client: AsyncClient):
     """Test convert single file to all outputs"""
 
-    endpoint = "/v1alpha/convert/file"
+    endpoint = "/v1/convert/file"
     options = {
         "to_formats": ["md", "json"],
         "image_export_mode": "placeholder",

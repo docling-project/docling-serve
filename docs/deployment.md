@@ -30,7 +30,7 @@ For using the API:
 ```sh
 # Make a test query
 curl -X 'POST' \
-  "localhost:5001/v1alpha/convert/source/async" \
+  "localhost:5001/v1/convert/source/async" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
@@ -148,7 +148,7 @@ oc port-forward svc/docling-serve 5001:5001
 
 # Make a test query
 curl -X 'POST' \
-  "localhost:5001/v1alpha/convert/source/async" \
+  "localhost:5001/v1/convert/source/async" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
@@ -184,7 +184,7 @@ OCP_AUTH_TOKEN=$(oc whoami --show-token)
 
 # Make a test query
 curl -X 'POST' \
-  "${DOCLING_ROUTE}/v1alpha/convert/source/async" \
+  "${DOCLING_ROUTE}/v1/convert/source/async" \
   -H "Authorization: Bearer ${OCP_AUTH_TOKEN}" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
@@ -218,7 +218,7 @@ DOCLING_ROUTE="https://$(oc get routes $DOCLING_NAME --template={{.spec.host}})"
 
 # Make a test query, store the cookie and taskid
 task_id=$(curl -s -X 'POST' \
-    "${DOCLING_ROUTE}/v1alpha/convert/source/async" \
+    "${DOCLING_ROUTE}/v1/convert/source/async" \
     -H "accept: application/json" \
     -H "Content-Type: application/json" \
     -d '{
@@ -230,7 +230,7 @@ task_id=$(curl -s -X 'POST' \
 ```sh
 # Grab the taskid and cookie to check the task status
 curl -v -X 'GET' \
-  "${DOCLING_ROUTE}/v1alpha/status/poll/$task_id?wait=0" \
+  "${DOCLING_ROUTE}/v1/status/poll/$task_id?wait=0" \
   -H "accept: application/json" \
   -b "cookies.txt"
 ```
