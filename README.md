@@ -15,7 +15,7 @@ Running [Docling](https://github.com/docling-project/docling) as an API service.
 - Explore useful [deployment examples](./docs/deployment.md)
 - And more
 
- > [!NOTE] Migration to the `v1` API
+> [!NOTE] Migration to the `v1` API
 > Docling Serve now has a stable v1 API. Read more on the [migration to v1](./docs/v1_migration.md).
 
 ## Getting started
@@ -62,7 +62,7 @@ Available container images:
 | [`ghcr.io/docling-project/docling-serve-cu126`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu126) <br /> [`quay.io/docling-project/docling-serve-cu126`](https://quay.io/repository/docling-project/docling-serve-cu126) | Cuda 12.6 image which installs `torch` from the pytorch cu126 index. | `linux/amd64` | 8.7 GB |
 | [`ghcr.io/docling-project/docling-serve-cu128`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu128) <br /> [`quay.io/docling-project/docling-serve-cu128`](https://quay.io/repository/docling-project/docling-serve-cu128) | Cuda 12.8 image which installs `torch` from the pytorch cu128 index. | `linux/amd64` | 8.7 GB |
 
-Coming son: `docling-serve-slim` images will reduce the size by skipping the model weights download.
+Coming soon: `docling-serve-slim` images will reduce the size by skipping the model weights download.
 
 ### Demonstration UI
 
