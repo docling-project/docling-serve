@@ -69,7 +69,7 @@ from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
-from docling_serve.websocker_notifier import WebsocketNotifier
+from docling_serve.websocket_notifier import WebsocketNotifier
 
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging

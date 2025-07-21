@@ -12,11 +12,11 @@ Running [Docling](https://github.com/docling-project/docling) as an API service.
 
 - Learning how to [configure the webserver](./docs/configuration.md)
 - Get to know all [runtime options](./docs/usage.md) of the API
-- Explore usefule [deployment examples](./docs/deployment.md)
+- Explore useful [deployment examples](./docs/deployment.md)
 - And more
 
- > [!NOTE] Migration to the `v1` API
-> Docling Serve now has a stable v1 API. Read more on the [migration to v1](./docs/v1_migration.md).
+> [!NOTE]
+> **Migration to the `v1` API.** Docling Serve now has a stable v1 API. Read more on the [migration to v1](./docs/v1_migration.md).
 
 ## Getting started
 
@@ -68,9 +68,9 @@ Coming soon: `docling-serve-slim` images will reduce the size by skipping the mo
 
 An easy to use UI is available at the `/ui` endpoint.
 
-![ui-input.png](img/ui-input.png)
+![Input controllers in the UI](img/ui-input.png)
 
-![ui-output.png](img/ui-output.png)
+![Output visualization in the UI](img/ui-output.png)
 
 ## Get help and support
 

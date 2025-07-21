@@ -45,7 +45,9 @@ def _export_document_as_content(
     document = DocumentResponse(filename=conv_res.input.file.name)
 
     if conv_res.status == ConversionStatus.SUCCESS:
-        new_doc = conv_res.document._make_copy_with_refmode(Path(), image_mode)
+        new_doc = conv_res.document._make_copy_with_refmode(
+            Path(), image_mode, page_no=None
+        )
 
         # Create the different formats
         if export_json:

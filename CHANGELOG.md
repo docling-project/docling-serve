@@ -1,3 +1,13 @@
+## [v1.0.1](https://github.com/docling-project/docling-serve/releases/tag/v1.0.1) - 2025-07-21
+
+### Fix
+
+* Docling update v2.42.0 ([#277](https://github.com/docling-project/docling-serve/issues/277)) ([`8706706`](https://github.com/docling-project/docling-serve/commit/8706706e8797b0a06ec4baa7cf87988311be68b6))
+
+### Documentation
+
+* Typo in README ([#276](https://github.com/docling-project/docling-serve/issues/276)) ([`766adb2`](https://github.com/docling-project/docling-serve/commit/766adb248113c7bd5144d14b3c82929a2ad29f8e))
+
 ## [v1.0.0](https://github.com/docling-project/docling-serve/releases/tag/v1.0.0) - 2025-07-14
 
 ### Feature
