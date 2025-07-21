@@ -35,7 +35,7 @@ class ConvertDocumentResponse(BaseModel):
     timings: dict[str, ProfilingItem] = {}
 
 
-class PresignUrlConvertDocumentResponse(BaseModel):
+class PresignedUrlConvertDocumentResponse(BaseModel):
     url: str
 
 

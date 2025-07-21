@@ -33,12 +33,9 @@ class S3SourceRequest(S3Coordinates):
 
 
 ## Multipart targets
-## not used with put target
 class TargetName(str, enum.Enum):
     INBODY = InBodyTarget().kind
     ZIP = ZipTarget().kind
-    # S3 = S3Target().kind
-    # PUT = PutTarget().kind
 
 
 ## Aliases
@@ -66,8 +63,10 @@ class ConvertDocumentsRequest(BaseModel):
                         "error source", 'source kind "s3" requires target kind "s3"'
                     )
         if isinstance(self.target, S3Target):
-            if S3SourceRequest not in self.sources:
-                raise PydanticCustomError(
-                    "error target", 'target kind "s3" requires source kind "s3"'
-                )
+            for source in self.sources:
+                if isinstance(source, S3SourceRequest):
+                    return self
+            raise PydanticCustomError(
+                "error target", 'target kind "s3" requires source kind "s3"'
+            )
         return self

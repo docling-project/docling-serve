@@ -7,17 +7,13 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Union
 
+import httpx
 from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
 from docling.datamodel.base_models import OutputFormat
 from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
-from docling_jobkit.connectors.s3_helper import (
-    generate_presign_url,
-    get_s3_connection,
-    upload_file,
-)
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
 from docling_jobkit.datamodel.task import Task
 from docling_jobkit.datamodel.task_targets import InBodyTarget, PutTarget, TaskTarget
@@ -28,7 +24,7 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_serve.datamodel.responses import (
     ConvertDocumentResponse,
     DocumentResponse,
-    PresignUrlConvertDocumentResponse,
+    PresignedUrlConvertDocumentResponse,
 )
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
@@ -153,7 +149,7 @@ def process_results(
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
     task_id: str,
-) -> Union[ConvertDocumentResponse, FileResponse, PresignUrlConvertDocumentResponse]:
+) -> Union[ConvertDocumentResponse, FileResponse, PresignedUrlConvertDocumentResponse]:
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()
@@ -178,7 +174,7 @@ def process_results(
 
     # We have some results, let's prepare the response
     response: Union[
-        FileResponse, ConvertDocumentResponse, PresignUrlConvertDocumentResponse
+        FileResponse, ConvertDocumentResponse, PresignedUrlConvertDocumentResponse
     ]
 
     # Booleans to know what to export
@@ -247,32 +243,14 @@ def process_results(
         # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
         if isinstance(target, PutTarget):
-            s3_client, _ = get_s3_connection(target)
-            key_prefix = (
-                target.key_prefix
-                if target.key_prefix.endswith("/")
-                else target.key_prefix + "/"
-            )
-            object_key = f"{key_prefix}{task_id}.zip"
-            if upload_file(
-                client=s3_client,
-                bucket=target.bucket,
-                object_key=object_key,
-                file_name=file_path,
-            ):
-                presign_url = generate_presign_url(
-                    client=s3_client,
-                    bucket=target.bucket,
-                    object_key=object_key,
-                )
-                if presign_url:
-                    response = PresignUrlConvertDocumentResponse(url=presign_url)
-                else:
-                    raise HTTPException(
-                        status_code=500,
-                        detail="An error occour while creating presign url.",
-                    )
-            else:
+            try:
+                with open(file_path, "rb") as file_data:
+                    r = httpx.put(target.url, files={"file": file_data})
+                    r.raise_for_status()
+                # response is not get presigned url, maybe is better to just return 200?
+                response = PresignedUrlConvertDocumentResponse(url=target.url)
+            except Exception as exc:
+                _log.error("An error occour while uploading zip to s3", exc_info=exc)
                 raise HTTPException(
                     status_code=500, detail="An error occour while uploading zip to s3."
                 )

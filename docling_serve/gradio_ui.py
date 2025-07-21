@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import certifi
-import gradio as gr  # type: ignore
+import gradio as gr
 import httpx
 
 from docling.datamodel.base_models import FormatToExtensions

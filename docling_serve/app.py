@@ -39,6 +39,7 @@ from docling_jobkit.datamodel.task import Task, TaskSource
 from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
     TaskTarget,
+    ZipTarget,
 )
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
@@ -52,13 +53,14 @@ from docling_serve.datamodel.requests import (
     FileSourceRequest,
     HttpSourceRequest,
     S3SourceRequest,
+    TargetName,
 )
 from docling_serve.datamodel.responses import (
     ClearResponse,
     ConvertDocumentResponse,
     HealthCheckResponse,
     MessageKind,
-    PresignUrlConvertDocumentResponse,
+    PresignedUrlConvertDocumentResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -176,7 +178,7 @@ def create_app():  # noqa: C901
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
         try:
-            import gradio as gr  # type: ignore
+            import gradio as gr
 
             from docling_serve.gradio_ui import ui as gradio_ui
 
@@ -368,8 +370,9 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target: Annotated[TaskTarget, Form()] = InBodyTarget(),
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
     ):
+        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             orchestrator=orchestrator, files=files, options=options, target=target
         )
@@ -424,8 +427,9 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target: Annotated[TaskTarget, Form()] = InBodyTarget(),
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
     ):
+        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             orchestrator=orchestrator, files=files, options=options, target=target
         )
@@ -530,7 +534,7 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1/result/{task_id}",
-        response_model=ConvertDocumentResponse | PresignUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
