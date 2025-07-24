@@ -36,7 +36,7 @@ requires-python = ">=3.10"
 dependencies = [
     "docling~=2.38",
     "docling-core>=2.32.0",
-    "docling-jobkit[kfp,vlm]~=1.1",
+    "docling-jobkit[kfp,vlm]~=1.2",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -128,7 +128,7 @@ torchvision = [
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
-docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "snt/converter" }
+# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
