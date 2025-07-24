@@ -110,11 +110,12 @@ async def lifespan(app: FastAPI):
     if docling_serve_settings.load_models_at_boot:
         await orchestrator.warm_up_caches()
 
-    # Check connection to queue
-    await orchestrator.check_connection()
-
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())
+
+    # Check connection to queue
+    # Commented due to race issue
+    # await orchestrator.check_connection()
 
     yield
 

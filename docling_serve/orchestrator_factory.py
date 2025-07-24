@@ -49,4 +49,32 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         return KfpOrchestrator(config=kfp_config)
 
+    elif docling_serve_settings.eng_kind == AsyncEngine.RQ:
+        from docling_jobkit.convert.manager import (
+            DoclingConverterManager,
+            DoclingConverterManagerConfig,
+        )
+        from docling_jobkit.orchestrators.rq.orchestrator import (
+            RQOrchestrator,
+            RQOrchestratorConfig,
+        )
+
+        cm_config = DoclingConverterManagerConfig(
+            artifacts_path=docling_serve_settings.artifacts_path,
+            options_cache_size=docling_serve_settings.options_cache_size,
+            enable_remote_services=docling_serve_settings.enable_remote_services,
+            allow_external_plugins=docling_serve_settings.allow_external_plugins,
+            max_num_pages=docling_serve_settings.max_num_pages,
+            max_file_size=docling_serve_settings.max_file_size,
+        )
+        rq_config = RQOrchestratorConfig(
+            num_workers=docling_serve_settings.eng_loc_num_workers,
+        )
+
+        return RQOrchestrator(
+            config=rq_config,
+            converter_manager_config=cm_config,
+            api_only=docling_serve_settings.eng_rq_api_only,
+        )
+
     raise RuntimeError(f"Engine {docling_serve_settings.eng_kind} not recognized.")
