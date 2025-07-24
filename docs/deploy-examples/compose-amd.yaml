@@ -1,0 +1,20 @@
+# AMD ROCm deployment
+
+services:
+  docling-serve:
+    image: ghcr.io/docling-project/docling-serve-rocm:dev
+    container_name: docling-serve
+    ports:
+      - "5001:5001"
+    environment:
+      ROCR_VISIBLE_DEVICES: "0"
+      HSA_OVERRIDE_GFX_VERSION: "11.0.0"
+      HSA_ENABLE_SDMA: "0"
+      DOCLING_SERVE_ENABLE_UI: "true"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - 993
+    restart: always

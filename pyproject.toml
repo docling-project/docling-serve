@@ -76,24 +76,29 @@ dev = [
     "ruff>=0.9.6",
 ]
 pypi = [
-  "torch>=2.6.0",
-  "torchvision>=0.21.0",
+  "torch>=2.6.0,<2.7.0",
+  "torchvision>=0.21.0,<0.22.0",
 ]
 cpu = [
-  "torch>=2.6.0",
-  "torchvision>=0.21.0",
+  "torch>=2.6.0,<2.7.0",
+  "torchvision>=0.21.0,<0.22.0",
 ]
 cu124 = [
-  "torch>=2.6.0",
-  "torchvision>=0.21.0",
+  "torch>=2.6.0,<2.7.0",
+  "torchvision>=0.21.0,<0.22.0",
 ]
 cu126 = [
-  "torch>=2.6.0",
-  "torchvision>=0.21.0",
+  "torch>=2.6.0,<2.7.0",
+  "torchvision>=0.21.0,<0.22.0",
 ]
 cu128 = [
-  "torch>=2.7.0",
-  "torchvision>=0.22.0",
+  "torch>=2.7.0,<2.8.0",
+  "torchvision>=0.22.0,<0.23.0",
+]
+rocm = [
+  "torch>=2.7.0,<2.8.0",
+  "torchvision>=0.22.0,<0.23.0",
+  "pytorch-triton-rocm>=3.3.0 ; sys_platform == 'linux'",
 ]
 
 [tool.uv]
@@ -106,6 +111,7 @@ conflicts = [
     { group = "cu124" },
     { group = "cu126" },
     { group = "cu128" },
+    { group = "rocm" },
   ],
 ]
 environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
@@ -120,6 +126,7 @@ torch = [
   { index = "pytorch-cu124", group = "cu124" },
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
+  { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
 torchvision = [
   { index = "pytorch-pypi", group = "pypi" },
@@ -127,7 +134,13 @@ torchvision = [
   { index = "pytorch-cu124", group = "cu124" },
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
+  { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
+
+pytorch-triton-rocm = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
+
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "refactor" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
@@ -154,6 +167,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm6.3"
 explicit = true
 
 [tool.setuptools.packages.find]

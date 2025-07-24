@@ -18,7 +18,8 @@ endif
 
 TAG=$(shell git rev-parse HEAD)
 BRANCH_TAG=$(shell git rev-parse --abbrev-ref HEAD)
-
+TAG=dev
+BRANCH_TAG=dev
 action-lint-file:
 	$(CMD_PREFIX) touch .action-lint
 
@@ -59,6 +60,13 @@ docling-serve-cu128-image: Containerfile ## Build docling-serve container image 
 	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu128:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) ghcr.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) quay.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
+
+.PHONY: docling-serve-rocm-image
+docling-serve-rocm-image: Containerfile ## Build docling-serve container image with ROCm support
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with ROCm]"
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-rocm:$(TAG) .
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) ghcr.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
+	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) quay.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
 
 .PHONY: action-lint
 action-lint: .action-lint ##      Lint GitHub Action workflows

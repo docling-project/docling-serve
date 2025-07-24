@@ -1,0 +1,21 @@
+# NVIDIA CUDA deployment
+
+services:
+  docling-serve:
+    # image: ghcr.io/docling-project/docling-serve-cu124
+    image: ghcr.io/docling-project/docling-serve-cu124:dev
+    container_name: docling-serve
+    ports:
+      - "5001:5001"
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "true"
+      NVIDIA_VISIBLE_DEVICES: "all"
+    # deploy:  # This section is for compatibility with Swarm
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    runtime: nvidia
+    restart: always
