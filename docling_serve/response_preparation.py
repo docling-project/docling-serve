@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Union
 
+import httpx
 from fastapi import BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
@@ -15,12 +16,16 @@ from docling.datamodel.document import ConversionResult, ConversionStatus
 from docling_core.types.doc import ImageRefMode
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
 from docling_jobkit.datamodel.task import Task
-from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget
+from docling_jobkit.datamodel.task_targets import InBodyTarget, PutTarget, TaskTarget
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
 
-from docling_serve.datamodel.responses import ConvertDocumentResponse, DocumentResponse
+from docling_serve.datamodel.responses import (
+    ConvertDocumentResponse,
+    DocumentResponse,
+    PresignedUrlConvertDocumentResponse,
+)
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 
@@ -79,11 +84,15 @@ def _export_documents_as_files(
     export_doctags: bool,
     image_export_mode: ImageRefMode,
     md_page_break_placeholder: str,
-):
+) -> ConversionStatus:
     success_count = 0
     failure_count = 0
 
+    # Default failure in case results is empty
+    conv_result = ConversionStatus.FAILURE
+
     for conv_res in conv_results:
+        conv_result = conv_res.status
         if conv_res.status == ConversionStatus.SUCCESS:
             success_count += 1
             doc_filename = conv_res.input.file.stem
@@ -138,6 +147,7 @@ def _export_documents_as_files(
         f"Processed {success_count + failure_count} docs, "
         f"of which {failure_count} failed"
     )
+    return conv_result
 
 
 def process_results(
@@ -145,7 +155,7 @@ def process_results(
     target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
-) -> Union[ConvertDocumentResponse, FileResponse]:
+) -> Union[ConvertDocumentResponse, FileResponse, PresignedUrlConvertDocumentResponse]:
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()
@@ -169,7 +179,9 @@ def process_results(
         )
 
     # We have some results, let's prepare the response
-    response: Union[FileResponse, ConvertDocumentResponse]
+    response: Union[
+        FileResponse, ConvertDocumentResponse, PresignedUrlConvertDocumentResponse
+    ]
 
     # Booleans to know what to export
     export_json = OutputFormat.JSON in conversion_options.to_formats
@@ -209,7 +221,7 @@ def process_results(
         os.getpid()
 
         # Export the documents
-        _export_documents_as_files(
+        conv_result = _export_documents_as_files(
             conv_results=conv_results,
             output_dir=output_dir,
             export_json=export_json,
@@ -236,9 +248,24 @@ def process_results(
         # Output directory
         # background_tasks.add_task(shutil.rmtree, work_dir, ignore_errors=True)
 
-        response = FileResponse(
-            file_path, filename=file_path.name, media_type="application/zip"
-        )
+        if isinstance(target, PutTarget):
+            try:
+                with open(file_path, "rb") as file_data:
+                    r = httpx.put(target.url, files={"file": file_data})
+                    r.raise_for_status()
+                response = PresignedUrlConvertDocumentResponse(
+                    status=conv_result,
+                    processing_time=processing_time,
+                )
+            except Exception as exc:
+                _log.error("An error occour while uploading zip to s3", exc_info=exc)
+                raise HTTPException(
+                    status_code=500, detail="An error occour while uploading zip to s3."
+                )
+        else:
+            response = FileResponse(
+                file_path, filename=file_path.name, media_type="application/zip"
+            )
 
     return response
 

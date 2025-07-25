@@ -35,6 +35,11 @@ class ConvertDocumentResponse(BaseModel):
     timings: dict[str, ProfilingItem] = {}
 
 
+class PresignedUrlConvertDocumentResponse(BaseModel):
+    status: ConversionStatus
+    processing_time: float
+
+
 class ConvertDocumentErrorResponse(BaseModel):
     status: ConversionStatus
 

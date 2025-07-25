@@ -34,8 +34,13 @@ from docling_jobkit.datamodel.callback import (
     ProgressCallbackResponse,
 )
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task, TaskSource
-from docling_jobkit.datamodel.task_targets import InBodyTarget, TaskTarget, ZipTarget
+from docling_jobkit.datamodel.task_targets import (
+    InBodyTarget,
+    TaskTarget,
+    ZipTarget,
+)
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -47,6 +52,7 @@ from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
     FileSourceRequest,
     HttpSourceRequest,
+    S3SourceRequest,
     TargetName,
 )
 from docling_serve.datamodel.responses import (
@@ -54,6 +60,7 @@ from docling_serve.datamodel.responses import (
     ConvertDocumentResponse,
     HealthCheckResponse,
     MessageKind,
+    PresignedUrlConvertDocumentResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -246,6 +253,8 @@ def create_app():  # noqa: C901
                 sources.append(FileSource.model_validate(s))
             elif isinstance(s, HttpSourceRequest):
                 sources.append(HttpSource.model_validate(s))
+            elif isinstance(s, S3SourceRequest):
+                sources.append(S3Coordinates.model_validate(s))
 
         task = await orchestrator.enqueue(
             sources=sources,
@@ -525,7 +534,7 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1/result/{task_id}",
-        response_model=ConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
