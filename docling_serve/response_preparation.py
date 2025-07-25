@@ -84,11 +84,15 @@ def _export_documents_as_files(
     export_doctags: bool,
     image_export_mode: ImageRefMode,
     md_page_break_placeholder: str,
-):
+) -> ConversionStatus:
     success_count = 0
     failure_count = 0
 
+    # Default failure in case results is empty
+    conv_result = ConversionStatus.FAILURE
+
     for conv_res in conv_results:
+        conv_result = conv_res.status
         if conv_res.status == ConversionStatus.SUCCESS:
             success_count += 1
             doc_filename = conv_res.input.file.stem
@@ -143,6 +147,7 @@ def _export_documents_as_files(
         f"Processed {success_count + failure_count} docs, "
         f"of which {failure_count} failed"
     )
+    return conv_result
 
 
 def process_results(
@@ -150,7 +155,6 @@ def process_results(
     target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
-    task_id: str,
 ) -> Union[ConvertDocumentResponse, FileResponse, PresignedUrlConvertDocumentResponse]:
     # Let's start by processing the documents
     try:
@@ -217,7 +221,7 @@ def process_results(
         os.getpid()
 
         # Export the documents
-        _export_documents_as_files(
+        conv_result = _export_documents_as_files(
             conv_results=conv_results,
             output_dir=output_dir,
             export_json=export_json,
@@ -249,8 +253,10 @@ def process_results(
                 with open(file_path, "rb") as file_data:
                     r = httpx.put(target.url, files={"file": file_data})
                     r.raise_for_status()
-                # response is not get presigned url, maybe is better to just return 200?
-                response = PresignedUrlConvertDocumentResponse(url=target.url)
+                response = PresignedUrlConvertDocumentResponse(
+                    status=conv_result,
+                    processing_time=processing_time,
+                )
             except Exception as exc:
                 _log.error("An error occour while uploading zip to s3", exc_info=exc)
                 raise HTTPException(
@@ -280,7 +286,6 @@ async def prepare_response(
         target=task.target,
         conv_results=task.results,
         work_dir=work_dir,
-        task_id=task.task_id,
     )
 
     if work_dir.exists():

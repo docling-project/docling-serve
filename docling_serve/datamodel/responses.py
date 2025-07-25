@@ -36,7 +36,8 @@ class ConvertDocumentResponse(BaseModel):
 
 
 class PresignedUrlConvertDocumentResponse(BaseModel):
-    url: str
+    status: ConversionStatus
+    processing_time: float
 
 
 class ConvertDocumentErrorResponse(BaseModel):
