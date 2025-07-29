@@ -251,7 +251,7 @@ def process_results(
         if isinstance(target, PutTarget):
             try:
                 with open(file_path, "rb") as file_data:
-                    r = httpx.put(target.url, files={"file": file_data})
+                    r = httpx.put(str(target.url), files={"file": file_data})
                     r.raise_for_status()
                 response = PresignedUrlConvertDocumentResponse(
                     status=conv_result,
