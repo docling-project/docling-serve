@@ -4,8 +4,8 @@ This document provides deployment examples for running the application in differ
 
 Choose the deployment option that best fits your setup.
 
-- **[Local GPU](#local-gpu-nvidia)**: For deploying the application locally on a machine with a supported NVIDIA GPU (using Docker Compose).
-- **[Local GPU](#local-gpu-amd)**: For deploying the application locally on a machine with a supported AMD GPU (using Docker Compose).
+- **[Local GPU NVIDIA](#local-gpu-nvidia)**: For deploying the application locally on a machine with a supported NVIDIA GPU (using Docker Compose).
+- **[Local GPU AMD](#local-gpu-amd)**: For deploying the application locally on a machine with a supported AMD GPU (using Docker Compose).
 - **[OpenShift](#openshift)**: For deploying the application on an OpenShift cluster, designed for cloud-native environments.
 
 ---
@@ -57,7 +57,7 @@ Docs:
 <details>
 <summary><b>Steps</b></summary>
 
-1. Check driver version and which GPU you want to use (0/1/2/3.. and update [compose-nvidia.yaml](./deploy-examples/compose-nvidia.yaml) file or use `count: all`)
+1. Check driver version and which GPU you want to use 0/1/2/n (and update [compose-nvidia.yaml](./deploy-examples/compose-nvidia.yaml) file or use `count: all`)
 
     ```sh
     nvidia-smi
@@ -163,14 +163,14 @@ curl -X 'POST' \
 
 Docs:
 
-- [AMD ROCm installation]https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html)
+- [AMD ROCm installation](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html)
 
 </details>
 
 <details>
 <summary><b>Steps</b></summary>
 
-1. Check driver version and which GPU you want to use (0/1/2/3.. and update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) file)
+1. Check driver version and which GPU you want to use 0/1/2/n (and update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) file)
 
     ```sh
     rocm-smi --showdriverversion
