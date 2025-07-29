@@ -9,7 +9,7 @@ services:
       - "5001:5001"
     environment:
       DOCLING_SERVE_ENABLE_UI: "true"
-      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_VISIBLE_DEVICES: "all" # https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/docker-specialized.html
     # deploy:  # This section is for compatibility with Swarm
     #   resources:
     #     reservations:

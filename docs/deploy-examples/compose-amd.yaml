@@ -8,14 +8,15 @@ services:
     ports:
       - "5001:5001"
     environment:
-      ROCR_VISIBLE_DEVICES: "0"
-      HSA_OVERRIDE_GFX_VERSION: "11.0.0"
-      HSA_ENABLE_SDMA: "0"
       DOCLING_SERVE_ENABLE_UI: "true"
+      ROCR_VISIBLE_DEVICES: "0" # https://rocm.docs.amd.com/en/latest/conceptual/gpu-isolation.html#rocr-visible-devices
+      ## This section is for compatibility with older cards
+      # HSA_OVERRIDE_GFX_VERSION: "11.0.0"
+      # HSA_ENABLE_SDMA: "0"
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
     group_add:
-      - video
-      - 993
+      - 44    # video group GID from host
+      - 992   # render group GID from host
     restart: always
