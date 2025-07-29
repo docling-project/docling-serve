@@ -2,7 +2,8 @@
 
 services:
   docling-serve:
-    image: ghcr.io/docling-project/docling-serve-rocm:dev
+    # image: ghcr.io/docling-project/docling-serve-rocm:main
+    image: ghcr.io/docling-project/docling-serve-rocm:123
     container_name: docling-serve
     ports:
       - "5001:5001"

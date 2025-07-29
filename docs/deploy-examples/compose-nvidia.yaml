@@ -2,8 +2,8 @@
 
 services:
   docling-serve:
-    # image: ghcr.io/docling-project/docling-serve-cu124
-    image: ghcr.io/docling-project/docling-serve-cu124:dev
+    # image: ghcr.io/docling-project/docling-serve-cu124:main
+    image: ghcr.io/docling-project/docling-serve-cu124:123
     container_name: docling-serve
     ports:
       - "5001:5001"
