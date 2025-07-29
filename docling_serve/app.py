@@ -304,7 +304,6 @@ def create_app():  # noqa: C901
         """Ensure that discriminator properties are included in required."""
         if "discriminator" in schema and "propertyName" in schema["discriminator"]:
             prop = schema["discriminator"]["propertyName"]
-            # Ensure that the property is included in the required list
             if "properties" in schema and prop in schema["properties"]:
                 if "required" not in schema:
                     schema["required"] = []
@@ -344,7 +343,6 @@ def create_app():  # noqa: C901
                 return [strip_unsupported(i) for i in obj]
             return obj
 
-        # Process the components section specifically
         if "components" in spec and "schemas" in spec["components"]:
             for schema_name, schema in spec["components"]["schemas"].items():
                 handle_properties(schema)
@@ -357,7 +355,7 @@ def create_app():  # noqa: C901
 
     @app.get("/openapi-3.0.json")
     def openapi_30():
-        spec = app.openapi()  # or load from file
+        spec = app.openapi()
         downgraded = downgrade_openapi31_to_30(spec)
         downgraded["openapi"] = "3.0.3"
         return JSONResponse(downgraded)
