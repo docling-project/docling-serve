@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import importlib.metadata
 import logging
 import shutil
@@ -24,7 +25,7 @@ from fastapi.openapi.docs import (
     get_swagger_ui_html,
     get_swagger_ui_oauth2_redirect_html,
 )
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from scalar_fastapi import get_scalar_api_reference
 
@@ -286,9 +287,80 @@ def create_app():  # noqa: C901
             if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
 
+    ##########################################
+    # Downgrade openapi 3.1 to 3.0.x helpers #
+    ##########################################
+
+    def ensure_array_items(schema):
+        """Ensure that array items are defined."""
+        if "type" in schema and schema["type"] == "array":
+            if "items" not in schema or schema["items"] is None:
+                schema["items"] = {"type": "string"}
+            elif isinstance(schema["items"], dict):
+                if "type" not in schema["items"]:
+                    schema["items"]["type"] = "string"
+
+    def handle_discriminators(schema):
+        """Ensure that discriminator properties are included in required."""
+        if "discriminator" in schema and "propertyName" in schema["discriminator"]:
+            prop = schema["discriminator"]["propertyName"]
+            # Ensure that the property is included in the required list
+            if "properties" in schema and prop in schema["properties"]:
+                if "required" not in schema:
+                    schema["required"] = []
+                if prop not in schema["required"]:
+                    schema["required"].append(prop)
+
+    def handle_properties(schema):
+        """Ensure that property 'kind' is included in required."""
+        if "properties" in schema and "kind" in schema["properties"]:
+            if "required" not in schema:
+                schema["required"] = []
+            if "kind" not in schema["required"]:
+                schema["required"].append("kind")
+
+    # Downgrade openapi 3.1 to 3.0.x
+    def downgrade_openapi31_to_30(spec):
+        def strip_unsupported(obj):
+            if isinstance(obj, dict):
+                obj = {
+                    k: strip_unsupported(v)
+                    for k, v in obj.items()
+                    if k not in ("const", "examples", "prefixItems")
+                }
+
+                handle_discriminators(obj)
+                ensure_array_items(obj)
+
+                # Check for oneOf and anyOf to handle nested schemas
+                for key in ["oneOf", "anyOf"]:
+                    if key in obj:
+                        for sub in obj[key]:
+                            handle_discriminators(sub)
+                            ensure_array_items(sub)
+
+                return obj
+            elif isinstance(obj, list):
+                return [strip_unsupported(i) for i in obj]
+            return obj
+
+        # Process the components section specifically
+        if "components" in spec and "schemas" in spec["components"]:
+            for schema_name, schema in spec["components"]["schemas"].items():
+                handle_properties(schema)
+
+        return strip_unsupported(copy.deepcopy(spec))
+
     #############################
     # API Endpoints definitions #
     #############################
+
+    @app.get("/openapi-3.0.json")
+    def openapi_30():
+        spec = app.openapi()  # or load from file
+        downgraded = downgrade_openapi31_to_30(spec)
+        downgraded["openapi"] = "3.0.3"
+        return JSONResponse(downgraded)
 
     # Favicon
     @app.get("/favicon.ico", include_in_schema=False)
@@ -443,7 +515,8 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
         wait: Annotated[
-            float, Query(help="Number of seconds to wait for a completed status.")
+            float,
+            Query(description="Number of seconds to wait for a completed status."),
         ] = 0.0,
     ):
         try:
