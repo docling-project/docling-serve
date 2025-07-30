@@ -62,8 +62,8 @@ docling-serve-cu128-image: Containerfile ## Build docling-serve container image 
 
 .PHONY: docling-serve-rocm-image
 docling-serve-rocm-image: Containerfile ## Build docling-serve container image with ROCm support
-	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with ROCm]"
-	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-rocm:$(TAG) .
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with ROCm 6.3]"
+	$(CMD_PREFIX) docker build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-rocm:$(TAG) .
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) ghcr.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
 	$(CMD_PREFIX) docker tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) quay.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
 
@@ -133,5 +133,5 @@ run-docling-cu128: ## Run the docling-serve container with GPU support and assig
 run-docling-rocm: ## Run the docling-serve container with GPU support and assign a container name
 	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
 	$(CMD_PREFIX) docker rm -f docling-serve-rocm 2>/dev/null || true
-	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN ROCm]"
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN ROCm 6.3]"
 	$(CMD_PREFIX) docker run -it --name docling-serve-rocm -p 5001:5001 ghcr.io/docling-project/docling-serve-rocm:main

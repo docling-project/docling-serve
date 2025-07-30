@@ -28,7 +28,7 @@ jobs:
         run: uv sync --frozen --all-extras --no-extra flash-attn
 
       - name: Run styling check
-        run: pre-commit run --all-files
+        run: uv run pre-commit run --all-files
 
   build-package:
     uses: ./.github/workflows/job-build.yml
@@ -51,10 +51,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Create virtual environment
+        run: uv venv
       - name: Install package
         run: uv pip install dist/*.whl
       - name: Create the server
-        run: python -c 'from docling_serve.app import create_app; create_app()'
+        run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
 
   markdown-lint:
     runs-on: ubuntu-latest
@@ -64,4 +66,3 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@v16
         with:
           globs: "**/*.md"
-

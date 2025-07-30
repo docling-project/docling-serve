@@ -75,30 +75,36 @@ dev = [
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
 ]
+
 pypi = [
-  "torch>=2.7.0,<2.8.0",
-  "torchvision>=0.22.0,<0.23.0",
+  "torch>=2.7.1",
+  "torchvision>=0.22.1",
 ]
+
 cpu = [
-  "torch>=2.7.0,<2.8.0",
-  "torchvision>=0.22.0,<0.23.0",
+  "torch>=2.7.1",
+  "torchvision>=0.22.1",
 ]
+
 cu124 = [
-  "torch>=2.6.0,<2.7.0",  # no official 2.7 support for CUDA 12.4
-  "torchvision>=0.21.0,<0.22.0",
+  "torch>=2.6.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
+  "torchvision>=0.21.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
 ]
+
 cu126 = [
-  "torch>=2.7.0,<2.8.0",
-  "torchvision>=0.22.0,<0.23.0",
+  "torch>=2.7.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
+  "torchvision>=0.22.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
 ]
+
 cu128 = [
-  "torch>=2.7.0,<2.8.0",
-  "torchvision>=0.22.0,<0.23.0",
+  "torch>=2.7.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
+  "torchvision>=0.22.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
 ]
+
 rocm = [
-  "torch>=2.7.0,<2.8.0",
-  "torchvision>=0.22.0,<0.23.0",
-  "pytorch-triton-rocm>=3.3.0 ; sys_platform == 'linux'",
+  "torch>=2.7.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
+  "torchvision>=0.22.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
+  "pytorch-triton-rocm>=3.3.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.13'",
 ]
 
 [tool.uv]
@@ -123,17 +129,18 @@ override-dependencies = [
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
-  { index = "pytorch-cu124", group = "cu124" },
-  { index = "pytorch-cu126", group = "cu126" },
-  { index = "pytorch-cu128", group = "cu128" },
+  { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
+
 torchvision = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
-  { index = "pytorch-cu124", group = "cu124" },
-  { index = "pytorch-cu126", group = "cu126" },
-  { index = "pytorch-cu128", group = "cu128" },
+  { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
 

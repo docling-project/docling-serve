@@ -123,7 +123,6 @@ Docs:
 
 </details>
 
-
 ## Local GPU AMD
 
 ### Docker compose
