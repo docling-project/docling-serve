@@ -49,8 +49,6 @@ ENV \
 
 ARG UV_SYNC_EXTRA_ARGS
 
-ARG UV_VERSION
-
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
