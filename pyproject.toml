@@ -128,6 +128,7 @@ torchvision = [
   { index = "pytorch-cu126", group = "cu126" },
   { index = "pytorch-cu128", group = "cu128" },
 ]
+docling-core = { git = "https://github.com/docling-project/docling-core/", rev = "fix-image-relative-ref" }
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 

@@ -91,6 +91,8 @@ def _export_documents_as_files(
     # Default failure in case results is empty
     conv_result = ConversionStatus.FAILURE
 
+    artifacts_dir = Path("artifacts/")  # will be relative to the fname
+
     for conv_res in conv_results:
         conv_result = conv_res.status
         if conv_res.status == ConversionStatus.SUCCESS:
@@ -102,7 +104,9 @@ def _export_documents_as_files(
                 fname = output_dir / f"{doc_filename}.json"
                 _log.info(f"writing JSON output to {fname}")
                 conv_res.document.save_as_json(
-                    filename=fname, image_mode=image_export_mode
+                    filename=fname,
+                    image_mode=image_export_mode,
+                    artifacts_dir=artifacts_dir,
                 )
 
             # Export HTML format:
@@ -110,7 +114,9 @@ def _export_documents_as_files(
                 fname = output_dir / f"{doc_filename}.html"
                 _log.info(f"writing HTML output to {fname}")
                 conv_res.document.save_as_html(
-                    filename=fname, image_mode=image_export_mode
+                    filename=fname,
+                    image_mode=image_export_mode,
+                    artifacts_dir=artifacts_dir,
                 )
 
             # Export Text format:
@@ -129,6 +135,7 @@ def _export_documents_as_files(
                 _log.info(f"writing Markdown output to {fname}")
                 conv_res.document.save_as_markdown(
                     filename=fname,
+                    artifacts_dir=artifacts_dir,
                     image_mode=image_export_mode,
                     page_break_placeholder=md_page_break_placeholder or None,
                 )

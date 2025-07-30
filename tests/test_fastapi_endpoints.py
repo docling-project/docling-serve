@@ -1,12 +1,16 @@
 import asyncio
+import io
 import json
 import os
+import zipfile
 
 import pytest
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from pytest_check import check
+
+from docling_core.types.doc import DoclingDocument, PictureItem
 
 from docling_serve.app import create_app
 
@@ -153,3 +157,37 @@ async def test_convert_file(client: AsyncClient):
             data["document"]["doctags_content"],
             msg=f"DocTags document should contain '<doctag><page_header>'. Received: {safe_slice(data['document']['doctags_content'])}",
         )
+
+
+@pytest.mark.asyncio
+async def test_referenced_artifacts(client: AsyncClient):
+    """Test that paths in the zip file are relative to the zip file root."""
+
+    endpoint = "/v1/convert/file"
+    options = {
+        "to_formats": ["json"],
+        "image_export_mode": "referenced",
+        "target_type": "zip",
+        "ocr": False,
+    }
+
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, "2206.01062v1.pdf")
+
+    files = {
+        "files": ("2206.01062v1.pdf", open(file_path, "rb"), "application/pdf"),
+    }
+
+    response = await client.post(endpoint, files=files, data=options)
+    assert response.status_code == 200, "Response should be 200 OK"
+
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+        namelist = zip_file.namelist()
+        for file in namelist:
+            if file.endswith(".json"):
+                doc = DoclingDocument.model_validate(json.loads(zip_file.read(file)))
+                for item, _level in doc.iterate_items():
+                    if isinstance(item, PictureItem):
+                        assert item.image is not None
+                        print(f"{item.image.uri}=")
+                        assert str(item.image.uri) in namelist
