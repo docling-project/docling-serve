@@ -18,8 +18,7 @@ endif
 
 TAG=$(shell git rev-parse HEAD)
 BRANCH_TAG=$(shell git rev-parse --abbrev-ref HEAD)
-TAG=dev
-BRANCH_TAG=dev
+
 action-lint-file:
 	$(CMD_PREFIX) touch .action-lint
 
