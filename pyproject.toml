@@ -8,7 +8,6 @@ authors = [
     {name="Guillaume Moutier", email="gmoutier@redhat.com"},
     {name="Anil Vishnoi", email="avishnoi@redhat.com"},
     {name="Panos Vagenas", email="pva@zurich.ibm.com"},
-    {name="Panos Vagenas", email="pva@zurich.ibm.com"},
     {name="Christoph Auer", email="cau@zurich.ibm.com"},
     {name="Peter Staar", email="taa@zurich.ibm.com"},
 ]
@@ -61,7 +60,7 @@ rapidocr = [
     "onnxruntime~=1.7",
 ]
 flash-attn = [
-  "flash-attn~=2.7.0; sys_platform == 'linux' and platform_machine == 'x86_64'"
+  "flash-attn~=2.8.2; sys_platform == 'linux' and platform_machine == 'x86_64'"
 ]
 
 [dependency-groups]
@@ -76,20 +75,20 @@ dev = [
     "ruff>=0.9.6",
 ]
 pypi = [
-  "torch>=2.6.0,<2.7.0",
-  "torchvision>=0.21.0,<0.22.0",
+  "torch>=2.7.0,<2.8.0",
+  "torchvision>=0.22.0,<0.23.0",
 ]
 cpu = [
-  "torch>=2.6.0,<2.7.0",
-  "torchvision>=0.21.0,<0.22.0",
+  "torch>=2.7.0,<2.8.0",
+  "torchvision>=0.22.0,<0.23.0",
 ]
 cu124 = [
-  "torch>=2.6.0,<2.7.0",
+  "torch>=2.6.0,<2.7.0",  # no official 2.7 support for CUDA 12.4
   "torchvision>=0.21.0,<0.22.0",
 ]
 cu126 = [
-  "torch>=2.6.0,<2.7.0",
-  "torchvision>=0.21.0,<0.22.0",
+  "torch>=2.7.0,<2.8.0",
+  "torchvision>=0.22.0,<0.23.0",
 ]
 cu128 = [
   "torch>=2.7.0,<2.8.0",

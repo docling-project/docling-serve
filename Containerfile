@@ -1,12 +1,16 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
-FROM ${BASE_IMAGE}
+ARG UV_VERSION=0.8.3
 
-USER 0
+ARG UV_SYNC_EXTRA_ARGS=""
+
+FROM ${BASE_IMAGE} AS docling-base
 
 ###################################################################################################
 # OS Layer                                                                                        #
 ###################################################################################################
+
+USER 0
 
 RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y install --best --nodocs --setopt=install_weak_deps=False dnf-plugins-core && \
@@ -21,16 +25,19 @@ RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_stage
+
 ###################################################################################################
 # Docling layer                                                                                   #
 ###################################################################################################
+
+FROM docling-base
 
 USER 1001
 
 WORKDIR /opt/app-root/src
 
 ENV \
-    # On container environments, always set a thread budget to avoid undesired thread congestion.
     OMP_NUM_THREADS=4 \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
@@ -40,9 +47,11 @@ ENV \
     UV_PROJECT_ENVIRONMENT=/opt/app-root \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
-ARG UV_SYNC_EXTRA_ARGS=""
+ARG UV_SYNC_EXTRA_ARGS
 
-RUN --mount=from=ghcr.io/astral-sh/uv:0.7.19,source=/uv,target=/bin/uv \
+ARG UV_VERSION
+
+RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -61,7 +70,8 @@ RUN echo "Downloading models..." && \
     chmod -R g=u ${DOCLING_SERVE_ARTIFACTS_PATH}
 
 COPY --chown=1001:0 ./docling_serve ./docling_serve
-RUN --mount=from=ghcr.io/astral-sh/uv:0.7.19,source=/uv,target=/bin/uv \
+
+RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
