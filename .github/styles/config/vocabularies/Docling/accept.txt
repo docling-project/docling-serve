@@ -19,6 +19,7 @@ Kubeflow
 (?i)PyTorch
 (?i)CUDA
 (?i)NVIDIA
+(?i)ROCm
 (?i)env
 Gradio
 bool

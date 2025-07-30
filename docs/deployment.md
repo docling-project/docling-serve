@@ -4,16 +4,17 @@ This document provides deployment examples for running the application in differ
 
 Choose the deployment option that best fits your setup.
 
-- **[Local GPU](#local-gpu)**: For deploying the application locally on a machine with a NVIDIA GPU (using Docker Compose).
+- **[Local GPU NVIDIA](#local-gpu-nvidia)**: For deploying the application locally on a machine with a supported NVIDIA GPU (using Docker Compose).
+- **[Local GPU AMD](#local-gpu-amd)**: For deploying the application locally on a machine with a supported AMD GPU (using Docker Compose).
 - **[OpenShift](#openshift)**: For deploying the application on an OpenShift cluster, designed for cloud-native environments.
 
 ---
 
-## Local GPU
+## Local GPU NVIDIA
 
 ### Docker compose
 
-Manifest example: [compose-gpu.yaml](./deploy-examples/compose-gpu.yaml)
+Manifest example: [compose-nvidia.yaml](./deploy-examples/compose-nvidia.yaml)
 
 This deployment has the following features:
 
@@ -22,7 +23,7 @@ This deployment has the following features:
 Install the app with:
 
 ```sh
-docker compose -f docs/deploy-examples/compose-gpu.yaml up -d
+docker compose -f docs/deploy-examples/compose-nvidia.yaml up -d
 ```
 
 For using the API:
@@ -56,7 +57,7 @@ Docs:
 <details>
 <summary><b>Steps</b></summary>
 
-1. Check driver version and which GPU you want to use (0/1/2/3.. and update [compose-gpu.yaml](./deploy-examples/compose-gpu.yaml) file or use `count: all`)
+1. Check driver version and which GPU you want to use 0/1/2/n (and update [compose-nvidia.yaml](./deploy-examples/compose-nvidia.yaml) file or use `count: all`)
 
     ```sh
     nvidia-smi
@@ -117,7 +118,70 @@ Docs:
 5. Run the container:
 
     ```sh
-    docker compose -f docs/deploy-examples/compose-gpu.yaml up -d
+    docker compose -f docs/deploy-examples/compose-nvidia.yaml up -d
+    ```
+
+</details>
+
+
+## Local GPU AMD
+
+### Docker compose
+
+Manifest example: [compose-amd.yaml](./deploy-examples/compose-amd.yaml)
+
+This deployment has the following features:
+
+- AMD rocm enabled
+
+Install the app with:
+
+```sh
+docker compose -f docs/deploy-examples/compose-amd.yaml up -d
+```
+
+For using the API:
+
+```sh
+# Make a test query
+curl -X 'POST' \
+  "localhost:5001/v1/convert/source/async" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+  }'
+```
+
+<details>
+<summary><b>Requirements</b></summary>
+
+- debian/ubuntu/rhel/fedora/opensuse
+- docker
+- AMDGPU driver >=6.3
+- AMD ROCm >=6.3
+
+Docs:
+
+- [AMD ROCm installation](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html)
+
+</details>
+
+<details>
+<summary><b>Steps</b></summary>
+
+1. Check driver version and which GPU you want to use 0/1/2/n (and update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) file)
+
+    ```sh
+    rocm-smi --showdriverversion
+    rocminfo | grep -i "ROCm version"
+    ```
+
+2. Find both video group GID and render group GID from host (and update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) file)
+
+    ```sh
+    getent group video
+    getent group render
     ```
 
 </details>
