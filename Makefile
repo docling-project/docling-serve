@@ -114,3 +114,24 @@ run-docling-cu124: ## Run the docling-serve container with GPU support and assig
 	$(CMD_PREFIX) docker rm -f docling-serve-cu124 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN CUDA 12.4]"
 	$(CMD_PREFIX) docker run -it --name docling-serve-cu124 -p 5001:5001 ghcr.io/docling-project/docling-serve-cu124:main
+
+.PHONY: run-docling-cu126
+run-docling-cu126: ## Run the docling-serve container with GPU support and assign a container name
+	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
+	$(CMD_PREFIX) docker rm -f docling-serve-cu126 2>/dev/null || true
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN CUDA 12.6]"
+	$(CMD_PREFIX) docker run -it --name docling-serve-cu126 -p 5001:5001 ghcr.io/docling-project/docling-serve-cu126:main
+
+.PHONY: run-docling-cu128
+run-docling-cu128: ## Run the docling-serve container with GPU support and assign a container name
+	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
+	$(CMD_PREFIX) docker rm -f docling-serve-cu128 2>/dev/null || true
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN CUDA 12.8]"
+	$(CMD_PREFIX) docker run -it --name docling-serve-cu128 -p 5001:5001 ghcr.io/docling-project/docling-serve-cu128:main
+
+.PHONY: run-docling-rocm
+run-docling-rocm: ## Run the docling-serve container with GPU support and assign a container name
+	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
+	$(CMD_PREFIX) docker rm -f docling-serve-rocm 2>/dev/null || true
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN ROCm]"
+	$(CMD_PREFIX) docker run -it --name docling-serve-rocm -p 5001:5001 ghcr.io/docling-project/docling-serve-rocm:main
