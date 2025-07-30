@@ -35,7 +35,7 @@ jobs:
             platforms: linux/amd64
           - name: docling-project/docling-serve-rocm
             build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn
             platforms: linux/amd64
 
     permissions:
