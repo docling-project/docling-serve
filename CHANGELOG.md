@@ -1,3 +1,15 @@
+## [v1.1.0](https://github.com/docling-project/docling-serve/releases/tag/v1.1.0) - 2025-07-30
+
+### Feature
+
+* Add docling-mcp in the distribution ([#290](https://github.com/docling-project/docling-serve/issues/290)) ([`ecb1874`](https://github.com/docling-project/docling-serve/commit/ecb1874a507bef83d102e0e031e49fed34298637))
+* Add 3.0 openapi endpoint ([#287](https://github.com/docling-project/docling-serve/issues/287)) ([`ec594d8`](https://github.com/docling-project/docling-serve/commit/ec594d84fe36df23e7d010a2fcf769856c43600b))
+* Add new source and target ([#270](https://github.com/docling-project/docling-serve/issues/270)) ([`3771c1b`](https://github.com/docling-project/docling-serve/commit/3771c1b55403bd51966d07d8f760d5c4fbcc1760))
+
+### Fix
+
+* Referenced paths relative to zip root ([#289](https://github.com/docling-project/docling-serve/issues/289)) ([`1333f71`](https://github.com/docling-project/docling-serve/commit/1333f71c9c6495342b2169d574e921f828446f15))
+
 ## [v1.0.1](https://github.com/docling-project/docling-serve/releases/tag/v1.0.1) - 2025-07-21
 
 ### Fix
