@@ -2,7 +2,7 @@
 
 services:
   docling-serve:
-    image: ghcr.io/docling-project/docling-serve-rocm:<placeholder> # update with your local build tag, the Makefile uses git rev-parse HEAD for the TAG
+    image: ghcr.io/docling-project/docling-serve-rocm:main
     container_name: docling-serve
     ports:
       - "5001:5001"
