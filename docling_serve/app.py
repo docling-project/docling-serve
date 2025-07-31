@@ -346,6 +346,9 @@ def create_app():  # noqa: C901
                         for sub in obj[key]:
                             handle_discriminators(sub)
                             ensure_array_items(sub)
+                            if isinstance(sub, dict) and sub.get("type") == "null":
+                                del sub["type"]  # Remove type:null
+                                obj["nullable"] = True  # Add nullable
 
                 return obj
             elif isinstance(obj, list):
