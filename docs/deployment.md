@@ -183,6 +183,12 @@ Docs:
     getent group render
     ```
 
+3. Build the image locally (and update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) file)
+
+    ```sh
+    make docling-serve-rocm-image
+    ```
+
 </details>
 
 ## OpenShift

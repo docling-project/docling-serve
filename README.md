@@ -50,17 +50,32 @@ curl -X 'POST' \
   }'
 ```
 
-### Container images
+### Container Images
 
-Available container images:
+The following container images are available for running **Docling Serve** with different hardware and PyTorch configurations:
 
-| Name | Description | Arch | Size |
-| -----|-------------|------|------|
-| [`ghcr.io/docling-project/docling-serve`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve) <br /> [`quay.io/docling-project/docling-serve`](https://quay.io/repository/docling-project/docling-serve) | Simple image for Docling Serve, installing all packages from the official pypi.org index. | `linux/amd64`, `linux/arm64` | 4.4 GB (arm64) <br /> 8.7 GB (amd64) |
-| [`ghcr.io/docling-project/docling-serve-cpu`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cpu) <br /> [`quay.io/docling-project/docling-serve-cpu`](https://quay.io/repository/docling-project/docling-serve-cpu) | Cpu-only image which installs `torch` from the pytorch cpu index. | `linux/amd64`, `linux/arm64` | 4.4 GB |
-| [`ghcr.io/docling-project/docling-serve-cu126`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu126) <br /> [`quay.io/docling-project/docling-serve-cu126`](https://quay.io/repository/docling-project/docling-serve-cu126) | Cuda 12.6 image which installs `torch` from the pytorch cu126 index. | `linux/amd64` | 10 GB |
-| [`ghcr.io/docling-project/docling-serve-cu128`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu128) <br /> [`quay.io/docling-project/docling-serve-cu128`](https://quay.io/repository/docling-project/docling-serve-cu128) | Cuda 12.8 image which installs `torch` from the pytorch cu128 index. | `linux/amd64` | 11.4 GB |
-| [`ghcr.io/docling-project/docling-serve-rocm`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-rocm) <br /> [`quay.io/docling-project/docling-serve-rocm`](https://quay.io/repository/docling-project/docling-serve-rocm) | ROCm image which installs `torch` from the pytorch rocm index. | `linux/amd64` | 27 GB |
+#### 📦 Distributed Images
+
+| Image | Description | Architectures | Size |
+|-------|-------------|----------------|------|
+| [`ghcr.io/docling-project/docling-serve`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve) <br> [`quay.io/docling-project/docling-serve`](https://quay.io/repository/docling-project/docling-serve) | Base image with all packages installed from the official PyPI index. | `linux/amd64`, `linux/arm64` | 4.4 GB (arm64) <br> 8.7 GB (amd64) |
+| [`ghcr.io/docling-project/docling-serve-cpu`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cpu) <br> [`quay.io/docling-project/docling-serve-cpu`](https://quay.io/repository/docling-project/docling-serve-cpu) | CPU-only variant, using `torch` from the PyTorch CPU index. | `linux/amd64`, `linux/arm64` | 4.4 GB |
+| [`ghcr.io/docling-project/docling-serve-cu126`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu126) <br> [`quay.io/docling-project/docling-serve-cu126`](https://quay.io/repository/docling-project/docling-serve-cu126) | CUDA 12.6 build with `torch` from the cu126 index. | `linux/amd64` | 10.0 GB |
+| [`ghcr.io/docling-project/docling-serve-cu128`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu128) <br> [`quay.io/docling-project/docling-serve-cu128`](https://quay.io/repository/docling-project/docling-serve-cu128) | CUDA 12.8 build with `torch` from the cu128 index. | `linux/amd64` | 11.4 GB |
+
+#### 🚫 Not Distributed
+
+An image for AMD ROCm 6.3 (`docling-serve-rocm`) is supported but **not published** due to its large size.
+
+To build it locally:
+
+```bash
+git clone --branch main git@github.com:docling-project/docling-serve.git
+cd docling-serve/
+make docling-serve-rocm-image
+```
+
+For deployment using Docker Compose, see [docs/deployment.md](docs/deployment.md).
 
 Coming soon: `docling-serve-slim` images will reduce the size by skipping the model weights download.
 
