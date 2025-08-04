@@ -29,6 +29,8 @@ On top of the source of file (see below), both endpoints support the same parame
 - `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`.
 - `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
 - `images_scale` (float): Scale factor for images. Defaults to 2.0.
+- `do_chunking` (bool): If enabled, the response will contain chunks instead of the full document formats. Useful for RAG applications. Defaults to false.
+- `chunking_options` (dict): Configuration options for document chunking. Supports parameters like max_tokens, overlap, tokenizer configuration, and markdown table serialization. Defaults to ChunkingOptions() with max_tokens=512, overlap=128, use_markdown_tables=false, merge_peers=true, and tokenizer="Qwen/Qwen3-Embedding-0.6B".
 
 ## Convert endpoints
 
@@ -321,6 +323,96 @@ Example URLs are:
 
 Note that when using `picture_description_api`, the server must be launched with `DOCLING_SERVE_ENABLE_REMOTE_SERVICES=true`.
 
+### Chunking for RAG Applications
+
+When `do_chunking` is enabled, the API returns document chunks instead of full document formats. This is particularly useful for RAG (Retrieval-Augmented Generation) applications.
+
+#### Chunking Options
+
+The `chunking_options` parameter supports the following configuration:
+
+- `max_tokens` (int): Maximum number of tokens per chunk. Defaults to 512.
+- `overlap` (int): Number of overlapping tokens between chunks. Defaults to 128.
+- `tokenizer` (str): HuggingFace model name for custom tokenization. Defaults to "Qwen/Qwen3-Embedding-0.6B".
+- `use_markdown_tables` (bool): Use markdown table format instead of triplets for table serialization. Defaults to false.
+- `merge_peers` (bool): Merge undersized successive chunks with same headings. Defaults to true.
+- `include_raw_text` (bool): Include both chunk_text and contextualized_text in response. If false, only contextualized_text is included. Defaults to true.
+
+#### Chunking Examples
+
+<details>
+<summary>Basic chunking:</summary>
+
+```json
+{
+  "options": {
+    "do_chunking": true,
+    "chunking_options": {
+      "max_tokens": 512,
+      "overlap": 128
+    }
+  },
+  "sources": [{"kind": "http", "url": "https://example.com/document.pdf"}]
+}
+```
+
+</details>
+
+<details>
+<summary>With markdown tables:</summary>
+
+```json
+{
+  "options": {
+    "do_chunking": true,
+    "chunking_options": {
+      "max_tokens": 512,
+      "use_markdown_tables": true
+    }
+  },
+  "sources": [{"kind": "http", "url": "https://example.com/document.pdf"}]
+}
+```
+
+</details>
+
+<details>
+<summary>With custom tokenizer:</summary>
+
+```json
+{
+  "options": {
+    "do_chunking": true,
+    "chunking_options": {
+      "max_tokens": 512,
+      "tokenizer": "Qwen/Qwen3-Embedding-0.6B",
+      "use_markdown_tables": true
+    }
+  },
+  "sources": [{"kind": "http", "url": "https://example.com/document.pdf"}]
+}
+```
+
+</details>
+
+<details>
+<summary>Without serialized text (smaller payload):</summary>
+
+```json
+{
+  "options": {
+    "do_chunking": true,
+    "chunking_options": {
+      "max_tokens": 512,
+      "include_raw_text": false
+    }
+  },
+  "sources": [{"kind": "http", "url": "https://example.com/document.pdf"}]
+}
+```
+
+</details>
+
 ## Response format
 
 The response can be a JSON Document or a File.
@@ -350,6 +442,38 @@ The response can be a JSON Document or a File.
 
 - If you set the parameter `target` to the zip mode, the response will be a zip file.
 - If multiple files are generated (multiple inputs, or one input but multiple outputs with the zip target mode), the response will be a zip file.
+
+#### Chunking Response Format
+
+When chunking is enabled, the response uses returns chunks instead of document formats:
+
+```json
+{
+  "chunks": [
+    {
+      "filename": "document.pdf",
+      "chunk_index": 0,
+      "contextualized_text": "Context-enriched text...",
+      "chunk_text": "Raw text content...",
+      "heading": "Chapter 1",
+      "page_number": 1,
+      "metadata": {
+        "doc_items": [...]
+      }
+    }
+  ],
+  "status": "<success|partial_success|skipped|failure>",
+  "errors": [],
+  "processing_time": 0,
+  "timings": {},
+  "chunking_info": {
+    "max_tokens": 512,
+    "use_markdown_tables": true,
+    "tokenizer": "Qwen/Qwen3-Embedding-0.6B",
+    "include_raw_text": true
+  }
+}
+```
 
 ## Asynchronous API
 

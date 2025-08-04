@@ -4,6 +4,7 @@ import os
 import shutil
 import time
 from collections.abc import Iterable
+from functools import lru_cache
 from pathlib import Path
 from typing import Union
 
@@ -21,7 +22,10 @@ from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
 
+from docling_serve.datamodel.convert import ChunkingOptions
 from docling_serve.datamodel.responses import (
+    ChunkedDocumentResponse,
+    ChunkedDocumentResponseItem,
     ConvertDocumentResponse,
     DocumentResponse,
     PresignedUrlConvertDocumentResponse,
@@ -30,6 +34,156 @@ from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 
 _log = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=8)  # Cache up to 8 different tokenizer models
+def _get_cached_huggingface_tokenizer(tokenizer_model: str):
+    """Cache the HuggingFace tokenizer loading."""
+    try:
+        from transformers import AutoTokenizer
+
+        return AutoTokenizer.from_pretrained(tokenizer_model)
+    except Exception as e:
+        _log.warning(f"Failed to load tokenizer model {tokenizer_model}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize tokenizer '{tokenizer_model}': {e}. Please check the model name and ensure it's available on HuggingFace Hub.",
+        )
+
+
+def _create_tokenizer(chunking_options: ChunkingOptions):
+    """Create a HuggingFace tokenizer for chunking."""
+    try:
+        from docling_core.transforms.chunker.tokenizer.huggingface import (
+            HuggingFaceTokenizer,
+        )
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chunking dependencies not available: {e}. Install with 'pip install docling[chunking]' or 'pip install docling-core[chunking]'",
+        )
+
+    # Use specified tokenizer model or default
+    tokenizer_model = (
+        chunking_options.tokenizer or "Qwen/Qwen3-Embedding-0.6B"
+    )
+
+    # Update the chunking_options
+    if chunking_options.tokenizer is None:
+        chunking_options.tokenizer = tokenizer_model
+
+    # Get cached HuggingFace tokenizer
+    hf_tokenizer = _get_cached_huggingface_tokenizer(tokenizer_model)
+
+    # Create the wrapper with max_tokens
+    return HuggingFaceTokenizer(
+        tokenizer=hf_tokenizer,
+        max_tokens=chunking_options.max_tokens,
+    )
+
+
+def _extract_page_numbers(chunk) -> list[int] | None:
+    """Extract page numbers from chunk metadata."""
+    page_numbers = set()
+    if (
+        hasattr(chunk, "meta")
+        and chunk.meta
+        and hasattr(chunk.meta, "doc_items")
+        and getattr(chunk.meta, "doc_items", None)
+    ):
+        for doc_item in chunk.meta.doc_items:
+            if hasattr(doc_item, "prov") and doc_item.prov:
+                for prov in doc_item.prov:
+                    if hasattr(prov, "page_no") and prov.page_no:
+                        page_numbers.add(prov.page_no)
+    return sorted(page_numbers) if page_numbers else None
+
+
+def _chunk_document(
+    conv_res: ConversionResult,
+    chunking_options: ChunkingOptions,
+) -> list[ChunkedDocumentResponseItem]:
+    """Chunk a document using HybridChunker with optional markdown table serialization."""
+    try:
+        from docling_core.transforms.chunker.hierarchical_chunker import (
+            ChunkingDocSerializer,
+            ChunkingSerializerProvider,
+        )
+        from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+        from docling_core.transforms.serializer.markdown import MarkdownTableSerializer
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chunking dependencies not available: {e}. Install with 'pip install docling[chunking]' or 'pip install docling-core[chunking]'",
+        )
+
+    # Configure tokenizer
+    tokenizer = _create_tokenizer(chunking_options)
+
+    # Configure serializer provider
+    if chunking_options.use_markdown_tables:
+
+        class MDTableSerializerProvider(ChunkingSerializerProvider):
+            def get_serializer(self, doc):
+                return ChunkingDocSerializer(
+                    doc=doc,
+                    table_serializer=MarkdownTableSerializer(),
+                )
+
+        serializer_provider: ChunkingSerializerProvider = MDTableSerializerProvider()
+    else:
+        serializer_provider = ChunkingSerializerProvider()
+
+    # Initialize chunker
+    chunker = HybridChunker(
+        tokenizer=tokenizer,
+        serializer_provider=serializer_provider,
+        merge_peers=chunking_options.merge_peers,
+    )
+
+    # Generate chunks
+    chunk_iter = chunker.chunk(dl_doc=conv_res.document)
+    chunks = list(chunk_iter)
+
+    # Convert to response items
+    chunk_items = []
+    for i, chunk in enumerate(chunks):
+        # Extract metadata from chunk
+        metadata = {}
+
+        if hasattr(chunk, "meta") and chunk.meta:
+            metadata = {
+                "doc_items": getattr(chunk.meta, "doc_items", None),
+            }
+
+        # Extract page numbers
+        page_numbers_list = _extract_page_numbers(chunk)
+
+        # Extract headings from chunk metadata
+        headings = None
+        if (
+            hasattr(chunk, "meta")
+            and chunk.meta
+            and hasattr(chunk.meta, "headings")
+            and getattr(chunk.meta, "headings", None)
+        ):
+            headings = getattr(chunk.meta, "headings", None)
+
+        # Get contextualized text
+        contextualized_text = chunker.contextualize(chunk=chunk)
+
+        chunk_item = ChunkedDocumentResponseItem(
+            filename=conv_res.input.file.name,
+            chunk_index=i,
+            contextualized_text=contextualized_text,
+            chunk_text=chunk.text if chunking_options.include_raw_text else None,
+            headings=headings,
+            page_numbers=page_numbers_list,
+            metadata=metadata,
+        )
+        chunk_items.append(chunk_item)
+
+    return chunk_items
 
 
 def _export_document_as_content(
@@ -162,7 +316,12 @@ def process_results(
     target: TaskTarget,
     conv_results: Iterable[ConversionResult],
     work_dir: Path,
-) -> Union[ConvertDocumentResponse, FileResponse, PresignedUrlConvertDocumentResponse]:
+) -> (
+    ConvertDocumentResponse
+    | ChunkedDocumentResponse
+    | FileResponse
+    | PresignedUrlConvertDocumentResponse
+):
     # Let's start by processing the documents
     try:
         start_time = time.monotonic()
@@ -187,8 +346,65 @@ def process_results(
 
     # We have some results, let's prepare the response
     response: Union[
-        FileResponse, ConvertDocumentResponse, PresignedUrlConvertDocumentResponse
+        FileResponse,
+        ConvertDocumentResponse,
+        PresignedUrlConvertDocumentResponse,
+        ChunkedDocumentResponse,
     ]
+
+    # Check if chunking is enabled
+    do_chunking = getattr(conversion_options, "do_chunking", False)
+    chunking_options = getattr(conversion_options, "chunking_options", None)
+
+    if do_chunking and chunking_options is None:
+        chunking_options = ChunkingOptions()
+
+    # If chunking is enabled, return chunked response
+    if do_chunking:
+        if len(conv_results) == 1:
+            conv_res = conv_results[0]
+            if conv_res.status == ConversionStatus.SUCCESS:
+                assert chunking_options is not None
+                chunks = _chunk_document(conv_res, chunking_options)
+                response = ChunkedDocumentResponse(
+                    chunks=chunks,
+                    status=conv_res.status,
+                    processing_time=processing_time,
+                    timings=conv_res.timings,
+                    chunking_info=chunking_options.model_dump()
+                    if chunking_options
+                    else {},
+                )
+            else:
+                response = ChunkedDocumentResponse(
+                    chunks=[],
+                    status=conv_res.status,
+                    errors=conv_res.errors,
+                    processing_time=processing_time,
+                    timings=conv_res.timings,
+                    chunking_info=chunking_options.model_dump()
+                    if chunking_options
+                    else {},
+                )
+        else:
+            # Multiple documents - chunk each one
+            all_chunks = []
+            assert chunking_options is not None
+            for conv_res in conv_results:
+                if conv_res.status == ConversionStatus.SUCCESS:
+                    chunks = _chunk_document(conv_res, chunking_options)
+                    all_chunks.extend(chunks)
+
+            response = ChunkedDocumentResponse(
+                chunks=all_chunks,
+                status=ConversionStatus.SUCCESS
+                if all_chunks
+                else ConversionStatus.FAILURE,
+                processing_time=processing_time,
+                timings={},  # TODO: Aggregate timings from all results
+                chunking_info=chunking_options.model_dump() if chunking_options else {},
+            )
+        return response
 
     # Booleans to know what to export
     export_json = OutputFormat.JSON in conversion_options.to_formats

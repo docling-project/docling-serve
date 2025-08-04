@@ -237,6 +237,7 @@ ignore = [
     "PL", # Pylint
     "RUF012", # Mutable Class Attributes
     "UP007", # Option and Union
+    "UP045", # Use X | None for type annotations
 ]
 
 #extend-select = []
