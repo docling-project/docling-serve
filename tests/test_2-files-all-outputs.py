@@ -154,7 +154,7 @@ async def test_convert_files_chunked(async_client):
     for filename in filenames:
         file_chunks = [c for c in chunks if c["filename"] == filename]
         check.greater(len(file_chunks), 0, f"Should have chunks for {filename}")
-        
+
         # Verify chunk indexing starts at 0 for each file
         chunk_indices = [c["chunk_index"] for c in file_chunks]
         check.is_in(0, chunk_indices, f"Should have chunk_index 0 for {filename}")

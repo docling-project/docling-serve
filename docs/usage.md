@@ -30,7 +30,7 @@ On top of the source of file (see below), both endpoints support the same parame
 - `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
 - `images_scale` (float): Scale factor for images. Defaults to 2.0.
 - `do_chunking` (bool): If enabled, the response will contain chunks instead of the full document formats. Useful for RAG applications. Defaults to false.
-- `chunking_options` (dict): Configuration options for document chunking. Supports parameters like max_tokens, overlap, tokenizer configuration, and markdown table serialization. Defaults to ChunkingOptions() with max_tokens=512, overlap=128, use_markdown_tables=false, merge_peers=true, and tokenizer="Qwen/Qwen3-Embedding-0.6B".
+- `chunking_options` (dict): Configuration options for document chunking. See [Chunking for RAG Applications](#chunking-for-rag-applications) section for detailed configuration options.
 
 ## Convert endpoints
 
@@ -333,10 +333,10 @@ The `chunking_options` parameter supports the following configuration:
 
 - `max_tokens` (int): Maximum number of tokens per chunk. Defaults to 512.
 - `overlap` (int): Number of overlapping tokens between chunks. Defaults to 128.
-- `tokenizer` (str): HuggingFace model name for custom tokenization. Defaults to "Qwen/Qwen3-Embedding-0.6B".
+- `tokenizer` (str): HuggingFace model name for custom `tokenization`. Defaults to "Qwen/Qwen3-Embedding-0.6B".
 - `use_markdown_tables` (bool): Use markdown table format instead of triplets for table serialization. Defaults to false.
 - `merge_peers` (bool): Merge undersized successive chunks with same headings. Defaults to true.
-- `include_raw_text` (bool): Include both chunk_text and contextualized_text in response. If false, only contextualized_text is included. Defaults to true.
+- `include_raw_text` (bool): Include both `chunk_text` and `contextualized_text` in response. If false, only `contextualized_text` is included. Defaults to true.
 
 #### Chunking Examples
 
@@ -377,7 +377,7 @@ The `chunking_options` parameter supports the following configuration:
 </details>
 
 <details>
-<summary>With custom tokenizer:</summary>
+<summary>With custom `tokenizer`:</summary>
 
 ```json
 {
@@ -443,7 +443,7 @@ The response can be a JSON Document or a File.
 - If you set the parameter `target` to the zip mode, the response will be a zip file.
 - If multiple files are generated (multiple inputs, or one input but multiple outputs with the zip target mode), the response will be a zip file.
 
-#### Chunking Response Format
+### Chunking Response Format
 
 When chunking is enabled, the response uses returns chunks instead of document formats:
 

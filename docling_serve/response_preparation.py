@@ -64,9 +64,7 @@ def _create_tokenizer(chunking_options: ChunkingOptions):
         )
 
     # Use specified tokenizer model or default
-    tokenizer_model = (
-        chunking_options.tokenizer or "Qwen/Qwen3-Embedding-0.6B"
-    )
+    tokenizer_model = chunking_options.tokenizer or "Qwen/Qwen3-Embedding-0.6B"
 
     # Update the chunking_options
     if chunking_options.tokenizer is None:

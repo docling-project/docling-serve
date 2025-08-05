@@ -197,7 +197,7 @@ async def test_convert_url_chunked(async_client):
     expected_filename_patterns = ["2206.01062", ".pdf"]
     for pattern in expected_filename_patterns:
         check.is_in(pattern, first_chunk["filename"])
-    
+
     check.is_in("chunk_index", first_chunk)
     check.equal(first_chunk["chunk_index"], 0)
     check.is_in("chunk_text", first_chunk)

@@ -137,7 +137,9 @@ async def test_convert_file_async_chunked(async_client):
     chunk_texts = [chunk.get("chunk_text", "") or "" for chunk in chunks]
     all_chunk_text = " ".join(chunk_texts)
     assert "DocLayNet" in all_chunk_text, "Chunks should contain 'DocLayNet'"
-    assert "Large Human-Annotated Dataset" in all_chunk_text, "Chunks should contain 'Large Human-Annotated Dataset'"
+    assert "Large Human-Annotated Dataset" in all_chunk_text, (
+        "Chunks should contain 'Large Human-Annotated Dataset'"
+    )
 
     assert "status" in result
     assert result["status"] == "success"
