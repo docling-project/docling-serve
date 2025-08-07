@@ -66,6 +66,7 @@ The following table describes the options to configure the Docling Serve local e
 | ENV | Default | Description |
 |-----|---------|-------------|
 | `DOCLING_SERVE_ENG_LOC_NUM_WORKERS` | 2 | Number of workers/threads processing the incoming tasks. |
+| `DOCLING_SERVE_ENG_LOC_SHARE_MODELS` | False | If true, each process will share the same models among all thread workers. Otherwise, one instance of the models is allocated for each worker thread. |
 
 #### KFP engine
 

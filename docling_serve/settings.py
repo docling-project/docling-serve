@@ -63,6 +63,7 @@ class DoclingServeSettings(BaseSettings):
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
     # Local engine
     eng_loc_num_workers: int = 2
+    eng_loc_share_models: bool = False
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None

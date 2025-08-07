@@ -19,6 +19,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         local_config = LocalOrchestratorConfig(
             num_workers=docling_serve_settings.eng_loc_num_workers,
+            shared_models=docling_serve_settings.eng_loc_share_models,
         )
 
         cm_config = DoclingConverterManagerConfig(
