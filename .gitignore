@@ -446,3 +446,6 @@ pip-selfcheck.json
 .markdown-lint
 
 cookies.txt
+
+# Examples
+/examples/splitted_pdf/*
