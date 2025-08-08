@@ -268,7 +268,7 @@ jobs:
               sleep 5
 
               echo "Starting container..."
-              docker run -d -p 5001:5001 --name docling-serve-test-container "$tag"
+              docker run -d -p 5001:5001 --gpus all --name docling-serve-test-container "$tag"
 
               echo "Waiting 15s for container to boot..."
               sleep 15
