@@ -35,7 +35,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -148,7 +148,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -221,7 +221,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -258,7 +258,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -291,7 +291,7 @@ task_id=$(curl -s -X 'POST' \
     -H "accept: application/json" \
     -H "Content-Type: application/json" \
     -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+      "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
     }' \
     -c cookies.txt | grep -oP '"task_id":"\K[^"]+')
 ```
