@@ -390,7 +390,7 @@ def create_app():  # noqa: C901
     # Convert a document from URL(s)
     @app.post(
         "/v1/convert/source",
-        response_model=ConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -426,7 +426,7 @@ def create_app():  # noqa: C901
     # Convert a document from file(s)
     @app.post(
         "/v1/convert/file",
-        response_model=ConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
