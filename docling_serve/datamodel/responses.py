@@ -44,6 +44,25 @@ class ConvertDocumentErrorResponse(BaseModel):
     status: ConversionStatus
 
 
+class ChunkedDocumentResponseItem(BaseModel):
+    filename: str
+    chunk_index: int
+    contextualized_text: str
+    chunk_text: str | None = None
+    headings: list[str] | None = None
+    page_numbers: list[int] | None = None
+    metadata: dict | None = None
+
+
+class ChunkedDocumentResponse(BaseModel):
+    chunks: list[ChunkedDocumentResponseItem]
+    status: ConversionStatus
+    errors: list[ErrorItem] = []
+    processing_time: float
+    timings: dict[str, ProfilingItem] = {}
+    chunking_info: Optional[dict] = None
+
+
 class TaskStatusResponse(BaseModel):
     task_id: str
     task_status: str

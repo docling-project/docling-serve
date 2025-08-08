@@ -6,7 +6,7 @@ import shutil
 import time
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import (
     BackgroundTasks,
@@ -57,6 +57,7 @@ from docling_serve.datamodel.requests import (
     TargetName,
 )
 from docling_serve.datamodel.responses import (
+    ChunkedDocumentResponse,
     ClearResponse,
     ConvertDocumentResponse,
     HealthCheckResponse,
@@ -390,11 +391,11 @@ def create_app():  # noqa: C901
     # Convert a document from URL(s)
     @app.post(
         "/v1/convert/source",
-        response_model=ConvertDocumentResponse,
+        response_model=Union[ConvertDocumentResponse, ChunkedDocumentResponse],
         responses={
             200: {
                 "content": {"application/zip": {}},
-                # "description": "Return the JSON item or an image.",
+                "description": "Return the JSON item, chunked response, or a zip file.",
             }
         },
     )
@@ -426,10 +427,11 @@ def create_app():  # noqa: C901
     # Convert a document from file(s)
     @app.post(
         "/v1/convert/file",
-        response_model=ConvertDocumentResponse,
+        response_model=Union[ConvertDocumentResponse, ChunkedDocumentResponse],
         responses={
             200: {
                 "content": {"application/zip": {}},
+                "description": "Return the JSON item, chunked response, or a zip file.",
             }
         },
     )
@@ -605,7 +607,9 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1/result/{task_id}",
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse
+        | PresignedUrlConvertDocumentResponse
+        | ChunkedDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
