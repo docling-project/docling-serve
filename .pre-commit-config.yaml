@@ -7,12 +7,12 @@ repos:
       - id: ruff-format
         name: "Ruff formatter"
         args: [--config=pyproject.toml]
-        files: '^(docling_serve|tests).*\.(py|ipynb)$'
+        files: '^(docling_serve|tests|examples).*\.(py|ipynb)$'
       # Run the Ruff linter.
       - id: ruff
         name: "Ruff linter"
         args: [--exit-non-zero-on-fix, --fix, --config=pyproject.toml]
-        files: '^(docling_serve|tests).*\.(py|ipynb)$'
+        files: '^(docling_serve|tests|examples).*\.(py|ipynb)$'
   - repo: local
     hooks:
       - id: system

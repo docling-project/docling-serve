@@ -1,9 +1,10 @@
-import httpx
 import json
 import time
 from pathlib import Path
-from pypdf import PdfReader, PdfWriter
+
+import httpx
 from pydantic import BaseModel
+from pypdf import PdfReader
 
 from docling_core.types.doc.document import DoclingDocument
 
@@ -11,46 +12,27 @@ from docling_core.types.doc.document import DoclingDocument
 out_dir = Path("examples/splitted_pdf/")
 pages_per_file = 4
 base_url = "http://localhost:5001/v1"
-output_file= Path("examples/merged_pdf.json")
+output_file = Path("examples/merged_pdf.json")
 
 
 class ConvertedSplittedPdf(BaseModel):
     task_id: str
     conversion_finished: bool = False
-    result: dict| None = None
+    result: dict | None = None
 
 
-def split_pdf(filename, pages_per_file=pages_per_file):
-    out_dir.mkdir(exist_ok=True, parents=True)
-
-    with open(filename, 'rb') as input_pdf_file:
-        pdf_reader = PdfReader(input_pdf_file)
-        total_pages = len(pdf_reader.pages)
-        
-        for start_page in range(0, total_pages, pages_per_file):
-            writer = PdfWriter()
-            
-            for page in range(start_page, min(start_page + pages_per_file, total_pages)):
-                writer.add_page(pdf_reader.pages[page])
-            
-            output_pdf_path = f"{out_dir}/split_{start_page // pages_per_file + 1}.pdf"
-            
-            with open(output_pdf_path, 'wb') as output_pdf_file:
-                writer.write(output_pdf_file)
-            print(f'Created: {output_pdf_path}')
-
-       
-def get_task_result(task_id):
+def get_task_result(task_id: str):
     response = httpx.get(
-        f"{base_url}/result/{task_id}",timeout=15,
+        f"{base_url}/result/{task_id}",
+        timeout=15,
     )
     return response.json()
 
 
-def check_task_status(task_id):
+def check_task_status(task_id: str):
     response = httpx.get(f"{base_url}/status/poll/{task_id}", timeout=15)
     task = response.json()
-    task_status = task['task_status']
+    task_status = task["task_status"]
 
     task_finished = False
     if task_status == "success":
@@ -58,25 +40,29 @@ def check_task_status(task_id):
 
     if task_status in ("failure", "revoked"):
         raise RuntimeError("A conversion failed")
-    
+
     time.sleep(5)
-    
+
     return task_finished
 
 
-def post_file(file_path):
+def post_file(file_path: Path, start_page: int, end_page: int):
     payload = {
         "to_formats": ["json"],
         "image_export_mode": "placeholder",
         "ocr": False,
         "abort_on_error": False,
+        "page_range": [start_page, end_page],
     }
 
     files = {
         "files": (file_path.name, file_path.open("rb"), "application/pdf"),
     }
     response = httpx.post(
-        f"{base_url}/convert/file/async", files=files, data=payload, timeout=15,
+        f"{base_url}/convert/file/async",
+        files=files,
+        data=payload,
+        timeout=15,
     )
 
     task = response.json()
@@ -85,15 +71,20 @@ def post_file(file_path):
 
 
 def main():
-    filename = "./tests/2206.01062v1.pdf" # file to split process
-    split_pdf(filename)
+    filename = Path("./tests/2206.01062v1.pdf")  # file to split process
 
     splitted_pdfs: list[ConvertedSplittedPdf] = []
 
-    for file in out_dir.rglob("*"):
-        task_id = post_file(file)
-        splitted_pdfs.append(ConvertedSplittedPdf(task_id=task_id))
-    
+    with open(filename, "rb") as input_pdf_file:
+        pdf_reader = PdfReader(input_pdf_file)
+        total_pages = len(pdf_reader.pages)
+
+        for start_page in range(0, total_pages, pages_per_file):
+            task_id = post_file(
+                filename, start_page + 1, min(start_page + pages_per_file, total_pages)
+            )
+            splitted_pdfs.append(ConvertedSplittedPdf(task_id=task_id))
+
     all_files_converted = False
     while not all_files_converted:
         found_conversion_running = False
@@ -101,18 +92,19 @@ def main():
             if not splitted_pdf.conversion_finished:
                 found_conversion_running = True
                 print("checking conversion status...")
-                splitted_pdf.conversion_finished = check_task_status(splitted_pdf.task_id)
+                splitted_pdf.conversion_finished = check_task_status(
+                    splitted_pdf.task_id
+                )
         if not found_conversion_running:
             all_files_converted = True
-    
+
     for splitted_pdf in splitted_pdfs:
         splitted_pdf.result = get_task_result(splitted_pdf.task_id)
-    
 
     # TODO: merge using JSON not working atm; currently outputs splited JSON into folder
     # merged_document = DoclingDocument(name="merged_pdf.pdf")
     for i, splitted_pdf in enumerate(splitted_pdfs):
-        # page_step=i*pages_per_file
+        # page_step = i * pages_per_file
         json_content = json.dumps(
             splitted_pdf.result.get("document").get("json_content"), indent=2
         )
@@ -120,7 +112,7 @@ def main():
         doc.save_as_json(filename=f"{out_dir}/splited_json_{i}.json")
     #     for page, page_item in doc.pages.items():
     #         merged_document.add_page(page_no=page_step+page, size=page_item.size, image=page_item.image)
-        
+
     #     for group in doc.groups:
     #         merged_document.add_group(
     #             label=group.label,
@@ -128,7 +120,7 @@ def main():
     #             parent=group.parent,
     #             content_layer=group.content_layer,
     #         )
-        
+
     #     for text in doc.texts:
     #         merged_document.add_text(
     #             label=text.label,
@@ -137,7 +129,7 @@ def main():
     #             parent=text.parent,
     #             content_layer=text.content_layer,
     #         )
-        
+
     #     for picture in doc.pictures:
     #         merged_document.add_picture(
     #             annotations=picture.annotations,
@@ -172,9 +164,8 @@ def main():
     #             parent=doc_form.parent,
     #         )
 
-
     # merged_document.save_as_json(output_file)
-    
+
     print("Finished")
 
 
