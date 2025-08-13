@@ -1,3 +1,16 @@
+## [v1.2.1](https://github.com/docling-project/docling-serve/releases/tag/v1.2.1) - 2025-08-13
+
+### Fix
+
+* Handling of vlm model options and update deps ([#314](https://github.com/docling-project/docling-serve/issues/314)) ([`8b470cb`](https://github.com/docling-project/docling-serve/commit/8b470cba8ef500c271eb84c8368c8a1a1a5a6d6a))
+* Add missing response type in sync endpoints ([#309](https://github.com/docling-project/docling-serve/issues/309)) ([`8048f45`](https://github.com/docling-project/docling-serve/commit/8048f4589a91de2b2b391ab33a326efd1b29f25b))
+
+### Documentation
+
+* Update readme to use v1 ([#306](https://github.com/docling-project/docling-serve/issues/306)) ([`b3058e9`](https://github.com/docling-project/docling-serve/commit/b3058e91e0c56e27110eb50f22cbdd89640bf398))
+* Update deployment examples to use v1 API ([#308](https://github.com/docling-project/docling-serve/issues/308)) ([`63da9ee`](https://github.com/docling-project/docling-serve/commit/63da9eedebae3ad31d04e65635e573194e413793))
+* Fix typo in v1 migration instructions ([#307](https://github.com/docling-project/docling-serve/issues/307)) ([`b15dc25`](https://github.com/docling-project/docling-serve/commit/b15dc2529f78d68a475e5221c37408c3f77d8588))
+
 ## [v1.2.0](https://github.com/docling-project/docling-serve/releases/tag/v1.2.0) - 2025-08-07
 
 ### Feature
