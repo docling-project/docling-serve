@@ -417,9 +417,17 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
-        task = await orchestrator.get_raw_task(task_id=task.task_id)
+        task_result = await orchestrator.task_result(task_id=task.task_id)
+        if task_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Task result not found. Please wait for a completion status.",
+            )
         response = await prepare_response(
-            task=task, orchestrator=orchestrator, background_tasks=background_tasks
+            task_id=task.task_id,
+            task_result=task_result,
+            orchestrator=orchestrator,
+            background_tasks=background_tasks,
         )
         return response
 
@@ -457,9 +465,17 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
-        task = await orchestrator.get_raw_task(task_id=task.task_id)
+        task_result = await orchestrator.task_result(task_id=task.task_id)
+        if task_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Task result not found. Please wait for a completion status.",
+            )
         response = await prepare_response(
-            task=task, orchestrator=orchestrator, background_tasks=background_tasks
+            task_id=task.task_id,
+            task_result=task_result,
+            orchestrator=orchestrator,
+            background_tasks=background_tasks,
         )
         return response
 
@@ -618,9 +634,17 @@ def create_app():  # noqa: C901
         task_id: str,
     ):
         try:
-            task = await orchestrator.get_raw_task(task_id=task_id)
+            task_result = await orchestrator.task_result(task_id=task_id)
+            if task_result is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Task result not found. Please wait for a completion status.",
+                )
             response = await prepare_response(
-                task=task, orchestrator=orchestrator, background_tasks=background_tasks
+                task_id=task_id,
+                task_result=task_result,
+                orchestrator=orchestrator,
+                background_tasks=background_tasks,
             )
             return response
         except TaskNotFoundError:

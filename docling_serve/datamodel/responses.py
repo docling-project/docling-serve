@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
-from docling_core.types.doc import DoclingDocument
+from docling_jobkit.datamodel.result import ExportDocumentResponse
 from docling_jobkit.datamodel.task_meta import TaskProcessingMeta
 
 
@@ -18,17 +18,8 @@ class ClearResponse(BaseModel):
     status: str = "ok"
 
 
-class DocumentResponse(BaseModel):
-    filename: str
-    md_content: Optional[str] = None
-    json_content: Optional[DoclingDocument] = None
-    html_content: Optional[str] = None
-    text_content: Optional[str] = None
-    doctags_content: Optional[str] = None
-
-
 class ConvertDocumentResponse(BaseModel):
-    document: DocumentResponse
+    document: ExportDocumentResponse
     status: ConversionStatus
     errors: list[ErrorItem] = []
     processing_time: float
@@ -36,8 +27,10 @@ class ConvertDocumentResponse(BaseModel):
 
 
 class PresignedUrlConvertDocumentResponse(BaseModel):
-    status: ConversionStatus
     processing_time: float
+    num_converted: int
+    num_succeeded: int
+    num_failed: int
 
 
 class ConvertDocumentErrorResponse(BaseModel):

@@ -3,6 +3,7 @@ from functools import lru_cache
 from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator
 
 from docling_serve.settings import AsyncEngine, docling_serve_settings
+from docling_serve.storage import get_scratch
 
 
 @lru_cache
@@ -20,6 +21,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
         local_config = LocalOrchestratorConfig(
             num_workers=docling_serve_settings.eng_loc_num_workers,
             shared_models=docling_serve_settings.eng_loc_share_models,
+            scratch_dir=get_scratch(),
         )
 
         cm_config = DoclingConverterManagerConfig(
@@ -33,6 +35,21 @@ def get_async_orchestrator() -> BaseOrchestrator:
         cm = DoclingConverterManager(config=cm_config)
 
         return LocalOrchestrator(config=local_config, converter_manager=cm)
+    elif docling_serve_settings.eng_kind == AsyncEngine.RQ:
+        from docling_jobkit.orchestrators.rq.orchestrator import (
+            RQOrchestrator,
+            RQOrchestratorConfig,
+        )
+
+        rq_config = RQOrchestratorConfig(
+            redis_host=docling_serve_settings.eng_rq_redis_host,
+            redis_port=docling_serve_settings.eng_rq_redis_port,
+            results_prefix=docling_serve_settings.eng_rq_results_prefix,
+            sub_channel=docling_serve_settings.eng_rq_sub_channel,
+            scratch_dir=get_scratch(),
+        )
+
+        return RQOrchestrator(config=rq_config)
     elif docling_serve_settings.eng_kind == AsyncEngine.KFP:
         from docling_jobkit.orchestrators.kfp.orchestrator import (
             KfpOrchestrator,
