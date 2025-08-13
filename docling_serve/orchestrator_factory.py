@@ -42,8 +42,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
         )
 
         rq_config = RQOrchestratorConfig(
-            redis_host=docling_serve_settings.eng_rq_redis_host,
-            redis_port=docling_serve_settings.eng_rq_redis_port,
+            redis_url=docling_serve_settings.eng_rq_redis_url,
             results_prefix=docling_serve_settings.eng_rq_results_prefix,
             sub_channel=docling_serve_settings.eng_rq_sub_channel,
             scratch_dir=get_scratch(),
