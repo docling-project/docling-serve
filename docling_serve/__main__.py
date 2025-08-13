@@ -11,6 +11,7 @@ import uvicorn
 from rich.console import Console
 
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
+from docling_serve.storage import get_scratch
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
 warnings.filterwarnings(action="ignore", category=FutureWarning, module="easyocr")
@@ -358,6 +359,38 @@ def run(
         command="run",
         artifacts_path=artifacts_path,
         enable_ui=enable_ui,
+    )
+
+
+@app.command()
+def rq_worker() -> Any:
+    """
+    Run the [bold]Docling JobKit[/bold] RQ worker.
+    """
+    from docling_jobkit.convert.manager import DoclingConverterManagerConfig
+    from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestratorConfig
+    from docling_jobkit.orchestrators.rq.worker import run_worker
+
+    rq_config = RQOrchestratorConfig(
+        redis_host=docling_serve_settings.eng_rq_redis_host,
+        redis_port=docling_serve_settings.eng_rq_redis_port,
+        results_prefix=docling_serve_settings.eng_rq_results_prefix,
+        sub_channel=docling_serve_settings.eng_rq_sub_channel,
+        scratch_dir=get_scratch(),
+    )
+
+    cm_config = DoclingConverterManagerConfig(
+        artifacts_path=docling_serve_settings.artifacts_path,
+        options_cache_size=docling_serve_settings.options_cache_size,
+        enable_remote_services=docling_serve_settings.enable_remote_services,
+        allow_external_plugins=docling_serve_settings.allow_external_plugins,
+        max_num_pages=docling_serve_settings.max_num_pages,
+        max_file_size=docling_serve_settings.max_file_size,
+    )
+
+    run_worker(
+        rq_config=rq_config,
+        cm_config=cm_config,
     )
 
 
