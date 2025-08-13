@@ -81,7 +81,6 @@ The following table describes the options to configure the Docling Serve KFP eng
 | `DOCLING_SERVE_ENG_KFP_SELF_CALLBACK_TOKEN_PATH` |  | The token used for authenticating the progress callback. For cluster-internal workloads, use `/run/secrets/kubernetes.io/serviceaccount/token`. |
 | `DOCLING_SERVE_ENG_KFP_SELF_CALLBACK_CA_CERT_PATH` |  | The CA certificate for the progress callback. For cluster-inetrnal workloads, use `/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`. |
 
-
 #### Gradio UI
 
 When using Gradio UI and using the option to output conversion as file, Gradio uses cache to prevent files to be overwritten ([more info here](https://www.gradio.app/guides/file-access#the-gradio-cache)), and we defined the cache clean frequency of one hour to clean files older than 10hours. For situations that files need to be available to download from UI older than 10 hours, there is two options:
