@@ -1,3 +1,9 @@
+## [v1.2.2](https://github.com/docling-project/docling-serve/releases/tag/v1.2.2) - 2025-08-13
+
+### Fix
+
+* Update of transformers module to 4.55.1 ([#316](https://github.com/docling-project/docling-serve/issues/316)) ([`7692eb2`](https://github.com/docling-project/docling-serve/commit/7692eb26006fd4deaa021180c99e23a1b65de506))
+
 ## [v1.2.1](https://github.com/docling-project/docling-serve/releases/tag/v1.2.1) - 2025-08-13
 
 ### Fix

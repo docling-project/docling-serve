@@ -480,7 +480,7 @@ with gr.Blocks(
     css=css,
     theme=theme,
     title="Docling Serve",
-    delete_cache=(3600, 3600),  # Delete all files older than 1 hour every hour
+    delete_cache=(3600, 36000),  # Delete all files older than 10 hour every hour
 ) as ui:
     # Constants stored in states to be able to pass them as inputs to functions
     processing_text = gr.State("Processing your document(s), please wait...")
