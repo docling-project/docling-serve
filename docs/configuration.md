@@ -52,7 +52,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_CORS_ORIGINS` | `["*"]` | A list of origins that should be permitted to make cross-origin requests. |
 |  | `DOCLING_SERVE_CORS_METHODS` | `["*"]` | A list of HTTP methods that should be allowed for cross-origin requests. |
 |  | `DOCLING_SERVE_CORS_HEADERS` | `["*"]` | A list of HTTP request headers that should be supported for cross-origin requests. |
-|  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local` and `kfp`. See below for more configurations of the engines. |
+|  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local`, `rq` and `kfp`. See below for more configurations of the engines. |
 
 ### Compute engine
 
@@ -67,6 +67,16 @@ The following table describes the options to configure the Docling Serve local e
 |-----|---------|-------------|
 | `DOCLING_SERVE_ENG_LOC_NUM_WORKERS` | 2 | Number of workers/threads processing the incoming tasks. |
 | `DOCLING_SERVE_ENG_LOC_SHARE_MODELS` | False | If true, each process will share the same models among all thread workers. Otherwise, one instance of the models is allocated for each worker thread. |
+
+#### RQ engine
+
+The following table describes the options to configure the Docling Serve RQ engine.
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RQ_REDIS_URL` | (required) | The connection Redis url, e.g. `redis://localhost:6373/` |
+| `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
+| `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 
 #### KFP engine
 
