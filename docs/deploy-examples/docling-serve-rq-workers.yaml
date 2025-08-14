@@ -1,7 +1,5 @@
 # This example deployment configures Docling Serve with a Service and RQ workers
 
-# IMPORTANT provided example of storage class is NOT generic. It demonstrates how to make sure that all PVC will land in the same zone and be accessible from a single node.
-
 # Create following secret
 # kubectl create secret generic docling-serve-rq-secrets --from-literal=REDIS_PASSWORD=myredispassword --from-literal=RQ_REDIS_URL=redis://:myredispassword@docling-serve-redis-service:6373/
 ---
@@ -145,10 +143,6 @@ spec:
           args:
             - "--port"
             - "6373"
-            - "--dir"
-            - "/mnt/redis/data"
-            - "--appendonly"
-            - "yes"
             - "--requirepass"
             - "$(REDIS_PASSWORD)"
           ports:
@@ -159,15 +153,6 @@ spec:
                 secretKeyRef:
                   name: docling-serve-rq-secrets
                   key: REDIS_PASSWORD
-          volumeMounts:
-            - name: redis-data
-              mountPath: /mnt/redis/data
-            - name: redis-logs
-              mountPath: /mnt/redis/log
-            - name: redisos
-              mountPath: /var/opt/redis
-            - name: redis-backup
-              mountPath: /mnt/redis/redisbackup
           securityContext:
             fsGroup: 1004
             runAsNonRoot: true
@@ -177,75 +162,6 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-      volumes:
-        - name: redis-data
-          persistentVolumeClaim:
-            claimName: redis-data-pvc
-        - name: redisos
-          persistentVolumeClaim:
-            claimName: redis-os
-        - name: redis-logs
-          persistentVolumeClaim:
-            claimName: redis-log-pvc
-        - name: redis-backup
-          persistentVolumeClaim:
-            claimName: redis-backup-pvc
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: redis-os
-  labels:
-    app: docling-serve-redis
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-        requests:
-          storage: 20Gi
-  storageClassName: redis-storageclass
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: redis-data-pvc
-  labels:
-    app: docling-serve-redis
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-  storageClassName: redis-storageclass
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: redis-log-pvc
-  labels:
-    app: docling-serve-redis
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-  storageClassName: redis-storageclass
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: redis-backup-pvc
-  labels:
-    app: docling-serve-redis
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 40Gi
-  storageClassName: redis-storageclass
 ---
 apiVersion: v1
 kind: Service
@@ -262,17 +178,3 @@ spec:
       targetPort: 6373
   selector:
     app: docling-serve-redis
----
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: redis-storageclass
-  labels:
-    app: docling-serve-redis
-provisioner: vpc.block.csi.ibm.io
-parameters:
-  zone: eu-de-1
-  region: eu-de
-reclaimPolicy: Delete
-allowVolumeExpansion: true
-volumeBindingMode: WaitForFirstConsumer
