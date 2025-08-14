@@ -1,0 +1,278 @@
+# This example deployment configures Docling Serve with a Service and RQ workers
+
+# IMPORTANT provided example of storage class is NOT generic. It demonstrates how to make sure that all PVC will land in the same zone and be accessible from a single node.
+
+# Create following secret
+# kubectl create secret generic docling-serve-rq-secrets --from-literal=REDIS_PASSWORD=myredispassword --from-literal=RQ_REDIS_URL=redis://:myredispassword@docling-serve-redis-service:6373/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  ports:
+  - name: http
+    port: 5001
+    targetPort: http
+  selector:
+    app: docling-serve
+    component: docling-serve-api
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve
+  labels:
+    app: docling-serve
+    component: docling-serve-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+        component: docling-serve-api
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: api
+          resources:
+            limits:
+              cpu: 1
+              memory: 8Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: 'true'
+            - name: DOCLING_SERVE_ENG_KIND
+              value: 'rq'
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-rq-secrets
+                  key: RQ_REDIS_URL
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve-cpu'
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: docling-serve-rq-workers
+  labels:
+    app: docling-serve-rq-workers
+    component: docling-serve-rq-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: docling-serve-rq-workers
+      component: docling-serve-rq-worker
+  template:
+    metadata:
+      labels:
+        app: docling-serve-rq-workers
+        component: docling-serve-rq-worker
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: worker
+          resources:
+            limits:
+              cpu: 1
+              memory: 4Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          env:
+            - name: DOCLING_SERVE_ENG_KIND
+              value: 'rq'
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-rq-secrets
+                  key: RQ_REDIS_URL
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          imagePullPolicy: Always
+          image: 'ghcr.io/docling-project/docling-serve-cpu'
+          command: ["docling-serve"]
+          args: ["rq-worker"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve-redis
+  labels:
+    app: docling-serve-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve-redis
+  template:
+    metadata:
+      labels:
+        app: docling-serve-redis
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 100Mi
+          image: redis:latest
+          command: ["redis-server"]
+          args:
+            - "--port"
+            - "6373"
+            - "--dir"
+            - "/mnt/redis/data"
+            - "--appendonly"
+            - "yes"
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+          ports:
+            - containerPort: 6373
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: docling-serve-rq-secrets
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - name: redis-data
+              mountPath: /mnt/redis/data
+            - name: redis-logs
+              mountPath: /mnt/redis/log
+            - name: redisos
+              mountPath: /var/opt/redis
+            - name: redis-backup
+              mountPath: /mnt/redis/redisbackup
+          securityContext:
+            fsGroup: 1004
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data-pvc
+        - name: redisos
+          persistentVolumeClaim:
+            claimName: redis-os
+        - name: redis-logs
+          persistentVolumeClaim:
+            claimName: redis-log-pvc
+        - name: redis-backup
+          persistentVolumeClaim:
+            claimName: redis-backup-pvc
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: redis-os
+  labels:
+    app: docling-serve-redis
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+        requests:
+          storage: 20Gi
+  storageClassName: redis-storageclass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  labels:
+    app: docling-serve-redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: redis-storageclass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-log-pvc
+  labels:
+    app: docling-serve-redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: redis-storageclass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-backup-pvc
+  labels:
+    app: docling-serve-redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 40Gi
+  storageClassName: redis-storageclass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve-redis-service
+  labels:
+      app: docling-serve-redis
+spec:
+  type: NodePort
+  ports:
+    - name: redis-service
+      protocol: TCP
+      port: 6373
+      targetPort: 6373
+  selector:
+    app: docling-serve-redis
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: redis-storageclass
+  labels:
+    app: docling-serve-redis
+provisioner: vpc.block.csi.ibm.io
+parameters:
+  zone: eu-de-1
+  region: eu-de
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
