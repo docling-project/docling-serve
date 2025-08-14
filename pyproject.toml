@@ -69,6 +69,7 @@ dev = [
     "asgi-lifespan~=2.0",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
+    "pypdf>=6.0.0",
     "pytest~=8.3",
     "pytest-asyncio~=0.24",
     "pytest-check~=2.4",
