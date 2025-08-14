@@ -225,6 +225,23 @@ curl -X 'POST' \
   }'
 ```
 
+### Multiple workers with RQ
+
+Manifest example: [`docling-serve-rq-workers.yaml`](./deploy-examples/docling-serve-rq-workers.yaml)
+
+This deployment example has the following features:
+
+- Deployment configuration
+- Service configuration
+- Redis deployment
+- Multiple (2 by default) worker Pods
+
+Install the app with:
+
+```sh
+oc apply -f docs/deploy-examples/docling-serve-rq-workers.yaml
+```
+
 ### Secure deployment with `oauth-proxy`
 
 Manifest example: [docling-serve-oauth.yaml](./deploy-examples/docling-serve-oauth.yaml)
