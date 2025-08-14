@@ -327,20 +327,72 @@ def create_app():  # noqa: C901
             if "kind" not in schema["required"]:
                 schema["required"].append("kind")
 
+    def create_new_target_schema(obj):
+        """Create new target schema."""
+        new_target_schema = {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "default": "inbody",
+                }
+            },
+        }
+        new_target_schema["discriminator"] = copy.deepcopy(obj["discriminator"])
+        new_target_schema["required"] = ["kind"]
+        new_target_schema["title"] = "ConvertDocumentsTarget"
+        return new_target_schema
+
+    def update_targets_type_schema(temp_schema):
+        """Add target schema ref and update fields."""
+        new_target_type_eschema = {
+            "allOf": [{"$ref": "#/components/schemas/ConvertDocumentsTarget"}]
+        }
+        to_append = {}
+        if "required" in temp_schema and "kind" in temp_schema["required"]:
+            temp_schema["required"].remove("kind")
+        if temp_schema.get("required"):
+            to_append["required"] = temp_schema.pop("required")
+        if temp_schema.get("properties"):
+            if "kind" in temp_schema["properties"]:
+                temp_schema["properties"].pop("kind")
+            if temp_schema["properties"]:
+                to_append["properties"] = temp_schema.pop("properties")
+        if to_append:
+            new_target_type_eschema["allOf"].append(to_append)
+
+        return new_target_type_eschema
+
     # Downgrade openapi 3.1 to 3.0.x
     def downgrade_openapi31_to_30(spec):
-        def strip_unsupported(obj):
+        def strip_unsupported(obj, key=None):
             if isinstance(obj, dict):
+                if key == "target":  # Create new schema ConvertDocumentsTarget
+                    new_target_schema = create_new_target_schema(obj)
+                    spec["components"]["schemas"]["ConvertDocumentsTarget"] = (
+                        new_target_schema
+                    )
+                    obj = {
+                        "$ref": "#/components/schemas/ConvertDocumentsTarget",
+                        "title": "Target",
+                    }
+
+                if key in [
+                    t.__name__ for t in TaskTarget.__args__[0].__args__
+                ]:  # Add ref ConvertDocumentsTarget and update it
+                    temp_schema = copy.deepcopy(obj)
+                    spec["components"]["schemas"][key].clear()
+                    spec["components"]["schemas"][key] = update_targets_type_schema(
+                        temp_schema
+                    )
+
                 obj = {
-                    k: strip_unsupported(v)
+                    k: strip_unsupported(v, k)
                     for k, v in obj.items()
                     if k not in ("const", "examples", "prefixItems")
                 }
-
                 handle_discriminators(obj)
                 ensure_array_items(obj)
-
-                # Check for oneOf and anyOf to handle nested schemas
                 for key in ["oneOf", "anyOf"]:
                     if key in obj:
                         for sub in obj[key]:
