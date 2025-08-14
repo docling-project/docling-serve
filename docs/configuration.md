@@ -52,6 +52,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_CORS_ORIGINS` | `["*"]` | A list of origins that should be permitted to make cross-origin requests. |
 |  | `DOCLING_SERVE_CORS_METHODS` | `["*"]` | A list of HTTP methods that should be allowed for cross-origin requests. |
 |  | `DOCLING_SERVE_CORS_HEADERS` | `["*"]` | A list of HTTP request headers that should be supported for cross-origin requests. |
+|  | `DOCLING_SERVE_ENG_API_KEY` | | If specified, all the API requests must contain the header `X-Api-Key` with this value. |
 |  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local`, `rq` and `kfp`. See below for more configurations of the engines. |
 
 ### Compute engine
