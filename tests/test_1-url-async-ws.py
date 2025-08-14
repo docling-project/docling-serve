@@ -65,8 +65,7 @@ async def test_convert_url(async_client: httpx.AsyncClient):
 
     task = response.json()
 
-    uri = f"ws://localhost:5001/v1/status/ws/{task['task_id']}"
+    uri = f"ws://localhost:5001/v1/status/ws/{task['task_id']}?api_key={docling_serve_settings.api_key}"
     with connect(uri) as websocket:
-        # TODO: auth
         for message in websocket:
             print(message)

@@ -18,6 +18,7 @@ from fastapi import (
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
+    status,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (
@@ -569,11 +570,17 @@ def create_app():  # noqa: C901
         websocket: WebSocket,
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
+        api_key: Annotated[str, Query()] = "",
     ):
+        if docling_serve_settings.api_key:
+            if api_key != docling_serve_settings.api_key:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Api key is required as ?api_key=SECRET.",
+                )
+
         assert isinstance(orchestrator.notifier, WebsocketNotifier)
         await websocket.accept()
-
-        # TODO: auth
 
         if task_id not in orchestrator.tasks:
             await websocket.send_text(
