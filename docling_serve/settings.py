@@ -51,6 +51,8 @@ class DoclingServeSettings(BaseSettings):
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
 
+    api_key: str = ""
+
     max_document_timeout: float = 3_600 * 24 * 7  # 7 days
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize

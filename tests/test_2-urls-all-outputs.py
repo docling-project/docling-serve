@@ -3,10 +3,15 @@ import pytest
 import pytest_asyncio
 from pytest_check import check
 
+from docling_serve.settings import docling_serve_settings
+
 
 @pytest_asyncio.fixture
 async def async_client():
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = docling_serve_settings.api_key
+    async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
         yield client
 
 

@@ -233,15 +233,21 @@ def change_ocr_lang(ocr_engine):
         return "english,chinese"
 
 
-def wait_task_finish(task_id: str, return_as_file: bool):
+def wait_task_finish(auth: str, task_id: str, return_as_file: bool):
     conversion_sucess = False
     task_finished = False
     task_status = ""
+
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = str(auth)
+
     ssl_ctx = get_ssl_context()
     while not task_finished:
         try:
             response = httpx.get(
                 f"{get_api_endpoint()}/v1/status/poll/{task_id}?wait=5",
+                headers=headers,
                 verify=ssl_ctx,
                 timeout=15,
             )
@@ -265,6 +271,7 @@ def wait_task_finish(task_id: str, return_as_file: bool):
         try:
             response = httpx.get(
                 f"{get_api_endpoint()}/v1/result/{task_id}",
+                headers=headers,
                 timeout=15,
                 verify=ssl_ctx,
             )
@@ -279,6 +286,7 @@ def wait_task_finish(task_id: str, return_as_file: bool):
 
 
 def process_url(
+    auth,
     input_sources,
     to_formats,
     image_export_mode,
@@ -326,11 +334,18 @@ def process_url(
     ):
         logger.error("No input sources provided.")
         raise gr.Error("No input sources provided.", print_exception=False)
+
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = str(auth)
+
+    print(f"{headers=}")
     try:
         ssl_ctx = get_ssl_context()
         response = httpx.post(
             f"{get_api_endpoint()}/v1/convert/source/async",
             json=parameters,
+            headers=headers,
             verify=ssl_ctx,
             timeout=60,
         )
@@ -354,6 +369,7 @@ def file_to_base64(file):
 
 
 def process_file(
+    auth,
     files,
     to_formats,
     image_export_mode,
@@ -402,11 +418,16 @@ def process_file(
         "target": target,
     }
 
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = str(auth)
+
     try:
         ssl_ctx = get_ssl_context()
         response = httpx.post(
             f"{get_api_endpoint()}/v1/convert/source/async",
             json=parameters,
+            headers=headers,
             verify=ssl_ctx,
             timeout=60,
         )
@@ -565,6 +586,15 @@ with gr.Blocks(
                 file_process_btn = gr.Button("Process File", scale=1)
                 file_reset_btn = gr.Button("Reset", scale=1)
 
+    # Auth
+    with gr.Row(visible=bool(docling_serve_settings.api_key)):
+        with gr.Column():
+            auth = gr.Textbox(
+                label="Authentication",
+                placeholder="API Key",
+                type="password",
+            )
+
     # Options
     with gr.Accordion("Options") as options:
         with gr.Row():
@@ -590,6 +620,7 @@ with gr.Blocks(
                     label="Image Export Mode",
                     value="embedded",
                 )
+
         with gr.Row():
             with gr.Column(scale=1, min_width=200):
                 pipeline = gr.Radio(
@@ -724,6 +755,7 @@ with gr.Blocks(
     ).then(
         process_url,
         inputs=[
+            auth,
             url_input,
             to_formats,
             image_export_mode,
@@ -750,7 +782,7 @@ with gr.Blocks(
         outputs=[content_output, file_output],
     ).then(
         wait_task_finish,
-        inputs=[task_id_rendered, return_as_file],
+        inputs=[auth, task_id_rendered, return_as_file],
         outputs=[
             output_markdown,
             output_markdown_rendered,
@@ -811,6 +843,7 @@ with gr.Blocks(
     ).then(
         process_file,
         inputs=[
+            auth,
             file_input,
             to_formats,
             image_export_mode,
@@ -837,7 +870,7 @@ with gr.Blocks(
         outputs=[content_output, file_output],
     ).then(
         wait_task_finish,
-        inputs=[task_id_rendered, return_as_file],
+        inputs=[auth, task_id_rendered, return_as_file],
         outputs=[
             output_markdown,
             output_markdown_rendered,

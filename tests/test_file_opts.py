@@ -11,11 +11,20 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import PictureDescriptionData
 
 from docling_serve.app import create_app
+from docling_serve.settings import docling_serve_settings
 
 
 @pytest.fixture(scope="session")
 def event_loop():
     return asyncio.get_event_loop()
+
+
+@pytest.fixture(scope="session")
+def auth_headers():
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = docling_serve_settings.api_key
+    return headers
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -37,7 +46,7 @@ async def client(app):
 
 
 @pytest.mark.asyncio
-async def test_convert_file(client: AsyncClient):
+async def test_convert_file(client: AsyncClient, auth_headers: dict):
     """Test convert single file to all outputs"""
 
     endpoint = "/v1/convert/file"
@@ -63,7 +72,9 @@ async def test_convert_file(client: AsyncClient):
         "files": ("2206.01062v1.pdf", open(file_path, "rb"), "application/pdf"),
     }
 
-    response = await client.post(endpoint, files=files, data=options)
+    response = await client.post(
+        endpoint, files=files, data=options, headers=auth_headers
+    )
     assert response.status_code == 200, "Response should be 200 OK"
 
     data = response.json()
