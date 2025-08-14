@@ -143,6 +143,10 @@ spec:
           args:
             - "--port"
             - "6373"
+            - "--dir"
+            - "/mnt/redis/data"
+            - "--appendonly"
+            - "yes"
             - "--requirepass"
             - "$(REDIS_PASSWORD)"
           ports:
@@ -153,6 +157,9 @@ spec:
                 secretKeyRef:
                   name: docling-serve-rq-secrets
                   key: REDIS_PASSWORD
+          volumeMounts:
+            - name: redis-data
+              mountPath: /mnt/redis/data
           securityContext:
             fsGroup: 1004
             runAsNonRoot: true
@@ -162,6 +169,11 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
+      volumes:
+        - name: redis-data
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
 ---
 apiVersion: v1
 kind: Service
