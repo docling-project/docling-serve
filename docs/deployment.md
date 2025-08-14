@@ -238,6 +238,14 @@ This deployment example has the following features:
 
 Install the app with:
 
+- create k8s secret:
+
+```sh
+kubectl create secret generic docling-serve-rq-secrets --from-literal=REDIS_PASSWORD=myredispassword --from-literal=RQ_REDIS_URL=redis://:myredispassword@docling-serve-redis-service:6373/
+```
+
+- apply deployment manifest:
+
 ```sh
 oc apply -f docs/deploy-examples/docling-serve-rq-workers.yaml
 ```
