@@ -32,7 +32,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 ### Authentication
 
-When authentication is activated (see the parameter `DOCLING_SERVE_ENG_API_KEY` in [configuration.md](./configuration.md)), all the API requests **must** provide the header `X-Api-Key` with the correct secret key.
+When authentication is activated (see the parameter `DOCLING_SERVE_API_KEY` in [configuration.md](./configuration.md)), all the API requests **must** provide the header `X-Api-Key` with the correct secret key.
 
 ## Convert endpoints
 
