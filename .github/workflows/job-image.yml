@@ -102,6 +102,14 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
+      - name: Generate artifact attestation
+        if: ${{ inputs.publish }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
+          subject-digest: ${{ steps.ghcr_push.outputs.digest }}
+          push-to-registry: true
+
       - name: Extract metadata (tags, labels) for docling-serve quay image
         if: ${{ inputs.publish }}
         id: quay_meta
@@ -152,16 +160,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Pull and test CPU images
+      - name: Test CPU images
         run: |
-          set -e  # Exit immediately if any command fails
+          set -e
 
-          echo "All image tags: ${{ needs.image.outputs.image-tags }}"
+          echo "Testing image: ${{ needs.image.outputs.image-tags }}"
 
           for tag in ${{ needs.image.outputs.image-tags }}; do
-            if echo "$tag" | grep -q -- '-cpu'; then
+            if echo "$tag" | grep -q -- '-cpu' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
               echo "Testing CPU image: $tag"
 
               # Remove existing container if any
@@ -232,7 +240,7 @@ jobs:
               echo "Cleaning up test container..."
               docker rm -f docling-serve-test-container
             else
-              echo "Skipping non-CPU image: $tag"
+              echo "Skipping non-released or non-CPU image: $tag"
             fi
           done
 
@@ -246,16 +254,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Pull and test CUDA images
+      - name: Test CUDA images
         run: |
           set -e
 
-          echo "All image tags: ${{ needs.image.outputs.image-tags }}"
+          echo "Testing image: ${{ needs.image.outputs.image-tags }}"
 
           for tag in ${{ needs.image.outputs.image-tags }}; do
-            if echo "$tag" | grep -q -- '-cu'; then
+            if echo "$tag" | grep -qE -- '-cu[0-9]+' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
               echo "Testing CUDA image: $tag"
 
               # Remove existing container if any
@@ -326,6 +334,6 @@ jobs:
               echo "Cleaning up test container..."
               docker rm -f docling-serve-test-container
             else
-              echo "Skipping non-CUDA image: $tag"
+              echo "Skipping non-released or non-CUDA image: $tag"
             fi
           done
