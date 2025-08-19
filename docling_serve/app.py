@@ -28,6 +28,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
@@ -108,33 +109,44 @@ _log = logging.getLogger(__name__)
 
 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    scratch_dir = get_scratch()
+def create_lifespan_handler(instrumentator: Instrumentator):
+    """
+    Create a FastAPI lifespan handler for the application
 
-    orchestrator = get_async_orchestrator()
-    notifier = WebsocketNotifier(orchestrator)
-    orchestrator.bind_notifier(notifier)
+    @param instrumentator: A prometheus instrumentator used to expose metrics
+    """
 
-    # Warm up processing cache
-    if docling_serve_settings.load_models_at_boot:
-        await orchestrator.warm_up_caches()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        scratch_dir = get_scratch()
 
-    # Start the background queue processor
-    queue_task = asyncio.create_task(orchestrator.process_queue())
+        orchestrator = get_async_orchestrator()
+        notifier = WebsocketNotifier(orchestrator)
+        orchestrator.bind_notifier(notifier)
 
-    yield
+        # Warm up processing cache
+        if docling_serve_settings.load_models_at_boot:
+            await orchestrator.warm_up_caches()
 
-    # Cancel the background queue processor on shutdown
-    queue_task.cancel()
-    try:
-        await queue_task
-    except asyncio.CancelledError:
-        _log.info("Queue processor cancelled.")
+        # Start the background queue processor
+        queue_task = asyncio.create_task(orchestrator.process_queue())
 
-    # Remove scratch directory in case it was a tempfile
-    if docling_serve_settings.scratch_path is not None:
-        shutil.rmtree(scratch_dir, ignore_errors=True)
+        instrumentator.expose(app)
+
+        yield
+
+        # Cancel the background queue processor on shutdown
+        queue_task.cancel()
+        try:
+            await queue_task
+        except asyncio.CancelledError:
+            _log.info("Queue processor cancelled.")
+
+        # Remove scratch directory in case it was a tempfile
+        if docling_serve_settings.scratch_path is not None:
+            shutil.rmtree(scratch_dir, ignore_errors=True)
+
+    return lifespan
 
 
 ##################################
@@ -159,11 +171,13 @@ def create_app():  # noqa: C901
         _log.info("Found static assets.")
 
     require_auth = APIKeyAuth(docling_serve_settings.api_key)
+
+    instrumentator = Instrumentator()
     app = FastAPI(
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
         redoc_url=None if offline_docs_assets else "/docs",
-        lifespan=lifespan,
+        lifespan=create_lifespan_handler(instrumentator),
         version=version,
     )
 
@@ -178,6 +192,8 @@ def create_app():  # noqa: C901
         allow_methods=methods,
         allow_headers=headers,
     )
+
+    instrumentator.expose(app)
 
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
