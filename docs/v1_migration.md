@@ -37,7 +37,7 @@ New version:
     "options": {},  // conversion options
     "sources": [
         // input document provided as base64-encoded string
-        {"kind": "kind", "base64_string": "abc123...", "filename": "file.pdf"},
+        {"kind": "file", "base64_string": "abc123...", "filename": "file.pdf"},
         // input document provided as http urls
         {"kind": "http", "url": "https://..."},
     ]

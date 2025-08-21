@@ -36,7 +36,8 @@ The server is available at
 - API <http://127.0.0.1:5001>
 - API documentation <http://127.0.0.1:5001/docs>
 - UI playground <http://127.0.0.1:5001/ui>
-  ![swagger.png](img/swagger.png)
+
+![API documentation](img/fastapi-ui.png)
 
 Try it out with a simple conversion:
 
@@ -46,7 +47,7 @@ curl -X 'POST' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 

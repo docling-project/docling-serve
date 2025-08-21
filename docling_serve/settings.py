@@ -28,6 +28,7 @@ class UvicornSettings(BaseSettings):
 class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
     KFP = "kfp"
+    RQ = "rq"
 
 
 class DoclingServeSettings(BaseSettings):
@@ -50,6 +51,8 @@ class DoclingServeSettings(BaseSettings):
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
 
+    api_key: str = ""
+
     max_document_timeout: float = 3_600 * 24 * 7  # 7 days
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
@@ -63,6 +66,11 @@ class DoclingServeSettings(BaseSettings):
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
     # Local engine
     eng_loc_num_workers: int = 2
+    eng_loc_share_models: bool = False
+    # RQ engine
+    eng_rq_redis_url: str = ""
+    eng_rq_results_prefix: str = "docling:results"
+    eng_rq_sub_channel: str = "docling:updates"
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
@@ -85,6 +93,10 @@ class DoclingServeSettings(BaseSettings):
                 raise ValueError(
                     "KFP is not yet working. To enable the development version, you must set DOCLING_SERVE_ENG_KFP_EXPERIMENTAL=true."
                 )
+
+        if self.eng_kind == AsyncEngine.RQ:
+            if not self.eng_rq_redis_url:
+                raise ValueError("RQ Redis url is required when using the RQ engine.")
 
         return self
 

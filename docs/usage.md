@@ -30,6 +30,10 @@ On top of the source of file (see below), both endpoints support the same parame
 - `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
 - `images_scale` (float): Scale factor for images. Defaults to 2.0.
 
+### Authentication
+
+When authentication is activated (see the parameter `DOCLING_SERVE_API_KEY` in [configuration.md](./configuration.md)), all the API requests **must** provide the header `X-Api-Key` with the correct secret key.
+
 ## Convert endpoints
 
 ### Source endpoint

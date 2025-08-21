@@ -35,7 +35,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -148,7 +148,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -221,8 +221,33 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
+```
+
+### Multiple workers with RQ
+
+Manifest example: [`docling-serve-rq-workers.yaml`](./deploy-examples/docling-serve-rq-workers.yaml)
+
+This deployment example has the following features:
+
+- Deployment configuration
+- Service configuration
+- Redis deployment
+- Multiple (2 by default) worker Pods
+
+Install the app with:
+
+- create k8s secret:
+
+```sh
+kubectl create secret generic docling-serve-rq-secrets --from-literal=REDIS_PASSWORD=myredispassword --from-literal=RQ_REDIS_URL=redis://:myredispassword@docling-serve-redis-service:6373/
+```
+
+- apply deployment manifest:
+
+```sh
+oc apply -f docs/deploy-examples/docling-serve-rq-workers.yaml
 ```
 
 ### Secure deployment with `oauth-proxy`
@@ -258,7 +283,7 @@ curl -X 'POST' \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
   }'
 ```
 
@@ -291,7 +316,7 @@ task_id=$(curl -s -X 'POST' \
     -H "accept: application/json" \
     -H "Content-Type: application/json" \
     -d '{
-    "http_sources": [{"url": "https://arxiv.org/pdf/2501.17887"}]
+      "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
     }' \
     -c cookies.txt | grep -oP '"task_id":"\K[^"]+')
 ```

@@ -6,16 +6,24 @@ import pytest
 import pytest_asyncio
 from websockets.sync.client import connect
 
+from docling_serve.settings import docling_serve_settings
+
 
 @pytest_asyncio.fixture
 async def async_client():
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = docling_serve_settings.api_key
+    async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
         yield client
 
 
 @pytest.mark.asyncio
 async def test_convert_url(async_client: httpx.AsyncClient):
     """Test convert URL to all outputs"""
+    headers = {}
+    if docling_serve_settings.api_key:
+        headers["X-Api-Key"] = docling_serve_settings.api_key
 
     doc_filename = Path("tests/2408.09869v5.pdf")
     encoded_doc = base64.b64encode(doc_filename.read_bytes()).decode()
@@ -57,7 +65,7 @@ async def test_convert_url(async_client: httpx.AsyncClient):
 
     task = response.json()
 
-    uri = f"ws://localhost:5001/v1/status/ws/{task['task_id']}"
+    uri = f"ws://localhost:5001/v1/status/ws/{task['task_id']}?api_key={docling_serve_settings.api_key}"
     with connect(uri) as websocket:
         for message in websocket:
             print(message)
