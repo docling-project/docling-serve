@@ -101,10 +101,11 @@ jobs:
         with:
           context: .
           push: ${{ inputs.publish }} # set 'false' for local test
-          load: true
+          # Uses output instead of load for multi-platform
+          output: type=docker
           tags: ${{ steps.ghcr_meta.outputs.tags }}
           labels: ${{ steps.ghcr_meta.outputs.labels }}
-          platforms: ${{ inputs.platforms}}
+          platforms: ${{ inputs.platforms }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: Containerfile
