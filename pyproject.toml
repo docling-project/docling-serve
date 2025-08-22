@@ -34,7 +34,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "docling~=2.38",
-    "docling-core>=2.44.1",
+    "docling-core>=2.45.0",
     "docling-jobkit[kfp,rq,vlm]>=1.4.0,<2.0.0",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
@@ -69,6 +69,7 @@ dev = [
     "asgi-lifespan~=2.0",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
+    "pypdf>=6.0.0",
     "pytest~=8.3",
     "pytest-asyncio~=0.24",
     "pytest-check~=2.4",
