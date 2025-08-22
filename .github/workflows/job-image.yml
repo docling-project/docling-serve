@@ -110,7 +110,7 @@ jobs:
           build-args: ${{ inputs.build_args }}
 
       - name: Build test image for linux/amd64
-        if: matrix.spec.name == 'docling-project/docling-serve'
+        if: contains(inputs.platforms, 'amd64') && inputs.ghcr_image_name == 'docling-project/docling-serve'
         id: ghcr_build_test
         uses: docker/build-push-action@v6
         with:
