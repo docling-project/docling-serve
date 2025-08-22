@@ -53,7 +53,7 @@ jobs:
             df -h
 
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Log in to the GHCR container image registry
         if: ${{ inputs.publish }}
@@ -88,12 +88,19 @@ jobs:
         with:
           images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
 
+      ## Local test
+      # - name: Set metadata outputs for local testing, and comment out: Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks
+      #   id: ghcr_meta
+      #   run: |
+      #     echo "tags=ghcr.io/docling-project/docling-serve:pr-123" >> $GITHUB_OUTPUT
+      #     echo "labels=org.opencontainers.image.source=https://github.com/docling-project/docling-serve" >> $GITHUB_OUTPUT
+
       - name: Build and push image to ghcr.io
         id: ghcr_push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ inputs.publish }} # set false for local test
+          push: ${{ inputs.publish }} # set 'false' for local test
           tags: ${{ steps.ghcr_meta.outputs.tags }}
           labels: ${{ steps.ghcr_meta.outputs.labels }}
           platforms: ${{ inputs.platforms}}
@@ -101,6 +108,76 @@ jobs:
           cache-to: type=gha,mode=max
           file: Containerfile
           build-args: ${{ inputs.build_args }}
+
+      - name: Tests local image
+        run: |
+          set -e
+
+          IMAGE_TAG="${{ steps.ghcr_meta.outputs.tags }}"
+          echo "Testing local image: $IMAGE_TAG"
+
+          # Remove existing container if any
+          docker rm -f docling-serve-test-container 2>/dev/null || true
+
+          echo "Starting container..."
+          docker run -d -p 5001:5001 --name docling-serve-test-container "$IMAGE_TAG"
+
+          echo "Waiting 15s for container to boot..."
+          sleep 15
+
+          echo "Checking service health..."
+          for i in {1..20}; do
+            HEALTH_RESPONSE=$(curl -s http://localhost:5001/health || true)
+            echo "Health check response [$i]: $HEALTH_RESPONSE"
+
+            if echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
+              echo "Service is healthy! Sending test conversion request..."
+
+              STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
+                -H 'accept: application/json' \
+                -H 'Content-Type: application/json' \
+                -d '{
+                  "options": {
+                    "from_formats": ["pdf"],
+                    "to_formats": ["md"]
+                  },
+                  "sources": [
+                    {
+                      "kind": "http",
+                      "url": "https://arxiv.org/pdf/2501.17887"
+                    }
+                  ],
+                  "target": {
+                    "kind": "inbody"
+                  }
+                }')
+
+              echo "Conversion request returned status code: $STATUS_CODE"
+
+              if [ "$STATUS_CODE" -ne 200 ]; then
+                echo "Conversion failed!"
+                docker logs docling-serve-test-container
+                docker rm -f docling-serve-test-container
+                exit 1
+              fi
+
+              break
+            else
+              echo "Waiting for service... [$i/20]"
+              sleep 3
+            fi
+          done
+
+          # Final health check
+          if ! echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
+            echo "Service did not become healthy in time."
+            docker logs docling-serve-test-container
+            docker rm -f docling-serve-test-container
+            exit 1
+          fi
+
+          echo "Cleaning up test container..."
+          docker rm -f docling-serve-test-container
 
       - name: Generate artifact attestation
         if: ${{ inputs.publish }}
@@ -123,7 +200,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ inputs.publish }} # set false for local test
+          push: ${{ inputs.publish }}
           tags: ${{ steps.quay_meta.outputs.tags }}
           labels: ${{ steps.quay_meta.outputs.labels }}
           platforms: ${{ inputs.platforms}}
@@ -132,208 +209,209 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
-      # - name: Inspect the image details
-      #   run: |
-      #     echo "${{ steps.ghcr_push.outputs.metadata }}"
-
       - name: Remove Local Docker Images
         run: |
           docker image prune -af
+##
+## Tests for released images
+##
 
-      # - name: Set metadata outputs for local testing, and comment out buildx, cache, metadata
+      ## Local test
+      # - name: Set metadata outputs for local testing, and comment out: Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks
       #   id: ghcr_meta
       #   run: |
-      #     echo "tags=ghcr.io/docling-project/docling-serve-cpu:main" >> $GITHUB_OUTPUT
+      #     echo "tags=ghcr.io/docling-project/docling-serve-cpu:v1.2.0" >> $GITHUB_OUTPUT
       #     echo "labels=org.opencontainers.image.source=https://github.com/docling-project/docling-serve" >> $GITHUB_OUTPUT
 
-    outputs:
-      image-tags: ${{ steps.ghcr_meta.outputs.tags }}
-      image-labels: ${{ steps.ghcr_meta.outputs.labels }}
+    ## GH
+    # outputs:
+    #   image-tags: ${{ steps.ghcr_meta.outputs.tags }}
+    #   image-labels: ${{ steps.ghcr_meta.outputs.labels }}
 
-  test-cpu-image:
-    needs:
-      - image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
+  # test-cpu-image:
+  #   needs:
+  #     - image
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     packages: read
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
 
-      - name: Test CPU images
-        run: |
-          set -e
+  #     - name: Test CPU images
+  #       run: |
+  #         set -e
 
-          echo "Testing image: ${{ needs.image.outputs.image-tags }}"
+  #         echo "Testing image: ${{ needs.image.outputs.image-tags }}"
 
-          for tag in ${{ needs.image.outputs.image-tags }}; do
-            if echo "$tag" | grep -q -- '-cpu' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
-              echo "Testing CPU image: $tag"
+  #         for tag in ${{ needs.image.outputs.image-tags }}; do
+  #           if echo "$tag" | grep -q -- '-cpu' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
+  #             echo "Testing CPU image: $tag"
 
-              # Remove existing container if any
-              docker rm -f docling-serve-test-container 2>/dev/null || true
+  #             # Remove existing container if any
+  #             docker rm -f docling-serve-test-container 2>/dev/null || true
 
-              echo "Pulling image..."
-              docker pull "$tag"
+  #             echo "Pulling image..."
+  #             docker pull "$tag"
 
-              echo "Waiting 5s after pull..."
-              sleep 5
+  #             echo "Waiting 5s after pull..."
+  #             sleep 5
 
-              echo "Starting container..."
-              docker run -d -p 5001:5001 --name docling-serve-test-container "$tag"
+  #             echo "Starting container..."
+  #             docker run -d -p 5001:5001 --name docling-serve-test-container "$tag"
 
-              echo "Waiting 15s for container to boot..."
-              sleep 15
+  #             echo "Waiting 15s for container to boot..."
+  #             sleep 15
 
-              echo "Checking service health..."
-              for i in {1..20}; do
-                health_response=$(curl -s http://localhost:5001/health || true)
-                echo "Health check response [$i]: $health_response"
-                if echo "$health_response" | grep -q '"status":"ok"'; then
-                  echo "Service is healthy!"
-                  echo "Sending test conversion request..."
+  #             echo "Checking service health..."
+  #             for i in {1..20}; do
+  #               health_response=$(curl -s http://localhost:5001/health || true)
+  #               echo "Health check response [$i]: $health_response"
+  #               if echo "$health_response" | grep -q '"status":"ok"'; then
+  #                 echo "Service is healthy!"
+  #                 echo "Sending test conversion request..."
 
-                  status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
-                    -H 'accept: application/json' \
-                    -H 'Content-Type: application/json' \
-                    -d '{
-                      "options": {
-                        "from_formats": ["pdf"],
-                        "to_formats": ["md"]
-                      },
-                      "sources": [
-                        {
-                          "kind": "http",
-                          "url": "https://arxiv.org/pdf/2501.17887"
-                        }
-                      ],
-                      "target": {
-                        "kind": "inbody"
-                      }
-                    }')
+  #                 status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
+  #                   -H 'accept: application/json' \
+  #                   -H 'Content-Type: application/json' \
+  #                   -d '{
+  #                     "options": {
+  #                       "from_formats": ["pdf"],
+  #                       "to_formats": ["md"]
+  #                     },
+  #                     "sources": [
+  #                       {
+  #                         "kind": "http",
+  #                         "url": "https://arxiv.org/pdf/2501.17887"
+  #                       }
+  #                     ],
+  #                     "target": {
+  #                       "kind": "inbody"
+  #                     }
+  #                   }')
 
-                  echo "Conversion request returned status code: $status_code"
+  #                 echo "Conversion request returned status code: $status_code"
 
-                  if [ "$status_code" -ne 200 ]; then
-                    echo "Conversion failed!"
-                    docker logs docling-serve-test-container
-                    docker rm -f docling-serve-test-container
-                    exit 1
-                  fi
+  #                 if [ "$status_code" -ne 200 ]; then
+  #                   echo "Conversion failed!"
+  #                   docker logs docling-serve-test-container
+  #                   docker rm -f docling-serve-test-container
+  #                   exit 1
+  #                 fi
 
-                  break
-                else
-                  echo "Waiting for service... [$i/20]"
-                  sleep 3
-                fi
-              done
+  #                 break
+  #               else
+  #                 echo "Waiting for service... [$i/20]"
+  #                 sleep 3
+  #               fi
+  #             done
 
-              if ! echo "$health_response" | grep -q '"status":"ok"'; then
-                echo "Service did not become healthy in time."
-                docker logs docling-serve-test-container
-                docker rm -f docling-serve-test-container
-                exit 1
-              fi
+  #             if ! echo "$health_response" | grep -q '"status":"ok"'; then
+  #               echo "Service did not become healthy in time."
+  #               docker logs docling-serve-test-container
+  #               docker rm -f docling-serve-test-container
+  #               exit 1
+  #             fi
 
-              echo "Cleaning up test container..."
-              docker rm -f docling-serve-test-container
-            else
-              echo "Skipping non-released or non-CPU image: $tag"
-            fi
-          done
+  #             echo "Cleaning up test container..."
+  #             docker rm -f docling-serve-test-container
+  #           else
+  #             echo "Skipping non-released or non-CPU image: $tag"
+  #           fi
+  #         done
 
-  test-cuda-image:
-    needs:
-      - image
-    runs-on: ubuntu-latest # >> placeholder for GPU runner << #
-    permissions:
-      contents: read
-      packages: read
+  # test-cuda-image:
+  #   needs:
+  #     - image
+  #   runs-on: ubuntu-latest # >> placeholder for GPU runner << #
+  #   permissions:
+  #     contents: read
+  #     packages: read
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
 
-      - name: Test CUDA images
-        run: |
-          set -e
+  #     - name: Test CUDA images
+  #       run: |
+  #         set -e
 
-          echo "Testing image: ${{ needs.image.outputs.image-tags }}"
+  #         echo "Testing image: ${{ needs.image.outputs.image-tags }}"
 
-          for tag in ${{ needs.image.outputs.image-tags }}; do
-            if echo "$tag" | grep -qE -- '-cu[0-9]+' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
-              echo "Testing CUDA image: $tag"
+  #         for tag in ${{ needs.image.outputs.image-tags }}; do
+  #           if echo "$tag" | grep -qE -- '-cu[0-9]+' && echo "$tag" | grep -qE ':[vV][0-9]+(\.[0-9]+){0,2}$'; then
+  #             echo "Testing CUDA image: $tag"
 
-              # Remove existing container if any
-              docker rm -f docling-serve-test-container 2>/dev/null || true
+  #             # Remove existing container if any
+  #             docker rm -f docling-serve-test-container 2>/dev/null || true
 
-              echo "Pulling image..."
-              docker pull "$tag"
+  #             echo "Pulling image..."
+  #             docker pull "$tag"
 
-              echo "Waiting 5s after pull..."
-              sleep 5
+  #             echo "Waiting 5s after pull..."
+  #             sleep 5
 
-              echo "Starting container..."
-              docker run -d -p 5001:5001 --gpus all --name docling-serve-test-container "$tag"
+  #             echo "Starting container..."
+  #             docker run -d -p 5001:5001 --gpus all --name docling-serve-test-container "$tag"
 
-              echo "Waiting 15s for container to boot..."
-              sleep 15
+  #             echo "Waiting 15s for container to boot..."
+  #             sleep 15
 
-              echo "Checking service health..."
-              for i in {1..25}; do
-                health_response=$(curl -s http://localhost:5001/health || true)
-                echo "Health check response [$i]: $health_response"
-                if echo "$health_response" | grep -q '"status":"ok"'; then
-                  echo "Service is healthy!"
-                  echo "Sending test conversion request..."
+  #             echo "Checking service health..."
+  #             for i in {1..25}; do
+  #               health_response=$(curl -s http://localhost:5001/health || true)
+  #               echo "Health check response [$i]: $health_response"
+  #               if echo "$health_response" | grep -q '"status":"ok"'; then
+  #                 echo "Service is healthy!"
+  #                 echo "Sending test conversion request..."
 
-                  status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
-                    -H 'accept: application/json' \
-                    -H 'Content-Type: application/json' \
-                    -d '{
-                      "options": {
-                        "from_formats": ["pdf"],
-                        "to_formats": ["md"]
-                      },
-                      "sources": [
-                        {
-                          "kind": "http",
-                          "url": "https://arxiv.org/pdf/2501.17887"
-                        }
-                      ],
-                      "target": {
-                        "kind": "inbody"
-                      }
-                    }')
+  #                 status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
+  #                   -H 'accept: application/json' \
+  #                   -H 'Content-Type: application/json' \
+  #                   -d '{
+  #                     "options": {
+  #                       "from_formats": ["pdf"],
+  #                       "to_formats": ["md"]
+  #                     },
+  #                     "sources": [
+  #                       {
+  #                         "kind": "http",
+  #                         "url": "https://arxiv.org/pdf/2501.17887"
+  #                       }
+  #                     ],
+  #                     "target": {
+  #                       "kind": "inbody"
+  #                     }
+  #                   }')
 
-                  echo "Conversion request returned status code: $status_code"
+  #                 echo "Conversion request returned status code: $status_code"
 
-                  if [ "$status_code" -ne 200 ]; then
-                    echo "Conversion failed!"
-                    docker logs docling-serve-test-container
-                    docker rm -f docling-serve-test-container
-                    exit 1
-                  fi
+  #                 if [ "$status_code" -ne 200 ]; then
+  #                   echo "Conversion failed!"
+  #                   docker logs docling-serve-test-container
+  #                   docker rm -f docling-serve-test-container
+  #                   exit 1
+  #                 fi
 
-                  break
-                else
-                  echo "Waiting for service... [$i/25]"
-                  sleep 3
-                fi
-              done
+  #                 break
+  #               else
+  #                 echo "Waiting for service... [$i/25]"
+  #                 sleep 3
+  #               fi
+  #             done
 
-              if ! echo "$health_response" | grep -q '"status":"ok"'; then
-                echo "Service did not become healthy in time."
-                docker logs docling-serve-test-container
-                docker rm -f docling-serve-test-container
-                exit 1
-              fi
+  #             if ! echo "$health_response" | grep -q '"status":"ok"'; then
+  #               echo "Service did not become healthy in time."
+  #               docker logs docling-serve-test-container
+  #               docker rm -f docling-serve-test-container
+  #               exit 1
+  #             fi
 
-              echo "Cleaning up test container..."
-              docker rm -f docling-serve-test-container
-            else
-              echo "Skipping non-released or non-CUDA image: $tag"
-            fi
-          done
+  #             echo "Cleaning up test container..."
+  #             docker rm -f docling-serve-test-container
+  #           else
+  #             echo "Skipping non-released or non-CUDA image: $tag"
+  #           fi
+  #         done
