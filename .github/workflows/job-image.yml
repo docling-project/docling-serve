@@ -97,12 +97,10 @@ jobs:
 
       - name: Build and push image to ghcr.io
         id: ghcr_push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ inputs.publish }} # set 'false' for local test
-          # Uses output instead of load for multi-platform
-          output: type=docker
           tags: ${{ steps.ghcr_meta.outputs.tags }}
           labels: ${{ steps.ghcr_meta.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -111,11 +109,28 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
-      - name: Tests local image
+      - name: Build test image for linux/amd64
+        id: ghcr_build_test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: docling-serve:test
+          labels: |
+            org.opencontainers.image.title=docling-serve
+            org.opencontainers.image.test=true
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          file: Containerfile
+          build-args: UV_SYNC_EXTRA_ARGS=--no-extra flash-attn
+
+      - name: Test image for linux/amd64
         run: |
           set -e
 
-          IMAGE_TAG="${{ steps.ghcr_meta.outputs.tags }}"
+          IMAGE_TAG="docling-serve:test"
           echo "Testing local image: $IMAGE_TAG"
 
           # Remove existing container if any
@@ -199,7 +214,7 @@ jobs:
       - name: Build and push image to quay.io
         if: ${{ inputs.publish }}
         # id: push-serve-cpu-quay
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ inputs.publish }}
