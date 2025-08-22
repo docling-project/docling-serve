@@ -127,6 +127,7 @@ jobs:
           build-args: UV_SYNC_EXTRA_ARGS=--no-extra flash-attn
 
       - name: Test image for linux/amd64
+        if: steps.ghcr_build_test.outcome == 'success'
         run: |
           set -e
 
