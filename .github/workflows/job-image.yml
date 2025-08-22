@@ -110,6 +110,7 @@ jobs:
           build-args: ${{ inputs.build_args }}
 
       - name: Build test image for linux/amd64
+        if: matrix.spec.name == 'docling-project/docling-serve'
         id: ghcr_build_test
         uses: docker/build-push-action@v6
         with:
@@ -124,7 +125,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: Containerfile
-          build-args: UV_SYNC_EXTRA_ARGS=--no-extra flash-attn
+          build-args: ${{ inputs.build_args }}
 
       - name: Test image for linux/amd64
         if: steps.ghcr_build_test.outcome == 'success'
