@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: ['3.12']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v6
         with:
