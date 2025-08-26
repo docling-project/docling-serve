@@ -9,9 +9,10 @@ from pypdf import PdfReader
 from docling_core.types.doc.document import DoclingDocument
 
 # Variables to use
-out_dir = Path("examples/splitted_pdf/")
+path_to_pdf = Path("./tests/2206.01062v1.pdf")
 pages_per_file = 4
 base_url = "http://localhost:5001/v1"
+out_dir = Path("examples/splitted_pdf/")
 
 
 class ConvertedSplittedPdf(BaseModel):
@@ -70,7 +71,7 @@ def post_file(file_path: Path, start_page: int, end_page: int):
 
 
 def main():
-    filename = Path("./tests/2206.01062v1.pdf")  # file to split process
+    filename = path_to_pdf
 
     splitted_pdfs: list[ConvertedSplittedPdf] = []
 
