@@ -6,5 +6,6 @@ This documentation pages explore the webserver configurations, runtime options, 
 - [Handling models](./models.md)
 - [Usage](./usage.md)
 - [Deployment](./deployment.md)
+- [MCP](./mcp.md)
 - [Development](./development.md)
 - [`v1` migration](./v1_migration.md)
