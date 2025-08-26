@@ -193,7 +193,7 @@ def create_app():  # noqa: C901
         allow_headers=headers,
     )
 
-    instrumentator.expose(app)
+    instrumentator.instrument(app).expose(app)
 
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
