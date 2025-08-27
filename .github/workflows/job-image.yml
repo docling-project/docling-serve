@@ -108,31 +108,32 @@ jobs:
           cache-to: type=gha,mode=max
           file: Containerfile
           build-args: ${{ inputs.build_args }}
-
-      - name: Build test image for linux/amd64
-        if: contains(inputs.platforms, 'amd64') && inputs.ghcr_image_name == 'docling-project/docling-serve'
-        id: ghcr_build_test
+      ##
+      ## This stage runs after the build, so it leverages all build cache
+      ## 
+      - name: Export built image for testing (--output=type=docker)
+        id: ghcr_export_built_image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
           load: true
-          tags: docling-serve:test
+          tags: ${{ steps.ghcr_meta.outputs.tags }}-test
           labels: |
             org.opencontainers.image.title=docling-serve
             org.opencontainers.image.test=true
-          platforms: linux/amd64
+          platforms: linux/amd64 # when 'load' is true, we can't use a list ${{ inputs.platforms }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
-      - name: Test image for linux/amd64
-        if: steps.ghcr_build_test.outcome == 'success'
+      - name: Test image
+        if: steps.ghcr_export_built_image.outcome == 'success'
         run: |
           set -e
 
-          IMAGE_TAG="docling-serve:test"
+          IMAGE_TAG="${{ steps.ghcr_meta.outputs.tags }}-test"
           echo "Testing local image: $IMAGE_TAG"
 
           # Remove existing container if any
