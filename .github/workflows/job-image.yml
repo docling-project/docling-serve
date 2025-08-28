@@ -88,8 +88,8 @@ jobs:
         with:
           images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
 
-      ## Local test
-      # - name: Set metadata outputs for local testing, and comment out: Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks
+      # # Local test
+      # - name: Set metadata outputs for local testing ## comment out Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks and run act
       #   id: ghcr_meta
       #   run: |
       #     echo "tags=ghcr.io/docling-project/docling-serve:pr-123" >> $GITHUB_OUTPUT
@@ -111,13 +111,13 @@ jobs:
       ##
       ## This stage runs after the build, so it leverages all build cache
       ## 
-      - name: Export built image for testing (--output=type=docker)
+      - name: Export built image for testing
         id: ghcr_export_built_image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          load: true
+          load: true # == '--output=type=docker'
           tags: ${{ steps.ghcr_meta.outputs.tags }}-test
           labels: |
             org.opencontainers.image.title=docling-serve
@@ -145,42 +145,44 @@ jobs:
           echo "Waiting 15s for container to boot..."
           sleep 15
 
+          # Step 1: Health check
           echo "Checking service health..."
           for i in {1..20}; do
             HEALTH_RESPONSE=$(curl -s http://localhost:5001/health || true)
             echo "Health check response [$i]: $HEALTH_RESPONSE"
 
             if echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
-              echo "Service is healthy! Sending test conversion request..."
+              echo "Service is healthy!"
 
-              STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST 'http://localhost:5001/v1/convert/source' \
-                -H 'accept: application/json' \
-                -H 'Content-Type: application/json' \
-                -d '{
-                  "options": {
-                    "from_formats": ["pdf"],
-                    "to_formats": ["md"]
-                  },
-                  "sources": [
-                    {
-                      "kind": "http",
-                      "url": "https://arxiv.org/pdf/2501.17887"
-                    }
-                  ],
-                  "target": {
-                    "kind": "inbody"
-                  }
-                }')
+              # Step 2: Install pytest and dependencies
+              echo "Installing pytest and dependencies..."
+              pip install uv
+              uv venv --allow-existing
+              source .venv/bin/activate
+              uv sync --all-extras --no-extra flash-attn
 
-              echo "Conversion request returned status code: $STATUS_CODE"
+              # Step 3: Run pytest tests
+              echo "Running tests..."
+              # Test import
+              python -c 'from docling_serve.app import create_app; create_app()'
+              # Run pytest
+              pytest -v -k "test_convert_url" \
+                --disable-warnings \
+                --ignore tests/test_fastapi_endpoints.py \
+                --ignore tests/test_1-file-all-outputs.py \
+                --ignore tests/test_1-url-all-outputs.py \
+                --ignore tests/test_2-files-all-outputs.py \
+                --ignore tests/test_2-urls-all-outputs.py
 
-              if [ "$STATUS_CODE" -ne 200 ]; then
-                echo "Conversion failed!"
+              # Check pytest result
+              if [ $? -ne 0 ]; then
+                echo "Tests failed!"
                 docker logs docling-serve-test-container
                 docker rm -f docling-serve-test-container
                 exit 1
               fi
 
+              echo "Tests passed successfully!"
               break
             else
               echo "Waiting for service... [$i/20]"
@@ -188,7 +190,7 @@ jobs:
             fi
           done
 
-          # Final health check
+          # Final health check if service didn't pass earlier
           if ! echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
             echo "Service did not become healthy in time."
             docker logs docling-serve-test-container
@@ -196,6 +198,7 @@ jobs:
             exit 1
           fi
 
+          # Step 5: Cleanup
           echo "Cleaning up test container..."
           docker rm -f docling-serve-test-container
 
@@ -233,17 +236,9 @@ jobs:
         run: |
           docker image prune -af
 ##
-## Tests for released images
+## Extra tests for released images
 ##
 
-      ## Local test
-      # - name: Set metadata outputs for local testing, and comment out: Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks
-      #   id: ghcr_meta
-      #   run: |
-      #     echo "tags=ghcr.io/docling-project/docling-serve-cpu:v1.2.0" >> $GITHUB_OUTPUT
-      #     echo "labels=org.opencontainers.image.source=https://github.com/docling-project/docling-serve" >> $GITHUB_OUTPUT
-
-    ## GH
     # outputs:
     #   image-tags: ${{ steps.ghcr_meta.outputs.tags }}
     #   image-labels: ${{ steps.ghcr_meta.outputs.labels }}
