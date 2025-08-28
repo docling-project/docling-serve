@@ -145,7 +145,7 @@ jobs:
           echo "Waiting 15s for container to boot..."
           sleep 15
 
-          # Step 1: Health check
+          # Health check
           echo "Checking service health..."
           for i in {1..20}; do
             HEALTH_RESPONSE=$(curl -s http://localhost:5001/health || true)
@@ -154,14 +154,14 @@ jobs:
             if echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
               echo "Service is healthy!"
 
-              # Step 2: Install pytest and dependencies
+              # Install pytest and dependencies
               echo "Installing pytest and dependencies..."
               pip install uv
               uv venv --allow-existing
               source .venv/bin/activate
               uv sync --all-extras --no-extra flash-attn
 
-              # Step 3: Run pytest tests
+              # Run pytest tests
               echo "Running tests..."
               # Test import
               python -c 'from docling_serve.app import create_app; create_app()'
@@ -198,7 +198,7 @@ jobs:
             exit 1
           fi
 
-          # Step 5: Cleanup
+          # Cleanup
           echo "Cleaning up test container..."
           docker rm -f docling-serve-test-container
 
