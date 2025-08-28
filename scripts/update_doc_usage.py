@@ -1,0 +1,156 @@
+import re
+from typing import Annotated, Any, get_args, get_origin
+
+from pydantic import BaseModel
+
+from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
+
+DOCS_FILE = "docs/usage.md"
+
+VARIABLE_WORDS: list[str] = [
+    "picture_description_local",
+    "vlm_pipeline_model",
+    "vlm",
+    "vlm_pipeline_model_api",
+    "betweek",
+    "ocr_engines_enum",
+    "easyocr",
+    "dlparse_v4",
+    "fast",
+    "picture_description_api",
+    "vlm_pipeline_model_local",
+]
+
+
+def format_variable_names(text: str) -> str:
+    """Format specific words in description to be code-formatted."""
+    sorted_words = sorted(VARIABLE_WORDS, key=len, reverse=True)
+
+    escaped_words = [re.escape(word) for word in sorted_words]
+
+    for word in escaped_words:
+        pattern = rf"(?<!`)\b{word}\b(?!`)"
+        text = re.sub(pattern, f"`{word}`", text)
+
+    return text
+
+
+def format_allowed_values_description(description: str) -> str:
+    """Format description to code-format allowed values."""
+    # Regex pattern to find text after "Allowed values:"
+    match = re.search(r"Allowed values:(.+?)(?:\.|$)", description, re.DOTALL)
+
+    if match:
+        # Extract the allowed values
+        values_str = match.group(1).strip()
+
+        # Split values, handling both comma and 'and' separators
+        values = re.split(r"\s*(?:,\s*|\s+and\s+)", values_str)
+
+        # Remove any remaining punctuation and whitespace
+        values = [value.strip("., ") for value in values]
+
+        # Create code-formatted values
+        formatted_values = ", ".join(f"`{value}`" for value in values)
+
+        # Replace the original allowed values with formatted version
+        formatted_description = re.sub(
+            r"(Allowed values:)(.+?)(?:\.|$)",
+            f"\\1 {formatted_values}.",
+            description,
+            flags=re.DOTALL,
+        )
+
+        return formatted_description
+
+    return description
+
+
+def _format_type(type_hint: Any) -> str:
+    """Format type ccrrectly, like Annotation or Union."""
+    if get_origin(type_hint) is Annotated:
+        base_type = get_args(type_hint)[0]
+        return _format_type(base_type)
+
+    if hasattr(type_hint, "__origin__"):
+        origin = type_hint.__origin__
+        args = get_args(type_hint)
+
+        if origin is list:
+            return f"List[{_format_type(args[0])}]"
+        elif origin is dict:
+            return f"Dict[{_format_type(args[0])}, {_format_type(args[1])}]"
+        elif str(origin).__contains__("Union") or str(origin).__contains__("Optional"):
+            return " or ".join(_format_type(arg) for arg in args)
+
+    if hasattr(type_hint, "__name__"):
+        return type_hint.__name__
+
+    return str(type_hint)
+
+
+def generate_model_doc(model: type[BaseModel]) -> str:
+    """Generate documentation for a Pydantic model."""
+    doc = "## Common parameters\n\n"
+    doc += "On top of the source of file (see below), both endpoints support the same parameters, which are almost the same as the Docling CLI.\n\n"
+    doc += "| Field Name | Type | Description |\n"
+    doc += "|------------|------|-------------|\n"
+
+    for base_model in model.__mro__:
+        # Check if this is a Pydantic model
+        if hasattr(base_model, "model_fields"):
+            # Iterate through fields of this model
+            for field_name, field in base_model.model_fields.items():
+                # Extract description from Annotated field if possible
+                description = field.description or "No description provided."
+                description = format_allowed_values_description(description)
+                description = format_variable_names(description)
+
+                # Handle Annotated types
+                original_type = field.annotation
+                if get_origin(original_type) is Annotated:
+                    # Extract base type and additional metadata
+                    type_args = get_args(original_type)
+                    base_type = type_args[0]
+                else:
+                    base_type = original_type
+
+                field_type = _format_type(base_type)
+                field_type = format_variable_names(field_type)
+
+                doc += f"| `{field_name}` | {field_type} | {description} |\n"
+
+    doc += "\n"
+    return doc
+
+
+def update_documentation():
+    """Update the documentation file with model information."""
+    doc_request = generate_model_doc(ConvertDocumentsRequestOptions)
+
+    with open(DOCS_FILE) as f:
+        content = f.readlines()
+
+    # Prepare to update the content
+    new_content = []
+    in_cp_section = False
+
+    for line in content:
+        if line.startswith("## Common parameters"):
+            in_cp_section = True
+            new_content.append(doc_request)
+            continue
+
+        if in_cp_section and line.strip() == "### Authentication":
+            in_cp_section = False
+
+        if not in_cp_section:
+            new_content.append(line)
+
+    with open(DOCS_FILE, "w") as f:
+        f.writelines(new_content)
+
+
+if __name__ == "__main__":
+    update_documentation()
+    print(f"Documentation updated in {DOCS_FILE}")
