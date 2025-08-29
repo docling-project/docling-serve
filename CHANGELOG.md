@@ -1,3 +1,13 @@
+## [v1.3.1](https://github.com/docling-project/docling-serve/releases/tag/v1.3.1) - 2025-08-21
+
+### Fix
+
+* Configuration and performance fixes via upgrade of packages ([#328](https://github.com/docling-project/docling-serve/issues/328)) ([`f02dbc0`](https://github.com/docling-project/docling-serve/commit/f02dbc01449fe1caf3fb4a73c0a5f4adf8265faf))
+
+### Documentation
+
+* Fix parameter in api key docs ([#323](https://github.com/docling-project/docling-serve/issues/323)) ([`37fe022`](https://github.com/docling-project/docling-serve/commit/37fe02277b3e2358eced28e15b4360e7c82d3b43))
+
 ## [v1.3.0](https://github.com/docling-project/docling-serve/releases/tag/v1.3.0) - 2025-08-14
 
 ### Feature

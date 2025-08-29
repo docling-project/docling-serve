@@ -77,7 +77,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 |-----|---------|-------------|
 | `DOCLING_SERVE_ENG_RQ_REDIS_URL` | (required) | The connection Redis url, e.g. `redis://localhost:6373/` |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
-| `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
+| `DOCLING_SERVE_ENG_RQ_SUB_CHANNEL` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 
 #### KFP engine
 
