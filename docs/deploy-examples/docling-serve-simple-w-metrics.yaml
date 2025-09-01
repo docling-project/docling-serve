@@ -36,8 +36,6 @@ spec:
         component: docling-serve-api
     spec:
       restartPolicy: Always
-      imagePullSecrets:
-        - name: ccs-pull-secret
       containers:
         - name: api
           resources:
