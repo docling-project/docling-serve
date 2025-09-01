@@ -225,6 +225,38 @@ curl -X 'POST' \
   }'
 ```
 
+### Simple deployment with `Metrics` enabled
+
+Manifest example: [docling-serve-simple-w-metrics.yaml](./deploy-examples/docling-serve-simple-w-metrics.yaml)
+
+This deployment has the following features:
+
+- Deployment configuration
+- Service configuration
+- ServiceMonitor configuration
+
+Install the app with:
+
+```sh
+oc apply -f docs/deploy-examples/docling-serve-simple-w-metrics.yaml
+```
+
+For using the API:
+
+```sh
+# Port-forward the service
+oc port-forward svc/docling-serve 5001:5001
+
+# Make a test query
+curl -X 'POST' \
+  "localhost:5001/v1/convert/source/async" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sources": [{"kind": "http", "url": "https://arxiv.org/pdf/2501.17887"}]
+  }'
+```
+
 ### Multiple workers with RQ
 
 Manifest example: [`docling-serve-rq-workers.yaml`](./deploy-examples/docling-serve-rq-workers.yaml)
