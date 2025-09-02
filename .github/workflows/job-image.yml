@@ -165,17 +165,10 @@ jobs:
               echo "Running tests..."
               # Test import
               python -c 'from docling_serve.app import create_app; create_app()'
-              # Run pytest
-              pytest -v -k "test_convert_url" \
-                --disable-warnings \
-                --ignore tests/test_fastapi_endpoints.py \
-                --ignore tests/test_1-file-all-outputs.py \
-                --ignore tests/test_1-url-all-outputs.py \
-                --ignore tests/test_2-files-all-outputs.py \
-                --ignore tests/test_2-urls-all-outputs.py
 
-              # Check pytest result
-              if [ $? -ne 0 ]; then
+              # Run pytest and check result directly
+              if ! pytest -sv -k "test_convert_url" tests/test_1-url-async.py \
+                --disable-warnings; then
                 echo "Tests failed!"
                 docker logs docling-serve-test-container
                 docker rm -f docling-serve-test-container
