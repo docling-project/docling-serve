@@ -33,38 +33,36 @@ jobs:
   build-package:
     uses: ./.github/workflows/job-build.yml
 
-  # ## moved tests to .github/workflows/job-image.yml
-  
-  # test-package:
-  #   needs:
-  #     - build-package
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       python-version: ['3.12']
-  #   steps:
-  #     - name: Download all the dists
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: python-package-distributions
-  #         path: dist/
-  #     - name: Install uv and set the python version
-  #       uses: astral-sh/setup-uv@v6
-  #       with:
-  #         python-version: ${{ matrix.python-version }}
-  #         enable-cache: true
-  #     - name: Create virtual environment
-  #       run: uv venv
-  #     - name: Install package
-  #       run: uv pip install dist/*.whl
-  #     - name: Create the server
-  #       run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
+  test-package:
+    needs:
+      - build-package
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Create virtual environment
+        run: uv venv
+      - name: Install package
+        run: uv pip install dist/*.whl
+      - name: Create the server
+        run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
 
-  # markdown-lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - name: markdownlint-cli2-action
-  #       uses: DavidAnson/markdownlint-cli2-action@v16
-  #       with:
-  #         globs: "**/*.md"
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: markdownlint-cli2-action
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: "**/*.md"
