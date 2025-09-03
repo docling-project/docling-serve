@@ -28,6 +28,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from prometheus_client.core import REGISTRY
 from prometheus_fastapi_instrumentator import Instrumentator
 from scalar_fastapi import get_scalar_api_reference
 
@@ -71,7 +72,8 @@ from docling_serve.datamodel.responses import (
 from docling_serve.helper_functions import FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
-from docling_serve.settings import docling_serve_settings
+from docling_serve.rq_metrics_collector import RQCollector, get_redis_connection
+from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
 
@@ -130,6 +132,12 @@ def create_lifespan_handler(instrumentator: Instrumentator):
 
         # Start the background queue processor
         queue_task = asyncio.create_task(orchestrator.process_queue())
+
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ:
+            connection = get_redis_connection(
+                url=docling_serve_settings.eng_rq_redis_url
+            )
+            REGISTRY.register(RQCollector(connection))
 
         instrumentator.expose(app)
 
