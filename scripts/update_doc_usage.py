@@ -147,10 +147,14 @@ def update_documentation():
         if not in_cp_section:
             new_content.append(line)
 
-    with open(DOCS_FILE, "w") as f:
-        f.writelines(new_content)
+    # Only write to the file if new_content is different from content
+    if "".join(new_content) != "".join(content):
+        with open(DOCS_FILE, "w") as f:
+            f.writelines(new_content)
+        print(f"Documentation updated in {DOCS_FILE}")
+    else:
+        print("No changes detected. Documentation file remains unchanged.")
 
 
 if __name__ == "__main__":
     update_documentation()
-    print(f"Documentation updated in {DOCS_FILE}")
