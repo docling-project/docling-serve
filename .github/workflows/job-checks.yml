@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: ['3.12']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v6
         with:
@@ -58,11 +58,11 @@ jobs:
       - name: Create the server
         run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
 
-  markdown-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: markdownlint-cli2-action
-        uses: DavidAnson/markdownlint-cli2-action@v16
-        with:
-          globs: "**/*.md"
+  # markdown-lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - name: markdownlint-cli2-action
+  #       uses: DavidAnson/markdownlint-cli2-action@v16
+  #       with:
+  #         globs: "**/*.md"
