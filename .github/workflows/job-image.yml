@@ -194,6 +194,8 @@ jobs:
           # Cleanup
           echo "Cleaning up test container..."
           docker rm -f docling-serve-test-container
+          echo "Cleaning up test image..."
+          docker rmi "$IMAGE_TAG"
 
       - name: Generate artifact attestation
         if: ${{ inputs.publish }}
