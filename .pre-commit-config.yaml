@@ -7,12 +7,12 @@ repos:
       - id: ruff-format
         name: "Ruff formatter"
         args: [--config=pyproject.toml]
-        files: '^(docling_serve|tests).*\.(py|ipynb)$'
+        files: '^(docling_serve|tests|scripts).*\.(py|ipynb)$'
       # Run the Ruff linter.
       - id: ruff
         name: "Ruff linter"
         args: [--exit-non-zero-on-fix, --fix, --config=pyproject.toml]
-        files: '^(docling_serve|tests).*\.(py|ipynb)$'
+        files: '^(docling_serve|tests|scripts).*\.(py|ipynb)$'
   - repo: local
     hooks:
       - id: system
@@ -21,6 +21,15 @@ repos:
         pass_filenames: false
         language: system
         files: '\.py$'
+  - repo: local
+    hooks:
+      - id: update-docs-common-parameters
+        name: Update Documentation File
+        entry: uv run scripts/update_doc_usage.py
+        language: python
+        pass_filenames: false
+        # Fail the commit if documentation generation fails
+        require_serial: true
   - repo: https://github.com/errata-ai/vale
     rev: v3.12.0  # Use latest stable version
     hooks:
