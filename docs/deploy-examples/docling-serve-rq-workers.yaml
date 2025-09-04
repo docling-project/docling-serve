@@ -63,7 +63,7 @@ spec:
               containerPort: 5001
               protocol: TCP
           imagePullPolicy: Always
-          image: 'icr.io/ibm-deepsearch-dev/docling-serve-cpu:dev'
+          image: 'ghcr.io/docling-project/docling-serve-cpu'
 ---
 kind: Deployment
 apiVersion: apps/v1
