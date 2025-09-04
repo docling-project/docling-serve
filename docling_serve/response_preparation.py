@@ -4,7 +4,7 @@ import logging
 from fastapi import BackgroundTasks, Response
 
 from docling_jobkit.datamodel.result import (
-    ConvertDocumentResult,
+    DoclingTaskResult,
     ExportResult,
     RemoteTargetResult,
     ZipArchiveResult,
@@ -24,7 +24,7 @@ _log = logging.getLogger(__name__)
 
 async def prepare_response(
     task_id: str,
-    task_result: ConvertDocumentResult,
+    task_result: DoclingTaskResult,
     orchestrator: BaseOrchestrator,
     background_tasks: BackgroundTasks,
 ):
