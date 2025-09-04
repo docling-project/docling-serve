@@ -63,7 +63,7 @@ spec:
               containerPort: 5001
               protocol: TCP
           imagePullPolicy: Always
-          image: 'ghcr.io/docling-project/docling-serve-cpu'
+          image: 'icr.io/ibm-deepsearch-dev/docling-serve-cpu:dev'
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -127,28 +127,18 @@ spec:
       labels:
         app: docling-serve-redis
     spec:
-      restartPolicy: Always
+      # Pod-level security context. Settings here apply to all containers in the pod.
+      securityContext:
+        fsGroup: 1000 # For openshift check range, example: 1000750000
+        runAsUser: 1000 # For openshift check range, example: 1000750000
+        runAsGroup: 1000 # For openshift check range, example: 1000750000
       terminationGracePeriodSeconds: 30
       containers:
         - name: redis
-          resources:
-            limits:
-              cpu: 1
-              memory: 1Gi
-            requests:
-              cpu: 250m
-              memory: 100Mi
           image: redis:latest
-          command: ["redis-server"]
+          command: ["/bin/sh", "-c"]
           args:
-            - "--port"
-            - "6373"
-            - "--dir"
-            - "/mnt/redis/data"
-            - "--appendonly"
-            - "yes"
-            - "--requirepass"
-            - "$(REDIS_PASSWORD)"
+            - "redis-server --port 6373 --dir /data --appendonly yes --requirepass \"$REDIS_PASSWORD\""
           ports:
             - containerPort: 6373
           env:
@@ -157,11 +147,17 @@ spec:
                 secretKeyRef:
                   name: docling-serve-rq-secrets
                   key: REDIS_PASSWORD
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 100Mi
           volumeMounts:
             - name: redis-data
-              mountPath: /mnt/redis/data
+              mountPath: /data
           securityContext:
-            fsGroup: 1004
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             capabilities:
