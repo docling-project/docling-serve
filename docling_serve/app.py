@@ -35,9 +35,10 @@ from docling_jobkit.datamodel.callback import (
     ProgressCallbackRequest,
     ProgressCallbackResponse,
 )
+from docling_jobkit.datamodel.chunking import BaseChunkerOptions
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
-from docling_jobkit.datamodel.task import Task, TaskSource
+from docling_jobkit.datamodel.task import Task, TaskSource, TaskType
 from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
     TaskTarget,
@@ -52,6 +53,8 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.datamodel.requests import (
+    ChunkDocumentsRequest,
+    ChunkHybridDocumentsRequest,
     ConvertDocumentsRequest,
     FileSourceRequest,
     HttpSourceRequest,
@@ -59,6 +62,7 @@ from docling_serve.datamodel.requests import (
     TargetName,
 )
 from docling_serve.datamodel.responses import (
+    ChunkDocumentResponse,
     ClearResponse,
     ConvertDocumentResponse,
     HealthCheckResponse,
@@ -249,10 +253,11 @@ def create_app():  # noqa: C901
     ########################
 
     async def _enque_source(
-        orchestrator: BaseOrchestrator, conversion_request: ConvertDocumentsRequest
+        orchestrator: BaseOrchestrator,
+        request: ConvertDocumentsRequest | ChunkDocumentsRequest,
     ) -> Task:
         sources: list[TaskSource] = []
-        for s in conversion_request.sources:
+        for s in request.sources:
             if isinstance(s, FileSourceRequest):
                 sources.append(FileSource.model_validate(s))
             elif isinstance(s, HttpSourceRequest):
@@ -260,10 +265,25 @@ def create_app():  # noqa: C901
             elif isinstance(s, S3SourceRequest):
                 sources.append(S3Coordinates.model_validate(s))
 
+        convert_options: ConvertDocumentsRequestOptions
+        chunking_options: BaseChunkerOptions | None = None
+        task_type: TaskType
+        if isinstance(request, ConvertDocumentsRequest):
+            task_type = TaskType.CONVERT
+            convert_options = request.options
+        elif isinstance(request, ChunkDocumentsRequest):
+            task_type = TaskType.CHUNK
+            convert_options = request.convert_options
+            chunking_options = request.chunking_options
+        else:
+            raise RuntimeError("Uknown request type.")
+
         task = await orchestrator.enqueue(
+            task_type=task_type,
             sources=sources,
-            options=conversion_request.options,
-            target=conversion_request.target,
+            convert_options=convert_options,
+            chunking_options=chunking_options,
+            target=request.target,
         )
         return task
 
@@ -381,7 +401,7 @@ def create_app():  # noqa: C901
         response = RedirectResponse(url=logo_url)
         return response
 
-    @app.get("/health")
+    @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
         return HealthCheckResponse()
 
@@ -393,6 +413,7 @@ def create_app():  # noqa: C901
     # Convert a document from URL(s)
     @app.post(
         "/v1/convert/source",
+        tags=["convert"],
         response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
@@ -408,7 +429,7 @@ def create_app():  # noqa: C901
         conversion_request: ConvertDocumentsRequest,
     ):
         task = await _enque_source(
-            orchestrator=orchestrator, conversion_request=conversion_request
+            orchestrator=orchestrator, request=conversion_request
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -438,6 +459,7 @@ def create_app():  # noqa: C901
     # Convert a document from file(s)
     @app.post(
         "/v1/convert/file",
+        tags=["convert"],
         response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
@@ -487,6 +509,7 @@ def create_app():  # noqa: C901
     # Convert a document from URL(s) using the async api
     @app.post(
         "/v1/convert/source/async",
+        tags=["convert"],
         response_model=TaskStatusResponse,
     )
     async def process_url_async(
@@ -495,13 +518,14 @@ def create_app():  # noqa: C901
         conversion_request: ConvertDocumentsRequest,
     ):
         task = await _enque_source(
-            orchestrator=orchestrator, conversion_request=conversion_request
+            orchestrator=orchestrator, request=conversion_request
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
         )
         return TaskStatusResponse(
             task_id=task.task_id,
+            task_type=task.task_type,
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
@@ -510,6 +534,7 @@ def create_app():  # noqa: C901
     # Convert a document from file(s) using the async api
     @app.post(
         "/v1/convert/file/async",
+        tags=["convert"],
         response_model=TaskStatusResponse,
     )
     async def process_file_async(
@@ -531,14 +556,59 @@ def create_app():  # noqa: C901
         )
         return TaskStatusResponse(
             task_id=task.task_id,
+            task_type=task.task_type,
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
         )
 
+    @app.post(
+        "/v1/chunk/hybrid/source",
+        tags=["chunk"],
+        response_model=ChunkDocumentResponse,
+        responses={
+            200: {
+                "content": {"application/zip": {}},
+                # "description": "Return the JSON item or an image.",
+            }
+        },
+    )
+    async def chunk_source(
+        background_tasks: BackgroundTasks,
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        request: ChunkHybridDocumentsRequest,
+    ):
+        task = await _enque_source(orchestrator=orchestrator, request=request)
+        completed = await _wait_task_complete(
+            orchestrator=orchestrator, task_id=task.task_id
+        )
+
+        if not completed:
+            # TODO: abort task!
+            return HTTPException(
+                status_code=504,
+                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+            )
+
+        task_result = await orchestrator.task_result(task_id=task.task_id)
+        if task_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Task result not found. Please wait for a completion status.",
+            )
+        response = await prepare_response(
+            task_id=task.task_id,
+            task_result=task_result,
+            orchestrator=orchestrator,
+            background_tasks=background_tasks,
+        )
+        return response
+
     # Task status poll
     @app.get(
         "/v1/status/poll/{task_id}",
+        tags=["tasks"],
         response_model=TaskStatusResponse,
     )
     async def task_status_poll(
@@ -557,6 +627,7 @@ def create_app():  # noqa: C901
             raise HTTPException(status_code=404, detail="Task not found.")
         return TaskStatusResponse(
             task_id=task.task_id,
+            task_type=task.task_type,
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
@@ -600,6 +671,7 @@ def create_app():  # noqa: C901
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
             task_response = TaskStatusResponse(
                 task_id=task.task_id,
+                task_type=task.task_type,
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
@@ -615,6 +687,7 @@ def create_app():  # noqa: C901
                 )
                 task_response = TaskStatusResponse(
                     task_id=task.task_id,
+                    task_type=task.task_type,
                     task_status=task.task_status,
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
@@ -637,6 +710,7 @@ def create_app():  # noqa: C901
     # Task result
     @app.get(
         "/v1/result/{task_id}",
+        tags=["tasks"],
         response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
@@ -670,6 +744,8 @@ def create_app():  # noqa: C901
     # Update task progress
     @app.post(
         "/v1/callback/task/progress",
+        tags=["internal"],
+        include_in_schema=False,
         response_model=ProgressCallbackResponse,
     )
     async def callback_task_progress(
@@ -692,6 +768,7 @@ def create_app():  # noqa: C901
     # Offload models
     @app.get(
         "/v1/clear/converters",
+        tags=["clear"],
         response_model=ClearResponse,
     )
     async def clear_converters(
@@ -704,6 +781,7 @@ def create_app():  # noqa: C901
     # Clean results
     @app.get(
         "/v1/clear/results",
+        tags=["clear"],
         response_model=ClearResponse,
     )
     async def clear_results(

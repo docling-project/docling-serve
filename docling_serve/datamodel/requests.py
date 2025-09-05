@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
+from docling_jobkit.datamodel.chunking import (
+    HierarchicalChunkerOptions,
+    HybridChunkerOptions,
+)
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task_targets import (
@@ -70,3 +74,23 @@ class ConvertDocumentsRequest(BaseModel):
                 "error target", 'target kind "s3" requires source kind "s3"'
             )
         return self
+
+
+## Source chunking requests
+
+
+class BaseChunkDocumentsRequest(BaseModel):
+    convert_options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
+    sources: list[SourceRequestItem]
+    target: TaskTarget = InBodyTarget()
+
+
+class ChunkHybridDocumentsRequest(BaseChunkDocumentsRequest):
+    chunking_options: HybridChunkerOptions = HybridChunkerOptions()
+
+
+class ChunkHierarchicalDocumentsRequest(BaseChunkDocumentsRequest):
+    chunking_options: HierarchicalChunkerOptions = HierarchicalChunkerOptions()
+
+
+ChunkDocumentsRequest = ChunkHybridDocumentsRequest | ChunkHierarchicalDocumentsRequest

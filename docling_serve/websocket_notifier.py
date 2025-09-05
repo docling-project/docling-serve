@@ -34,6 +34,7 @@ class WebsocketNotifier(BaseNotifier):
         task_queue_position = await self.orchestrator.get_queue_position(task_id)
         msg = TaskStatusResponse(
             task_id=task.task_id,
+            task_type=task.task_type,
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,

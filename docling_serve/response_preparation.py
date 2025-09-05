@@ -4,6 +4,7 @@ import logging
 from fastapi import BackgroundTasks, Response
 
 from docling_jobkit.datamodel.result import (
+    ChunkedDocumentResult,
     DoclingTaskResult,
     ExportResult,
     RemoteTargetResult,
@@ -14,6 +15,7 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 
 from docling_serve.datamodel.responses import (
+    ChunkDocumentResponse,
     ConvertDocumentResponse,
     PresignedUrlConvertDocumentResponse,
 )
@@ -28,7 +30,12 @@ async def prepare_response(
     orchestrator: BaseOrchestrator,
     background_tasks: BackgroundTasks,
 ):
-    response: Response | ConvertDocumentResponse | PresignedUrlConvertDocumentResponse
+    response: (
+        Response
+        | ConvertDocumentResponse
+        | PresignedUrlConvertDocumentResponse
+        | ChunkDocumentResponse
+    )
     if isinstance(task_result.result, ExportResult):
         response = ConvertDocumentResponse(
             document=task_result.result.content,
@@ -51,6 +58,12 @@ async def prepare_response(
             num_converted=task_result.num_converted,
             num_succeeded=task_result.num_succeeded,
             num_failed=task_result.num_failed,
+        )
+    elif isinstance(task_result.result, ChunkedDocumentResult):
+        response = ChunkDocumentResponse(
+            chunks=task_result.result.chunks,
+            convert_details=task_result.result.convert_details,
+            processing_time=task_result.processing_time,
         )
     else:
         raise ValueError("Unknown result type")
