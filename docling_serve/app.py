@@ -58,6 +58,7 @@ from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
     FileSourceRequest,
     HttpSourceRequest,
+    HybridChunkerOptions,
     S3SourceRequest,
     TargetName,
 )
@@ -290,7 +291,9 @@ def create_app():  # noqa: C901
     async def _enque_file(
         orchestrator: BaseOrchestrator,
         files: list[UploadFile],
-        options: ConvertDocumentsRequestOptions,
+        task_type: TaskType,
+        convert_options: ConvertDocumentsRequestOptions,
+        chunking_options: BaseChunkerOptions | None,
         target: TaskTarget,
     ) -> Task:
         _log.info(f"Received {len(files)} files for processing.")
@@ -304,7 +307,11 @@ def create_app():  # noqa: C901
             file_sources.append(DocumentStream(name=name, stream=buf))
 
         task = await orchestrator.enqueue(
-            sources=file_sources, options=options, target=target
+            task_type=task_type,
+            sources=file_sources,
+            convert_options=convert_options,
+            chunking_options=chunking_options,
+            target=target,
         )
         return task
 
@@ -479,7 +486,12 @@ def create_app():  # noqa: C901
     ):
         target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
-            orchestrator=orchestrator, files=files, options=options, target=target
+            task_type=TaskType.CONVERT,
+            orchestrator=orchestrator,
+            files=files,
+            convert_options=options,
+            chunking_options=None,
+            target=target,
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -549,7 +561,12 @@ def create_app():  # noqa: C901
     ):
         target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
-            orchestrator=orchestrator, files=files, options=options, target=target
+            task_type=TaskType.CONVERT,
+            orchestrator=orchestrator,
+            files=files,
+            convert_options=options,
+            chunking_options=None,
+            target=target,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -580,6 +597,77 @@ def create_app():  # noqa: C901
         request: ChunkHybridDocumentsRequest,
     ):
         task = await _enque_source(orchestrator=orchestrator, request=request)
+        completed = await _wait_task_complete(
+            orchestrator=orchestrator, task_id=task.task_id
+        )
+
+        if not completed:
+            # TODO: abort task!
+            return HTTPException(
+                status_code=504,
+                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+            )
+
+        task_result = await orchestrator.task_result(task_id=task.task_id)
+        if task_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Task result not found. Please wait for a completion status.",
+            )
+        response = await prepare_response(
+            task_id=task.task_id,
+            task_result=task_result,
+            orchestrator=orchestrator,
+            background_tasks=background_tasks,
+        )
+        return response
+
+    @app.post(
+        "/v1/chunk/hybrid/file",
+        tags=["chunk"],
+        response_model=ChunkDocumentResponse,
+        responses={
+            200: {
+                "content": {"application/zip": {}},
+            }
+        },
+    )
+    async def chunk_file(
+        background_tasks: BackgroundTasks,
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        files: list[UploadFile],
+        convert_options: Annotated[
+            ConvertDocumentsRequestOptions,
+            FormDepends(
+                ConvertDocumentsRequestOptions,
+                prefix="convert_",
+                excluded_fields=[
+                    "md_page_break_placeholder",
+                    "images_scale",
+                    "include_images",
+                    "image_export_mode",
+                    "to_formats",
+                ],
+            ),
+        ],
+        chunking_options: Annotated[
+            HybridChunkerOptions,
+            FormDepends(
+                HybridChunkerOptions, prefix="chunking_", excluded_fields=["chunker"]
+            ),
+        ],
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+    ):
+        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+        task = await _enque_file(
+            task_type=TaskType.CHUNK,
+            orchestrator=orchestrator,
+            files=files,
+            convert_options=convert_options,
+            chunking_options=chunking_options,
+            target=target,
+        )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
         )
@@ -711,7 +799,9 @@ def create_app():  # noqa: C901
     @app.get(
         "/v1/result/{task_id}",
         tags=["tasks"],
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse
+        | PresignedUrlConvertDocumentResponse
+        | ChunkDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
