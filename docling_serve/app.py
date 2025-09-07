@@ -589,6 +589,85 @@ def create_app():  # noqa: C901
         req_cls = make_request_model(opt_cls)
 
         @app.post(
+            f"/v1/chunk/{path_name}/source/async",
+            name=f"Chunk sources with {display_name} as async task",
+            tags=["chunk"],
+            response_model=TaskStatusResponse,
+        )
+        async def chunk_source_async(
+            background_tasks: BackgroundTasks,
+            auth: Annotated[AuthenticationResult, Depends(require_auth)],
+            orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+            request: req_cls,
+        ):
+            task = await _enque_source(orchestrator=orchestrator, request=request)
+            task_queue_position = await orchestrator.get_queue_position(
+                task_id=task.task_id
+            )
+            return TaskStatusResponse(
+                task_id=task.task_id,
+                task_type=task.task_type,
+                task_status=task.task_status,
+                task_position=task_queue_position,
+                task_meta=task.processing_meta,
+            )
+
+        @app.post(
+            f"/v1/chunk/{path_name}/file/async",
+            name=f"Chunk files with {display_name} as async task",
+            tags=["chunk"],
+            response_model=TaskStatusResponse,
+        )
+        async def chunk_file_async(
+            background_tasks: BackgroundTasks,
+            auth: Annotated[AuthenticationResult, Depends(require_auth)],
+            orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+            files: list[UploadFile],
+            convert_options: Annotated[
+                ConvertDocumentsRequestOptions,
+                FormDepends(
+                    ConvertDocumentsRequestOptions,
+                    prefix="convert_",
+                    excluded_fields=[
+                        "md_page_break_placeholder",
+                        "images_scale",
+                        "include_images",
+                        "image_export_mode",
+                        "to_formats",
+                    ],
+                ),
+            ],
+            chunking_options: Annotated[
+                opt_cls,
+                FormDepends(
+                    HybridChunkerOptions,
+                    prefix="chunking_",
+                    excluded_fields=["chunker"],
+                ),
+            ],
+            target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        ):
+            target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+            task = await _enque_file(
+                task_type=TaskType.CHUNK,
+                orchestrator=orchestrator,
+                files=files,
+                convert_options=convert_options,
+                chunking_options=chunking_options,
+                target=target,
+            )
+            task_queue_position = await orchestrator.get_queue_position(
+                task_id=task.task_id
+            )
+            return TaskStatusResponse(
+                task_id=task.task_id,
+                task_type=task.task_type,
+                task_status=task.task_status,
+                task_position=task_queue_position,
+                task_meta=task.processing_meta,
+            )
+
+        @app.post(
             f"/v1/chunk/{path_name}/source",
             name=f"Chunk sources with {display_name}",
             tags=["chunk"],
