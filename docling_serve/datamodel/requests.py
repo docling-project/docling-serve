@@ -1,13 +1,13 @@
 import enum
-from typing import Annotated, Literal
+from functools import cache
+from typing import Annotated, Generic, Literal
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
+from typing_extensions import Self, TypeVar
 
 from docling_jobkit.datamodel.chunking import (
-    HierarchicalChunkerOptions,
-    HybridChunkerOptions,
+    BaseChunkerOptions,
 )
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
@@ -85,12 +85,26 @@ class BaseChunkDocumentsRequest(BaseModel):
     target: TaskTarget = InBodyTarget()
 
 
-class ChunkHybridDocumentsRequest(BaseChunkDocumentsRequest):
-    chunking_options: HybridChunkerOptions = HybridChunkerOptions()
+ChunkingOptT = TypeVar("ChunkingOptT", bound=BaseChunkerOptions)
 
 
-class ChunkHierarchicalDocumentsRequest(BaseChunkDocumentsRequest):
-    chunking_options: HierarchicalChunkerOptions = HierarchicalChunkerOptions()
+class GenericChunkDocumentsRequest(BaseChunkDocumentsRequest, Generic[ChunkingOptT]):
+    chunking_options: ChunkingOptT
 
 
-ChunkDocumentsRequest = ChunkHybridDocumentsRequest | ChunkHierarchicalDocumentsRequest
+@cache
+def make_request_model(
+    opt_type: type[ChunkingOptT],
+) -> type[GenericChunkDocumentsRequest[ChunkingOptT]]:
+    """
+    Dynamically create (and cache) a subclass of GenericChunkDocumentsRequest[opt_type]
+    with chunking_options having a default factory.
+    """
+    return type(
+        f"{opt_type.__name__}DocumentsRequest",
+        (GenericChunkDocumentsRequest[opt_type],),  # type: ignore[valid-type]
+        {
+            "__annotations__": {"chunking_options": opt_type},
+            "chunking_options": Field(default_factory=opt_type),
+        },
+    )

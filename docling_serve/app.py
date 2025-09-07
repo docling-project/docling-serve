@@ -35,7 +35,11 @@ from docling_jobkit.datamodel.callback import (
     ProgressCallbackRequest,
     ProgressCallbackResponse,
 )
-from docling_jobkit.datamodel.chunking import BaseChunkerOptions
+from docling_jobkit.datamodel.chunking import (
+    BaseChunkerOptions,
+    HierarchicalChunkerOptions,
+    HybridChunkerOptions,
+)
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task, TaskSource, TaskType
@@ -53,14 +57,13 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.datamodel.requests import (
-    ChunkDocumentsRequest,
-    ChunkHybridDocumentsRequest,
     ConvertDocumentsRequest,
     FileSourceRequest,
+    GenericChunkDocumentsRequest,
     HttpSourceRequest,
-    HybridChunkerOptions,
     S3SourceRequest,
     TargetName,
+    make_request_model,
 )
 from docling_serve.datamodel.responses import (
     ChunkDocumentResponse,
@@ -255,7 +258,7 @@ def create_app():  # noqa: C901
 
     async def _enque_source(
         orchestrator: BaseOrchestrator,
-        request: ConvertDocumentsRequest | ChunkDocumentsRequest,
+        request: ConvertDocumentsRequest | GenericChunkDocumentsRequest,
     ) -> Task:
         sources: list[TaskSource] = []
         for s in request.sources:
@@ -272,7 +275,7 @@ def create_app():  # noqa: C901
         if isinstance(request, ConvertDocumentsRequest):
             task_type = TaskType.CONVERT
             convert_options = request.options
-        elif isinstance(request, ChunkDocumentsRequest):
+        elif isinstance(request, GenericChunkDocumentsRequest):
             task_type = TaskType.CHUNK
             convert_options = request.convert_options
             chunking_options = request.chunking_options
@@ -579,119 +582,129 @@ def create_app():  # noqa: C901
             task_meta=task.processing_meta,
         )
 
-    @app.post(
-        "/v1/chunk/hybrid/source",
-        tags=["chunk"],
-        response_model=ChunkDocumentResponse,
-        responses={
-            200: {
-                "content": {"application/zip": {}},
-                # "description": "Return the JSON item or an image.",
-            }
-        },
-    )
-    async def chunk_source(
-        background_tasks: BackgroundTasks,
-        auth: Annotated[AuthenticationResult, Depends(require_auth)],
-        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        request: ChunkHybridDocumentsRequest,
+    for display_name, path_name, opt_cls in (
+        ("HybridChunker", "hybrid", HybridChunkerOptions),
+        ("HierarchicalChunker", "hierarchical", HierarchicalChunkerOptions),
     ):
-        task = await _enque_source(orchestrator=orchestrator, request=request)
-        completed = await _wait_task_complete(
-            orchestrator=orchestrator, task_id=task.task_id
-        )
+        req_cls = make_request_model(opt_cls)
 
-        if not completed:
-            # TODO: abort task!
-            return HTTPException(
-                status_code=504,
-                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+        @app.post(
+            f"/v1/chunk/{path_name}/source",
+            name=f"Chunk sources with {display_name}",
+            tags=["chunk"],
+            response_model=ChunkDocumentResponse,
+            responses={
+                200: {
+                    "content": {"application/zip": {}},
+                    # "description": "Return the JSON item or an image.",
+                }
+            },
+        )
+        async def chunk_source(
+            background_tasks: BackgroundTasks,
+            auth: Annotated[AuthenticationResult, Depends(require_auth)],
+            orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+            request: req_cls,
+        ):
+            task = await _enque_source(orchestrator=orchestrator, request=request)
+            completed = await _wait_task_complete(
+                orchestrator=orchestrator, task_id=task.task_id
             )
 
-        task_result = await orchestrator.task_result(task_id=task.task_id)
-        if task_result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Task result not found. Please wait for a completion status.",
-            )
-        response = await prepare_response(
-            task_id=task.task_id,
-            task_result=task_result,
-            orchestrator=orchestrator,
-            background_tasks=background_tasks,
-        )
-        return response
+            if not completed:
+                # TODO: abort task!
+                return HTTPException(
+                    status_code=504,
+                    detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+                )
 
-    @app.post(
-        "/v1/chunk/hybrid/file",
-        tags=["chunk"],
-        response_model=ChunkDocumentResponse,
-        responses={
-            200: {
-                "content": {"application/zip": {}},
-            }
-        },
-    )
-    async def chunk_file(
-        background_tasks: BackgroundTasks,
-        auth: Annotated[AuthenticationResult, Depends(require_auth)],
-        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        files: list[UploadFile],
-        convert_options: Annotated[
-            ConvertDocumentsRequestOptions,
-            FormDepends(
+            task_result = await orchestrator.task_result(task_id=task.task_id)
+            if task_result is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Task result not found. Please wait for a completion status.",
+                )
+            response = await prepare_response(
+                task_id=task.task_id,
+                task_result=task_result,
+                orchestrator=orchestrator,
+                background_tasks=background_tasks,
+            )
+            return response
+
+        @app.post(
+            f"/v1/chunk/{path_name}/file",
+            name=f"Chunk files with {display_name}",
+            tags=["chunk"],
+            response_model=ChunkDocumentResponse,
+            responses={
+                200: {
+                    "content": {"application/zip": {}},
+                }
+            },
+        )
+        async def chunk_file(
+            background_tasks: BackgroundTasks,
+            auth: Annotated[AuthenticationResult, Depends(require_auth)],
+            orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+            files: list[UploadFile],
+            convert_options: Annotated[
                 ConvertDocumentsRequestOptions,
-                prefix="convert_",
-                excluded_fields=[
-                    "md_page_break_placeholder",
-                    "images_scale",
-                    "include_images",
-                    "image_export_mode",
-                    "to_formats",
-                ],
-            ),
-        ],
-        chunking_options: Annotated[
-            HybridChunkerOptions,
-            FormDepends(
-                HybridChunkerOptions, prefix="chunking_", excluded_fields=["chunker"]
-            ),
-        ],
-        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
-    ):
-        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
-        task = await _enque_file(
-            task_type=TaskType.CHUNK,
-            orchestrator=orchestrator,
-            files=files,
-            convert_options=convert_options,
-            chunking_options=chunking_options,
-            target=target,
-        )
-        completed = await _wait_task_complete(
-            orchestrator=orchestrator, task_id=task.task_id
-        )
-
-        if not completed:
-            # TODO: abort task!
-            return HTTPException(
-                status_code=504,
-                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+                FormDepends(
+                    ConvertDocumentsRequestOptions,
+                    prefix="convert_",
+                    excluded_fields=[
+                        "md_page_break_placeholder",
+                        "images_scale",
+                        "include_images",
+                        "image_export_mode",
+                        "to_formats",
+                    ],
+                ),
+            ],
+            chunking_options: Annotated[
+                opt_cls,
+                FormDepends(
+                    HybridChunkerOptions,
+                    prefix="chunking_",
+                    excluded_fields=["chunker"],
+                ),
+            ],
+            target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        ):
+            target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+            task = await _enque_file(
+                task_type=TaskType.CHUNK,
+                orchestrator=orchestrator,
+                files=files,
+                convert_options=convert_options,
+                chunking_options=chunking_options,
+                target=target,
+            )
+            completed = await _wait_task_complete(
+                orchestrator=orchestrator, task_id=task.task_id
             )
 
-        task_result = await orchestrator.task_result(task_id=task.task_id)
-        if task_result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Task result not found. Please wait for a completion status.",
+            if not completed:
+                # TODO: abort task!
+                return HTTPException(
+                    status_code=504,
+                    detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+                )
+
+            task_result = await orchestrator.task_result(task_id=task.task_id)
+            if task_result is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Task result not found. Please wait for a completion status.",
+                )
+            response = await prepare_response(
+                task_id=task.task_id,
+                task_result=task_result,
+                orchestrator=orchestrator,
+                background_tasks=background_tasks,
             )
-        response = await prepare_response(
-            task_id=task.task_id,
-            task_result=task_result,
-            orchestrator=orchestrator,
-            background_tasks=background_tasks,
-        )
-        return response
+            return response
 
     # Task status poll
     @app.get(
