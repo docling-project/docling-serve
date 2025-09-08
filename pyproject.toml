@@ -279,6 +279,7 @@ module = [
     "kfp.*",
     "kfp_server_api.*",
     "mlx_vlm.*",
+    "mlx.*",
     "scalar_fastapi.*",
 ]
 ignore_missing_imports = true

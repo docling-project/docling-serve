@@ -62,7 +62,7 @@ async def prepare_response(
     elif isinstance(task_result.result, ChunkedDocumentResult):
         response = ChunkDocumentResponse(
             chunks=task_result.result.chunks,
-            convert_details=task_result.result.convert_details,
+            documents=task_result.result.documents,
             processing_time=task_result.processing_time,
         )
     else:

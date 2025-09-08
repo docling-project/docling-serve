@@ -80,9 +80,22 @@ class ConvertDocumentsRequest(BaseModel):
 
 
 class BaseChunkDocumentsRequest(BaseModel):
-    convert_options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
-    sources: list[SourceRequestItem]
-    target: TaskTarget = InBodyTarget()
+    convert_options: Annotated[
+        ConvertDocumentsRequestOptions, Field(description="Conversion options.")
+    ] = ConvertDocumentsRequestOptions()
+    sources: Annotated[
+        list[SourceRequestItem],
+        Field(description="List of input document sources to process."),
+    ]
+    include_converted_doc: Annotated[
+        bool,
+        Field(
+            description="If true, the output will include both the chunks and the converted document."
+        ),
+    ] = False
+    target: Annotated[
+        TaskTarget, Field(description="Specification for the type of output target.")
+    ] = InBodyTarget()
 
 
 ChunkingOptT = TypeVar("ChunkingOptT", bound=BaseChunkerOptions)
@@ -105,6 +118,8 @@ def make_request_model(
         (GenericChunkDocumentsRequest[opt_type],),  # type: ignore[valid-type]
         {
             "__annotations__": {"chunking_options": opt_type},
-            "chunking_options": Field(default_factory=opt_type),
+            "chunking_options": Field(
+                default_factory=opt_type, description="Options specific to the chunker."
+            ),
         },
     )

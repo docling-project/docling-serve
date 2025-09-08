@@ -78,6 +78,8 @@ def FormDepends(
     async def as_form_func(**data):
         newdata = {}
         for field_name, model_field in cls.model_fields.items():
+            if field_name in excluded_fields:
+                continue
             value = data.get(f"{prefix}{field_name}")
             newdata[field_name] = value
             annotation = model_field.annotation

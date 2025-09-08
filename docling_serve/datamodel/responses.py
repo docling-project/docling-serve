@@ -6,9 +6,9 @@ from pydantic import BaseModel
 from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
 from docling_jobkit.datamodel.result import (
-    ChunkedDocumentConvertDetail,
     ChunkedDocumentResultItem,
     ExportDocumentResponse,
+    ExportResult,
 )
 from docling_jobkit.datamodel.task_meta import TaskProcessingMeta, TaskType
 
@@ -43,7 +43,7 @@ class ConvertDocumentErrorResponse(BaseModel):
 
 class ChunkDocumentResponse(BaseModel):
     chunks: list[ChunkedDocumentResultItem]
-    convert_details: list[ChunkedDocumentConvertDetail]
+    documents: list[ExportResult]
     processing_time: float
 
 

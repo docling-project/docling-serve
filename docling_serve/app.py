@@ -37,6 +37,7 @@ from docling_jobkit.datamodel.callback import (
 )
 from docling_jobkit.datamodel.chunking import (
     BaseChunkerOptions,
+    ChunkingExportOptions,
     HierarchicalChunkerOptions,
     HybridChunkerOptions,
 )
@@ -271,6 +272,7 @@ def create_app():  # noqa: C901
 
         convert_options: ConvertDocumentsRequestOptions
         chunking_options: BaseChunkerOptions | None = None
+        chunking_export_options = ChunkingExportOptions()
         task_type: TaskType
         if isinstance(request, ConvertDocumentsRequest):
             task_type = TaskType.CONVERT
@@ -279,6 +281,9 @@ def create_app():  # noqa: C901
             task_type = TaskType.CHUNK
             convert_options = request.convert_options
             chunking_options = request.chunking_options
+            chunking_export_options.include_converted_doc = (
+                request.include_converted_doc
+            )
         else:
             raise RuntimeError("Uknown request type.")
 
@@ -287,6 +292,7 @@ def create_app():  # noqa: C901
             sources=sources,
             convert_options=convert_options,
             chunking_options=chunking_options,
+            chunking_export_options=chunking_export_options,
             target=request.target,
         )
         return task
@@ -297,6 +303,7 @@ def create_app():  # noqa: C901
         task_type: TaskType,
         convert_options: ConvertDocumentsRequestOptions,
         chunking_options: BaseChunkerOptions | None,
+        chunking_export_options: ChunkingExportOptions | None,
         target: TaskTarget,
     ) -> Task:
         _log.info(f"Received {len(files)} files for processing.")
@@ -314,6 +321,7 @@ def create_app():  # noqa: C901
             sources=file_sources,
             convert_options=convert_options,
             chunking_options=chunking_options,
+            chunking_export_options=chunking_export_options,
             target=target,
         )
         return task
@@ -494,6 +502,7 @@ def create_app():  # noqa: C901
             files=files,
             convert_options=options,
             chunking_options=None,
+            chunking_export_options=None,
             target=target,
         )
         completed = await _wait_task_complete(
@@ -569,6 +578,7 @@ def create_app():  # noqa: C901
             files=files,
             convert_options=options,
             chunking_options=None,
+            chunking_export_options=None,
             target=target,
         )
         task_queue_position = await orchestrator.get_queue_position(
@@ -582,6 +592,7 @@ def create_app():  # noqa: C901
             task_meta=task.processing_meta,
         )
 
+    # Chunking endpoints
     for display_name, path_name, opt_cls in (
         ("HybridChunker", "hybrid", HybridChunkerOptions),
         ("HierarchicalChunker", "hierarchical", HierarchicalChunkerOptions),
@@ -629,10 +640,6 @@ def create_app():  # noqa: C901
                     ConvertDocumentsRequestOptions,
                     prefix="convert_",
                     excluded_fields=[
-                        "md_page_break_placeholder",
-                        "images_scale",
-                        "include_images",
-                        "image_export_mode",
                         "to_formats",
                     ],
                 ),
@@ -645,7 +652,16 @@ def create_app():  # noqa: C901
                     excluded_fields=["chunker"],
                 ),
             ],
-            target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+            include_converted_doc: Annotated[
+                bool,
+                Form(
+                    description="If true, the output will include both the chunks and the converted document."
+                ),
+            ] = False,
+            target_type: Annotated[
+                TargetName,
+                Form(description="Specification for the type of output target."),
+            ] = TargetName.INBODY,
         ):
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             task = await _enque_file(
@@ -654,6 +670,9 @@ def create_app():  # noqa: C901
                 files=files,
                 convert_options=convert_options,
                 chunking_options=chunking_options,
+                chunking_export_options=ChunkingExportOptions(
+                    include_converted_doc=include_converted_doc
+                ),
                 target=target,
             )
             task_queue_position = await orchestrator.get_queue_position(
@@ -733,10 +752,6 @@ def create_app():  # noqa: C901
                     ConvertDocumentsRequestOptions,
                     prefix="convert_",
                     excluded_fields=[
-                        "md_page_break_placeholder",
-                        "images_scale",
-                        "include_images",
-                        "image_export_mode",
                         "to_formats",
                     ],
                 ),
@@ -749,7 +764,16 @@ def create_app():  # noqa: C901
                     excluded_fields=["chunker"],
                 ),
             ],
-            target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+            include_converted_doc: Annotated[
+                bool,
+                Form(
+                    description="If true, the output will include both the chunks and the converted document."
+                ),
+            ] = False,
+            target_type: Annotated[
+                TargetName,
+                Form(description="Specification for the type of output target."),
+            ] = TargetName.INBODY,
         ):
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             task = await _enque_file(
@@ -758,6 +782,9 @@ def create_app():  # noqa: C901
                 files=files,
                 convert_options=convert_options,
                 chunking_options=chunking_options,
+                chunking_export_options=ChunkingExportOptions(
+                    include_converted_doc=include_converted_doc
+                ),
                 target=target,
             )
             completed = await _wait_task_complete(
