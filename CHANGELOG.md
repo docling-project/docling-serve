@@ -1,3 +1,30 @@
+## [v1.4.0](https://github.com/docling-project/docling-serve/releases/tag/v1.4.0) - 2025-09-05
+
+### Feature
+
+* **docling:** Perfomance improvements in parsing, new layout model, fixes in html processing ([#352](https://github.com/docling-project/docling-serve/issues/352)) ([`d64a2a9`](https://github.com/docling-project/docling-serve/commit/d64a2a974a276c7ae3b105c448fd79f77a653d20))
+
+### Fix
+
+* Upgrade to latest docling version with fixes ([#335](https://github.com/docling-project/docling-serve/issues/335)) ([`e544947`](https://github.com/docling-project/docling-serve/commit/e5449472b2a3e71796f41c8a58c251d8229305c1))
+
+### Documentation
+
+* Add split processing example ([#303](https://github.com/docling-project/docling-serve/issues/303)) ([`0d4545a`](https://github.com/docling-project/docling-serve/commit/0d4545a65a5a941fc1fdefda57e39cfb1ea106ab))
+* Document DOCLING_NUM_THREADS environment variable ([#341](https://github.com/docling-project/docling-serve/issues/341)) ([`27fdd7b`](https://github.com/docling-project/docling-serve/commit/27fdd7b85ab18b3eece428366f46dc5cf0995e38))
+* Fix parameters typo ([#333](https://github.com/docling-project/docling-serve/issues/333)) ([`81f0a8d`](https://github.com/docling-project/docling-serve/commit/81f0a8ddf80a532042d550ae4568f891458b45e7))
+* Describe how to use Docling MCP ([#332](https://github.com/docling-project/docling-serve/issues/332)) ([`a69cc86`](https://github.com/docling-project/docling-serve/commit/a69cc867f5a3fb76648803ca866d65cc3a75c6b8))
+
+### Docling libraries included in this release:
+- docling 2.46.0
+- docling 2.51.0
+- docling-core 2.47.0
+- docling-ibm-models 3.9.1
+- docling-jobkit 1.4.1
+- docling-mcp 1.2.0
+- docling-parse 4.4.0
+- docling-serve 1.4.0
+
 ## [v1.3.1](https://github.com/docling-project/docling-serve/releases/tag/v1.3.1) - 2025-08-21
 
 ### Fix
