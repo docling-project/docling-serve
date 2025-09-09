@@ -28,6 +28,12 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
@@ -166,6 +172,13 @@ def create_app():  # noqa: C901
         lifespan=lifespan,
         version=version,
     )
+
+    resource = Resource(attributes={SERVICE_NAME: "docling-serve"})
+    traceProvider = TracerProvider(resource=resource)
+    traceProvider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+
+    trace.set_tracer_provider(traceProvider)
+    FastAPIInstrumentor.instrument_app(app)
 
     origins = docling_serve_settings.cors_origins
     methods = docling_serve_settings.cors_methods

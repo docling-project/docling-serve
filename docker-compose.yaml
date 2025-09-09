@@ -1,0 +1,19 @@
+services:
+  docling-serve:
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - 5001:5001
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4317
+      - OTEL_SERVICE_NAME=docling-serve
+      - OTEL_ENVIRONMENT=development
+
+  otel:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - 3000:3000 # Web UI
+      - 4317:4317 # OTLP gRPC
+      - 4318:4318 # OTLP HTTP
