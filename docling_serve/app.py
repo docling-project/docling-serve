@@ -28,6 +28,8 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from prometheus_client.core import REGISTRY
+from prometheus_fastapi_instrumentator import Instrumentator
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
@@ -79,7 +81,8 @@ from docling_serve.datamodel.responses import (
 from docling_serve.helper_functions import FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
-from docling_serve.settings import docling_serve_settings
+from docling_serve.rq_metrics_collector import RQCollector, get_redis_connection
+from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
 
@@ -117,33 +120,50 @@ _log = logging.getLogger(__name__)
 
 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    scratch_dir = get_scratch()
+def create_lifespan_handler(instrumentator: Instrumentator):
+    """
+    Create a FastAPI lifespan handler for the application
 
-    orchestrator = get_async_orchestrator()
-    notifier = WebsocketNotifier(orchestrator)
-    orchestrator.bind_notifier(notifier)
+    @param instrumentator: A prometheus instrumentator used to expose metrics
+    """
 
-    # Warm up processing cache
-    if docling_serve_settings.load_models_at_boot:
-        await orchestrator.warm_up_caches()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        scratch_dir = get_scratch()
 
-    # Start the background queue processor
-    queue_task = asyncio.create_task(orchestrator.process_queue())
+        orchestrator = get_async_orchestrator()
+        notifier = WebsocketNotifier(orchestrator)
+        orchestrator.bind_notifier(notifier)
 
-    yield
+        # Warm up processing cache
+        if docling_serve_settings.load_models_at_boot:
+            await orchestrator.warm_up_caches()
 
-    # Cancel the background queue processor on shutdown
-    queue_task.cancel()
-    try:
-        await queue_task
-    except asyncio.CancelledError:
-        _log.info("Queue processor cancelled.")
+        # Start the background queue processor
+        queue_task = asyncio.create_task(orchestrator.process_queue())
 
-    # Remove scratch directory in case it was a tempfile
-    if docling_serve_settings.scratch_path is not None:
-        shutil.rmtree(scratch_dir, ignore_errors=True)
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ:
+            connection = get_redis_connection(
+                url=docling_serve_settings.eng_rq_redis_url
+            )
+            REGISTRY.register(RQCollector(connection))
+
+        instrumentator.expose(app)
+
+        yield
+
+        # Cancel the background queue processor on shutdown
+        queue_task.cancel()
+        try:
+            await queue_task
+        except asyncio.CancelledError:
+            _log.info("Queue processor cancelled.")
+
+        # Remove scratch directory in case it was a tempfile
+        if docling_serve_settings.scratch_path is not None:
+            shutil.rmtree(scratch_dir, ignore_errors=True)
+
+    return lifespan
 
 
 ##################################
@@ -168,11 +188,13 @@ def create_app():  # noqa: C901
         _log.info("Found static assets.")
 
     require_auth = APIKeyAuth(docling_serve_settings.api_key)
+
+    instrumentator = Instrumentator()
     app = FastAPI(
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
         redoc_url=None if offline_docs_assets else "/docs",
-        lifespan=lifespan,
+        lifespan=create_lifespan_handler(instrumentator),
         version=version,
     )
 
@@ -187,6 +209,8 @@ def create_app():  # noqa: C901
         allow_methods=methods,
         allow_headers=headers,
     )
+
+    instrumentator.instrument(app).expose(app)
 
     # Mount the Gradio app
     if docling_serve_settings.enable_ui:
