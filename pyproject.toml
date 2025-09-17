@@ -50,7 +50,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ui = [
-    "gradio~=5.23.2",
+    "gradio>=5.23.2,<6.0.0",
 ]
 tesserocr = [
     "tesserocr~=2.7"
@@ -123,7 +123,8 @@ conflicts = [
 ]
 environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
 override-dependencies = [
-  "urllib3~=2.0"
+  "urllib3~=2.0",
+  "xgrammar>=0.1.24"
 ]
 
 [tool.uv.sources]
