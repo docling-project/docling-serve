@@ -29,6 +29,8 @@ on:
 env:
   GHCR_REGISTRY: ghcr.io
   QUAY_REGISTRY: quay.io
+  BASE_IMAGE: quay.io/sclorg/python-312-c9s:c9s
+  UV_IMAGE: ghcr.io/astral-sh/uv:0.8.19
 
 jobs:
   image:
@@ -94,6 +96,11 @@ jobs:
       #   run: |
       #     echo "tags=ghcr.io/docling-project/docling-serve:pr-123" >> $GITHUB_OUTPUT
       #     echo "labels=org.opencontainers.image.source=https://github.com/docling-project/docling-serve" >> $GITHUB_OUTPUT
+
+      - name: Force update base images
+        run: |
+          docker pull ${{ env.BASE_IMAGE }}
+          docker pull ${{ env.UV_IMAGE }}
 
       - name: Build and push image to ghcr.io
         id: ghcr_push
@@ -212,6 +219,11 @@ jobs:
         with:
           images: ${{ env.QUAY_REGISTRY }}/${{ inputs.quay_image_name }}
 
+      - name: Force update base images
+        run: |
+          docker pull ${{ env.BASE_IMAGE }}
+          docker pull ${{ env.UV_IMAGE }}
+
       - name: Build and push image to quay.io
         if: ${{ inputs.publish }}
         # id: push-serve-cpu-quay
@@ -227,6 +239,6 @@ jobs:
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
-      - name: Remove Local Docker Images
+      - name: Remove local Docker images
         run: |
           docker image prune -af

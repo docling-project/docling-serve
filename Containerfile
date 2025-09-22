@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
-ARG UV_VERSION=0.8.3
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.8.19
 
 ARG UV_SYNC_EXTRA_ARGS=""
 
@@ -25,7 +25,7 @@ RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_stage
+FROM ${UV_IMAGE} AS uv_stage
 
 ###################################################################################################
 # Docling layer                                                                                   #
