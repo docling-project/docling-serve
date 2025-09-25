@@ -455,7 +455,7 @@ def create_app():  # noqa: C901
 
         if not completed:
             # TODO: abort task!
-            return HTTPException(
+            raise HTTPException(
                 status_code=504,
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
@@ -511,7 +511,7 @@ def create_app():  # noqa: C901
 
         if not completed:
             # TODO: abort task!
-            return HTTPException(
+            raise HTTPException(
                 status_code=504,
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
@@ -711,7 +711,7 @@ def create_app():  # noqa: C901
 
             if not completed:
                 # TODO: abort task!
-                return HTTPException(
+                raise HTTPException(
                     status_code=504,
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
@@ -793,7 +793,7 @@ def create_app():  # noqa: C901
 
             if not completed:
                 # TODO: abort task!
-                return HTTPException(
+                raise HTTPException(
                     status_code=504,
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
