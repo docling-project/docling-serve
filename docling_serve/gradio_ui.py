@@ -570,14 +570,17 @@ with gr.Blocks(
     with gr.Tab("Convert File"):
         with gr.Row():
             with gr.Column(scale=4):
+                raw_exts = itertools.chain.from_iterable(FormatToExtensions.values())
                 file_input = gr.File(
                     elem_id="file_input_zone",
                     label="Upload File",
                     file_types=[
-                        f".{v}"
-                        for v in itertools.chain.from_iterable(
-                            FormatToExtensions.values()
-                        )
+                        f".{v.lower()}"
+                        for v in raw_exts  # lowercase
+                    ]
+                    + [
+                        f".{v.upper()}"
+                        for v in raw_exts  # uppercase
                     ],
                     file_count="multiple",
                     scale=4,
