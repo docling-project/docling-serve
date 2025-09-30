@@ -1,0 +1,310 @@
+from collections import defaultdict
+from html import escape
+from typing import Type
+
+from docling_core.types.doc.document import (
+    BaseAnnotation,
+    CodeItem,
+    ContentLayer,
+    DescriptionAnnotation,
+    DoclingDocument,
+    DocItem,
+    FloatingItem,
+    FormulaItem,
+    GroupItem,
+    GroupLabel,
+    ListGroup,
+    ListItem,
+    NodeItem,
+    PictureClassificationData,
+    PictureItem,
+    ProvenanceItem,
+    RefItem,
+    SectionHeaderItem,
+    TableCell,
+    TableItem,
+    TextItem,
+    TitleItem
+)
+from pyjsx import jsx, JSX, JSXComponent
+
+from .svg import circle, clipPath, image, path, rect, text
+
+
+_node_components: dict[str, JSXComponent] = {}
+
+
+def component(*node_types: list[Type[BaseAnnotation | NodeItem]]):
+    def decorator(component):
+        for t in node_types:
+            _node_components[t.__name__] = component
+    return decorator
+
+
+def AnnotationComponent(children, annotation: BaseAnnotation):
+    Comp = _node_components.get(annotation.__class__.__name__)
+    element = Comp(annotation=annotation, children=[]) if Comp else (
+        <code>{escape(annotation.model_dump_json(indent=2))}</code>
+    )
+
+    element.props["class"] = element.props.get("class", "") + " annotation"
+    element.props["data-kind"] = annotation.kind
+
+    return element
+
+
+def NodeComponent(children, node: NodeItem | RefItem, doc: DoclingDocument):
+    # Specific component or fallback.
+    Comp = _node_components.get(node.__class__.__name__)
+    element = Comp(node=node, doc=doc, children=[]) if Comp else (
+        <span class="void"></span>
+    )
+
+    # Wrap item component with annotations, if any.
+    if isinstance(node, DocItem) and (anns := node.get_annotations()):
+        element = (
+            <div>
+                {element}
+                {[<AnnotationComponent annotation={ann} /> for ann in anns]}
+            </div>
+        )
+
+    # Extend interaction and styling.
+    id = node.self_ref[2:]
+    element.props["id"] = id
+    element.props["onclick"] = "clickId(event)"
+    element.props["class"] = element.props.get("class", "") + f" item {node.content_layer.value}"
+
+    return element
+
+
+def node_provs(node: NodeItem, doc: DoclingDocument) -> ProvenanceItem:
+    return node.prov if isinstance(node, DocItem) else [
+        p
+        for c in node.children
+        if isinstance(c.resolve(doc), DocItem)
+        for p in c.resolve(doc).prov
+    ]
+
+
+def DocPage(children, page_no: int, items: list[NodeItem], doc: DoclingDocument):
+    page = doc.pages[page_no]
+    exclusive_items = [
+        item
+        for item in items
+        if min([p.page_no for p in node_provs(item, doc)]) == page_no
+    ]
+
+    comps = []
+    for i in range(len(exclusive_items)):
+        item = exclusive_items[i]
+        id = item.self_ref[2:]
+        kind, *index = id.split("/")
+
+        parent_class = ""
+        if isinstance(item, GroupItem):
+            parent_class = "group"
+        else:
+            parent = item.parent.resolve(doc)
+            if isinstance(parent, GroupItem) and parent.label is not GroupLabel.UNSPECIFIED:
+                parent_class = "grouped"
+
+        comps.append(
+            <div class={f"item-markers {parent_class} {item.content_layer.value}"} data-id={id}>
+                <span>{"/".join(index)}</span>
+                <span>{item.label.replace("_", " ")}</span>
+                {
+                    <span>{item.content_layer.value.replace("_", " ")}</span>
+                    if item.content_layer is not ContentLayer.BODY
+                    else None
+                }
+                <a href={f"document/{id}"} target="_blank">{"{;}"}</a>
+            </div>
+        )
+        comps.append(<NodeComponent node={item} doc={doc} />)
+
+        pages = set([p.page_no for p in node_provs(item, doc)])
+        page_mark_class = "page-marker"
+        if i == 0 or len(pages) > 1:
+            page_mark_class += " border"
+        comps.append(<div class={page_mark_class}></div>)
+
+    
+    def ItemBox(children, item: DocItem, prov: ProvenanceItem):
+        item_id = item.self_ref[2:]
+        sub_items = [
+            (item_id, prov.bbox.to_top_left_origin(page.size.height))
+        ]
+
+        # Table cells.
+        if isinstance(item, TableItem):
+            for cell in item.data.table_cells:
+                sub_items.append(
+                    (f"{item_id}/{cell.start_col_offset_idx}/{cell.start_row_offset_idx}", cell.bbox)
+                )
+
+        return [
+            <rect
+                data-id={id}
+                x={bbox.l - 1}
+                y={bbox.t - 1}
+                width={bbox.width + 2}
+                height={bbox.height + 2}
+                vector-effect="non-scaling-stroke"
+                onclick="clickId(event)"
+            />
+            for id, bbox in sub_items
+        ]
+
+    # Span extra row to fill up excess space.
+    comps.append(
+        <svg
+            class="page-image"
+            style={{ "grid-row": f"span {len(exclusive_items) + 1}" }}
+            width="50vw"
+            viewBox={f"0 0 {page.size.width} {page.size.height}"}
+        >
+            <image
+                href={f"document/pages/{page_no}"}
+                width={page.size.width}
+                height={page.size.height}
+            />
+            {[
+                <ItemBox item={item} prov={prov} />
+                for item in items
+                if isinstance(item, DocItem)
+                for prov in item.prov
+                if prov.page_no == page_no
+            ]}
+
+            <text class="top-no" x={5} y={5}>{page_no}</text>
+            <text class="bottom-no" x={5} y={page.size.height - 5}>{page_no}</text>
+        </svg>
+    )
+
+    return <div class="page">{comps}</div>
+
+
+def DocPreview(children, doc: DoclingDocument):
+    page_items: dict[int, list[NodeItem]] = defaultdict(list)
+
+    for item, level in doc.iterate_items(
+        with_groups=True,
+        included_content_layers={*ContentLayer}
+    ):
+        if not isinstance(item, GroupItem) or item.label is not GroupLabel.UNSPECIFIED:
+            pages = set([p.page_no for p in node_provs(item, doc)])
+            for page in pages:
+                page_items[page].append(item)
+
+    return [
+        <DocPage page_no={page_no} items={page_items[page_no]} doc={doc} />
+        for page_no in sorted(page_items.keys())
+    ]
+
+
+@component(TextItem)
+def TextComponent(children, node: TextItem, doc: DoclingDocument):
+    return <p class={node.label}>{escape(node.text)}</p>
+
+
+@component(TitleItem)
+def TitleComponent(children, node: TitleItem, doc: DoclingDocument):
+    return <h1>{escape(node.text)}</h1>
+
+
+@component(SectionHeaderItem)
+def SectionHeaderComponent(children, node: SectionHeaderItem, doc: DoclingDocument):
+    return <h4>{escape(node.text)}</h4>
+
+
+@component(ListItem)
+def ListComponent(children, node: ListItem, doc: DoclingDocument):
+    return <li><b>{node.marker}</b> {escape(node.text)}</li>
+
+
+@component(CodeItem)
+def CodeComponent(children, node: CodeItem, doc: DoclingDocument):
+    return <figure><code>{escape(node.text or node.orig)}</code></figure>
+
+
+@component(FormulaItem)
+def FormulaComponent(children, node: FormulaItem, doc: DoclingDocument):
+    return <figure><code>{escape(node.text or node.orig)}</code></figure>
+
+
+@component(PictureItem)
+def PictureComponent(children, node: PictureItem, doc: DoclingDocument):
+    return <figure><img src={f"document/{node.self_ref[2:]}"} loading="lazy" /></figure>
+
+
+@component(PictureClassificationData)
+def PictureClassificationComponent(children, annotation: PictureClassificationData):
+    classes = annotation.predicted_classes[:5]
+    return (
+        <div>
+            {[
+                <div
+                    style={{ "width": f"{cls.confidence * 100}%" }}
+                    title={f"{cls.class_name}: {cls.confidence:.2f}"}
+                >
+                    {f"{cls.class_name.replace("_", " ")} {cls.confidence:.2f}"}
+                </div>
+                for cls in classes
+            ]}
+        </div>
+    )
+
+
+@component(DescriptionAnnotation)
+def DescriptionAnnotation(children, annotation: DescriptionAnnotation):
+    return <div>{escape(annotation.text)}</div>
+
+
+@component(TableItem)
+def TableComponent(children, node: TableItem, doc: DoclingDocument):
+    covered_cells: set[(int, int)] = set()
+
+    def check_cover(cell: TableCell):
+        is_covered = (cell.start_col_offset_idx, cell.start_row_offset_idx) in covered_cells
+
+        if not is_covered:
+            for x in range(cell.start_col_offset_idx, cell.end_col_offset_idx):
+                for y in range(cell.start_row_offset_idx, cell.end_row_offset_idx):
+                    covered_cells.add((x, y))
+        
+        return is_covered
+
+    def Cell(children, cell: TableCell):
+        id = f"{node.self_ref[2:]}/{cell.start_col_offset_idx}/{cell.start_row_offset_idx}"
+
+        return (
+            <td
+                id={id}
+                class={"header" if cell.column_header or cell.row_header else None}
+                colspan={cell.col_span or 1}
+                rowspan={cell.row_span or 1}
+                onclick="clickId(event)"
+            >
+                {escape(cell.text)}
+            </td>
+        )
+
+    return (
+        <div class="table">
+            <table>
+                <tbody>
+                    {[
+                        <tr>
+                            {[
+                                <Cell cell={cell} />
+                                for cell in row
+                                if not check_cover(cell)
+                            ]}
+                        </tr>
+                        for row in node.data.grid
+                    ]}
+                </tbody>
+            </table>
+        </div>
+    )

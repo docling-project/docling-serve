@@ -1,0 +1,251 @@
+import json
+import sys
+
+from pyjsx import jsx, JSX
+
+from docling.datamodel.base_models import FormatToExtensions, OutputFormat
+from docling.datamodel.pipeline_options import PdfBackend, ProcessingPipeline, TableFormerMode
+from docling_core.types.doc import ImageRefMode
+from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions, ocr_engines_enum
+
+from .forms import EnumCheckboxes, EnumRadios, EnumSelect, ocr_engine_languages, ValidatedInput
+from .pages import Header, Page
+
+base_convert_options = ConvertDocumentsRequestOptions()
+base_convert_options.to_formats.append(OutputFormat.JSON)
+
+
+def ConvertPage(
+  options: ConvertDocumentsRequestOptions = base_convert_options,
+  validation: None | dict[str, str] = None
+) -> JSX:
+    file_accept = ",".join([f".{ext}" for exts in FormatToExtensions.values() for ext in exts])
+
+    return (
+        <Page title="Convert">
+            <main class="container">
+                <Header />
+
+                <form class="convert" method="post" enctype="multipart/form-data">
+                    <legend>
+                        <b>Documents</b>
+                    </legend>
+                    <fieldset class="grid">
+                        <ValidatedInput
+                            name="files"
+                            type="file"
+                            multiple
+                            accept={file_accept}
+                            validation={validation}
+                        />
+                        <ValidatedInput
+                            name="url"
+                            placeholder="or enter a URL: https://arxiv.org/pdf/2501.17887"
+                            validation={validation}
+                        />
+                    </fieldset>
+
+                    <fieldset class="grid">
+                        <EnumSelect
+                            enum={ProcessingPipeline}
+                            selected={options.pipeline}
+                            name="pipeline"
+                            title="Pipeline"
+                        />
+                        <EnumSelect
+                            enum={PdfBackend}
+                            selected={options.pdf_backend}
+                            name="pdf_backend"
+                            title="PDF Backend"
+                        />
+
+                        <div>
+                            <label>Pages</label>
+                            <div role="group">
+                                <input
+                                    type="number"
+                                    name="page_min"
+                                    min={1}
+                                    step={1}
+                                    placeholder="1"
+                                    value={None if options.page_range[0] <= 1 else options.page_range[0]}
+                                />
+                                <input
+                                    type="number"
+                                    name="page_max"
+                                    min={1}
+                                    step={1}
+                                    placeholder="max."
+                                    value={None if options.page_range[1] >= sys.maxsize else options.page_range[1]}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label>Timeout<small>in seconds</small></label>
+                            <input
+                                type="number"
+                                name="document_timeout"
+                                min={1}
+                                step={1}
+                                value={int(options.document_timeout)}
+                            />
+                        </div>
+                    </fieldset>
+
+                    <div class="grid">
+                        <EnumCheckboxes
+                            enum={OutputFormat}
+                            selected={options.to_formats}
+                            name="to_formats"
+                            title={<b>Output</b>}
+                        />
+
+                        <div>
+                            <fieldset>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="do_ocr"
+                                        checked={options.do_ocr}
+                                    />
+                                    <b>OCR</b>
+                                </label>
+                                <label display-when="do_ocr">
+                                    <input
+                                        type="checkbox"
+                                        name="do_code_enrichment"
+                                        checked={options.do_code_enrichment}
+                                    />
+                                    Code
+                                </label>
+                                <label display-when="do_ocr">
+                                    <input
+                                        type="checkbox"
+                                        name="do_formula_enrichment"
+                                        checked={options.do_formula_enrichment}
+                                    />
+                                    Formulas
+                                </label>
+                            </fieldset>
+
+                            <EnumSelect
+                                display-when="do_ocr"
+                                enum={ocr_engines_enum}
+                                selected={options.ocr_engine}
+                                name="ocr_engine"
+                                title="Engine"
+                            />
+
+                            <label display-when="do_ocr">Language</label>
+                            <input
+                                display-when="do_ocr"
+                                name="ocr_lang"
+                                dep-on="ocr_engine"
+                                dep-values={json.dumps(ocr_engine_languages)}
+                                pattern="[\w+]*[,\w+]*"
+                                title="A comma separated list of language codes, of which the format depends on the selected engine."
+                            />
+
+                            <label display-when="do_ocr">
+                                <input
+                                    type="checkbox"
+                                    name="force_ocr"
+                                    checked={options.force_ocr}
+                                />
+                                Force
+                            </label>
+                        </div>
+
+                        <div>
+                            <fieldset>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="include_images"
+                                        checked={options.include_images}
+                                    />
+                                    <b>Images</b>
+                                </label>
+                                <label display-when="include_images">
+                                    <input
+                                        type="checkbox"
+                                        name="do_picture_classification"
+                                        checked={options.do_picture_classification}
+                                    />
+                                    Classification
+                                </label>
+                                <label display-when="include_images">
+                                    <input
+                                        type="checkbox"
+                                        name="do_picture_description"
+                                        checked={options.do_picture_description}
+                                    />
+                                    Description
+                                </label>
+                                <label display-when="include_images,do_picture_description">Area threshold</label>
+                                <input
+                                    display-when="include_images,do_picture_description"
+                                    type="number"
+                                    name="picture_description_area_threshold"
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    value={options.picture_description_area_threshold}
+                                />
+                            </fieldset>
+
+                            <EnumSelect
+                                display-when="include_images"
+                                enum={ImageRefMode}
+                                selected={options.image_export_mode}
+                                name="image_export_mode"
+                                title="Export"
+                            />
+                            <label display-when="include_images">Scale</label>
+                            <input
+                                display-when="include_images"
+                                type="number"
+                                name="images_scale"
+                                min={0}
+                                step={0.1}
+                                value={options.images_scale}
+                            />
+                        </div>
+
+                        <div>
+                            <fieldset>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="do_table_structure"
+                                        checked={options.do_table_structure}
+                                    />
+                                    <b>Tables</b>
+                                </label>
+                                <label display-when="do_table_structure">
+                                    <input
+                                        type="checkbox"
+                                        name="table_cell_matching"
+                                        checked={options.table_cell_matching}
+                                    />
+                                    Cell matching
+                                </label>
+                            </fieldset>
+                            <EnumSelect
+                                display-when="do_table_structure"
+                                enum={TableFormerMode}
+                                selected={options.table_mode}
+                                name="table_mode"
+                                title="Mode"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="sticky-footer">
+                        <input type="submit" value="Convert" />
+                    </div>
+                </form>
+            </main>
+        </Page>
+    )

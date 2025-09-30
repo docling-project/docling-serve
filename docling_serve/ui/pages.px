@@ -1,0 +1,220 @@
+from importlib import metadata
+
+from fastapi import FastAPI, HTTPException, Response
+from pyjsx import jsx, JSX
+
+from docling.datamodel.base_models import OutputFormat
+from docling.datamodel.pipeline_options import PdfBackend, ProcessingPipeline, TableFormerMode
+from docling_jobkit.datamodel.task import Task
+from docling_serve.datamodel.responses import ConvertDocumentResponse
+
+from .preview import DocPreview
+
+
+def Header(children, classname: str = "") -> JSX:
+    return (
+        <header class={classname}>
+            <span class="title">
+                D<img src="/ui/static/logo.svg" />CLING SERVE
+            </span>
+
+            <span class="version" title="Docling version">
+                {metadata.version('docling')}
+            </span>
+
+            <nav>
+                <ul>
+                    <li><a href="/ui/convert">Convert</a></li>
+                    <li><a href="/ui/tasks/">Tasks</a></li>
+                </ul>
+            </nav>
+        </header>
+    )
+
+
+def Page(children, title: str, poll: bool = False) -> JSX:
+    return (
+        <html lang="en" id="root">
+            <head>
+                <title>{title}</title>
+
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+                <link rel="stylesheet" href="/ui/static/style.css" />
+                <script src="/ui/static/main.js" />
+            </head>
+
+            <body onload={'setInterval(async () => { if ((await fetch("poll")).status == 200) location.reload(); }, 3000)' if poll else None}>
+                {children}
+            </body>
+        </html>
+    )
+
+
+def AuthPage():
+    return (
+        <Page title="Authenticate">
+            <form method="post">
+                <dialog open>
+                    <article>
+                        <header>
+                            <h4>Authenticate</h4>
+                        </header>
+                        <input
+                            type="password"
+                            name="api_key"
+                            placeholder="Enter API key"
+                            required autofocus
+                        />
+                        <footer>
+                            <input type="submit" value="Confirm" />
+                        </footer>
+                    </article>
+                </dialog>
+            </form>
+        </Page>
+    )
+
+
+def TasksPage(tasks: list[Task]) -> JSX:
+    return (
+        <Page title="Tasks">
+            <main class="container">
+                <Header />
+
+                {(
+                    <p>There are no active tasks. <a href="../convert">Convert</a> a document to create a new task.</p>
+                ) if len(tasks) == 0 else (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Task</th>
+                                <th>Status</th>
+                                <th>ID</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {
+                                <tr>
+                                    <td>{task.task_type.name}</td>
+                                    <td>{task.task_status.name}</td>
+                                    <td>
+                                        <a href={f"{task.task_id}/"}>{task.task_id}</a>
+                                    </td>
+                                    <td>{task.created_at.strftime("%d-%m-%Y, %H:%M:%S")}</td>
+                                </tr>
+                                for task in tasks
+                            }
+                        </tbody>
+                    </table>
+                )}
+            </main>
+        </Page>
+    )
+
+
+def TaskPage(poll, task: ConvertDocumentResponse) -> JSX:
+    def PlainPage(children, poll = False) -> JSX:
+        return (
+            <Page title="Task" poll={poll}>
+                <main class="container">
+                    <Header classname={"loading" if poll else None} />
+                    {children}
+                </main>
+            </Page>
+        )
+
+    if isinstance(task, Response):
+        return (
+            <PlainPage>
+                <p>
+                    <ins>Converted multiple documents successfully</ins>
+                </p>
+                <a href="documents.zip">documents.zip</a>
+            </PlainPage>
+        )
+    else:
+        match poll.task_status:
+            case "success":
+                doc = task.document.dict()
+                doc_json = task.document.json_content
+
+                return (
+                    <Page title={task.document.filename}>
+                        <main class="preview">
+                            <Header />
+
+                            <div class="status">
+                                <div>
+                                    <span>Task</span>
+                                    <b>{poll.task_id}</b>
+                                </div>
+                                <div>
+                                    <span>converted</span>
+                                    <b>{task.document.filename}</b>
+                                </div>
+                                <div>
+                                    <span>in</span>
+                                    <b>{round(task.processing_time)} seconds</b>
+                                </div>
+                            </div>
+                            
+                            <div class="formats">
+                                {[
+                                    <a class="secondary" href={f"document.{f.value}"} target="_blank">
+                                        <button>{f.name}</button>
+                                    </a>
+                                    for f in OutputFormat
+                                    if doc.get(f"{f.value}_content")
+                                ]}
+                                <label class="configDarkImg">
+                                    <input type="checkbox" name="invert-images" persist="preview" />
+                                    Invert images
+                                </label>
+                            </div>
+
+                            {
+                                <DocPreview doc={doc_json} />
+                                if doc_json
+                                else (<p>No document preview because JSON is missing as an output format.</p>)
+                            }
+                        </main>
+                    </Page>
+                )
+            case "started":
+                return (
+                    <PlainPage poll>
+                        <p class="progress">Task <b>{poll.task_id}</b> is in progress...</p>
+                        <progress />
+                    </PlainPage>
+                )
+            case _:
+                return (
+                    <PlainPage>
+                        <p class="fail">
+                            Task <b>{poll.task_id}</b> failed.
+                        </p>
+                        <button onclick="history.back()">
+                            Go back
+                        </button>
+                    </PlainPage>
+                )
+
+
+def StatusPage(ex: HTTPException, referer: str | None) -> JSX:
+    return (
+        <Page title={ex.status_code}>
+            <main class="container">
+                <Header />
+                <h4>{ex.status_code}</h4>
+                <p>{ex.detail}</p>
+                <p>
+                    <a href={referer or ".."}>
+                        <button>Go back</button>
+                    </a>
+                </p>
+            </main>
+        </Page>
+    )
