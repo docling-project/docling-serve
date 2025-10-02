@@ -433,7 +433,7 @@ with connect(uri) as websocket:
             payload = json.loads(message)
             if payload["message"] == "error":
                 break
-            if payload["message"] == "error" and payload["task"]["task_status"] in ("success", "failure"):
+            if payload["message"] == "update" and payload["task"]["task_status"] in ("success", "failure"):
                 break
         except:
           break
