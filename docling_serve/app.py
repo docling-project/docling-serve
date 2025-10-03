@@ -46,7 +46,6 @@ from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task, TaskSource, TaskType
 from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
-    TaskTarget,
     ZipTarget,
 )
 from docling_jobkit.orchestrators.base_orchestrator import (
@@ -64,6 +63,7 @@ from docling_serve.datamodel.requests import (
     HttpSourceRequest,
     S3SourceRequest,
     TargetName,
+    TargetRequest,
     make_request_model,
 )
 from docling_serve.datamodel.responses import (
@@ -304,7 +304,7 @@ def create_app():  # noqa: C901
         convert_options: ConvertDocumentsRequestOptions,
         chunking_options: BaseChunkerOptions | None,
         chunking_export_options: ChunkingExportOptions | None,
-        target: TaskTarget,
+        target: TargetRequest,
     ) -> Task:
         _log.info(f"Received {len(files)} files for processing.")
 
