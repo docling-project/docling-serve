@@ -13,8 +13,8 @@ from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
+    PutTarget,
     S3Target,
-    TaskTarget,
     ZipTarget,
 )
 
@@ -47,12 +47,17 @@ SourceRequestItem = Annotated[
     FileSourceRequest | HttpSourceRequest | S3SourceRequest, Field(discriminator="kind")
 ]
 
+TargetRequest = Annotated[
+    InBodyTarget | ZipTarget | S3Target | PutTarget,
+    Field(discriminator="kind"),
+]
+
 
 ## Complete Source request
 class ConvertDocumentsRequest(BaseModel):
     options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
     sources: list[SourceRequestItem]
-    target: TaskTarget = InBodyTarget()
+    target: TargetRequest = InBodyTarget()
 
     @model_validator(mode="after")
     def validate_s3_source_and_target(self) -> Self:
@@ -94,7 +99,7 @@ class BaseChunkDocumentsRequest(BaseModel):
         ),
     ] = False
     target: Annotated[
-        TaskTarget, Field(description="Specification for the type of output target.")
+        TargetRequest, Field(description="Specification for the type of output target.")
     ] = InBodyTarget()
 
 
