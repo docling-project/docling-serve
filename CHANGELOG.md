@@ -1,3 +1,29 @@
+## [v1.6.0](https://github.com/docling-project/docling-serve/releases/tag/v1.6.0) - 2025-10-03
+
+### Feature
+
+* Pin new version of jobkit with granite-docling and connectors ([#391](https://github.com/docling-project/docling-serve/issues/391)) ([`0595d31`](https://github.com/docling-project/docling-serve/commit/0595d31d5b357553426215ca6771796a47e41324))
+
+### Fix
+
+* Update locked dependencies ([#392](https://github.com/docling-project/docling-serve/issues/392)) ([`45f0f3c`](https://github.com/docling-project/docling-serve/commit/45f0f3c8f95d418ac30e3744d27d02a63f9e4490))
+* **UI:** Allow both lowercase and uppercase extensions ([#386](https://github.com/docling-project/docling-serve/issues/386)) ([`8b22a39`](https://github.com/docling-project/docling-serve/commit/8b22a391418d22c1a4d706f880341f28702057b5))
+* Correctly raise HTTPException for Gateway Timeout ([#382](https://github.com/docling-project/docling-serve/issues/382)) ([`d4eac05`](https://github.com/docling-project/docling-serve/commit/d4eac053f9ce0a60f9070127335bdd56e193d7fa))
+* Pinning of higher version of dependencies to fix potential security issues ([#363](https://github.com/docling-project/docling-serve/issues/363)) ([`ba61af2`](https://github.com/docling-project/docling-serve/commit/ba61af23591eff200481aa2e532cf7d0701f0ea4))
+
+### Documentation
+
+* Fix docs for websocket breaking condition ([#390](https://github.com/docling-project/docling-serve/issues/390)) ([`f6b5f0e`](https://github.com/docling-project/docling-serve/commit/f6b5f0e06354d2db7d03d274b114499e3407dccf))
+
+### Docling libraries included in this release:
+- docling 2.55.1
+- docling-core 2.48.4
+- docling-ibm-models 3.9.1
+- docling-jobkit 1.6.0
+- docling-mcp 1.3.2
+- docling-parse 4.5.0
+- docling-serve 1.6.0
+
 ## [v1.5.1](https://github.com/docling-project/docling-serve/releases/tag/v1.5.1) - 2025-09-17
 
 ### Fix
