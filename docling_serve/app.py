@@ -121,7 +121,7 @@ multipart_logger = logging.getLogger('python_multipart')
 multipart_logger.setLevel(logging.INFO)
 
 docling_logger = logging.getLogger('docling')
-docling_logger.setLevel(logging.DEBUG)
+docling_logger.setLevel(logging.INFO)
 
 # Override the formatter with the custom ColoredLogFormatter
 root_logger = logging.getLogger()  # Get the root logger
