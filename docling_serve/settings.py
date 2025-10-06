@@ -14,7 +14,7 @@ class UvicornSettings(BaseSettings):
     )
 
     host: str = "0.0.0.0"
-    port: int = 5001
+    port: int = 8080
     reload: bool = False
     root_path: str = ""
     proxy_headers: bool = True

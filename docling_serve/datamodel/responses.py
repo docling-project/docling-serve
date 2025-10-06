@@ -1,7 +1,7 @@
 import enum
-from typing import Optional
+from typing import Optional, List, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from docling.datamodel.document import ConversionStatus, ErrorItem
 from docling.utils.profiling import ProfilingItem
@@ -65,3 +65,33 @@ class WebsocketMessage(BaseModel):
     message: MessageKind
     task: Optional[TaskStatusResponse] = None
     error: Optional[str] = None
+
+
+class Provenance(BaseModel):
+    page_num: int = Field(-1, description="Page number")
+    l: float = Field(-1, description="Left border of bounding box")
+    t: float = Field(-1, description="Top border of bounding box")
+    r: float = Field(-1, description="Right border of bounding box")
+    b: float = Field(-1, description="Bottom border of bounding box")
+    charspan: Tuple[int, int] = Field([0,0], description="Character span of text within this doc item")
+
+
+class DocItem(BaseModel):
+    self_ref: str = Field("", description="Element of page")
+    prov: List[Provenance] = Field([], description="Provenance of chunk")
+    
+
+class ChunkResponse(BaseModel):
+    """
+    Collection of embedding responses.
+    """
+    chunk: str = Field("", description="Text of chunk")
+    doc_items: List[DocItem] = Field([], description="Doc items within chunk")
+    
+
+
+class ChunkResponses(BaseModel):
+    """
+    Collection of embedding responses.
+    """
+    chunks: List[ChunkResponse] = Field([], description="Chunks in doc")

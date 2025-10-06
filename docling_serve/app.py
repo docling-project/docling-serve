@@ -6,7 +6,9 @@ import shutil
 import time
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Optional
+
+from botocore.exceptions import ClientError
 
 from fastapi import (
     BackgroundTasks,
@@ -75,13 +77,20 @@ from docling_serve.datamodel.responses import (
     PresignedUrlConvertDocumentResponse,
     TaskStatusResponse,
     WebsocketMessage,
+    DocItem,
+    Provenance,
+    ChunkResponse,
+    ChunkResponses
 )
-from docling_serve.helper_functions import FormDepends
+from docling_serve.helper_functions import FormDepends, create_upload_file
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
+
+from docling.chunking import HybridChunker
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging
@@ -106,6 +115,13 @@ logging.basicConfig(
     format="%(levelname)s:\t%(asctime)s - %(name)s - %(message)s",
     datefmt="%H:%M:%S",
 )
+
+# when deployed to sagemaker log level is somehow being set to DEBUG
+multipart_logger = logging.getLogger('python_multipart')
+multipart_logger.setLevel(logging.INFO)
+
+docling_logger = logging.getLogger('docling')
+docling_logger.setLevel(logging.DEBUG)
 
 # Override the formatter with the custom ColoredLogFormatter
 root_logger = logging.getLogger()  # Get the root logger
@@ -421,6 +437,11 @@ def create_app():  # noqa: C901
 
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
+        return HealthCheckResponse()
+    
+    @app.get("/ping")
+    @app.post("/ping")
+    def ping() -> HealthCheckResponse:
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench
@@ -811,6 +832,89 @@ def create_app():  # noqa: C901
                 background_tasks=background_tasks,
             )
             return response
+        
+    @app.post(
+        "/invocations",
+        response_model=TaskStatusResponse | ConvertDocumentResponse | PresignedUrlConvertDocumentResponse | ChunkResponses,
+    )
+    async def process_file_async_sm(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        background_tasks: BackgroundTasks,        
+        options: Annotated[
+            ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
+        ],
+        files: Optional[list[UploadFile]] = None,
+        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+    ):        
+        _log.debug("this is a debug log")
+        _log.info("this is an info log")
+        if options.task_id == "":
+            target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+            if options.s3_input != "":
+                try:
+                    file = create_upload_file(options.s3_input)
+                except ClientError as e:
+                    _log.error(e)
+                    return ConvertDocumentResponse(document={"filename": options.s3_input}, status="failure", 
+                                errors=[{"error_message": e.response['Error']['Message'], "component_type": "user_input", "module_name": ""}], processing_time=0)
+                files = [file]
+            task = await _enque_file(
+                task_type=TaskType.CONVERT,
+                orchestrator=orchestrator, 
+                files=files, 
+                convert_options=options,
+                chunking_options=None,
+                chunking_export_options=None, 
+                target=target
+            )
+            task_queue_position = await orchestrator.get_queue_position(
+                task_id=task.task_id
+            )
+            return TaskStatusResponse(
+                task_id=task.task_id,
+                task_type=task.task_type,
+                task_status=task.task_status,
+                task_position=task_queue_position,
+                task_meta=task.processing_meta,
+            )
+        elif options.task_id != "" and not options.fetch:
+            res = await task_status_poll(auth, orchestrator, options.task_id)
+            return res
+        elif options.task_id != "" and options.fetch:
+            res = await task_result(auth, orchestrator, background_tasks, options.task_id)
+            if options.chunk:
+                docling_doc = res.document.json_content                
+                tokenizer = HuggingFaceTokenizer.from_pretrained("./tokenizer/", options.max_tokens)
+                chunker = HybridChunker(tokenizer=tokenizer)
+                chunk_iter = chunker.chunk(dl_doc=docling_doc)
+                chunk_responses = []
+                for chunk in chunk_iter:
+                    enriched_text_chunk = chunker.contextualize(chunk=chunk)
+                    doc_items = []
+                    for item in chunk.meta.doc_items:
+                        doc_item = DocItem()
+                        doc_item.self_ref = item.self_ref
+                        provs = []
+                        for prov in item.prov:
+                            provenance = Provenance()
+                            provenance.page_num = prov.page_no
+                            provenance.l = prov.bbox.l
+                            provenance.t = prov.bbox.t
+                            provenance.r = prov.bbox.r
+                            provenance.b = prov.bbox.b
+                            provenance.charspan = prov.charspan
+                            provs.append(provenance)
+                        doc_item.prov = provs
+                        doc_items.append(doc_item)
+                    cr = ChunkResponse()
+                    cr.chunk = enriched_text_chunk
+                    cr.doc_items = doc_items
+                    chunk_responses.append(cr)
+                res = ChunkResponses()
+                res.chunks = chunk_responses
+                    
+            return res
 
     # Task status poll
     @app.get(
