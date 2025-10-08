@@ -33,11 +33,6 @@ FROM ${UV_IMAGE} AS uv_stage
 
 FROM docling-base
 
-USER 0
-
-RUN mkdir -p /opt/app-root/src/.cache/docling/models && \
-    chown -R 1001:0 /opt/app-root/src/.cache && \
-    chmod -R g=u /opt/app-root/src/.cache
 
 USER 1001
 
