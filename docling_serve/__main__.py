@@ -135,6 +135,37 @@ def _run(
 
     console.print("")
     console.print("Logs:")
+    
+    LOGGING_CONFIG = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": "%(levelname)s - %(name)s - %(message)s"
+            },
+            "access": {
+                "format": "%(levelname)s - %(client_addr)s - %(request_line)s - %(status_code)s"
+            },
+        },
+        "handlers": {
+            "default": {
+                "formatter": "default",
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stderr",
+            },
+            "access": {
+                "formatter": "access",
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+            },
+        },
+        "loggers": {
+            "uvicorn": {"handlers": ["default"], "level": "ERROR"},
+            "uvicorn.error": {"level": "ERROR"},
+            "uvicorn.access": {"handlers": ["access"], "level": "ERROR", "propagate": False},
+            "docling_serve.app": {"handlers": ["default"], "level": "INFO"},
+        },
+    }
 
     # Launch the server
     uvicorn.run(
@@ -150,6 +181,7 @@ def _run(
         ssl_certfile=uvicorn_settings.ssl_certfile,
         ssl_keyfile=uvicorn_settings.ssl_keyfile,
         ssl_keyfile_password=uvicorn_settings.ssl_keyfile_password,
+        log_config=LOGGING_CONFIG,
     )
 
 

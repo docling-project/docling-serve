@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+mkdir /app/tokenizer
+aws s3 cp $S3_MODEL_URI/sentencepiece.bpe.model /app/tokenizer/sentencepiece.bpe.model
+aws s3 cp $S3_MODEL_URI/tokenizer_config.json /app/tokenizer/tokenizer_config.json
+aws s3 cp $S3_MODEL_URI/special_tokens_map.json /app/tokenizer/special_tokens_map.json
+aws s3 cp $S3_MODEL_URI/tokenizer.json /app/tokenizer/tokenizer.json
+/home/vllm/.conda/envs/vllm-env/bin/python3 -m docling_serve run

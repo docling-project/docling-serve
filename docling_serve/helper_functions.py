@@ -2,9 +2,12 @@ import inspect
 import json
 import re
 from typing import Union, get_args, get_origin
+from io import BytesIO
+from urllib.parse import urlparse
 
-from fastapi import Depends, Form
+from fastapi import Depends, Form, UploadFile
 from pydantic import BaseModel, TypeAdapter
+import boto3
 
 
 def is_pydantic_model(type_):
@@ -127,3 +130,21 @@ def _str_to_bool(value: Union[str, bool]) -> bool:
         value = value.strip().lower()  # Normalize input
         return value in ("true", "1", "yes")
     return False  # Default to False if none of the above matches
+
+
+def create_upload_file(s3_path: str) -> UploadFile:
+    s3_client = boto3.client("s3")
+    file_obj = BytesIO()
+    
+    parsed_url = urlparse(s3_path, allow_fragments=False)
+    bucket = parsed_url.netloc
+    key = parsed_url.path[1:]
+    
+    s3_client.download_fileobj(bucket, key, file_obj)
+    file_obj.seek(0)
+    
+    file_name = key.split('/')[-1]
+    headers = {
+        'content-type': 'application/pdf'
+    }
+    return UploadFile(file=file_obj, filename=file_name, headers=headers)

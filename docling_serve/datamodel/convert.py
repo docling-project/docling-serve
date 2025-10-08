@@ -38,3 +38,39 @@ class ConvertDocumentsRequestOptions(ConvertDocumentsOptions):
             le=docling_serve_settings.max_document_timeout,
         ),
     ] = docling_serve_settings.max_document_timeout
+    
+    task_id: Annotated[
+        str,
+        Field(
+            description="Optional task ID when using sagemaker invocations endpoint",
+            examples="d6f76691-0aca-4d81-adc8-e190bd2f8e89"
+        ),
+    ] = ""
+    
+    fetch: Annotated[
+        bool,
+        Field(
+            description="Download results of async task if completed",
+        ),
+    ] = False
+
+    s3_input: Annotated[
+        str,
+        Field(
+            description="S3 URL of document for async processing",
+        ),
+    ] = ""
+    
+    chunk: Annotated[
+        bool,
+        Field(
+            description="Return chunked docmument",
+        ),
+    ] = False
+    
+    max_tokens: Annotated[
+        int,
+        Field(
+            description="Maximum number of tokens embedding model can embed in single request",
+        ),
+    ] = 512
