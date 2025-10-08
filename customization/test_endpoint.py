@@ -4,7 +4,7 @@ import boto3
 import time
 
 REGION = "us-east-1"
-ENDPOINT_NAME = "vllm-embedding-2025-09-05-15-16-14"
+ENDPOINT_NAME = "docling-serve-2025-10-06-14-17-58"
 SAGEMAKER_RUNTIME_URL = f"https://runtime.sagemaker.{REGION}.amazonaws.com"
 
 sm_client = boto3.client('sagemaker-runtime', region_name=REGION, endpoint_url=SAGEMAKER_RUNTIME_URL)
@@ -56,6 +56,7 @@ def test_poll(task_id, task_status):
         result = json.loads(result)
         task_status = result["task_status"]
         print(f"{task_id} status is {task_status}")
+        print(f"poll response is {result}")
         time.sleep(1)
         
 def test_fetch(task_id):

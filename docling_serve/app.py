@@ -846,10 +846,9 @@ def create_app():  # noqa: C901
         ],
         files: Optional[list[UploadFile]] = None,
         target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
-    ):        
-        _log.debug("this is a debug log")
-        _log.info("this is an info log")
+    ):
         if options.task_id == "":
+            _log.info(f"received convert request s3 {options.s3_input}")
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             if options.s3_input != "":
                 try:
@@ -878,10 +877,12 @@ def create_app():  # noqa: C901
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
             )
-        elif options.task_id != "" and not options.fetch:
+        elif options.task_id != "" and not options.fetch:            
             res = await task_status_poll(auth, orchestrator, options.task_id)
+            _log.info(f"received poll request for task id {options.task_id}, queue position {res.task_position}, queue size {res.queue_size}")
             return res
         elif options.task_id != "" and options.fetch:
+            _log.info(f"received fetch request for task id {options.task_id}")
             res = await task_result(auth, orchestrator, background_tasks, options.task_id)
             if options.chunk:
                 docling_doc = res.document.json_content                
@@ -934,6 +935,7 @@ def create_app():  # noqa: C901
         try:
             task = await orchestrator.task_status(task_id=task_id, wait=wait)
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
+            queue_size = await orchestrator.queue_size()
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
         return TaskStatusResponse(
@@ -942,6 +944,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            queue_size=queue_size,
         )
 
     # Task status websocket
