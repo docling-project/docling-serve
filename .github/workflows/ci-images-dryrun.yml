@@ -43,12 +43,10 @@ jobs:
       contents: read
       attestations: write
       id-token: write
-    secrets: inherit
 
     uses: ./.github/workflows/job-image.yml
     with:
-      publish: true
-      environment: registry-creds
+      publish: false
       build_args: ${{ matrix.spec.build_args }}
       ghcr_image_name: ${{ matrix.spec.name }}
       quay_image_name: ""
