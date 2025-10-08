@@ -33,9 +33,9 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.38",
-    "docling-core>=2.45.0",
-    "docling-jobkit[kfp,rq,vlm]>=1.5.0,<2.0.0",
+    "docling==2.55.1",
+    "docling-core==2.48.4",
+    "docling-jobkit[kfp,rq,vlm]==1.6.0",
     "fastapi[standard]~=0.115",
     "httpx~=0.28",
     "pydantic~=2.10",

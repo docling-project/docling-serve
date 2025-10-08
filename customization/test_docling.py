@@ -105,5 +105,5 @@ def send_docling_request(file_path: str):
         print(f"An error occurred during the request: {e}")
     return md_content, res_time
 
-send_docling_request("/Users/liamadams/repos/ai-lab/docling/2408.09869v4.pdf")
-# send_docling_request("s3://201486032796-docling-serve/input/Onebrief-User-Manual.pdf")
+# send_docling_request("/Users/liamadams/repos/ai-lab/docling/2408.09869v4.pdf")
+send_docling_request("s3://201486032796-docling-serve/input/Onebrief-User-Manual.pdf")

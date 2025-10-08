@@ -16,6 +16,7 @@ git push
     * `docling-serve/docling_serve/helper_functions.py`
     * `docling-serve/docling_serve/datamodel/responses.py`
     * `docling_serve/__main__.py`
+    * `pyproject.toml`
 3. Add files
     * `docling-serve/Dockerfile`
     * `docling-serve/serve`
