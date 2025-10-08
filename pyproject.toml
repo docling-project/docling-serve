@@ -87,10 +87,10 @@ cpu = [
   "torchvision>=0.22.1",
 ]
 
-cu124 = [
-  "torch>=2.6.0",
-  "torchvision>=0.21.0",
-]
+# cu124 = [
+#   "torch>=2.6.0",
+#   "torchvision>=0.21.0",
+# ]
 
 cu126 = [
   "torch>=2.7.1",
@@ -115,7 +115,7 @@ conflicts = [
   [
     { group = "pypi" },
     { group = "cpu" },
-    { group = "cu124" },
+    # { group = "cu124" },
     { group = "cu126" },
     { group = "cu128" },
     { group = "rocm" },
@@ -131,7 +131,7 @@ override-dependencies = [
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
-  { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
+  # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
@@ -140,7 +140,7 @@ torch = [
 torchvision = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
-  { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
+  # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
@@ -163,10 +163,10 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
-[[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
-explicit = true
+# [[tool.uv.index]]
+# name = "pytorch-cu124"
+# url = "https://download.pytorch.org/whl/cu124"
+# explicit = true
 
 [[tool.uv.index]]
 name = "pytorch-cu126"
@@ -309,4 +309,3 @@ branch = "main"
 parser_angular_allowed_types = "build,chore,ci,docs,feat,fix,perf,style,refactor,test"
 parser_angular_minor_types = "feat"
 parser_angular_patch_types = "fix,perf"
-

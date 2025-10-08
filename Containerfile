@@ -33,7 +33,6 @@ FROM ${UV_IMAGE} AS uv_stage
 
 FROM docling-base
 
-
 USER 1001
 
 WORKDIR /opt/app-root/src
