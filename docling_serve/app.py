@@ -847,8 +847,7 @@ def create_app():  # noqa: C901
         files: Optional[list[UploadFile]] = None,
         target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
     ):
-        if options.task_id == "":
-            _log.info(f"received convert request s3 {options.s3_input}")
+        if options.task_id == "":            
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             if options.s3_input != "":
                 try:
@@ -867,6 +866,7 @@ def create_app():  # noqa: C901
                 chunking_export_options=None, 
                 target=target
             )
+            _log.info(f"received convert request s3 {options.s3_input}, task id {task.task_id}")
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
             )
