@@ -199,10 +199,14 @@ def create_app():  # noqa: C901
             tmp_output_dir = get_scratch() / "gradio"
             tmp_output_dir.mkdir(exist_ok=True, parents=True)
             gradio_ui.gradio_output_dir = tmp_output_dir
-            
+
             # Build the root_path for Gradio, accounting for UVICORN_ROOT_PATH
-            gradio_root_path = f"{uvicorn_settings.root_path}/ui" if uvicorn_settings.root_path else "/ui"
-            
+            gradio_root_path = (
+                f"{uvicorn_settings.root_path}/ui"
+                if uvicorn_settings.root_path
+                else "/ui"
+            )
+
             app = gr.mount_gradio_app(
                 app,
                 gradio_ui,
