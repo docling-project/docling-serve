@@ -194,16 +194,25 @@ def create_app():  # noqa: C901
             import gradio as gr
 
             from docling_serve.gradio_ui import ui as gradio_ui
+            from docling_serve.settings import uvicorn_settings
 
             tmp_output_dir = get_scratch() / "gradio"
             tmp_output_dir.mkdir(exist_ok=True, parents=True)
             gradio_ui.gradio_output_dir = tmp_output_dir
+
+            # Build the root_path for Gradio, accounting for UVICORN_ROOT_PATH
+            gradio_root_path = (
+                f"{uvicorn_settings.root_path}/ui"
+                if uvicorn_settings.root_path
+                else "/ui"
+            )
+
             app = gr.mount_gradio_app(
                 app,
                 gradio_ui,
                 path="/ui",
                 allowed_paths=["./logo.png", tmp_output_dir],
-                root_path="/ui",
+                root_path=gradio_root_path,
             )
         except ImportError:
             _log.warning(
