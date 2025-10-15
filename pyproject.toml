@@ -55,10 +55,12 @@ ui = [
 tesserocr = [
     "tesserocr~=2.7"
 ]
+easyocr = [
+    "easyocr>=1.7",
+]
 rapidocr = [
     "rapidocr (>=3.3,<4.0.0) ; python_version < '3.14'",
     "onnxruntime (>=1.7.0,<2.0.0)",
-      "modelscope>=1.29.0",
 ]
 flash-attn = [
   "flash-attn~=2.8.2; sys_platform == 'linux' and platform_machine == 'x86_64'"
