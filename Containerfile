@@ -58,7 +58,7 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-extra flash-attn && \
     FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-build-isolation-package=flash-attn
 
-ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
+ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 RUN echo "Downloading models..." && \
     HF_HUB_DOWNLOAD_TIMEOUT="90" \
