@@ -1,3 +1,23 @@
+## [v1.7.0](https://github.com/docling-project/docling-serve/releases/tag/v1.7.0) - 2025-10-17
+
+### Feature
+
+* **UI:** Add auto and orcmac options in demo UI ([#408](https://github.com/docling-project/docling-serve/issues/408)) ([`f5af71e`](https://github.com/docling-project/docling-serve/commit/f5af71e8f6de00d7dd702471a3eea2e94d882410))
+* Docling with auto-ocr ([#403](https://github.com/docling-project/docling-serve/issues/403)) ([`d95ea94`](https://github.com/docling-project/docling-serve/commit/d95ea940870af0d8df689061baa50f6026efce28))
+
+### Fix
+
+* Run docling ui behind a reverse proxy using a context path ([#396](https://github.com/docling-project/docling-serve/issues/396)) ([`5344505`](https://github.com/docling-project/docling-serve/commit/53445057184aa731ee7456b33b70bc0ecf82f2a6))
+
+### Docling libraries included in this release:
+- docling 2.57.0
+- docling-core 2.48.4
+- docling-ibm-models 3.9.1
+- docling-jobkit 1.6.0
+- docling-mcp 1.3.2
+- docling-parse 4.5.0
+- docling-serve 1.7.0
+
 ## [v1.6.0](https://github.com/docling-project/docling-serve/releases/tag/v1.6.0) - 2025-10-03
 
 ### Feature
