@@ -4,6 +4,7 @@ import itertools
 import json
 import logging
 import ssl
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -224,13 +225,17 @@ def auto_set_return_as_file(
 
 def change_ocr_lang(ocr_engine):
     if ocr_engine == "easyocr":
-        return "en,fr,de,es"
+        return gr.update(visible=True, value="en,fr,de,es")
     elif ocr_engine == "tesseract_cli":
-        return "eng,fra,deu,spa"
+        return gr.update(visible=True, value="eng,fra,deu,spa")
     elif ocr_engine == "tesseract":
-        return "eng,fra,deu,spa"
+        return gr.update(visible=True, value="eng,fra,deu,spa")
     elif ocr_engine == "rapidocr":
-        return "english,chinese"
+        return gr.update(visible=True, value="english,chinese")
+    elif ocr_engine == "ocrmac":
+        return gr.update(visible=True, value="fr-FR,de-DE,es-ES,en-US")
+
+    return gr.update(visible=False, value="")
 
 
 def wait_task_finish(auth: str, task_id: str, return_as_file: bool):
@@ -636,18 +641,25 @@ with gr.Blocks(
                 ocr = gr.Checkbox(label="Enable OCR", value=True)
                 force_ocr = gr.Checkbox(label="Force OCR", value=False)
             with gr.Column(scale=1):
+                engines_list = [
+                    ("Auto", "auto"),
+                    ("EasyOCR", "easyocr"),
+                    ("Tesseract", "tesseract"),
+                    ("RapidOCR", "rapidocr"),
+                ]
+                if sys.platform == "darwin":
+                    engines_list.append(("OCRMac", "ocrmac"))
+
                 ocr_engine = gr.Radio(
-                    [
-                        ("EasyOCR", "easyocr"),
-                        ("Tesseract", "tesseract"),
-                        ("RapidOCR", "rapidocr"),
-                    ],
+                    engines_list,
                     label="OCR Engine",
-                    value="easyocr",
+                    value="auto",
                 )
             with gr.Column(scale=1, min_width=200):
                 ocr_lang = gr.Textbox(
-                    label="OCR Language (beware of the format)", value="en,fr,de,es"
+                    label="OCR Language (beware of the format)",
+                    value="en,fr,de,es",
+                    visible=False,
                 )
             ocr_engine.change(change_ocr_lang, inputs=[ocr_engine], outputs=[ocr_lang])
         with gr.Row():
