@@ -341,7 +341,7 @@ def create_app():  # noqa: C901
             task = await orchestrator.task_status(task_id=task_id)
             if task.is_completed():
                 return True
-            await asyncio.sleep(5)
+            await asyncio.sleep(docling_serve_settings.sync_poll_interval)
             elapsed_time = time.monotonic() - start_time
             if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
