@@ -57,6 +57,7 @@ class DoclingServeSettings(BaseSettings):
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
 
+    sync_poll_interval: int = 2  # seconds
     max_sync_wait: int = 120  # 2 minutes
 
     cors_origins: list[str] = ["*"]

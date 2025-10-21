@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
-ARG UV_VERSION=0.8.3
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.8.19
 
 ARG UV_SYNC_EXTRA_ARGS=""
 
@@ -25,7 +25,7 @@ RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_stage
+FROM ${UV_IMAGE} AS uv_stage
 
 ###################################################################################################
 # Docling layer                                                                                   #
@@ -58,7 +58,7 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-extra flash-attn && \
     FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE uv sync ${UV_SYNC_ARGS} ${UV_SYNC_EXTRA_ARGS} --no-build-isolation-package=flash-attn
 
-ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
+ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 RUN echo "Downloading models..." && \
     HF_HUB_DOWNLOAD_TIMEOUT="90" \

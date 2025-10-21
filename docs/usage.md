@@ -8,15 +8,15 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
-| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
+| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `dlparse_v4`. |
-| `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to `fast`. |
+| `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
 | `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
@@ -25,7 +25,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
 | `include_images` | bool | If enabled, images will be extracted from the document. Boolean. Optional, defaults to true. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
-| `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `md_page_break_placeholder` | str | Add this placeholder `betweek` pages in the markdown output. |
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
@@ -36,7 +36,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `vlm_pipeline_model` | VlmModelType or NoneType | Preset of local and API models for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model_api`. Use the other options for more parameters. |
 | `vlm_pipeline_model_local` | VlmModelLocal or NoneType | Options for running a local vision-language model for the `vlm` pipeline. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `vlm_pipeline_model_api` and `vlm_pipeline_model`. |
 | `vlm_pipeline_model_api` | VlmModelApi or NoneType | API details for using a vision-language model for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model`. |
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
@@ -44,7 +44,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `ocr_engine` | str | The OCR engine to use. String.  |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `dlparse_v4`. |
-| `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to `fast`. |
+| `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
 | `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
@@ -53,7 +53,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
 | `include_images` | bool | If enabled, images will be extracted from the document. Boolean. Optional, defaults to true. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
-| `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `md_page_break_placeholder` | str | Add this placeholder `betweek` pages in the markdown output. |
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
@@ -468,7 +468,7 @@ with connect(uri) as websocket:
             payload = json.loads(message)
             if payload["message"] == "error":
                 break
-            if payload["message"] == "error" and payload["task"]["task_status"] in ("success", "failure"):
+            if payload["message"] == "update" and payload["task"]["task_status"] in ("success", "failure"):
                 break
         except:
           break
