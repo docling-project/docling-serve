@@ -869,7 +869,10 @@ def create_app():  # noqa: C901
         assert isinstance(orchestrator.notifier, WebsocketNotifier)
         await websocket.accept()
 
-        if task_id not in orchestrator.tasks:
+        try:
+            # Get task status from Redis or RQ directly instead of checking in-memory registry
+            task = await orchestrator.task_status(task_id=task_id)
+        except TaskNotFoundError:
             await websocket.send_text(
                 WebsocketMessage(
                     message=MessageKind.ERROR, error="Task not found."
@@ -877,8 +880,6 @@ def create_app():  # noqa: C901
             )
             await websocket.close()
             return
-
-        task = orchestrator.tasks[task_id]
 
         # Track active WebSocket connections for this job
         orchestrator.notifier.task_subscribers[task_id].add(websocket)
