@@ -12,7 +12,6 @@ VARIABLE_WORDS: list[str] = [
     "vlm_pipeline_model",
     "vlm",
     "vlm_pipeline_model_api",
-    "betweek",
     "ocr_engines_enum",
     "easyocr",
     "dlparse_v4",
@@ -82,6 +81,8 @@ def _format_type(type_hint: Any) -> str:
             return f"Dict[{_format_type(args[0])}, {_format_type(args[1])}]"
         elif str(origin).__contains__("Union") or str(origin).__contains__("Optional"):
             return " or ".join(_format_type(arg) for arg in args)
+        elif origin is None:
+            return "null"
 
     if hasattr(type_hint, "__name__"):
         return type_hint.__name__
@@ -91,9 +92,7 @@ def _format_type(type_hint: Any) -> str:
 
 def generate_model_doc(model: type[BaseModel]) -> str:
     """Generate documentation for a Pydantic model."""
-    doc = "## Common parameters\n\n"
-    doc += "On top of the source of file (see below), both endpoints support the same parameters, which are almost the same as the Docling CLI.\n\n"
-    doc += "| Field Name | Type | Description |\n"
+    doc = "\n| Field Name | Type | Description |\n"
     doc += "|------------|------|-------------|\n"
 
     for base_model in model.__mro__:
@@ -120,6 +119,9 @@ def generate_model_doc(model: type[BaseModel]) -> str:
 
                 doc += f"| `{field_name}` | {field_type} | {description} |\n"
 
+            # stop iterating the base classes
+            break
+
     doc += "\n"
     return doc
 
@@ -136,12 +138,13 @@ def update_documentation():
     in_cp_section = False
 
     for line in content:
-        if line.startswith("## Common parameters"):
+        if line.startswith("<!-- begin: parameters-docs -->"):
             in_cp_section = True
+            new_content.append(line)
             new_content.append(doc_request)
             continue
 
-        if in_cp_section and line.strip() == "### Authentication":
+        if in_cp_section and line.strip() == "<!-- end: parameters-docs -->":
             in_cp_section = False
 
         if not in_cp_section:
