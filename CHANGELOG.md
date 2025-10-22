@@ -1,3 +1,24 @@
+## [v1.7.1](https://github.com/docling-project/docling-serve/releases/tag/v1.7.1) - 2025-10-22
+
+### Fix
+
+* Upgrade dependencies ([#417](https://github.com/docling-project/docling-serve/issues/417)) ([`97613a1`](https://github.com/docling-project/docling-serve/commit/97613a19748e8c152db4a0f62b5a57fca807a33a))
+* Makes task status shared across multiple instances in RQ mode, resolves #378 ([#415](https://github.com/docling-project/docling-serve/issues/415)) ([`0961f2c`](https://github.com/docling-project/docling-serve/commit/0961f2c57425859c76130da3ea8a871d65df4b26))
+* `DOCLING_SERVE_SYNC_POLL_INTERVAL` controls the synchronous polling time ([#413](https://github.com/docling-project/docling-serve/issues/413)) ([`0f274ab`](https://github.com/docling-project/docling-serve/commit/0f274ab135a9bb41accd05db3c12a9dcce220ad9))
+
+### Documentation
+
+* Generate usage.md automatically ([#340](https://github.com/docling-project/docling-serve/issues/340)) ([`9672f31`](https://github.com/docling-project/docling-serve/commit/9672f310b1bb7030af8a276f14691e46f7da0e9e))
+
+### Docling libraries included in this release:
+- docling 2.58.0
+- docling-core 2.49.0
+- docling-ibm-models 3.10.1
+- docling-jobkit 1.7.0
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.7.1
+
 ## [v1.7.0](https://github.com/docling-project/docling-serve/releases/tag/v1.7.0) - 2025-10-17
 
 ### Feature
