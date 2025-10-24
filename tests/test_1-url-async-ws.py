@@ -69,3 +69,9 @@ async def test_convert_url(async_client: httpx.AsyncClient):
     with connect(uri) as websocket:
         for message in websocket:
             print(message)
+
+    result_resp = await async_client.get(f"{base_url}/result/{task['task_id']}")
+    assert result_resp.status_code == 200, "Response should be 200 OK"
+    result = result_resp.json()
+    print(f"{result['processing_time']=}")
+    assert result["processing_time"] > 1.0
