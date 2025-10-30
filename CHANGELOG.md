@@ -1,3 +1,19 @@
+## [v1.7.2](https://github.com/docling-project/docling-serve/releases/tag/v1.7.2) - 2025-10-30
+
+### Fix
+
+* Update locked dependencies. Docling fixes, Expose temperature parameter for vlm models ([#423](https://github.com/docling-project/docling-serve/issues/423)) ([`e9b4140`](https://github.com/docling-project/docling-serve/commit/e9b41406c4116ff79a212877ff6484a1151e144d))
+* Temporary constrain fastapi version ([#418](https://github.com/docling-project/docling-serve/issues/418)) ([`7bf2e7b`](https://github.com/docling-project/docling-serve/commit/7bf2e7b366470e0cf1c4900df7c84becd6a96991))
+
+### Docling libraries included in this release:
+- docling 2.59.0
+- docling-core 2.50.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.7.1
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.7.2
+
 ## [v1.7.1](https://github.com/docling-project/docling-serve/releases/tag/v1.7.1) - 2025-10-22
 
 ### Fix
