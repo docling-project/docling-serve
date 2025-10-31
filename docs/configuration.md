@@ -57,6 +57,19 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_API_KEY` | | If specified, all the API requests must contain the header `X-Api-Key` with this value. |
 |  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local`, `rq` and `kfp`. See below for more configurations of the engines. |
 
+### Docling configuration
+
+Some Docling settings, mostly about performance, are exposed as environment variable which can be used also when running Docling Serve.
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_NUM_THREADS` | `4` | Number of concurrent threads used for the `torch` CPU execution. |
+| `DOCLING_DEVICE` | | Device used for the model execution. Valid values are `cpu`, `cude`, `mps`. When unset, the best device is chosen. For CUDA-enabled environments, you can choose which GPU using the syntax `cuda:0`, `cuda:1`, ... |
+| `DOCLING_PERF_PAGE_BATCH_SIZE` | `4` | Number of pages processed in the same batch. |
+| `DOCLING_PERF_ELEMENTS_BATCH_SIZE` | `8` | Number of document items/elements processed in the same batch during enrichment. |
+| `DOCLING_DEBUG_PROFILE_PIPELINE_TIMINGS` | `false` | When enabled, Docling will provide detailed timings information. |
+
+
 ### Compute engine
 
 Docling Serve can be deployed with several possible of compute engine.
