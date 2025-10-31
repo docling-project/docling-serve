@@ -1470,7 +1470,7 @@ wheels = [
 
 [[package]]
 name = "docling-jobkit"
-version = "1.7.1"
+version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm')" },
@@ -1483,9 +1483,9 @@ dependencies = [
     { name = "pydantic-settings", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm')" },
     { name = "typer", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/27/1fb1a98110630a6d5a813a8fc5127ba08f44cbf37ea58b04e1b06e46ffa9/docling_jobkit-1.7.1.tar.gz", hash = "sha256:7f68b91b7f34898efd292d4ce9880a443ff24937474f3091e7f6d2754095746e", size = 56104, upload-time = "2025-10-30T12:58:53.363Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/1a/d6cc22df94833bdfaa7921654d9531e98e27ed69d167e9d71220e4f69fa8/docling_jobkit-1.8.0.tar.gz", hash = "sha256:37a9eb4cdc88b8e40566391d1e411529e63164664ce5982c1960be5846abc02b", size = 56274, upload-time = "2025-10-31T16:09:22.866Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/97/05d5ed271eb615869b70e1f6f6304356602895c3a1a511e28017c27af586/docling_jobkit-1.7.1-py3-none-any.whl", hash = "sha256:be22b6bd302ff085b156e20b4d27674ff962a3b6b40bd1639f3e160bc5847fc9", size = 79013, upload-time = "2025-10-30T12:58:52.229Z" },
+    { url = "https://files.pythonhosted.org/packages/79/ef/078cd6571dbac15df62d9fc777b4dc895e6a9d9eecd9d3e25b59f6ed9455/docling_jobkit-1.8.0-py3-none-any.whl", hash = "sha256:e19eca1420b6fb1c757ab79d3dfa49262120fd68092351380cb642ff77078965", size = 79189, upload-time = "2025-10-31T16:09:21.658Z" },
 ]
 
 [package.optional-dependencies]
@@ -1643,7 +1643,7 @@ rocm = [
 requires-dist = [
     { name = "docling", specifier = "~=2.38" },
     { name = "docling-core", specifier = ">=2.45.0" },
-    { name = "docling-jobkit", extras = ["kfp", "rq", "vlm"], specifier = ">=1.6.0,<2.0.0" },
+    { name = "docling-jobkit", extras = ["kfp", "rq", "vlm"], specifier = ">=1.8.0,<2.0.0" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
     { name = "fastapi", extras = ["standard"], specifier = "<0.119.0" },
