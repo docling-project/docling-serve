@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -90,39 +90,75 @@ def _format_type(type_hint: Any) -> str:
     return str(type_hint)
 
 
+def _unroll_types(tp) -> list[type]:
+    """
+    Unrolls typing.Union and typing.Optional types into a flat list of types.
+    """
+    origin = get_origin(tp)
+    if origin is Union:
+        # Recursively unroll each type inside the Union
+        types = []
+        for arg in get_args(tp):
+            types.extend(_unroll_types(arg))
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(types))
+    else:
+        # If it's not a Union, just return it as a single-element list
+        return [tp]
+
+
 def generate_model_doc(model: type[BaseModel]) -> str:
     """Generate documentation for a Pydantic model."""
-    doc = "\n| Field Name | Type | Description |\n"
-    doc += "|------------|------|-------------|\n"
 
-    for base_model in model.__mro__:
-        # Check if this is a Pydantic model
-        if hasattr(base_model, "model_fields"):
-            # Iterate through fields of this model
-            for field_name, field in base_model.model_fields.items():
-                # Extract description from Annotated field if possible
-                description = field.description or "No description provided."
-                description = format_allowed_values_description(description)
-                description = format_variable_names(description)
+    models_stack = [model]
 
-                # Handle Annotated types
-                original_type = field.annotation
-                if get_origin(original_type) is Annotated:
-                    # Extract base type and additional metadata
-                    type_args = get_args(original_type)
-                    base_type = type_args[0]
-                else:
-                    base_type = original_type
+    doc = ""
+    while models_stack:
+        current_model = models_stack.pop()
 
-                field_type = _format_type(base_type)
-                field_type = format_variable_names(field_type)
+        doc += f"<h4>{current_model.__name__}</h4>\n"
 
-                doc += f"| `{field_name}` | {field_type} | {description} |\n"
+        doc += "\n| Field Name | Type | Description |\n"
+        doc += "|------------|------|-------------|\n"
 
-            # stop iterating the base classes
-            break
+        base_models = []
+        if hasattr(current_model, "__mro__"):
+            base_models = current_model.__mro__
+        else:
+            base_models = [current_model]
 
-    doc += "\n"
+        for base_model in base_models:
+            # Check if this is a Pydantic model
+            if hasattr(base_model, "model_fields"):
+                # Iterate through fields of this model
+                for field_name, field in base_model.model_fields.items():
+                    # Extract description from Annotated field if possible
+                    description = field.description or "No description provided."
+                    description = format_allowed_values_description(description)
+                    description = format_variable_names(description)
+
+                    # Handle Annotated types
+                    original_type = field.annotation
+                    if get_origin(original_type) is Annotated:
+                        # Extract base type and additional metadata
+                        type_args = get_args(original_type)
+                        base_type = type_args[0]
+                    else:
+                        base_type = original_type
+
+                    field_type = _format_type(base_type)
+                    field_type = format_variable_names(field_type)
+
+                    doc += f"| `{field_name}` | {field_type} | {description} |\n"
+
+                    for field_type in _unroll_types(base_type):
+                        if issubclass(field_type, BaseModel):
+                            models_stack.append(field_type)
+
+                # stop iterating the base classes
+                break
+
+        doc += "\n"
     return doc
 
 
