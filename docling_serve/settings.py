@@ -57,6 +57,13 @@ class DoclingServeSettings(BaseSettings):
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
 
+    # Threading pipeline
+    queue_max_size: Optional[int] = None
+    ocr_batch_size: Optional[int] = None
+    layout_batch_size: Optional[int] = None
+    table_batch_size: Optional[int] = None
+    batch_polling_interval_seconds: Optional[float] = None
+
     sync_poll_interval: int = 2  # seconds
     max_sync_wait: int = 120  # 2 minutes
 
