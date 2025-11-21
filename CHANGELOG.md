@@ -1,3 +1,23 @@
+## [v1.8.0](https://github.com/docling-project/docling-serve/releases/tag/v1.8.0) - 2025-10-31
+
+### Feature
+
+* Docling with new standard pipeline with threading ([#428](https://github.com/docling-project/docling-serve/issues/428)) ([`bf132a3`](https://github.com/docling-project/docling-serve/commit/bf132a3c3e615ddbe624841ea5b3a98593c00654))
+
+### Documentation
+
+* Expand automatic docs to nested objects. More complete usage docs. ([#426](https://github.com/docling-project/docling-serve/issues/426)) ([`35319b0`](https://github.com/docling-project/docling-serve/commit/35319b0da793a2a1a434fd2b60b7632e10ecced3))
+* Add docs for docling parameters like performance and debug ([#424](https://github.com/docling-project/docling-serve/issues/424)) ([`f3957ae`](https://github.com/docling-project/docling-serve/commit/f3957aeb577097121fe9d0d21f75a50643f03369))
+
+### Docling libraries included in this release:
+- docling 2.60.0
+- docling-core 2.50.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.8.0
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.8.0
+
 ## [v1.7.2](https://github.com/docling-project/docling-serve/releases/tag/v1.7.2) - 2025-10-30
 
 ### Fix

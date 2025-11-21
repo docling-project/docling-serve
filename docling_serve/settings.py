@@ -50,12 +50,20 @@ class DoclingServeSettings(BaseSettings):
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
+    show_version_info: bool = True
 
     api_key: str = ""
 
     max_document_timeout: float = 3_600 * 24 * 7  # 7 days
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
+
+    # Threading pipeline
+    queue_max_size: Optional[int] = None
+    ocr_batch_size: Optional[int] = None
+    layout_batch_size: Optional[int] = None
+    table_batch_size: Optional[int] = None
+    batch_polling_interval_seconds: Optional[float] = None
 
     sync_poll_interval: int = 2  # seconds
     max_sync_wait: int = 120  # 2 minutes

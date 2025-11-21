@@ -76,7 +76,7 @@ from docling_serve.datamodel.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
-from docling_serve.helper_functions import FormDepends
+from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import docling_serve_settings
@@ -436,6 +436,16 @@ def create_app():  # noqa: C901
     @app.get("/api", include_in_schema=False)
     def api_check() -> HealthCheckResponse:
         return HealthCheckResponse()
+
+    # Docling versions
+    @app.get("/version", tags=["health"])
+    def version_info() -> dict:
+        if not docling_serve_settings.show_version_info:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing version details.",
+            )
+        return DOCLING_VERSIONS
 
     # Convert a document from URL(s)
     @app.post(
