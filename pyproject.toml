@@ -69,6 +69,7 @@ flash-attn = [
 [dependency-groups]
 dev = [
     "asgi-lifespan~=2.0",
+    "httpx",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
     "pypdf>=6.0.0",
