@@ -16,7 +16,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import AnyHttpUrl
-from pyjsx import auto_setup
+from pyjsx import auto_setup  # type: ignore
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from docling.datamodel.base_models import OutputFormat
@@ -131,7 +131,7 @@ def create_ui_app(process_file, process_url, task_result, task_status_poll) -> F
     ):
         tasks = sorted(orchestrator.tasks.values(), key=lambda t: t.created_at)
 
-        return str(TasksPage(tasks=tasks))
+        return str(TasksPage(tasks))
 
     # Task specific page.
     @ui_app.get("/tasks/{task_id}/", response_class=HTMLResponse)

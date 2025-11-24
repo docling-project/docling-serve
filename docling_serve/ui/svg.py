@@ -1,4 +1,4 @@
-from pyjsx import JSX
+from pyjsx import JSX  # type: ignore
 
 
 def _tag(name: str):
@@ -6,7 +6,7 @@ def _tag(name: str):
         props = " ".join([f'{k}="{v}"' for k, v in args.items()])
 
         if children:
-            child_renders = "".join([f"{c}" for c in children])
+            child_renders = "".join([str(c) for c in children])
             return f"<{name} {props}>{child_renders}</{name}>"
         else:
             return f"<{name} {props} />"
@@ -14,12 +14,7 @@ def _tag(name: str):
     return factory
 
 
-circle = _tag("circle")
-clipPath = _tag("clipPath")
-defs = _tag("defs")
-foreignObject = _tag("foreignobject")
 image = _tag("image")
 path = _tag("path")
 rect = _tag("rect")
 text = _tag("text")
-use = _tag("use")

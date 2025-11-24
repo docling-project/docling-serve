@@ -1,79 +1,15 @@
 @import "pico.css";
 
-/* Pico configuration. */
-:root {
-  --pico-font-size: 16px;
-}
-
-/* Utilities. */
-.w-4 {
-  width: calc(4 * var(--pico-spacing));
-}
-.w-full {
-  width: 100%;
-}
-.max-w-full {
-  max-width: 100%;
-}
-.mt-1 {
-  margin-top: var(--pico-spacing);
-}
-.mr-auto {
-  margin-right: auto;
-}
-.mb-1 {
-  margin-bottom: var(--pico-spacing);
-}
-.mb-2 {
-  margin-bottom: calc(2 * var(--pico-spacing));
-}
-.flex {
-  display: flex;
-}
-.flex.row {
-  flex-direction: row;
-}
-.flex.col {
-  flex-direction: column;
-}
-.flex-1 {
-  flex: 1 1 0%;
-}
-.flex-auto {
-  flex: 1 1 auto;
-}
-.gap-0 {
-  gap: 0;
-}
-.gap-1 {
-  gap: 0.25rem;
-}
-.gap-2 {
-  gap: 0.5rem;
-}
-.gap-3 {
-  gap: 1rem;
-}
-.hidden {
-  display: none;
-}
-.sticky-footer {
-  position: sticky;
-  bottom: 0;
-  padding-top: var(--pico-spacing);
-  background: var(--pico-background-color);
-}
-
-/* Customization. */
-
 @view-transition {
   navigation: auto;
 }
 
 :root {
+  --pico-font-size: 16px;
+
   --highlight-factor: 0.8;
   --target: hsl(240, 100%, 34%);
-  --mark: hsl(29, 100%, 40%);
+  --mark: hsl(29, 100%, 35%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,6 +18,18 @@
     --target: hsl(240, 100%, 70%);
     --mark: hsl(29, 100%, 70%);
   }
+}
+
+/* Utilities. */
+.hidden {
+  display: none;
+}
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: var(--pico-spacing);
+  background: var(--pico-background-color);
 }
 
 html {
@@ -232,6 +180,10 @@ main.preview {
   main.preview:has(.configDarkImg > input:checked) {
     --img-hover-border: white;
 
+    svg.page-image {
+      --mark: hsl(29, 100%, 70%)
+    }
+
     image,
     img {
       filter: invert(1) hue-rotate(180deg) saturate(1.25);
@@ -280,6 +232,38 @@ main.preview {
       visibility: hidden;
     }
 
+    > .item.annotated {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+
+    /* Formatting. */
+    .bold {
+      font-weight: bold;
+    }
+    .italic {
+      font-style: italic;
+    }
+    .underline {
+      text-decoration: underline;
+    }
+    .strikethrough {
+      text-decoration: line-through;
+    }
+    .underline.strikethrough {
+      text-decoration: underline line-through;
+    }
+    .sub {
+      font-size: smaller;
+      vertical-align: sub;
+    }
+    .super {
+      font-size: smaller;
+      vertical-align: super;
+    }
+
     /* Items out of content layer. */
     > .item:not(.body),
     > .item-markers:not(.body) {
@@ -319,34 +303,27 @@ main.preview {
     }
 
     .annotation {
-      margin: 0.5rem 1rem;
-      font-size: 0.9rem;
-      color: var(--mark);
+      margin: 0;
 
       &::before {
-        margin-right: 0.5rem;
         content: attr(data-kind);
         opacity: 0.7;
       }
+
+      &,
+      * {
+        font-size: 0.9rem;
+        color: var(--mark);
+      }
     }
 
-    .annotation[data-kind="description"] {
+    .annotation[data-kind="description"],
+    code.annotation {
       white-space: pre-line;
     }
 
     .annotation[data-kind="classification"] {
-      height: 1.5rem;
-      display: flex;
-      align-items: center;
-
-      > div {
-        padding: 0 0.25rem;
-        background: var(--mark);
-        border: solid 1px var(--pico-background-color);
-        color: var(--pico-background-color);
-        overflow: hidden;
-        text-wrap: nowrap;
-      }
+      width: fit-content;
     }
 
     > .item-markers {
@@ -409,6 +386,8 @@ main.preview {
     }
 
     > svg.page-image {
+      --mark: hsl(29, 100%, 35%);
+
       grid-column: 5;
       position: sticky;
       top: 0.5rem;

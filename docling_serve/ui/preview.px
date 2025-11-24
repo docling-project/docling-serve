@@ -10,6 +10,7 @@ from docling_core.types.doc.document import (
     DoclingDocument,
     DocItem,
     FloatingItem,
+    Formatting,
     FormulaItem,
     GroupItem,
     GroupLabel,
@@ -20,6 +21,7 @@ from docling_core.types.doc.document import (
     PictureItem,
     ProvenanceItem,
     RefItem,
+    Script,
     SectionHeaderItem,
     TableCell,
     TableItem,
@@ -28,7 +30,7 @@ from docling_core.types.doc.document import (
 )
 from pyjsx import jsx, JSX, JSXComponent
 
-from .svg import circle, clipPath, image, path, rect, text
+from .svg import image, path, rect, text
 
 
 _node_components: dict[str, JSXComponent] = {}
@@ -63,7 +65,7 @@ def NodeComponent(children, node: NodeItem | RefItem, doc: DoclingDocument):
     # Wrap item component with annotations, if any.
     if isinstance(node, DocItem) and (anns := node.get_annotations()):
         element = (
-            <div>
+            <div class="annotated">
                 {element}
                 {[<AnnotationComponent annotation={ann} /> for ann in anns]}
             </div>
@@ -73,7 +75,9 @@ def NodeComponent(children, node: NodeItem | RefItem, doc: DoclingDocument):
     id = node.self_ref[2:]
     element.props["id"] = id
     element.props["onclick"] = "clickId(event)"
-    element.props["class"] = element.props.get("class", "") + f" item {node.content_layer.value}"
+
+    classes = ["item", node.content_layer.value]
+    element.props["class"] = f"{element.props.get("class", "")} {" ".join(classes)}"
 
     return element
 
@@ -203,34 +207,67 @@ def DocPreview(children, doc: DoclingDocument):
     ]
 
 
+def _text_classes(node: TextItem) -> str:
+    classes = [node.label]
+
+    if frmt := node.formatting:
+        formats = {
+            "bold": frmt.bold,
+            "italic": frmt.italic,
+            "underline": frmt.underline,
+            "strikethrough": frmt.strikethrough
+        }
+        classes.extend([cls for cls, active in formats.items() if active])
+        classes.append(frmt.script)
+
+    return " ".join(classes)
+
+
 @component(TextItem)
 def TextComponent(children, node: TextItem, doc: DoclingDocument):
-    return <p class={node.label}>{escape(node.text)}</p>
+    return <p class={_text_classes(node)}>{escape(node.text)}</p>
 
 
 @component(TitleItem)
 def TitleComponent(children, node: TitleItem, doc: DoclingDocument):
-    return <h1>{escape(node.text)}</h1>
+    return <h1 class={_text_classes(node)}>{escape(node.text)}</h1>
 
 
 @component(SectionHeaderItem)
 def SectionHeaderComponent(children, node: SectionHeaderItem, doc: DoclingDocument):
-    return <h4>{escape(node.text)}</h4>
+    return <h4 class={_text_classes(node)}>{escape(node.text)}</h4>
 
 
 @component(ListItem)
 def ListComponent(children, node: ListItem, doc: DoclingDocument):
-    return <li><b>{node.marker}</b> {escape(node.text)}</li>
+    return (
+        <li>
+            <b>{node.marker}</b>
+            <span class={_text_classes(node)}>{escape(node.text)}</span>
+        </li>
+    )
 
 
 @component(CodeItem)
 def CodeComponent(children, node: CodeItem, doc: DoclingDocument):
-    return <figure><code>{escape(node.text or node.orig)}</code></figure>
+    return (
+        <figure>
+            <code class={_text_classes(node)}>
+                {escape(node.text or node.orig)}
+            </code>
+        </figure>
+    )
 
 
 @component(FormulaItem)
 def FormulaComponent(children, node: FormulaItem, doc: DoclingDocument):
-    return <figure><code>{escape(node.text or node.orig)}</code></figure>
+    return (
+        <figure>
+            <code class={_text_classes(node)}>
+                {escape(node.text or node.orig)}
+            </code>
+        </figure>
+    )
 
 
 @component(PictureItem)
@@ -240,25 +277,25 @@ def PictureComponent(children, node: PictureItem, doc: DoclingDocument):
 
 @component(PictureClassificationData)
 def PictureClassificationComponent(children, annotation: PictureClassificationData):
-    classes = annotation.predicted_classes[:5]
     return (
-        <div>
-            {[
-                <div
-                    style={{ "width": f"{cls.confidence * 100}%" }}
-                    title={f"{cls.class_name}: {cls.confidence:.2f}"}
-                >
-                    {f"{cls.class_name.replace("_", " ")} {cls.confidence:.2f}"}
-                </div>
-                for cls in classes
-            ]}
-        </div>
+        <table>
+            <tbody>
+                {[
+                    <tr>
+                        <td>{cls.class_name.replace("_", " ")}</td>
+                        <td>{f"{cls.confidence:.2f}"}</td>
+                    </tr>
+                    for cls in annotation.predicted_classes
+                    if cls.confidence > 0.01
+                ]}
+            </tbody>
+        </table>
     )
 
 
 @component(DescriptionAnnotation)
 def DescriptionAnnotation(children, annotation: DescriptionAnnotation):
-    return <div>{escape(annotation.text)}</div>
+    return <span>{escape(annotation.text)}</span>
 
 
 @component(TableItem)
