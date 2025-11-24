@@ -1,3 +1,22 @@
+## [v1.9.0](https://github.com/docling-project/docling-serve/releases/tag/v1.9.0) - 2025-11-24
+
+### Feature
+
+* Version endpoint ([#442](https://github.com/docling-project/docling-serve/issues/442)) ([`2c23f65`](https://github.com/docling-project/docling-serve/commit/2c23f65507d7699694debd7faa0de840ef2d2cb7))
+
+### Fix
+
+* Dependencies updates – Docling 2.63.0 ([#443](https://github.com/docling-project/docling-serve/issues/443)) ([`e437e83`](https://github.com/docling-project/docling-serve/commit/e437e830c956f9a76cd0c62faf9add0231992548))
+
+### Docling libraries included in this release:
+- docling 2.63.0
+- docling-core 2.52.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.8.0
+- docling-mcp 1.3.3
+- docling-parse 4.7.1
+- docling-serve 1.9.0
+
 ## [v1.8.0](https://github.com/docling-project/docling-serve/releases/tag/v1.8.0) - 2025-10-31
 
 ### Feature
