@@ -256,7 +256,26 @@ def wait_task_finish(auth: str, task_id: str, return_as_file: bool):
                 verify=ssl_ctx,
                 timeout=15,
             )
-            task_status = response.json()["task_status"]
+
+            # Check response status code first
+            if response.status_code == 404:
+                logger.warning(
+                    f"Task {task_id} not found in status poll, it may have completed already"
+                )
+                time.sleep(2)  # Wait for result to be ready
+                conversion_sucess = True
+                task_finished = True
+                break
+
+            response.raise_for_status()
+
+            # Safely access task_status
+            response_data = response.json()
+            if "task_status" not in response_data:
+                logger.error(f"Missing task_status in response: {response_data}")
+                raise RuntimeError("Missing task_status in response")
+
+            task_status = response_data["task_status"]
             if task_status == "success":
                 conversion_sucess = True
                 task_finished = True
@@ -272,18 +291,55 @@ def wait_task_finish(auth: str, task_id: str, return_as_file: bool):
             task_finished = True
             raise gr.Error(f"Error processing file(s): {e}", print_exception=False)
 
+    # Retry logic for result retrieval
     if conversion_sucess:
-        try:
-            response = httpx.get(
-                f"{get_api_endpoint()}/v1/result/{task_id}",
-                headers=headers,
-                timeout=15,
-                verify=ssl_ctx,
-            )
-            output = response_to_output(response, return_as_file)
-            return output
-        except Exception as e:
-            logger.error(f"Error getting task result: {e}")
+        max_retries = 3
+        retry_count = 0
+
+        while retry_count < max_retries:
+            try:
+                response = httpx.get(
+                    f"{get_api_endpoint()}/v1/result/{task_id}",
+                    headers=headers,
+                    timeout=15,
+                    verify=ssl_ctx,
+                )
+
+                if response.status_code == 404:
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        wait_time = 2**retry_count  # Exponential backoff: 2, 4, 8s
+                        logger.warning(
+                            f"Result not ready yet, retrying in {wait_time}s "
+                            f"(attempt {retry_count}/{max_retries})"
+                        )
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(
+                            f"Result not available after {max_retries} retries"
+                        )
+                        raise RuntimeError(
+                            f"Result not available after {max_retries} retries"
+                        )
+
+                response.raise_for_status()
+                output = response_to_output(response, return_as_file)
+                return output
+            except Exception as e:
+                if retry_count >= max_retries - 1:
+                    logger.error(f"Error getting task result: {e}")
+                    raise gr.Error(
+                        f"Error getting task result: {e}", print_exception=False
+                    )
+                # For non-404 errors on early retries, continue retrying
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = 2**retry_count
+                    logger.warning(
+                        f"Error getting result, retrying in {wait_time}s: {e}"
+                    )
+                    time.sleep(wait_time)
 
     raise gr.Error(
         f"Error getting task result, conversion finished with status: {task_status}"
