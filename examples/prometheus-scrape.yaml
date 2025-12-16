@@ -1,0 +1,106 @@
+# Prometheus Scrape Configuration for Docling Serve
+# Add this to your Prometheus configuration file (prometheus.yml)
+
+scrape_configs:
+  - job_name: 'docling-serve'
+
+    # Scrape interval
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+    # Metrics path (default is /metrics)
+    metrics_path: /metrics
+
+    # Static targets configuration
+    static_configs:
+      - targets:
+          # Replace with your docling-serve instance(s)
+          - 'localhost:5001'
+          - 'docling-serve-1.example.com:5001'
+          - 'docling-serve-2.example.com:5001'
+
+        # Optional labels to add to all metrics from this job
+        labels:
+          environment: 'production'
+          service: 'docling-serve'
+
+    # Optional: Add authentication if API key is required
+    # basic_auth:
+    #   username: ''
+    #   password: 'your-api-key'
+
+    # Optional: TLS configuration
+    # tls_config:
+    #   ca_file: /path/to/ca.crt
+    #   cert_file: /path/to/client.crt
+    #   key_file: /path/to/client.key
+    #   insecure_skip_verify: false
+
+---
+# VictoriaMetrics Scrape Configuration
+# For use with VictoriaMetrics, configuration is compatible with Prometheus
+
+# vmagent configuration example:
+# vmagent \
+#   -promscrape.config=prometheus-scrape.yaml \
+#   -remoteWrite.url=http://victoriametrics:8428/api/v1/write
+
+---
+# Kubernetes Service Discovery Example
+# For auto-discovery of docling-serve pods in Kubernetes
+
+scrape_configs:
+  - job_name: 'docling-serve-k8s'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - default
+            - docling-serve
+
+    relabel_configs:
+      # Only scrape pods with label app=docling-serve
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: docling-serve
+
+      # Use pod name as instance label
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+
+      # Use namespace as label
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+
+      # Set metrics path
+      - target_label: __metrics_path__
+        replacement: /metrics
+
+      # Set port to scrape
+      - source_labels: [__address__]
+        action: replace
+        regex: ([^:]+)(?::\d+)?
+        replacement: $1:5001
+        target_label: __address__
+
+---
+# Available Metrics from Docling Serve:
+#
+# FastAPI/HTTP Metrics (from OpenTelemetry):
+# - http.server.request.duration - HTTP request duration histogram
+# - http.server.active_requests - Active HTTP requests gauge
+# - http.server.request.size - HTTP request size histogram
+# - http.server.response.size - HTTP response size histogram
+#
+# RQ Metrics (when using RQ engine):
+# - rq_workers - Number of RQ workers by state
+# - rq_workers_success - Successful job count per worker
+# - rq_workers_failed - Failed job count per worker
+# - rq_workers_working_time - Total working time per worker
+# - rq_jobs - Job counts by queue and status
+# - rq_request_processing_seconds - Time spent collecting RQ metrics
+#
+# System Metrics (via Python OpenTelemetry):
+# - process.runtime.cpython.cpu.utilization - CPU utilization
+# - process.runtime.cpython.memory - Memory usage
+# - process.runtime.cpython.gc.count - Garbage collection count
