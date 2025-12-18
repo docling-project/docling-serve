@@ -65,11 +65,11 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
    - **grafana**: Visualization UI
 
 3. Access:
-   - Docling Serve UI: http://localhost:5001/ui
-   - Metrics endpoint: http://localhost:5001/metrics
-   - Grafana: http://localhost:3000 (pre-configured with Prometheus & Tempo)
-   - Prometheus: http://localhost:9090
-   - Tempo: http://localhost:3200
+   - Docling Serve UI: `http://localhost:5001/ui`
+   - Metrics endpoint: `http://localhost:5001/metrics`
+   - Grafana: `http://localhost:3000` (pre-configured with Prometheus & Tempo)
+   - Prometheus: `http://localhost:9090`
+   - Tempo: `http://localhost:3200`
 
 4. Scale workers (optional):
    ```bash

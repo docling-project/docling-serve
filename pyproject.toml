@@ -293,6 +293,8 @@ module = [
     "mlx_vlm.*",
     "mlx.*",
     "scalar_fastapi.*",
+    "gradio.*",
+    "msgpack.*",
 ]
 ignore_missing_imports = true
 

@@ -163,7 +163,7 @@ def setup_rq_worker_instrumentation():
         logger.debug("OpenTelemetry already configured for RQ worker")
 
 
-def wrap_rq_queue_for_tracing(rq_queue):
+def wrap_rq_queue_for_tracing(rq_queue: Any) -> None:
     """
     Wrap RQ queue's enqueue method to inject trace context into jobs.
 
@@ -175,7 +175,7 @@ def wrap_rq_queue_for_tracing(rq_queue):
     """
     original_enqueue = rq_queue.enqueue
 
-    def traced_enqueue(*args, **kwargs):
+    def traced_enqueue(*args: Any, **kwargs: Any) -> Any:
         """Wrapped enqueue that injects trace context."""
         # Get or create meta dict for the job
         meta = kwargs.get("meta", {})

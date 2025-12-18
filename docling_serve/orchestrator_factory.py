@@ -23,7 +23,7 @@ class RedisTaskStatusMixin:
     _task_result_keys: dict[str, str]
     config: Any
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.redis_prefix = "docling:tasks:"
         self._redis_pool = redis.ConnectionPool.from_url(
@@ -307,13 +307,13 @@ def get_async_orchestrator() -> BaseOrchestrator:
         from docling_serve.rq_instrumentation import wrap_rq_queue_for_tracing
 
         class RedisAwareRQOrchestrator(RedisTaskStatusMixin, RQOrchestrator):  # type: ignore[misc]
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args, **kwargs)
                 # Wrap RQ queue to inject trace context into jobs
                 if docling_serve_settings.otel_enable_traces:
                     wrap_rq_queue_for_tracing(self._rq_queue)
 
-            async def enqueue(self, **kwargs):  # type: ignore[override]
+            async def enqueue(self, **kwargs: Any) -> Task:  # type: ignore[override]
                 """Override enqueue to use instrumented job function when tracing is enabled."""
                 import base64
                 import uuid
