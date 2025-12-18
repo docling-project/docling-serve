@@ -57,7 +57,7 @@ COPY --from=build /usr/include /usr/include
 ENV \
     DOCLING_SERVE_ARTIFACTS_PATH=/app/.cache/docling/models
 
-ARG MODELS_LIST="layout tableformer picture_classifier easyocr"
+ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 WORKDIR /app
 

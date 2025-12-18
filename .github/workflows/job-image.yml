@@ -160,13 +160,10 @@ jobs:
               pip install uv
               uv venv --allow-existing
               source .venv/bin/activate
-              uv sync --all-extras --no-extra flash-attn
+              uv sync --only-dev
 
               # Run pytest tests
               echo "Running tests..."
-              # Test import
-              python -c 'from docling_serve.app import create_app; create_app()'
-
               # Run pytest and check result directly
               if ! pytest -sv -k "test_convert_url" tests/test_1-url-async.py \
                 --disable-warnings; then

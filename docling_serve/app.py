@@ -48,7 +48,6 @@ from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task, TaskSource, TaskType
 from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
-    TaskTarget,
     ZipTarget,
 )
 from docling_jobkit.orchestrators.base_orchestrator import (
@@ -66,6 +65,7 @@ from docling_serve.datamodel.requests import (
     HttpSourceRequest,
     S3SourceRequest,
     TargetName,
+    TargetRequest,
     make_request_model,
 )
 from docling_serve.datamodel.responses import (
@@ -82,7 +82,7 @@ from docling_serve.datamodel.responses import (
     ChunkResponse,
     ChunkResponses
 )
-from docling_serve.helper_functions import FormDepends, create_upload_file
+from docling_serve.helper_functions import FormDepends, create_upload_file, DOCLING_VERSIONS
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import docling_serve_settings
@@ -210,16 +210,25 @@ def create_app():  # noqa: C901
             import gradio as gr
 
             from docling_serve.gradio_ui import ui as gradio_ui
+            from docling_serve.settings import uvicorn_settings
 
             tmp_output_dir = get_scratch() / "gradio"
             tmp_output_dir.mkdir(exist_ok=True, parents=True)
             gradio_ui.gradio_output_dir = tmp_output_dir
+
+            # Build the root_path for Gradio, accounting for UVICORN_ROOT_PATH
+            gradio_root_path = (
+                f"{uvicorn_settings.root_path}/ui"
+                if uvicorn_settings.root_path
+                else "/ui"
+            )
+
             app = gr.mount_gradio_app(
                 app,
                 gradio_ui,
                 path="/ui",
                 allowed_paths=["./logo.png", tmp_output_dir],
-                root_path="/ui",
+                root_path=gradio_root_path,
             )
         except ImportError:
             _log.warning(
@@ -320,7 +329,7 @@ def create_app():  # noqa: C901
         convert_options: ConvertDocumentsRequestOptions,
         chunking_options: BaseChunkerOptions | None,
         chunking_export_options: ChunkingExportOptions | None,
-        target: TaskTarget,
+        target: TargetRequest,
     ) -> Task:
         _log.info(f"Received {len(files)} files for processing.")
 
@@ -348,7 +357,7 @@ def create_app():  # noqa: C901
             task = await orchestrator.task_status(task_id=task_id)
             if task.is_completed():
                 return True
-            await asyncio.sleep(5)
+            await asyncio.sleep(docling_serve_settings.sync_poll_interval)
             elapsed_time = time.monotonic() - start_time
             if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
@@ -448,6 +457,16 @@ def create_app():  # noqa: C901
     @app.get("/api", include_in_schema=False)
     def api_check() -> HealthCheckResponse:
         return HealthCheckResponse()
+
+    # Docling versions
+    @app.get("/version", tags=["health"])
+    def version_info() -> dict:
+        if not docling_serve_settings.show_version_info:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing version details.",
+            )
+        return DOCLING_VERSIONS
 
     # Convert a document from URL(s)
     @app.post(
@@ -967,7 +986,10 @@ def create_app():  # noqa: C901
         assert isinstance(orchestrator.notifier, WebsocketNotifier)
         await websocket.accept()
 
-        if task_id not in orchestrator.tasks:
+        try:
+            # Get task status from Redis or RQ directly instead of checking in-memory registry
+            task = await orchestrator.task_status(task_id=task_id)
+        except TaskNotFoundError:
             await websocket.send_text(
                 WebsocketMessage(
                     message=MessageKind.ERROR, error="Task not found."
@@ -975,8 +997,6 @@ def create_app():  # noqa: C901
             )
             await websocket.close()
             return
-
-        task = orchestrator.tasks[task_id]
 
         # Track active WebSocket connections for this job
         orchestrator.notifier.task_subscribers[task_id].add(websocket)
