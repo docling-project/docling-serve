@@ -1,8 +1,47 @@
-#!/usr/bin/env bash
+#!/app/.venv/bin/python
 
-mkdir /app/tokenizer
-aws s3 cp $S3_MODEL_URI/sentencepiece.bpe.model /app/tokenizer/sentencepiece.bpe.model
-aws s3 cp $S3_MODEL_URI/tokenizer_config.json /app/tokenizer/tokenizer_config.json
-aws s3 cp $S3_MODEL_URI/special_tokens_map.json /app/tokenizer/special_tokens_map.json
-aws s3 cp $S3_MODEL_URI/tokenizer.json /app/tokenizer/tokenizer.json
-/home/vllm/.conda/envs/vllm-env/bin/python3 -m docling_serve run
+import os
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+import boto3
+
+TOKENIZER_DIR = Path("/app/tokenizer")
+TOKENIZER_FILES = [
+    "sentencepiece.bpe.model",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "tokenizer.json",
+]
+
+
+def download_tokenizer_files():
+    s3_model_uri = os.environ.get("S3_MODEL_URI")
+    if not s3_model_uri:
+        print("S3_MODEL_URI not set, skipping tokenizer download")
+        return
+
+    TOKENIZER_DIR.mkdir(parents=True, exist_ok=True)
+
+    parsed = urlparse(s3_model_uri)
+    bucket = parsed.netloc
+    prefix = parsed.path.lstrip("/")
+
+    s3 = boto3.client("s3")
+
+    for filename in TOKENIZER_FILES:
+        s3_key = f"{prefix}/{filename}"
+        local_path = TOKENIZER_DIR / filename
+        print(f"Downloading s3://{bucket}/{s3_key} -> {local_path}")
+        s3.download_file(bucket, s3_key, str(local_path))
+
+
+def main():
+    download_tokenizer_files()
+    sys.exit(subprocess.call(["/app/.venv/bin/python", "-m", "docling_serve", "run"]))
+
+
+if __name__ == "__main__":
+    main()

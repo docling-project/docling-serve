@@ -23,7 +23,7 @@ def send_docling_request(file_path: str):
     try:
         if "s3" in file_path:
             files_payload = [
-                ('ocr_engine', (None, 'easyocr')),
+                ('ocr_engine', (None, 'rapidocr')),
                 ('pdf_backend', (None, 'dlparse_v4')),
                 ('from_formats', (None, 'pdf')),
                 ('from_formats', (None, 'docx')),
@@ -46,7 +46,7 @@ def send_docling_request(file_path: str):
         else:
             with open(file_path, 'rb') as f:                
                 files_payload = [
-                    ('ocr_engine', (None, 'easyocr')),
+                    ('ocr_engine', (None, 'rapidocr')),
                     ('pdf_backend', (None, 'dlparse_v4')),
                     ('from_formats', (None, 'pdf')),
                     ('from_formats', (None, 'docx')),
@@ -106,4 +106,4 @@ def send_docling_request(file_path: str):
     return md_content, res_time
 
 # send_docling_request("/Users/liamadams/repos/ai-lab/docling/2408.09869v4.pdf")
-send_docling_request("s3://201486032796-docling-serve/input/Onebrief-User-Manual.pdf")
+send_docling_request("s3://201486032796-docling-serve/input/Nepal-Earthquake-CONPLAN.pdf")

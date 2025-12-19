@@ -17,7 +17,7 @@ filepath = "/Users/liamadams/repos/ai-lab/docling/2408.09869v4.pdf"
 def test_convert(s3_input: str = None):    
     data = {
         "files": (filename, open(filepath, "rb").read(), "application/pdf"),
-        'ocr_engine': (None, 'easyocr'),
+        'ocr_engine': (None, 'rapidocr'),
         'pdf_backend': (None, 'dlparse_v4'),
         'from_formats': (None, 'pdf'),
         'force_ocr': (None, 'false'),
@@ -72,6 +72,6 @@ def test_fetch(task_id):
     print(result)
         
 
-task_id, task_status = test_convert("s3://201486032796-docling-serve/input/Onebrief-User-Manual.pdf")
+task_id, task_status = test_convert("s3://201486032796-docling-serve/input/Nepal-Earthquake-CONPLAN.pdf")
 test_poll(task_id, task_status)
 test_fetch(task_id)
