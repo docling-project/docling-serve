@@ -55,6 +55,14 @@ async def test_health(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_openapijson(client: AsyncClient):
+    response = await client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+    assert "openapi" in schema
+
+
+@pytest.mark.asyncio
 async def test_convert_file(client: AsyncClient, auth_headers: dict):
     """Test convert single file to all outputs"""
 

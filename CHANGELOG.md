@@ -1,3 +1,125 @@
+## [v1.9.0](https://github.com/docling-project/docling-serve/releases/tag/v1.9.0) - 2025-11-24
+
+### Feature
+
+* Version endpoint ([#442](https://github.com/docling-project/docling-serve/issues/442)) ([`2c23f65`](https://github.com/docling-project/docling-serve/commit/2c23f65507d7699694debd7faa0de840ef2d2cb7))
+
+### Fix
+
+* Dependencies updates – Docling 2.63.0 ([#443](https://github.com/docling-project/docling-serve/issues/443)) ([`e437e83`](https://github.com/docling-project/docling-serve/commit/e437e830c956f9a76cd0c62faf9add0231992548))
+
+### Docling libraries included in this release:
+- docling 2.63.0
+- docling-core 2.52.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.8.0
+- docling-mcp 1.3.3
+- docling-parse 4.7.1
+- docling-serve 1.9.0
+
+## [v1.8.0](https://github.com/docling-project/docling-serve/releases/tag/v1.8.0) - 2025-10-31
+
+### Feature
+
+* Docling with new standard pipeline with threading ([#428](https://github.com/docling-project/docling-serve/issues/428)) ([`bf132a3`](https://github.com/docling-project/docling-serve/commit/bf132a3c3e615ddbe624841ea5b3a98593c00654))
+
+### Documentation
+
+* Expand automatic docs to nested objects. More complete usage docs. ([#426](https://github.com/docling-project/docling-serve/issues/426)) ([`35319b0`](https://github.com/docling-project/docling-serve/commit/35319b0da793a2a1a434fd2b60b7632e10ecced3))
+* Add docs for docling parameters like performance and debug ([#424](https://github.com/docling-project/docling-serve/issues/424)) ([`f3957ae`](https://github.com/docling-project/docling-serve/commit/f3957aeb577097121fe9d0d21f75a50643f03369))
+
+### Docling libraries included in this release:
+- docling 2.60.0
+- docling-core 2.50.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.8.0
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.8.0
+
+## [v1.7.2](https://github.com/docling-project/docling-serve/releases/tag/v1.7.2) - 2025-10-30
+
+### Fix
+
+* Update locked dependencies. Docling fixes, Expose temperature parameter for vlm models ([#423](https://github.com/docling-project/docling-serve/issues/423)) ([`e9b4140`](https://github.com/docling-project/docling-serve/commit/e9b41406c4116ff79a212877ff6484a1151e144d))
+* Temporary constrain fastapi version ([#418](https://github.com/docling-project/docling-serve/issues/418)) ([`7bf2e7b`](https://github.com/docling-project/docling-serve/commit/7bf2e7b366470e0cf1c4900df7c84becd6a96991))
+
+### Docling libraries included in this release:
+- docling 2.59.0
+- docling-core 2.50.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.7.1
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.7.2
+
+## [v1.7.1](https://github.com/docling-project/docling-serve/releases/tag/v1.7.1) - 2025-10-22
+
+### Fix
+
+* Upgrade dependencies ([#417](https://github.com/docling-project/docling-serve/issues/417)) ([`97613a1`](https://github.com/docling-project/docling-serve/commit/97613a19748e8c152db4a0f62b5a57fca807a33a))
+* Makes task status shared across multiple instances in RQ mode, resolves #378 ([#415](https://github.com/docling-project/docling-serve/issues/415)) ([`0961f2c`](https://github.com/docling-project/docling-serve/commit/0961f2c57425859c76130da3ea8a871d65df4b26))
+* `DOCLING_SERVE_SYNC_POLL_INTERVAL` controls the synchronous polling time ([#413](https://github.com/docling-project/docling-serve/issues/413)) ([`0f274ab`](https://github.com/docling-project/docling-serve/commit/0f274ab135a9bb41accd05db3c12a9dcce220ad9))
+
+### Documentation
+
+* Generate usage.md automatically ([#340](https://github.com/docling-project/docling-serve/issues/340)) ([`9672f31`](https://github.com/docling-project/docling-serve/commit/9672f310b1bb7030af8a276f14691e46f7da0e9e))
+
+### Docling libraries included in this release:
+- docling 2.58.0
+- docling-core 2.49.0
+- docling-ibm-models 3.10.1
+- docling-jobkit 1.7.0
+- docling-mcp 1.3.2
+- docling-parse 4.7.0
+- docling-serve 1.7.1
+
+## [v1.7.0](https://github.com/docling-project/docling-serve/releases/tag/v1.7.0) - 2025-10-17
+
+### Feature
+
+* **UI:** Add auto and orcmac options in demo UI ([#408](https://github.com/docling-project/docling-serve/issues/408)) ([`f5af71e`](https://github.com/docling-project/docling-serve/commit/f5af71e8f6de00d7dd702471a3eea2e94d882410))
+* Docling with auto-ocr ([#403](https://github.com/docling-project/docling-serve/issues/403)) ([`d95ea94`](https://github.com/docling-project/docling-serve/commit/d95ea940870af0d8df689061baa50f6026efce28))
+
+### Fix
+
+* Run docling ui behind a reverse proxy using a context path ([#396](https://github.com/docling-project/docling-serve/issues/396)) ([`5344505`](https://github.com/docling-project/docling-serve/commit/53445057184aa731ee7456b33b70bc0ecf82f2a6))
+
+### Docling libraries included in this release:
+- docling 2.57.0
+- docling-core 2.48.4
+- docling-ibm-models 3.9.1
+- docling-jobkit 1.6.0
+- docling-mcp 1.3.2
+- docling-parse 4.5.0
+- docling-serve 1.7.0
+
+## [v1.6.0](https://github.com/docling-project/docling-serve/releases/tag/v1.6.0) - 2025-10-03
+
+### Feature
+
+* Pin new version of jobkit with granite-docling and connectors ([#391](https://github.com/docling-project/docling-serve/issues/391)) ([`0595d31`](https://github.com/docling-project/docling-serve/commit/0595d31d5b357553426215ca6771796a47e41324))
+
+### Fix
+
+* Update locked dependencies ([#392](https://github.com/docling-project/docling-serve/issues/392)) ([`45f0f3c`](https://github.com/docling-project/docling-serve/commit/45f0f3c8f95d418ac30e3744d27d02a63f9e4490))
+* **UI:** Allow both lowercase and uppercase extensions ([#386](https://github.com/docling-project/docling-serve/issues/386)) ([`8b22a39`](https://github.com/docling-project/docling-serve/commit/8b22a391418d22c1a4d706f880341f28702057b5))
+* Correctly raise HTTPException for Gateway Timeout ([#382](https://github.com/docling-project/docling-serve/issues/382)) ([`d4eac05`](https://github.com/docling-project/docling-serve/commit/d4eac053f9ce0a60f9070127335bdd56e193d7fa))
+* Pinning of higher version of dependencies to fix potential security issues ([#363](https://github.com/docling-project/docling-serve/issues/363)) ([`ba61af2`](https://github.com/docling-project/docling-serve/commit/ba61af23591eff200481aa2e532cf7d0701f0ea4))
+
+### Documentation
+
+* Fix docs for websocket breaking condition ([#390](https://github.com/docling-project/docling-serve/issues/390)) ([`f6b5f0e`](https://github.com/docling-project/docling-serve/commit/f6b5f0e06354d2db7d03d274b114499e3407dccf))
+
+### Docling libraries included in this release:
+- docling 2.55.1
+- docling-core 2.48.4
+- docling-ibm-models 3.9.1
+- docling-jobkit 1.6.0
+- docling-mcp 1.3.2
+- docling-parse 4.5.0
+- docling-serve 1.6.0
+
 ## [v1.5.1](https://github.com/docling-project/docling-serve/releases/tag/v1.5.1) - 2025-09-17
 
 ### Fix

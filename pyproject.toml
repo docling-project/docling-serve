@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "1.5.1"  # DO NOT EDIT, updated automatically
+version = "1.9.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -33,10 +33,10 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling==2.55.1",
+    "docling>=2.60",
     "docling-core==2.48.4",
-    "docling-jobkit[kfp,rq,vlm]==1.6.0",
-    "fastapi[standard]~=0.115",
+    "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
+    "fastapi[standard]<0.119.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
@@ -55,10 +55,12 @@ ui = [
 tesserocr = [
     "tesserocr~=2.7"
 ]
+easyocr = [
+    "easyocr>=1.7",
+]
 rapidocr = [
     "rapidocr (>=3.3,<4.0.0) ; python_version < '3.14'",
     "onnxruntime (>=1.7.0,<2.0.0)",
-      "modelscope>=1.29.0",
 ]
 flash-attn = [
   "flash-attn~=2.8.2; sys_platform == 'linux' and platform_machine == 'x86_64'"
@@ -67,6 +69,9 @@ flash-attn = [
 [dependency-groups]
 dev = [
     "asgi-lifespan~=2.0",
+    "httpx",
+    "pydantic",
+    "pydantic-settings",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
     "pypdf>=6.0.0",

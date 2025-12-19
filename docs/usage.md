@@ -4,31 +4,89 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 
 ## Common parameters
 
-On top of the source of file (see below), both endpoints support the same parameters, which are almost the same as the Docling CLI.
+On top of the source of file (see below), both endpoints support the same parameters.
 
-- `from_formats` (List[str]): Input format(s) to convert from. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`. Defaults to all formats.
-- `to_formats` (List[str]): Output format(s) to convert to. Allowed values: `md`, `json`, `html`, `text`, `doctags`. Defaults to `md`.
-- `pipeline` (str). The choice of which pipeline to use. Allowed values are `standard` and `vlm`. Defaults to `standard`.
-- `page_range` (tuple). If specified, only convert a range of pages. The page number starts at 1.
-- `do_ocr` (bool): If enabled, the bitmap content will be processed using OCR. Defaults to `True`.
-- `image_export_mode`: Image export mode for the document (only in case of JSON, Markdown or HTML). Allowed values: embedded, placeholder, referenced. Optional, defaults to `embedded`.
-- `force_ocr` (bool): If enabled, replace any existing text with OCR-generated text over the full content. Defaults to `False`.
-- `ocr_engine` (str): OCR engine to use. Allowed values: `easyocr`, `tesserocr`, `tesseract`, `rapidocr`, `ocrmac`. Defaults to `easyocr`. To use the `tesserocr` engine, `tesserocr` must be installed where docling-serve is running: `pip install tesserocr`
-- `ocr_lang` (List[str]): List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. Defaults to empty.
-- `pdf_backend` (str): PDF backend to use. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Defaults to `dlparse_v4`.
-- `table_mode` (str): Table mode to use. Allowed values: `fast`, `accurate`. Defaults to `fast`.
-- `abort_on_error` (bool): If enabled, abort on error. Defaults to false.
-- `md_page_break_placeholder` (str): Add this placeholder between pages in the markdown output.
-- `do_table_structure` (bool): If enabled, the table structure will be extracted. Defaults to true.
-- `do_code_enrichment` (bool): If enabled, perform OCR code enrichment. Defaults to false.
-- `do_formula_enrichment` (bool): If enabled, perform formula OCR, return LaTeX code. Defaults to false.
-- `do_picture_classification` (bool): If enabled, classify pictures in documents. Defaults to false.
-- `do_picture_description` (bool): If enabled, describe pictures in documents. Defaults to false.
-- `picture_description_area_threshold` (float): Minimum percentage of the area for a picture to be processed with the models. Defaults to 0.05.
-- `picture_description_local` (dict): Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`.
-- `picture_description_api` (dict): API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`.
-- `include_images` (bool): If enabled, images will be extracted from the document. Defaults to false.
-- `images_scale` (float): Scale factor for images. Defaults to 2.0.
+<!-- begin: parameters-docs -->
+<h4>ConvertDocumentsRequestOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
+| `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
+| `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
+| `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
+| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
+| `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
+| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `dlparse_v4`. |
+| `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
+| `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
+| `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
+| `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
+| `document_timeout` | float | The timeout for processing each document, in seconds. |
+| `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
+| `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
+| `include_images` | bool | If enabled, images will be extracted from the document. Boolean. Optional, defaults to true. |
+| `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
+| `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
+| `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
+| `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
+| `do_picture_description` | bool | If enabled, describe pictures in documents. Boolean. Optional, defaults to false. |
+| `picture_description_area_threshold` | float | Minimum percentage of the area for a picture to be processed with the models. |
+| `picture_description_local` | PictureDescriptionLocal or NoneType | Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`. |
+| `picture_description_api` | PictureDescriptionApi or NoneType | API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`. |
+| `vlm_pipeline_model` | VlmModelType or NoneType | Preset of local and API models for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model_api`. Use the other options for more parameters. |
+| `vlm_pipeline_model_local` | VlmModelLocal or NoneType | Options for running a local vision-language model for the `vlm` pipeline. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `vlm_pipeline_model_api` and `vlm_pipeline_model`. |
+| `vlm_pipeline_model_api` | VlmModelApi or NoneType | API details for using a vision-language model for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model`. |
+
+<h4>VlmModelApi</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `url` | AnyUrl | Endpoint which accepts openai-api compatible requests. |
+| `headers` | Dict[str, str] | Headers used for calling the API endpoint. For example, it could include authentication headers. |
+| `params` | Dict[str, Any] | Model parameters. |
+| `timeout` | float | Timeout for the API request. |
+| `concurrency` | int | Maximum number of concurrent requests to the API. |
+| `prompt` | str | Prompt used when calling the vision-language model. |
+| `scale` | float | Scale factor of the images used. |
+| `response_format` | ResponseFormat | Type of response generated by the model. |
+| `temperature` | float | Temperature parameter controlling the reproducibility of the result. |
+
+<h4>VlmModelLocal</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `repo_id` | str | Repository id from the Hugging Face Hub. |
+| `prompt` | str | Prompt used when calling the vision-language model. |
+| `scale` | float | Scale factor of the images used. |
+| `response_format` | ResponseFormat | Type of response generated by the model. |
+| `inference_framework` | InferenceFramework | Inference framework to use. |
+| `transformers_model_type` | TransformersModelType | Type of transformers auto-model to use. |
+| `extra_generation_config` | Dict[str, Any] | Config from https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig |
+| `temperature` | float | Temperature parameter controlling the reproducibility of the result. |
+
+<h4>PictureDescriptionApi</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `url` | AnyUrl | Endpoint which accepts openai-api compatible requests. |
+| `headers` | Dict[str, str] | Headers used for calling the API endpoint. For example, it could include authentication headers. |
+| `params` | Dict[str, Any] | Model parameters. |
+| `timeout` | float | Timeout for the API request. |
+| `concurrency` | int | Maximum number of concurrent requests to the API. |
+| `prompt` | str | Prompt used when calling the vision-language model. |
+
+<h4>PictureDescriptionLocal</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `repo_id` | str | Repository id from the Hugging Face Hub. |
+| `prompt` | str | Prompt used when calling the vision-language model. |
+| `generation_config` | Dict[str, Any] | Config from https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig |
+
+<!-- end: parameters-docs -->
 
 ### Authentication
 

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def version_callback(value: bool) -> None:
     if value:
-        docling_serve_version = importlib.metadata.version("docling_serve")
+        docling_serve_version = importlib.metadata.version("docling-serve")
         docling_jobkit_version = importlib.metadata.version("docling-jobkit")
         docling_version = importlib.metadata.version("docling")
         docling_core_version = importlib.metadata.version("docling-core")
@@ -417,6 +417,11 @@ def rq_worker() -> Any:
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
         max_num_pages=docling_serve_settings.max_num_pages,
         max_file_size=docling_serve_settings.max_file_size,
+        queue_max_size=docling_serve_settings.queue_max_size,
+        ocr_batch_size=docling_serve_settings.ocr_batch_size,
+        layout_batch_size=docling_serve_settings.layout_batch_size,
+        table_batch_size=docling_serve_settings.table_batch_size,
+        batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
     )
 
     run_worker(
