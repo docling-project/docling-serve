@@ -80,6 +80,7 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_url: str = ""
     eng_rq_results_prefix: str = "docling:results"
     eng_rq_sub_channel: str = "docling:updates"
+    eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
