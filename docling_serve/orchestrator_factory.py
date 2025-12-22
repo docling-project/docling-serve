@@ -202,9 +202,11 @@ class RedisTaskStatusMixin:
 
             data: dict[str, Any] = {
                 "task_id": task.task_id,
-                "task_type": task.task_type.value
-                if hasattr(task.task_type, "value")
-                else str(task.task_type),
+                "task_type": (
+                    task.task_type.value
+                    if hasattr(task.task_type, "value")
+                    else str(task.task_type)
+                ),
                 "task_status": task.task_status.value,
                 "processing_meta": meta,
             }
@@ -312,6 +314,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             results_prefix=docling_serve_settings.eng_rq_results_prefix,
             sub_channel=docling_serve_settings.eng_rq_sub_channel,
             scratch_dir=get_scratch(),
+            results_ttl=docling_serve_settings.eng_rq_results_ttl,
         )
 
         return RedisAwareRQOrchestrator(config=rq_config)
