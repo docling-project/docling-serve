@@ -12,12 +12,52 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
+from opentelemetry.trace import SpanKind
+from opentelemetry.util.types import Attributes
 from prometheus_client import REGISTRY
 from redis import Redis
 
 from docling_serve.rq_metrics_collector import RQCollector
 
 logger = logging.getLogger(__name__)
+
+
+FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/readyz", "/livez"}
+
+
+class HealthMetricsFilterSampler(Sampler):
+    """
+    Sampler that filters out traces for health and metrics endpoints.
+
+    Drops spans for /metrics, /health, /healthz, /readyz, /livez regardless
+    of query parameters. All other endpoints are sampled normally (always on).
+    """
+
+    def should_sample(
+        self,
+        parent_context,
+        trace_id: int,
+        name: str,
+        kind: SpanKind | None = None,
+        attributes: Attributes | None = None,
+        links=None,
+        trace_state=None,
+    ) -> SamplingResult:
+        if attributes:
+            http_target = attributes.get("http.target") or attributes.get("url.path")
+            if http_target:
+                path = str(http_target).split("?")[0]
+                if path in FILTERED_PATHS:
+                    return SamplingResult(Decision.DROP)
+
+        return SamplingResult(Decision.RECORD_AND_SAMPLE)
+
+    def get_description(self) -> str:
+        """Return description of the sampler."""
+        return (
+            "HealthMetricsFilterSampler: drops traces for health and metrics endpoints"
+        )
 
 
 def setup_otel_instrumentation(
@@ -45,8 +85,9 @@ def setup_otel_instrumentation(
 
     # Setup traces
     if enable_traces:
-        logger.info("Setting up OpenTelemetry traces")
-        trace_provider = TracerProvider(resource=resource)
+        logger.info("Setting up OpenTelemetry traces with health/metrics filtering")
+        sampler = HealthMetricsFilterSampler()
+        trace_provider = TracerProvider(resource=resource, sampler=sampler)
         trace_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
         trace.set_tracer_provider(trace_provider)
 
