@@ -1,7 +1,7 @@
 import json
 import logging
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as redis
 
@@ -23,7 +23,7 @@ class RedisTaskStatusMixin:
     _task_result_keys: dict[str, str]
     config: Any
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.redis_prefix = "docling:tasks:"
         self._redis_pool = redis.ConnectionPool.from_url(
@@ -91,7 +91,7 @@ class RedisTaskStatusMixin:
             _log.warning(f"Task {task_id} not found")
             raise
 
-    async def _get_task_from_redis(self, task_id: str) -> Optional[Task]:
+    async def _get_task_from_redis(self, task_id: str) -> Task | None:
         try:
             async with redis.Redis(connection_pool=self._redis_pool) as r:
                 task_data = await r.get(f"{self.redis_prefix}{task_id}:metadata")
@@ -115,7 +115,7 @@ class RedisTaskStatusMixin:
             _log.error(f"Redis get task {task_id}: {e}")
             return None
 
-    async def _get_task_from_rq_direct(self, task_id: str) -> Optional[Task]:
+    async def _get_task_from_rq_direct(self, task_id: str) -> Task | None:
         try:
             _log.debug(f"Checking RQ for task {task_id}")
 
@@ -306,8 +306,92 @@ def get_async_orchestrator() -> BaseOrchestrator:
             RQOrchestratorConfig,
         )
 
+        from docling_serve.rq_instrumentation import wrap_rq_queue_for_tracing
+
         class RedisAwareRQOrchestrator(RedisTaskStatusMixin, RQOrchestrator):  # type: ignore[misc]
-            pass
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                super().__init__(*args, **kwargs)
+                # Wrap RQ queue to inject trace context into jobs
+                if docling_serve_settings.otel_enable_traces:
+                    wrap_rq_queue_for_tracing(self._rq_queue)
+
+            async def enqueue(self, **kwargs: Any) -> Task:  # type: ignore[override]
+                """Override enqueue to use instrumented job function when tracing is enabled."""
+                import base64
+                import uuid
+                import warnings
+
+                from docling.datamodel.base_models import DocumentStream
+                from docling_jobkit.datamodel.chunking import ChunkingExportOptions
+                from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+                from docling_jobkit.datamodel.task import Task, TaskSource, TaskTarget
+                from docling_jobkit.datamodel.task_meta import TaskType
+
+                # Extract parameters
+                sources: list[TaskSource] = kwargs.get("sources", [])
+                target: TaskTarget = kwargs["target"]
+                task_type: TaskType = kwargs.get("task_type", TaskType.CONVERT)
+                options = kwargs.get("options")
+                convert_options = kwargs.get("convert_options")
+                chunking_options = kwargs.get("chunking_options")
+                chunking_export_options = kwargs.get("chunking_export_options")
+
+                if options is not None and convert_options is None:
+                    convert_options = options
+                    warnings.warn(
+                        "'options' is deprecated and will be removed in a future version. "
+                        "Use 'conversion_options' instead.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+
+                task_id = str(uuid.uuid4())
+                rq_sources: list[HttpSource | FileSource] = []
+                for source in sources:
+                    if isinstance(source, DocumentStream):
+                        encoded_doc = base64.b64encode(source.stream.read()).decode()
+                        rq_sources.append(
+                            FileSource(filename=source.name, base64_string=encoded_doc)
+                        )
+                    elif isinstance(source, (HttpSource | FileSource)):
+                        rq_sources.append(source)
+
+                chunking_export_options = (
+                    chunking_export_options or ChunkingExportOptions()
+                )
+
+                task = Task(
+                    task_id=task_id,
+                    task_type=task_type,
+                    sources=rq_sources,
+                    convert_options=convert_options,
+                    chunking_options=chunking_options,
+                    chunking_export_options=chunking_export_options,
+                    target=target,
+                )
+
+                self.tasks.update({task.task_id: task})
+                task_data = task.model_dump(mode="json", serialize_as_any=True)
+
+                # Use instrumented job function if tracing is enabled
+                if docling_serve_settings.otel_enable_traces:
+                    job_func = "docling_serve.rq_job_wrapper.instrumented_docling_task"
+                else:
+                    job_func = "docling_jobkit.orchestrators.rq.worker.docling_task"
+
+                self._rq_queue.enqueue(
+                    job_func,
+                    kwargs={"task_data": task_data},
+                    job_id=task_id,
+                    timeout=14400,
+                )
+
+                await self.init_task_tracking(task)
+
+                # Store in Redis
+                await self._store_task_in_redis(task)
+
+                return task
 
         rq_config = RQOrchestratorConfig(
             redis_url=docling_serve_settings.eng_rq_redis_url,

@@ -78,8 +78,12 @@ from docling_serve.datamodel.responses import (
 )
 from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
+from docling_serve.otel_instrumentation import (
+    get_metrics_endpoint_content,
+    setup_otel_instrumentation,
+)
 from docling_serve.response_preparation import prepare_response
-from docling_serve.settings import docling_serve_settings
+from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
 
@@ -174,6 +178,22 @@ def create_app():  # noqa: C901
         redoc_url=None if offline_docs_assets else "/docs",
         lifespan=lifespan,
         version=version,
+    )
+
+    # Setup OpenTelemetry instrumentation
+    redis_url = (
+        docling_serve_settings.eng_rq_redis_url
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ
+        else None
+    )
+    setup_otel_instrumentation(
+        app,
+        service_name=docling_serve_settings.otel_service_name,
+        enable_metrics=docling_serve_settings.otel_enable_metrics,
+        enable_traces=docling_serve_settings.otel_enable_traces,
+        enable_prometheus=docling_serve_settings.otel_enable_prometheus,
+        enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
+        redis_url=redis_url,
     )
 
     origins = docling_serve_settings.cors_origins
@@ -446,6 +466,16 @@ def create_app():  # noqa: C901
                 detail="Forbidden. The server is configured for not showing version details.",
             )
         return DOCLING_VERSIONS
+
+    # Prometheus metrics endpoint
+    @app.get("/metrics", tags=["health"], include_in_schema=False)
+    def metrics():
+        from fastapi.responses import PlainTextResponse
+
+        return PlainTextResponse(
+            content=get_metrics_endpoint_content(),
+            media_type="text/plain; version=0.0.4",
+        )
 
     # Convert a document from URL(s)
     @app.post(

@@ -38,3 +38,7 @@ Panos
 Vagenas
 Staar
 Livathinos
+(?i)redis
+(?i)prometheus
+(?i)grafana
+(?i)tempo
