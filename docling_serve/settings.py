@@ -91,6 +91,13 @@ class DoclingServeSettings(BaseSettings):
 
     eng_kfp_experimental: bool = False
 
+    # OpenTelemetry settings
+    otel_enable_metrics: bool = True
+    otel_enable_traces: bool = True
+    otel_enable_prometheus: bool = True
+    otel_enable_otlp_metrics: bool = False
+    otel_service_name: str = "docling-serve"
+
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
         # Validate KFP engine settings

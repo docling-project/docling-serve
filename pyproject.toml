@@ -46,6 +46,12 @@ dependencies = [
     "websockets~=14.0",
     "scalar-fastapi>=1.0.3",
     "docling-mcp>=1.0.0",
+    "opentelemetry-api>=1.36.0,<2.0.0",
+    "opentelemetry-sdk>=1.36.0,<2.0.0",
+    "opentelemetry-exporter-otlp>=1.15.0",
+    "opentelemetry-instrumentation-fastapi>=0.57b0,<0.58",
+    "opentelemetry-exporter-prometheus>=0.57b0",
+    "prometheus-client>=0.21.0",
 ]
 
 [project.optional-dependencies]
@@ -287,6 +293,8 @@ module = [
     "mlx_vlm.*",
     "mlx.*",
     "scalar_fastapi.*",
+    "gradio.*",
+    "msgpack.*",
 ]
 ignore_missing_imports = true
 

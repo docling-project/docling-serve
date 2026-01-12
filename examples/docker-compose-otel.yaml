@@ -1,0 +1,152 @@
+# Docker Compose configuration for Docling Serve with OpenTelemetry
+# Includes OTEL collector, Prometheus, Grafana, and Tempo for full observability
+
+services:
+  # Docling Serve application
+  docling-serve:
+    build:
+      context: ..
+      dockerfile: Containerfile
+    platform: "linux/arm64"
+    ports:
+      - "5001:5001"
+    environment:
+      # Basic settings
+      - DOCLING_SERVE_ENABLE_UI=1
+
+      # OpenTelemetry settings
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=docling-serve
+      - DOCLING_SERVE_OTEL_ENABLE_METRICS=true
+      - DOCLING_SERVE_OTEL_ENABLE_TRACES=true
+      - DOCLING_SERVE_OTEL_ENABLE_PROMETHEUS=true
+      - DOCLING_SERVE_OTEL_ENABLE_OTLP_METRICS=true
+
+      # RQ settings for distributed processing
+      - DOCLING_SERVE_ENG_KIND=rq
+      - DOCLING_SERVE_ENG_RQ_REDIS_URL=redis://redis:6379/0
+
+    depends_on:
+      - otel-collector
+      - redis
+
+    networks:
+      - docling-otel
+
+  # Docling Serve RQ Worker
+  docling-worker:
+    build:
+      context: ..
+      dockerfile: Containerfile
+    platform: "linux/arm64"
+    command: ["docling-serve", "rq-worker"]
+    environment:
+      # OpenTelemetry settings
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=docling-serve-worker
+      - DOCLING_SERVE_OTEL_ENABLE_METRICS=false
+      - DOCLING_SERVE_OTEL_ENABLE_TRACES=true
+
+      # RQ settings
+      - DOCLING_SERVE_ENG_KIND=rq
+      - DOCLING_SERVE_ENG_RQ_REDIS_URL=redis://redis:6379/0
+
+    depends_on:
+      - otel-collector
+      - redis
+
+    networks:
+      - docling-otel
+
+    # Scale workers as needed
+    deploy:
+      replicas: 1
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics (collector's own metrics)
+      - "8889:8889"   # Prometheus exporter
+    networks:
+      - docling-otel
+
+  # Prometheus for metrics storage
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - docling-otel
+
+  # Tempo for trace storage
+  tempo-init:
+    image: busybox:latest
+    user: root
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/tempo"
+    volumes:
+      - ./tempo-data:/var/tempo
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+      - ./tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo
+      - "4319:4317"   # OTLP gRPC (alternate port to avoid conflict)
+    networks:
+      - docling-otel
+    depends_on:
+      - tempo-init
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+    networks:
+      - docling-otel
+
+  # Redis for RQ distributed processing
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - docling-otel
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  docling-otel:
+    driver: bridge
