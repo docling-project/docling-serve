@@ -93,7 +93,7 @@ class DoclingServeSettings(BaseSettings):
 
     # OpenTelemetry settings
     otel_enable_metrics: bool = True
-    otel_enable_traces: bool = True
+    otel_enable_traces: bool = False
     otel_enable_prometheus: bool = True
     otel_enable_otlp_metrics: bool = False
     otel_service_name: str = "docling-serve"
