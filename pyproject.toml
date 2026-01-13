@@ -36,7 +36,7 @@ dependencies = [
     "docling~=2.38",
     "docling-core>=2.45.0",
     "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
-    "fastapi[standard]<0.119.0",  # ~=0.115
+    "fastapi[standard]<0.129.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
@@ -96,6 +96,9 @@ pypi = [
 cpu = [
   "torch>=2.7.1",
   "torchvision>=0.22.1",
+  # Linux x86_64
+  # torchvision/uv issue https://github.com/astral-sh/uv/issues/16386#issuecomment-3726000085
+  "torchvision!=0.24.1,!=0.24.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 # cu124 = [
