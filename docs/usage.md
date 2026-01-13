@@ -12,7 +12,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | Field Name | Type | Description |
 |------------|------|-------------|
 | `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
