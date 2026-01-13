@@ -400,7 +400,6 @@ def process_url(
     if docling_serve_settings.api_key:
         headers["X-Api-Key"] = str(auth)
 
-    print(f"{headers=}")
     try:
         ssl_ctx = get_ssl_context()
         response = httpx.post(
