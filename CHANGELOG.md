@@ -1,3 +1,22 @@
+## [v1.11.0](https://github.com/docling-project/docling-serve/releases/tag/v1.11.0) - 2026-01-28
+
+### Feature
+
+* Updated Docling with new features and dependencies updates ([#476](https://github.com/docling-project/docling-serve/issues/476)) ([`cfe747f`](https://github.com/docling-project/docling-serve/commit/cfe747fbfcb44fe74502dc4d6a7662265a9567da))
+
+### Fix
+
+* New docling-jobkit with memory fixes for RQ ([#479](https://github.com/docling-project/docling-serve/issues/479)) ([`8885993`](https://github.com/docling-project/docling-serve/commit/8885993a89e28416c096f63cc96f314b0ebdfe04))
+
+### Docling libraries included in this release:
+- docling 2.70.0
+- docling-core 2.61.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.9.0
+- docling-mcp 1.3.4
+- docling-parse 4.7.3
+- docling-serve 1.11.0
+
 ## [v1.10.0](https://github.com/docling-project/docling-serve/releases/tag/v1.10.0) - 2026-01-13
 
 ### Feature
