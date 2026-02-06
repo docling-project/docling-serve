@@ -696,7 +696,7 @@ def create_app():  # noqa: C901
             chunking_options: Annotated[
                 opt_cls,
                 FormDepends(
-                    HybridChunkerOptions,
+                    opt_cls,
                     prefix="chunking_",
                     excluded_fields=["chunker"],
                 ),
@@ -808,7 +808,7 @@ def create_app():  # noqa: C901
             chunking_options: Annotated[
                 opt_cls,
                 FormDepends(
-                    HybridChunkerOptions,
+                    opt_cls,
                     prefix="chunking_",
                     excluded_fields=["chunker"],
                 ),
