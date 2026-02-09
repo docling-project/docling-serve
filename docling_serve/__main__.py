@@ -66,12 +66,21 @@ def callback(
         ),
     ] = 0,
 ) -> None:
-    if verbose == 0:
+    # Priority: CLI flag > ENV variable > default (WARNING)
+    if verbose > 0:
+        # CLI flag takes precedence
+        if verbose == 1:
+            logging.basicConfig(level=logging.INFO)
+        elif verbose >= 2:
+            logging.basicConfig(level=logging.DEBUG)
+    elif docling_serve_settings.log_level:
+        # Use ENV variable if CLI flag not provided
+        logging.basicConfig(
+            level=getattr(logging, docling_serve_settings.log_level.value)
+        )
+    else:
+        # Default to WARNING
         logging.basicConfig(level=logging.WARNING)
-    elif verbose == 1:
-        logging.basicConfig(level=logging.INFO)
-    elif verbose == 2:
-        logging.basicConfig(level=logging.DEBUG)
 
 
 def _run(
@@ -380,6 +389,14 @@ def rq_worker() -> Any:
 
     from docling_serve.rq_instrumentation import setup_rq_worker_instrumentation
     from docling_serve.rq_worker_instrumented import InstrumentedRQWorker
+
+    # Configure logging for RQ worker
+    if docling_serve_settings.log_level:
+        logging.basicConfig(
+            level=getattr(logging, docling_serve_settings.log_level.value)
+        )
+    else:
+        logging.basicConfig(level=logging.WARNING)
 
     # Set up OpenTelemetry for the worker process
     if docling_serve_settings.otel_enable_traces:
