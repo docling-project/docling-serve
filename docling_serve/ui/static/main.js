@@ -6,7 +6,7 @@ window.addEventListener("hashchange", function (event) {
   ].forEach(([op, tense]) => {
     const hash = new URL(event[tense]).hash.slice(1);
     document
-      .querySelectorAll(`[data-id="${hash}"], [id="${hash}"]`)
+      .querySelectorAll(`[data-id="${hash}"], [id="${hash}"], [href="${hash}"]`)
       .forEach((el) => el.classList[op]("target"));
   });
 });
