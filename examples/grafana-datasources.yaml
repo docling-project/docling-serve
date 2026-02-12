@@ -1,0 +1,33 @@
+# Grafana datasources configuration
+# Automatically provisions Prometheus and Tempo as data sources
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+    version: 1
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: Loki
+        tags: ['job', 'instance', 'pod']
+      tracesToMetrics:
+        datasourceUid: Prometheus
+        tags: [{ key: 'service.name', value: 'service' }]
+      serviceMap:
+        datasourceUid: Prometheus
+    version: 1
