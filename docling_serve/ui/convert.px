@@ -178,6 +178,14 @@ def ConvertPage(
                                 <label display-when="include_images">
                                     <input
                                         type="checkbox"
+                                        name="do_chart_extraction"
+                                        checked={options.do_chart_extraction}
+                                    />
+                                    Chart extraction
+                                </label>
+                                <label display-when="include_images">
+                                    <input
+                                        type="checkbox"
                                         name="do_picture_description"
                                         checked={options.do_picture_description}
                                     />

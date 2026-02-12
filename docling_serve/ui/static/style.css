@@ -232,7 +232,7 @@ main.preview {
       visibility: hidden;
     }
 
-    > .item.annotated {
+    > .item.hasmeta {
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -279,7 +279,7 @@ main.preview {
       font-size: 0.9rem;
     }
 
-    > .item.table {
+    > .item {
       min-width: 0;
       overflow-x: auto;
 
@@ -302,7 +302,7 @@ main.preview {
       }
     }
 
-    .annotation {
+    .meta {
       margin: 0;
 
       &::before {
@@ -312,17 +312,17 @@ main.preview {
 
       &,
       * {
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         color: var(--mark);
       }
     }
 
-    .annotation[data-kind="description"],
-    code.annotation {
+    .meta[data-kind="description"],
+    code.meta {
       white-space: pre-line;
     }
 
-    .annotation[data-kind="classification"] {
+    .meta[data-kind="classification"] {
       width: fit-content;
     }
 

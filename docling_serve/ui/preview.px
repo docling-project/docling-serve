@@ -1,12 +1,11 @@
 from collections import defaultdict
-from html import escape
 from typing import Type
 
 from docling_core.types.doc.document import (
-    BaseAnnotation,
+    BaseMeta,
     CodeItem,
     ContentLayer,
-    DescriptionAnnotation,
+    DescriptionMetaField,
     DoclingDocument,
     DocItem,
     FloatingItem,
@@ -17,14 +16,16 @@ from docling_core.types.doc.document import (
     ListGroup,
     ListItem,
     NodeItem,
-    PictureClassificationData,
+    PictureClassificationMetaField,
     PictureItem,
     ProvenanceItem,
     RefItem,
     Script,
     SectionHeaderItem,
     TableCell,
+    TableData,
     TableItem,
+    TabularChartMetaField,
     TextItem,
     TitleItem
 )
@@ -36,21 +37,21 @@ from .svg import image, path, rect, text
 _node_components: dict[str, JSXComponent] = {}
 
 
-def component(*node_types: list[Type[BaseAnnotation | NodeItem]]):
+def component(*node_types: list[Type[BaseMeta | NodeItem]]):
     def decorator(component):
         for t in node_types:
             _node_components[t.__name__] = component
     return decorator
 
 
-def AnnotationComponent(children, annotation: BaseAnnotation):
-    Comp = _node_components.get(annotation.__class__.__name__)
-    element = Comp(annotation=annotation, children=[]) if Comp else (
-        <code>{escape(annotation.model_dump_json(indent=2))}</code>
+def MetaDataComponent(children, kind: str, meta: BaseMeta, node: NodeItem, doc: DoclingDocument):
+    Comp = _node_components.get(meta.__class__.__name__)
+    element = Comp(children=[], meta=meta, node=node, doc=doc) if Comp else (
+        <code>{meta.model_dump_json(indent=2)}</code>
     )
 
-    element.props["class"] = element.props.get("class", "") + " annotation"
-    element.props["data-kind"] = annotation.kind
+    element.props["class"] = element.props.get("class", "") + " meta"
+    element.props["data-kind"] = kind.replace("_", " ")
 
     return element
 
@@ -62,14 +63,21 @@ def NodeComponent(children, node: NodeItem | RefItem, doc: DoclingDocument):
         <span class="void"></span>
     )
 
-    # Wrap item component with annotations, if any.
-    if isinstance(node, DocItem) and (anns := node.get_annotations()):
-        element = (
-            <div class="annotated">
-                {element}
-                {[<AnnotationComponent annotation={ann} /> for ann in anns]}
-            </div>
-        )
+    # Wrap item component with meta fields, if any.
+    if isinstance(node, DocItem) and node.meta:
+        meta_comps = [
+            <MetaDataComponent kind={kind} meta={value} node={node} doc={doc} />
+            for kind in node.meta.model_fields
+            if (value := getattr(node.meta, kind, None))
+        ]
+
+        if meta_comps:
+            element = (
+                <div class="hasmeta">
+                    {element}
+                    {meta_comps}
+                </div>
+            )
 
     # Extend interaction and styling.
     id = node.self_ref[2:]
@@ -225,17 +233,17 @@ def _text_classes(node: TextItem) -> str:
 
 @component(TextItem)
 def TextComponent(children, node: TextItem, doc: DoclingDocument):
-    return <p class={_text_classes(node)}>{escape(node.text)}</p>
+    return <p class={_text_classes(node)}>{node.text}</p>
 
 
 @component(TitleItem)
 def TitleComponent(children, node: TitleItem, doc: DoclingDocument):
-    return <h1 class={_text_classes(node)}>{escape(node.text)}</h1>
+    return <h1 class={_text_classes(node)}>{node.text}</h1>
 
 
 @component(SectionHeaderItem)
 def SectionHeaderComponent(children, node: SectionHeaderItem, doc: DoclingDocument):
-    return <h4 class={_text_classes(node)}>{escape(node.text)}</h4>
+    return <h4 class={_text_classes(node)}>{node.text}</h4>
 
 
 @component(ListItem)
@@ -243,7 +251,7 @@ def ListComponent(children, node: ListItem, doc: DoclingDocument):
     return (
         <li>
             <b>{node.marker}</b>
-            <span class={_text_classes(node)}>{escape(node.text)}</span>
+            <span class={_text_classes(node)}>{node.text}</span>
         </li>
     )
 
@@ -253,7 +261,7 @@ def CodeComponent(children, node: CodeItem, doc: DoclingDocument):
     return (
         <figure>
             <code class={_text_classes(node)}>
-                {escape(node.text or node.orig)}
+                {node.text or node.orig}
             </code>
         </figure>
     )
@@ -264,7 +272,7 @@ def FormulaComponent(children, node: FormulaItem, doc: DoclingDocument):
     return (
         <figure>
             <code class={_text_classes(node)}>
-                {escape(node.text or node.orig)}
+                {node.text or node.orig}
             </code>
         </figure>
     )
@@ -275,31 +283,30 @@ def PictureComponent(children, node: PictureItem, doc: DoclingDocument):
     return <figure><img src={f"document/{node.self_ref[2:]}"} loading="lazy" /></figure>
 
 
-@component(PictureClassificationData)
-def PictureClassificationComponent(children, annotation: PictureClassificationData):
+@component(PictureClassificationMetaField)
+def PictureClassificationComponent(children, meta: PictureClassificationMetaField, node: PictureItem, doc: DoclingDocument):
     return (
         <table>
             <tbody>
                 {[
                     <tr>
-                        <td>{cls.class_name.replace("_", " ")}</td>
-                        <td>{f"{cls.confidence:.2f}"}</td>
+                        <td>{pred.class_name.replace("_", " ")}</td>
+                        <td>{f"{pred.confidence:.2f}"}</td>
                     </tr>
-                    for cls in annotation.predicted_classes
-                    if cls.confidence > 0.01
+                    for pred in meta.predictions
+                    if pred.confidence > 0.01
                 ]}
             </tbody>
         </table>
     )
 
 
-@component(DescriptionAnnotation)
-def DescriptionAnnotation(children, annotation: DescriptionAnnotation):
-    return <span>{escape(annotation.text)}</span>
+@component(DescriptionMetaField)
+def DescriptionComponent(children, meta: DescriptionMetaField, node: PictureItem, doc: DoclingDocument):
+    return <span>{meta.text}</span>
 
 
-@component(TableItem)
-def TableComponent(children, node: TableItem, doc: DoclingDocument):
+def TableDataComponent(children, data: TableData, doc: DoclingDocument, id = "", **props):
     covered_cells: set[(int, int)] = set()
 
     def check_cover(cell: TableCell):
@@ -313,22 +320,22 @@ def TableComponent(children, node: TableItem, doc: DoclingDocument):
         return is_covered
 
     def Cell(children, cell: TableCell):
-        id = f"{node.self_ref[2:]}/{cell.start_col_offset_idx}/{cell.start_row_offset_idx}"
+        cell_id = f"{id}/{cell.start_col_offset_idx}/{cell.start_row_offset_idx}"
 
         return (
             <td
-                id={id}
+                id={cell_id}
                 class={"header" if cell.column_header or cell.row_header else None}
                 colspan={cell.col_span or 1}
                 rowspan={cell.row_span or 1}
                 onclick="clickId(event)"
             >
-                {escape(cell.text)}
+                {cell.text}
             </td>
         )
 
     return (
-        <div class="table">
+        <div id={id} {...props}>
             <table>
                 <tbody>
                     {[
@@ -339,9 +346,24 @@ def TableComponent(children, node: TableItem, doc: DoclingDocument):
                                 if not check_cover(cell)
                             ]}
                         </tr>
-                        for row in node.data.grid
+                        for row in data.grid
                     ]}
                 </tbody>
             </table>
+        </div>
+    )
+
+
+@component(TableItem)
+def TableComponent(children, node: TableItem, doc: DoclingDocument, **props):
+    return <TableDataComponent data={node.data} doc={doc} {...props} />
+
+
+@component(TabularChartMetaField)
+def TabularChartComponent(children, meta: TabularChartMetaField, node: PictureItem, doc: DoclingDocument):
+    return (
+        <div>
+            <label>{meta.title}</label>
+            <TableDataComponent id={node.self_ref} data={meta.chart_data} doc={doc} />
         </div>
     )
