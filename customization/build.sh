@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-version='v1.9.0' # this matches the version in pyproject.toml, the upstream docling-serve version
+version='v1.12.0' # this matches the version in pyproject.toml, the upstream docling-serve version
 cd ..
 
 account_id=$(aws sts get-caller-identity --query Account --output text)
