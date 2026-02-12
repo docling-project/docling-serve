@@ -1,15 +1,9 @@
-from pyjsx import JSX  # type: ignore
+from pyjsx import JSX, jsx  # type: ignore
 
 
 def _tag(name: str):
-    def factory(children, **args) -> JSX:
-        props = " ".join([f'{k}="{v}"' for k, v in args.items()])
-
-        if children:
-            child_renders = "".join([str(c) for c in children])
-            return f"<{name} {props}>{child_renders}</{name}>"
-        else:
-            return f"<{name} {props} />"
+    def factory(*, children: list[JSX] = [], **props) -> JSX:
+        return jsx(name, props, children)
 
     return factory
 
