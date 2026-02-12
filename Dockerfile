@@ -14,7 +14,8 @@ RUN /usr/bin/python -m uv venv /app/.venv
 RUN --mount=type=cache,target=/root/.cache/uv \
     /usr/bin/python -m uv sync --frozen --python /app/.venv/bin/python --extra rapidocr --group cu126 --no-group dev --no-group pypi \
     && /usr/bin/python -m uv pip uninstall --python /app/.venv/bin/python opencv-python opencv-python-headless \
-    && /usr/bin/python -m uv pip install --python /app/.venv/bin/python opencv-python-headless
+    && /usr/bin/python -m uv pip install --python /app/.venv/bin/python opencv-python-headless \
+    && /usr/bin/python -m uv pip install --python /app/.venv/bin/python "cryptography>=46.0.5" "pillow>=12.1.1"
 
 # Download models in build stage (has shell available)
 ARG MODELS_LIST="layout tableformer rapidocr"
