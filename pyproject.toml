@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "1.8.0"  # DO NOT EDIT, updated automatically
+version = "1.12.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -36,7 +36,7 @@ dependencies = [
     "docling~=2.38",
     "docling-core>=2.45.0",
     "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
-    "fastapi[standard]<0.119.0", # ~=0.115
+    "fastapi[standard]<0.129.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
@@ -46,11 +46,17 @@ dependencies = [
     "websockets~=14.0",
     "scalar-fastapi>=1.0.3",
     "docling-mcp>=1.0.0",
+    "opentelemetry-api>=1.36.0,<2.0.0",
+    "opentelemetry-sdk>=1.36.0,<2.0.0",
+    "opentelemetry-exporter-otlp>=1.15.0",
+    "opentelemetry-instrumentation-fastapi>=0.57b0,<0.58",
+    "opentelemetry-exporter-prometheus>=0.57b0",
+    "prometheus-client>=0.21.0",
 ]
 
 [project.optional-dependencies]
 ui = [
-    "python-jsx==0.4.0",
+    "python-jsx>=0.4.0",
 ]
 tesserocr = [
     "tesserocr~=2.7"
@@ -69,6 +75,9 @@ flash-attn = [
 [dependency-groups]
 dev = [
     "asgi-lifespan~=2.0",
+    "httpx",
+    "pydantic",
+    "pydantic-settings",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
     "pypdf>=6.0.0",
@@ -87,6 +96,9 @@ pypi = [
 cpu = [
   "torch>=2.7.1",
   "torchvision>=0.22.1",
+  # Linux x86_64
+  # torchvision/uv issue https://github.com/astral-sh/uv/issues/16386#issuecomment-3726000085
+  "torchvision!=0.24.1,!=0.24.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 # cu124 = [
@@ -284,6 +296,8 @@ module = [
     "mlx_vlm.*",
     "mlx.*",
     "scalar_fastapi.*",
+    "gradio.*",
+    "msgpack.*",
 ]
 ignore_missing_imports = true
 

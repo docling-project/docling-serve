@@ -77,9 +77,9 @@ def create_ui_app(process_file, process_url, task_result, task_status_poll) -> F
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
         files: Annotated[list[UploadFile], Form()],
-        url: Annotated[str, Form()],
-        page_min: Annotated[str, Form()],
-        page_max: Annotated[str, Form()],
+        url: Annotated[str, Form()] = "",
+        page_min: Annotated[str, Form()] = "",
+        page_max: Annotated[str, Form()] = "",
     ):
         # Refined model options and behavior.
         if len(page_min) > 0:

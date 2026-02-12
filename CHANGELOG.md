@@ -1,3 +1,78 @@
+## [v1.12.0](https://github.com/docling-project/docling-serve/releases/tag/v1.12.0) - 2026-02-06
+
+### Feature
+
+* Updates for chart extraction functionality ([#491](https://github.com/docling-project/docling-serve/issues/491)) ([`7e461b1`](https://github.com/docling-project/docling-serve/commit/7e461b115bb66ddd1628372e09b40669138bd3e4))
+
+### Docling libraries included in this release:
+- docling 2.72.0
+- docling-core 2.63.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.10.1
+- docling-mcp 1.3.4
+- docling-parse 4.7.3
+- docling-serve 1.12.0
+
+## [v1.11.0](https://github.com/docling-project/docling-serve/releases/tag/v1.11.0) - 2026-01-28
+
+### Feature
+
+* Updated Docling with new features and dependencies updates ([#476](https://github.com/docling-project/docling-serve/issues/476)) ([`cfe747f`](https://github.com/docling-project/docling-serve/commit/cfe747fbfcb44fe74502dc4d6a7662265a9567da))
+
+### Fix
+
+* New docling-jobkit with memory fixes for RQ ([#479](https://github.com/docling-project/docling-serve/issues/479)) ([`8885993`](https://github.com/docling-project/docling-serve/commit/8885993a89e28416c096f63cc96f314b0ebdfe04))
+
+### Docling libraries included in this release:
+- docling 2.70.0
+- docling-core 2.61.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.9.0
+- docling-mcp 1.3.4
+- docling-parse 4.7.3
+- docling-serve 1.11.0
+
+## [v1.10.0](https://github.com/docling-project/docling-serve/releases/tag/v1.10.0) - 2026-01-13
+
+### Feature
+
+* OpenTelemetry support for traces and metrics ([#456](https://github.com/docling-project/docling-serve/issues/456)) ([`416312a`](https://github.com/docling-project/docling-serve/commit/416312a41b04f184a9b8bd37d8a4db9a2dfa1014))
+* Make RQ results_ttl configurable ([#460](https://github.com/docling-project/docling-serve/issues/460)) ([`c57dd51`](https://github.com/docling-project/docling-serve/commit/c57dd51c4d5c05515e0fe160b237197bac0d668b))
+
+### Fix
+
+* Cleanup error prints ([#470](https://github.com/docling-project/docling-serve/issues/470)) ([`c59b771`](https://github.com/docling-project/docling-serve/commit/c59b77151d265d54c6c1f65ebfb16ca185a04b7f))
+* Update dependencies ([#469](https://github.com/docling-project/docling-serve/issues/469)) ([`8eddd58`](https://github.com/docling-project/docling-serve/commit/8eddd589bb82787130015a976592fff2dddc77c6))
+* Race condition in Gradio UI task result retrieval ([#454](https://github.com/docling-project/docling-serve/issues/454)) ([`a179338`](https://github.com/docling-project/docling-serve/commit/a179338c785ef9b84696f41b7ab2f2cafe80973d))
+
+### Docling libraries included in this release:
+- docling 2.67.0
+- docling-core 2.59.0
+- docling-ibm-models 3.10.3
+- docling-jobkit 1.8.1
+- docling-mcp 1.3.3
+- docling-parse 4.7.2
+- docling-serve 1.10.0
+
+## [v1.9.0](https://github.com/docling-project/docling-serve/releases/tag/v1.9.0) - 2025-11-24
+
+### Feature
+
+* Version endpoint ([#442](https://github.com/docling-project/docling-serve/issues/442)) ([`2c23f65`](https://github.com/docling-project/docling-serve/commit/2c23f65507d7699694debd7faa0de840ef2d2cb7))
+
+### Fix
+
+* Dependencies updates – Docling 2.63.0 ([#443](https://github.com/docling-project/docling-serve/issues/443)) ([`e437e83`](https://github.com/docling-project/docling-serve/commit/e437e830c956f9a76cd0c62faf9add0231992548))
+
+### Docling libraries included in this release:
+- docling 2.63.0
+- docling-core 2.52.0
+- docling-ibm-models 3.10.2
+- docling-jobkit 1.8.0
+- docling-mcp 1.3.3
+- docling-parse 4.7.1
+- docling-serve 1.9.0
+
 ## [v1.8.0](https://github.com/docling-project/docling-serve/releases/tag/v1.8.0) - 2025-10-31
 
 ### Feature
