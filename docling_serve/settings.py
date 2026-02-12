@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Union
 
-from pydantic import AnyUrl, model_validator
+from pydantic import AnyUrl, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
@@ -25,6 +25,12 @@ class UvicornSettings(BaseSettings):
     workers: Union[int, None] = None
 
 
+class LogLevel(str, enum.Enum):
+    WARNING = "WARNING"
+    INFO = "INFO"
+    DEBUG = "DEBUG"
+
+
 class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
     KFP = "kfp"
@@ -41,6 +47,7 @@ class DoclingServeSettings(BaseSettings):
 
     enable_ui: bool = False
     api_host: str = "localhost"
+    log_level: Optional[LogLevel] = None
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
     scratch_path: Optional[Path] = None
@@ -80,6 +87,7 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_url: str = ""
     eng_rq_results_prefix: str = "docling:results"
     eng_rq_sub_channel: str = "docling:updates"
+    eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
@@ -89,6 +97,23 @@ class DoclingServeSettings(BaseSettings):
     eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
 
     eng_kfp_experimental: bool = False
+
+    # OpenTelemetry settings
+    otel_enable_metrics: bool = True
+    otel_enable_traces: bool = False
+    otel_enable_prometheus: bool = True
+    otel_enable_otlp_metrics: bool = False
+    otel_service_name: str = "docling-serve"
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def validate_log_level(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and normalize log level to uppercase for case-insensitive support."""
+        if v is None:
+            return v
+        if isinstance(v, str):
+            return v.upper()
+        return v
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:

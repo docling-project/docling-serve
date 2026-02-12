@@ -23,6 +23,17 @@ DOCLING_VERSIONS = {
     "plaform": platform.platform(),
 }
 
+DOCLING_VERSIONS = {
+    "docling-serve": importlib.metadata.version("docling-serve"),
+    "docling-jobkit": importlib.metadata.version("docling-jobkit"),
+    "docling": importlib.metadata.version("docling"),
+    "docling-core": importlib.metadata.version("docling-core"),
+    "docling-ibm-models": importlib.metadata.version("docling-ibm-models"),
+    "docling-parse": importlib.metadata.version("docling-parse"),
+    "python": f"{sys.implementation.cache_tag} ({platform.python_version()})",
+    "plaform": platform.platform(),
+}
+
 
 def is_pydantic_model(type_):
     try:

@@ -4,7 +4,7 @@ import platform
 import sys
 import warnings
 from pathlib import Path
-from typing import Annotated, Any, Optional, Union
+from typing import Annotated, Any, Union
 
 import typer
 import uvicorn
@@ -66,12 +66,21 @@ def callback(
         ),
     ] = 0,
 ) -> None:
-    if verbose == 0:
+    # Priority: CLI flag > ENV variable > default (WARNING)
+    if verbose > 0:
+        # CLI flag takes precedence
+        if verbose == 1:
+            logging.basicConfig(level=logging.INFO)
+        elif verbose >= 2:
+            logging.basicConfig(level=logging.DEBUG)
+    elif docling_serve_settings.log_level:
+        # Use ENV variable if CLI flag not provided
+        logging.basicConfig(
+            level=getattr(logging, docling_serve_settings.log_level.value)
+        )
+    else:
+        # Default to WARNING
         logging.basicConfig(level=logging.WARNING)
-    elif verbose == 1:
-        logging.basicConfig(level=logging.INFO)
-    elif verbose == 2:
-        logging.basicConfig(level=logging.DEBUG)
 
 
 def _run(
@@ -237,17 +246,17 @@ def dev(
         int, typer.Option(help="Timeout for the server response.")
     ] = uvicorn_settings.timeout_keep_alive,
     ssl_certfile: Annotated[
-        Optional[Path], typer.Option(help="SSL certificate file")
+        Path | None, typer.Option(help="SSL certificate file")
     ] = uvicorn_settings.ssl_certfile,
     ssl_keyfile: Annotated[
-        Optional[Path], typer.Option(help="SSL key file")
+        Path | None, typer.Option(help="SSL key file")
     ] = uvicorn_settings.ssl_keyfile,
     ssl_keyfile_password: Annotated[
-        Optional[str], typer.Option(help="SSL keyfile password")
+        str | None, typer.Option(help="SSL keyfile password")
     ] = uvicorn_settings.ssl_keyfile_password,
     # docling options
     artifacts_path: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             help=(
                 "If set to a valid directory, "
@@ -344,17 +353,17 @@ def run(
         int, typer.Option(help="Timeout for the server response.")
     ] = uvicorn_settings.timeout_keep_alive,
     ssl_certfile: Annotated[
-        Optional[Path], typer.Option(help="SSL certificate file")
+        Path | None, typer.Option(help="SSL certificate file")
     ] = uvicorn_settings.ssl_certfile,
     ssl_keyfile: Annotated[
-        Optional[Path], typer.Option(help="SSL key file")
+        Path | None, typer.Option(help="SSL key file")
     ] = uvicorn_settings.ssl_keyfile,
     ssl_keyfile_password: Annotated[
-        Optional[str], typer.Option(help="SSL keyfile password")
+        str | None, typer.Option(help="SSL keyfile password")
     ] = uvicorn_settings.ssl_keyfile_password,
     # docling options
     artifacts_path: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             help=(
                 "If set to a valid directory, "
@@ -399,15 +408,38 @@ def rq_worker() -> Any:
     """
     Run the [bold]Docling JobKit[/bold] RQ worker.
     """
-    from docling_jobkit.convert.manager import DoclingConverterManagerConfig
-    from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestratorConfig
-    from docling_jobkit.orchestrators.rq.worker import run_worker
+    import tempfile
+    from pathlib import Path
+
+    from docling_jobkit.convert.manager import (
+        DoclingConverterManagerConfig,
+    )
+    from docling_jobkit.orchestrators.rq.orchestrator import (
+        RQOrchestrator,
+        RQOrchestratorConfig,
+    )
+
+    from docling_serve.rq_instrumentation import setup_rq_worker_instrumentation
+    from docling_serve.rq_worker_instrumented import InstrumentedRQWorker
+
+    # Configure logging for RQ worker
+    if docling_serve_settings.log_level:
+        logging.basicConfig(
+            level=getattr(logging, docling_serve_settings.log_level.value)
+        )
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
+    # Set up OpenTelemetry for the worker process
+    if docling_serve_settings.otel_enable_traces:
+        setup_rq_worker_instrumentation()
 
     rq_config = RQOrchestratorConfig(
         redis_url=docling_serve_settings.eng_rq_redis_url,
         results_prefix=docling_serve_settings.eng_rq_results_prefix,
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
+        results_ttl=docling_serve_settings.eng_rq_results_ttl,
     )
 
     cm_config = DoclingConverterManagerConfig(
@@ -424,10 +456,19 @@ def rq_worker() -> Any:
         batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
     )
 
-    run_worker(
-        rq_config=rq_config,
+    # Create worker with instrumentation
+    scratch_dir = rq_config.scratch_dir or Path(tempfile.mkdtemp(prefix="docling_"))
+    redis_conn, rq_queue = RQOrchestrator.make_rq_queue(rq_config)
+
+    worker = InstrumentedRQWorker(
+        [rq_queue],
+        connection=redis_conn,
+        orchestrator_config=rq_config,
         cm_config=cm_config,
+        scratch_dir=scratch_dir,
     )
+
+    worker.work()
 
 
 def main() -> None:

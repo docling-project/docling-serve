@@ -12,7 +12,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | Field Name | Type | Description |
 |------------|------|-------------|
 | `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
@@ -32,6 +32,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
+| `do_chart_extraction` | bool | If enabled, extract numeric data from charts. Boolean. Optional, defaults to false. |
 | `do_picture_description` | bool | If enabled, describe pictures in documents. Boolean. Optional, defaults to false. |
 | `picture_description_area_threshold` | float | Minimum percentage of the area for a picture to be processed with the models. |
 | `picture_description_local` | PictureDescriptionLocal or NoneType | Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`. |

@@ -1,3 +1,4 @@
+import inspect
 import re
 from typing import Annotated, Any, Union, get_args, get_origin
 
@@ -152,7 +153,9 @@ def generate_model_doc(model: type[BaseModel]) -> str:
                     doc += f"| `{field_name}` | {field_type} | {description} |\n"
 
                     for field_type in _unroll_types(base_type):
-                        if issubclass(field_type, BaseModel):
+                        if inspect.isclass(field_type) and issubclass(
+                            field_type, BaseModel
+                        ):
                             models_stack.append(field_type)
 
                 # stop iterating the base classes
