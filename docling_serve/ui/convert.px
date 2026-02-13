@@ -23,7 +23,7 @@ def ConvertPage(
   options: ConvertDocumentsRequestOptions = base_convert_options,
   validation: None | dict[str, str] = None
 ) -> JSX:
-    file_accept = ",".join([f".{ext}" for exts in FormatToExtensions.values() for ext in exts])
+    file_accept = ",".join([f".{ext}" for exts in FormatToExtensions.values() for ext in exts]) + ",image/*"
 
     return (
         <Page title="Convert">
@@ -41,6 +41,7 @@ def ConvertPage(
                             multiple
                             accept={file_accept}
                             validation={validation}
+                            capture
                         />
                         <ValidatedInput
                             name="url"
