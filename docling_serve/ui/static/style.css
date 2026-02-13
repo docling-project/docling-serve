@@ -113,6 +113,21 @@ label > small {
   opacity: 0.75;
 }
 
+/* Conversion form. */
+.convert *[title] {
+  cursor: help;
+
+  &::after {
+    vertical-align: super;
+    padding: 0 0.25rem;
+    content: "i";
+    border: 0.75px solid var(--pico-primary-border);
+    border-radius: 2rem;
+    font-size: 0.5rem;
+    opacity: 0.75;
+  }
+}
+
 /* Conversion results. */
 .progress,
 .fail {

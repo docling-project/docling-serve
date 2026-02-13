@@ -15,6 +15,10 @@ base_convert_options = ConvertDocumentsRequestOptions()
 base_convert_options.to_formats.append(OutputFormat.JSON)
 
 
+def _description(field: str) -> str:
+    return ConvertDocumentsRequestOptions.model_fields[field].description
+
+
 def ConvertPage(
   options: ConvertDocumentsRequestOptions = base_convert_options,
   validation: None | dict[str, str] = None
@@ -28,7 +32,7 @@ def ConvertPage(
 
                 <form class="convert" method="post" enctype="multipart/form-data">
                     <legend>
-                        <b>Documents</b>
+                        <b title="Select one or more files or enter a URL to convert">Documents</b>
                     </legend>
                     <fieldset class="grid">
                         <ValidatedInput
@@ -50,17 +54,19 @@ def ConvertPage(
                             enum={ProcessingPipeline}
                             selected={options.pipeline}
                             name="pipeline"
-                            title="Pipeline"
+                            label="Pipeline"
+                            title={_description("pipeline")}
                         />
                         <EnumSelect
                             enum={PdfBackend}
                             selected={options.pdf_backend}
                             name="pdf_backend"
-                            title="PDF Backend"
+                            label="PDF Backend"
+                            title={_description("pdf_backend")}
                         />
 
                         <div>
-                            <label>Pages</label>
+                            <label title={_description("page_range")}>Pages</label>
                             <div role="group">
                                 <input
                                     type="number"
@@ -82,7 +88,7 @@ def ConvertPage(
                         </div>
 
                         <div>
-                            <label>Timeout<small>in seconds</small></label>
+                            <label title={_description("document_timeout")}>Timeout<small>in seconds</small></label>
                             <input
                                 type="number"
                                 name="document_timeout"
@@ -98,7 +104,8 @@ def ConvertPage(
                             enum={OutputFormat}
                             selected={options.to_formats}
                             name="to_formats"
-                            title={<b>Output</b>}
+                            label={<b>Output</b>}
+                            title={_description("to_formats")}
                         />
 
                         <div>
@@ -109,7 +116,7 @@ def ConvertPage(
                                         name="do_ocr"
                                         checked={options.do_ocr}
                                     />
-                                    <b>OCR</b>
+                                    <b title={_description("do_ocr")}>OCR</b>
                                 </label>
                                 <label display-when="do_ocr">
                                     <input
@@ -117,7 +124,9 @@ def ConvertPage(
                                         name="do_code_enrichment"
                                         checked={options.do_code_enrichment}
                                     />
-                                    Code
+                                    <span title={_description("do_code_enrichment")}>
+                                        Code
+                                    </span>
                                 </label>
                                 <label display-when="do_ocr">
                                     <input
@@ -125,7 +134,9 @@ def ConvertPage(
                                         name="do_formula_enrichment"
                                         checked={options.do_formula_enrichment}
                                     />
-                                    Formulas
+                                    <span title={_description("do_formula_enrichment")}>
+                                        Formulas
+                                    </span>
                                 </label>
                             </fieldset>
 
@@ -134,10 +145,11 @@ def ConvertPage(
                                 enum={ocr_engines_enum}
                                 selected={options.ocr_engine}
                                 name="ocr_engine"
-                                title="Engine"
+                                label="Engine"
+                                title={_description("ocr_engine")}
                             />
 
-                            <label display-when="do_ocr">Language</label>
+                            <label display-when="do_ocr" title={_description("ocr_lang")}>Language</label>
                             <input
                                 display-when="do_ocr"
                                 name="ocr_lang"
@@ -147,7 +159,7 @@ def ConvertPage(
                                 title="A comma separated list of language codes, of which the format depends on the selected engine."
                             />
 
-                            <label display-when="do_ocr">
+                            <label display-when="do_ocr" title={_description("force_ocr")}>
                                 <input
                                     type="checkbox"
                                     name="force_ocr"
@@ -165,7 +177,7 @@ def ConvertPage(
                                         name="include_images"
                                         checked={options.include_images}
                                     />
-                                    <b>Images</b>
+                                    <b title={_description("include_images")}>Images</b>
                                 </label>
                                 <label display-when="include_images">
                                     <input
@@ -173,7 +185,9 @@ def ConvertPage(
                                         name="do_picture_classification"
                                         checked={options.do_picture_classification}
                                     />
-                                    Classification
+                                    <span title={_description("do_picture_classification")}>
+                                        Classification
+                                    </span>
                                 </label>
                                 <label display-when="include_images">
                                     <input
@@ -181,7 +195,9 @@ def ConvertPage(
                                         name="do_chart_extraction"
                                         checked={options.do_chart_extraction}
                                     />
-                                    Chart extraction
+                                    <span title={_description("do_chart_extraction")}>
+                                        Chart extraction
+                                    </span>
                                 </label>
                                 <label display-when="include_images">
                                     <input
@@ -189,9 +205,16 @@ def ConvertPage(
                                         name="do_picture_description"
                                         checked={options.do_picture_description}
                                     />
-                                    Description
+                                    <span title={_description("do_picture_description")}>
+                                        Description
+                                    </span>
                                 </label>
-                                <label display-when="include_images,do_picture_description">Area threshold</label>
+                                <label
+                                    display-when="include_images,do_picture_description"
+                                    title={_description("picture_description_area_threshold")}
+                                >
+                                    Area threshold
+                                </label>
                                 <input
                                     display-when="include_images,do_picture_description"
                                     type="number"
@@ -208,9 +231,12 @@ def ConvertPage(
                                 enum={ImageRefMode}
                                 selected={options.image_export_mode}
                                 name="image_export_mode"
-                                title="Export"
+                                label="Export"
+                                title={_description("image_export_mode")}
                             />
-                            <label display-when="include_images">Scale</label>
+                            <label display-when="include_images" title={_description("images_scale")}>
+                                Scale
+                            </label>
                             <input
                                 display-when="include_images"
                                 type="number"
@@ -223,7 +249,7 @@ def ConvertPage(
 
                         <div>
                             <fieldset>
-                                <label>
+                                <label title={_description("do_table_structure")}>
                                     <input
                                         type="checkbox"
                                         name="do_table_structure"
@@ -231,7 +257,7 @@ def ConvertPage(
                                     />
                                     <b>Tables</b>
                                 </label>
-                                <label display-when="do_table_structure">
+                                <label display-when="do_table_structure" title={_description("table_cell_matching")}>
                                     <input
                                         type="checkbox"
                                         name="table_cell_matching"
@@ -245,7 +271,8 @@ def ConvertPage(
                                 enum={TableFormerMode}
                                 selected={options.table_mode}
                                 name="table_mode"
-                                title="Mode"
+                                label="Mode"
+                                title={_description("table_mode")}
                             />
                         </div>
                     </div>

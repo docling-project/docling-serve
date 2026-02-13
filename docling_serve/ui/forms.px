@@ -41,14 +41,15 @@ def EnumCheckboxes(
     enum: Type[Enum],
     selected: list[Enum],
     name: str,
-    title: JSX = None,
+    label: JSX = None,
+    title: str = None,
     **kwargs
 ) -> JSX:
     return (
         <fieldset {...kwargs}>
             {
-                <legend>{title}</legend>
-                if title
+                <legend title={title}>{label}</legend>
+                if label
                 else None
             }
 
@@ -105,14 +106,15 @@ def EnumSelect(
     enum: Type[Enum],
     selected: Enum,
     name: str,
-    title: JSX = None,
+    label: JSX = None,
+    title: str = None,
     **kwargs
 ) -> JSX:
     return (
         <div {...kwargs}>
             {
-                <label>{title}</label>
-                if title
+                <label title={title}>{label}</label>
+                if label
                 else None
             }
             <select name={name}>
