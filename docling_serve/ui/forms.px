@@ -1,0 +1,129 @@
+from enum import Enum
+from typing import Type
+
+from pyjsx import jsx, JSX
+
+from docling.datamodel.pipeline_options import OcrOptions
+
+from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
+
+
+ocr_engine_languages = {
+    SubOptions.kind: ",".join(SubOptions().lang)
+    for SubOptions in OcrOptions.__subclasses__()
+}
+
+
+def _format_label(label: str) -> str:
+    return label.replace("_", " ").lower()
+
+
+def option_example(field_name: str) -> str | None:
+    field = ConvertDocumentsRequestOptions.model_fields[field_name]
+    return (field.examples or [])[0]
+
+
+def ValidatedInput(validation: None | dict[str, str], name: str, **kwargs) -> JSX:
+    if validation:
+        invalid = "true" if name in validation else "false"
+        content = [<input name={name} aria-invalid={invalid} {...kwargs} />]
+
+        if name in validation:
+            content.append(<small>{validation[name]}</small>)
+
+        return <div>{content}</div>
+    else:
+        return <input name={name} {...kwargs} />
+
+
+def EnumCheckboxes(
+    children,
+    enum: Type[Enum],
+    selected: list[Enum],
+    name: str,
+    label: JSX = None,
+    title: str = None,
+    **kwargs
+) -> JSX:
+    return (
+        <fieldset {...kwargs}>
+            {
+                <legend title={title}>{label}</legend>
+                if label
+                else None
+            }
+
+            {[
+                <label>
+                    <input
+                        type="checkbox"
+                        name={name}
+                        value={e.value}
+                        checked={e.value in selected}
+                    />
+                    {_format_label(e.name)}
+                </label>
+                for e in enum
+            ]}
+        </fieldset>
+    )
+
+
+def EnumRadios(
+    children,
+    enum: Type[Enum],
+    selected: Enum,
+    name: str,
+    title: JSX = None,
+    **kwargs
+) -> JSX:
+    return (
+        <fieldset {...kwargs}>
+            {
+                <legend>{title}</legend>
+                if title
+                else None
+            }
+
+            {[
+                <label>
+                    <input
+                        type="radio"
+                        name={name}
+                        value={e.value}
+                        checked={e.value == selected}
+                    />
+                    {_format_label(e.name)}
+                </label>
+                for e in enum
+            ]}
+        </fieldset>
+    )
+
+
+def EnumSelect(
+    children,
+    enum: Type[Enum],
+    selected: Enum,
+    name: str,
+    label: JSX = None,
+    title: str = None,
+    **kwargs
+) -> JSX:
+    return (
+        <div {...kwargs}>
+            {
+                <label title={title}>{label}</label>
+                if label
+                else None
+            }
+            <select name={name}>
+                {[
+                    <option value={e.value} selected={e.value == selected}>
+                        {_format_label(e.name)}
+                    </option>
+                    for e in enum
+                ]}
+            </select>
+        </div>
+    )

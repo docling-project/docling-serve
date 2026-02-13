@@ -54,7 +54,7 @@ from docling_jobkit.orchestrators.base_orchestrator import (
     TaskNotFoundError,
 )
 
-from docling_serve.auth import APIKeyAuth, AuthenticationResult
+from docling_serve.auth import APIKeyHeaderAuth, AuthenticationResult
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.datamodel.requests import (
     ConvertDocumentsRequest,
@@ -171,7 +171,7 @@ def create_app():  # noqa: C901
         offline_docs_assets = True
         _log.info("Found static assets.")
 
-    require_auth = APIKeyAuth(docling_serve_settings.api_key)
+    require_auth = APIKeyHeaderAuth(docling_serve_settings.api_key)
     app = FastAPI(
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
@@ -207,39 +207,6 @@ def create_app():  # noqa: C901
         allow_methods=methods,
         allow_headers=headers,
     )
-
-    # Mount the Gradio app
-    if docling_serve_settings.enable_ui:
-        try:
-            import gradio as gr
-
-            from docling_serve.gradio_ui import ui as gradio_ui
-            from docling_serve.settings import uvicorn_settings
-
-            tmp_output_dir = get_scratch() / "gradio"
-            tmp_output_dir.mkdir(exist_ok=True, parents=True)
-            gradio_ui.gradio_output_dir = tmp_output_dir
-
-            # Build the root_path for Gradio, accounting for UVICORN_ROOT_PATH
-            gradio_root_path = (
-                f"{uvicorn_settings.root_path}/ui"
-                if uvicorn_settings.root_path
-                else "/ui"
-            )
-
-            app = gr.mount_gradio_app(
-                app,
-                gradio_ui,
-                path="/ui",
-                allowed_paths=["./logo.png", tmp_output_dir],
-                root_path=gradio_root_path,
-            )
-        except ImportError:
-            _log.warning(
-                "Docling Serve enable_ui is activated, but gradio is not installed. "
-                "Install it with `pip install docling-serve[ui]` "
-                "or `pip install gradio`"
-            )
 
     #############################
     # Offline assets definition #
@@ -1050,5 +1017,21 @@ def create_app():  # noqa: C901
     ):
         await orchestrator.clear_results(older_than=older_then)
         return ClearResponse()
+
+    # Optional UI
+    if docling_serve_settings.enable_ui:
+        try:
+            from docling_serve.ui.app import create_ui_app
+
+            ui_app = create_ui_app(
+                process_file_async, process_url_async, task_result, task_status_poll
+            )
+            app.mount("/ui", app=ui_app, name="ui")
+        except ImportError as ex:
+            _log.error(ex)
+            _log.warning(
+                "Docling Serve enable_ui is activated, but its dependencies are not installed."
+                "Install it with `uv sync --extra ui`"
+            )
 
     return app

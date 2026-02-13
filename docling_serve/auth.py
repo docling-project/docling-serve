@@ -1,7 +1,7 @@
 from typing import Any
 
-from fastapi import HTTPException, Request, status
-from fastapi.security import APIKeyHeader
+from fastapi import HTTPException, Request, Response, status
+from fastapi.security import APIKeyCookie, APIKeyHeader
 from pydantic import BaseModel
 
 
@@ -11,46 +11,79 @@ class AuthenticationResult(BaseModel):
     detail: Any | None = None
 
 
-class APIKeyAuth(APIKeyHeader):
-    """
-    FastAPI dependency which evaluates a status API Key.
-    """
-
+class KeyValidator:
     def __init__(
         self,
         api_key: str,
-        header_name: str = "X-Api-Key",
+        field_name: str = "X-Api-Key",
         fail_on_unauthorized: bool = True,
     ) -> None:
         self.api_key = api_key
-        self.header_name = header_name
-        super().__init__(name=self.header_name, auto_error=False)
+        self.field_name = field_name
+        self.fail_on_unauthorized = fail_on_unauthorized
 
-    async def _validate_api_key(self, header_api_key: str | None):
-        if header_api_key is None:
-            return AuthenticationResult(
-                valid=False, errors=[f"Missing header {self.header_name}."]
-            )
+    async def __call__(self, candidate_key: str | None):
+        if candidate_key is None:
+            return self._error(f"Missing field {self.field_name}.")
 
-        header_api_key = header_api_key.strip()
+        candidate_key = candidate_key.strip()
 
         # Otherwise check the apikey
-        if header_api_key == self.api_key or self.api_key == "":
+        if candidate_key == self.api_key or self.api_key == "":
             return AuthenticationResult(
                 valid=True,
-                detail=header_api_key,
+                detail=candidate_key,  # Remove?
             )
+        else:
+            return self._error("The provided API Key is invalid.")
+
+    def _error(self, error: str):
+        if self.fail_on_unauthorized and self.api_key:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, error)
         else:
             return AuthenticationResult(
                 valid=False,
-                errors=["The provided API Key is invalid."],
+                errors=[error],
             )
 
+
+class APIKeyHeaderAuth(APIKeyHeader):
+    """
+    FastAPI dependency which evaluates a status API Key in a header.
+    """
+
+    def __init__(self, validator: str | KeyValidator) -> None:
+        self.validator = (
+            KeyValidator(validator) if isinstance(validator, str) else validator
+        )
+        super().__init__(name=self.validator.field_name, auto_error=False)
+
     async def __call__(self, request: Request) -> AuthenticationResult:  # type: ignore
-        header_api_key = await super().__call__(request=request)
-        result = await self._validate_api_key(header_api_key)
-        if self.api_key and not result.valid:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail=result.detail
-            )
-        return result
+        key = await super().__call__(request=request)
+        return await self.validator(key)
+
+
+class APIKeyCookieAuth(APIKeyCookie):
+    """
+    FastAPI dependency which evaluates a status API Key in a cookie.
+    """
+
+    def __init__(self, validator: str | KeyValidator) -> None:
+        self.validator = (
+            KeyValidator(validator) if isinstance(validator, str) else validator
+        )
+        super().__init__(name=self.validator.field_name, auto_error=False)
+
+    async def __call__(self, request: Request) -> AuthenticationResult:  # type: ignore
+        api_key = await super().__call__(request=request)
+        return await self.validator(api_key)
+
+    def _set_api_key(self, response: Response, api_key: str, expires=24 * 3600):
+        response.set_cookie(
+            key=self.validator.field_name,
+            value=api_key,
+            expires=expires,
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )

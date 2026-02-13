@@ -1,0 +1,444 @@
+@import "pico.css";
+
+@view-transition {
+  navigation: auto;
+}
+
+:root {
+  --pico-font-size: 16px;
+
+  --highlight-factor: 0.8;
+  --target: hsl(240, 100%, 34%);
+  --mark: hsl(29, 100%, 35%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --highlight-factor: 1.5;
+    --target: hsl(240, 100%, 70%);
+    --mark: hsl(29, 100%, 70%);
+  }
+}
+
+/* Utilities. */
+.hidden {
+  display: none;
+}
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: var(--pico-spacing);
+  background: var(--pico-background-color);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+header {
+  position: relative;
+  display: flex;
+  gap: 5rem;
+  margin-bottom: 2rem;
+
+  > .title {
+    white-space: nowrap;
+    font-size: 2rem;
+    font-weight: 300;
+    line-height: 1.75;
+
+    img {
+      display: inline-block;
+      max-height: 0.8em;
+      margin: -0.2rem -0.2em 0.25rem -0.2em;
+    }
+  }
+
+  &.loading img {
+    animation: shake 0.5s ease-in-out alternate infinite;
+    scale: 1.5;
+    translate: 0 1.5rem;
+  }
+
+  > .version {
+    position: absolute;
+    left: 6.25rem;
+    bottom: -0.5rem;
+    padding: 0 0.25rem;
+    font-size: 0.65rem;
+    line-height: 1rem;
+    border: solid 1px var(--pico-color);
+    border-radius: 0.3rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    --glow: hsl(29, 100%, 70%);
+
+    > .title {
+      text-shadow: 0 0 0.25rem white, 0 0 0.5rem var(--glow),
+        0 0 0.75rem var(--glow), 0 0 1rem var(--glow);
+      color: white;
+
+      img {
+        filter: drop-shadow(0 0 0.05rem white)
+          drop-shadow(0 0 0.1rem var(--glow))
+          drop-shadow(0 0 0.15rem var(--glow))
+          drop-shadow(0 0 0.2rem var(--glow));
+      }
+    }
+
+    > .version {
+      color: white;
+      border-color: white;
+      text-shadow: 0 0 0.05rem white, 0 0 0.1rem var(--glow),
+        0 0 0.15rem var(--glow), 0 0 0.2rem var(--glow);
+      box-shadow: 0 0 0.05rem white, 0 0 0.1rem var(--glow),
+        0 0 0.15rem var(--glow), 0 0 0.2rem var(--glow);
+    }
+  }
+}
+
+@keyframes shake {
+  50% {
+    transform: rotate(-20deg);
+  }
+  100% {
+    transform: rotate(20deg);
+  }
+}
+
+label > small {
+  margin-left: var(--pico-spacing);
+  opacity: 0.75;
+}
+
+/* Conversion form. */
+.convert *[title] {
+  cursor: help;
+
+  &::after {
+    vertical-align: super;
+    padding: 0 0.25rem;
+    content: "i";
+    border: 0.75px solid var(--pico-primary-border);
+    border-radius: 2rem;
+    font-size: 0.5rem;
+    opacity: 0.75;
+  }
+}
+
+/* Conversion results. */
+.progress,
+.fail {
+  margin-top: 3rem;
+}
+
+.fail {
+  color: var(--pico-del-color);
+}
+
+main.preview {
+  display: grid;
+  grid:
+    auto / 1fr 0.5rem minmax(20ch, 70ch) 0.5rem minmax(min-content, auto)
+    minmax(0.5rem, 1fr);
+  grid-auto-flow: dense;
+  align-content: start;
+}
+
+/* Header and task status. */
+main.preview {
+  > header {
+    grid-column: 3;
+    padding: 0 0.5rem;
+  }
+
+  > .status {
+    grid-row: 2;
+    grid-column: 3;
+    display: inline-block;
+    margin: 0 0.5rem 3rem 0.5rem;
+
+    span {
+      display: inline-block;
+      min-width: calc(5 * var(--pico-spacing));
+      padding-right: calc(0.5 * var(--pico-spacing));
+    }
+  }
+
+  > .formats {
+    grid-row: 2;
+    grid-column: 5;
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+
+    > .configDarkImg {
+      display: none;
+      grid-row: 2;
+      grid-column: 6;
+      margin-left: auto;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      > .configDarkImg {
+        display: block;
+      }
+    }
+  }
+}
+
+/* Invert images in dark mode (option). */
+@media (prefers-color-scheme: dark) {
+  main.preview:has(.configDarkImg > input:checked) {
+    --img-hover-border: white;
+
+    svg.page-image {
+      --mark: hsl(29, 100%, 70%)
+    }
+
+    image,
+    img {
+      filter: invert(1) hue-rotate(180deg) saturate(1.25);
+    }
+  }
+}
+
+/* Document contents. */
+main.preview {
+  --img-hover-border: black;
+
+  *[id] {
+    scroll-margin-top: 20vh;
+  }
+
+  > .page {
+    position: relative;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-auto-flow: dense;
+    grid-column: 1 / span 6;
+
+    > .item {
+      grid-column: 3;
+      width: 100%;
+      min-height: 3rem;
+      max-height: fit-content;
+      margin: 0;
+      padding: 0.5rem;
+      text-align: justify;
+      background-color: var(--pico-background-color);
+
+      cursor: pointer;
+
+      &:hover {
+        filter: brightness(var(--highlight-factor));
+      }
+
+      &.target {
+        outline: 2px solid var(--target);
+        z-index: 10;
+      }
+    }
+
+    > .item.void {
+      visibility: hidden;
+    }
+
+    > .item.hasmeta {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+
+    /* Formatting. */
+    .bold {
+      font-weight: bold;
+    }
+    .italic {
+      font-style: italic;
+    }
+    .underline {
+      text-decoration: underline;
+    }
+    .strikethrough {
+      text-decoration: line-through;
+    }
+    .underline.strikethrough {
+      text-decoration: underline line-through;
+    }
+    .sub {
+      font-size: smaller;
+      vertical-align: sub;
+    }
+    .super {
+      font-size: smaller;
+      vertical-align: super;
+    }
+
+    /* Items out of content layer. */
+    > .item:not(.body),
+    > .item-markers:not(.body) {
+      opacity: 0.5;
+    }
+
+    > li.item {
+      list-style-type: none;
+    }
+
+    > .item.caption {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    > .item {
+      min-width: 0;
+      overflow-x: auto;
+
+      table {
+        font-size: 0.75rem;
+        border-collapse: collapse;
+
+        td {
+          vertical-align: top;
+        }
+
+        td.header {
+          font-weight: bold;
+          background-color: var(--pico-code-background-color);
+        }
+
+        td.target {
+          outline: solid 2px var(--target);
+        }
+      }
+    }
+
+    .meta {
+      margin: 0;
+
+      &::before {
+        content: attr(data-kind);
+        opacity: 0.7;
+      }
+
+      &,
+      * {
+        font-size: 0.75rem;
+        color: var(--mark);
+      }
+    }
+
+    .meta[data-kind="description"],
+    code.meta {
+      white-space: pre-line;
+    }
+
+    .meta[data-kind="classification"] {
+      width: fit-content;
+    }
+
+    > .item-markers {
+      position: relative;
+      grid-column: 2;
+      padding-top: 0.125rem;
+      padding-right: 0.5rem;
+
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+
+      font-family: monospace;
+      font-size: 0.675rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+      color: var(--mark);
+      white-space: nowrap;
+      border-top: solid 1px var(--mark);
+
+      > * {
+        margin-right: 0.5rem;
+      }
+
+      > a {
+        padding: 0.125rem 0.25rem;
+        margin-top: 0.5rem;
+        border-radius: 0.125rem;
+        color: var(--pico-contrast-inverse);
+        background-color: var(--target);
+        text-decoration: none;
+      }
+
+      > a:hover {
+        filter: brightness(--highlight-factor);
+      }
+
+      &:not(.target) > a {
+        display: none;
+      }
+
+      &.group,
+      &.grouped {
+        border-left: 1px dashed var(--mark);
+      }
+
+      &.group {
+        margin-top: 0.5rem;
+        border-top: none;
+      }
+    }
+
+    > .page-marker {
+      grid-column: 4;
+
+      &.border {
+        transform: translateY(-1px);
+        border-top: solid 1px var(--mark);
+      }
+    }
+
+    > svg.page-image {
+      --mark: hsl(29, 100%, 35%);
+
+      grid-column: 5;
+      position: sticky;
+      top: 0.5rem;
+      width: 100%;
+      max-height: calc(100vh - 1rem);
+      outline: 1px solid var(--mark);
+
+      rect {
+        stroke: var(--mark);
+        stroke-width: 1px;
+        fill: var(--target);
+        fill-opacity: 0.0001; /* To activate hover. */
+        cursor: pointer;
+
+        &:hover {
+          filter: brightness(0.8);
+          fill-opacity: 0.1;
+          stroke: var(--img-hover-border);
+          stroke-width: 3px;
+        }
+      }
+
+      rect.target {
+        stroke: var(--target);
+        stroke-width: 3px;
+        stroke-dasharray: none;
+      }
+
+      text {
+        font-size: 0.675rem;
+        color: var(--mark);
+
+        &.top-no {
+          alignment-baseline: hanging;
+        }
+      }
+    }
+  }
+}
