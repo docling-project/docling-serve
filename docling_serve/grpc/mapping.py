@@ -512,6 +512,9 @@ def export_document_to_proto(
     doc, requested_formats: Optional[Set[OutputFormat]] = None
 ) -> docling_serve_types_pb2.ExportDocumentResponse:
     message = docling_serve_types_pb2.ExportDocumentResponse(filename=doc.filename)
+    # doc.json_content is the live Pydantic DoclingDocument object (not a JSON string).
+    # It's named "json_content" in docling_jobkit because REST serializes it as JSON.
+    # For gRPC, we convert it field-by-field into the native protobuf representation.
     if doc.json_content is not None:
         message.doc.CopyFrom(_docling_document_to_proto(doc.json_content))
     exports = _build_exports(doc, requested_formats)
@@ -524,6 +527,7 @@ def document_response_to_proto(
     doc, requested_formats: Optional[Set[OutputFormat]] = None
 ) -> docling_serve_types_pb2.DocumentResponse:
     message = docling_serve_types_pb2.DocumentResponse(filename=doc.filename)
+    # See export_document_to_proto for why this field is called json_content.
     if doc.json_content is not None:
         message.doc.CopyFrom(_docling_document_to_proto(doc.json_content))
     exports = _build_exports(doc, requested_formats)

@@ -26,6 +26,24 @@ def test_warns_on_missing_proto_field(caplog):
     assert "Fields in Pydantic but not in proto" in caplog.text
 
 
+def test_missing_field_warnings_are_bounded(caplog):
+    """Missing-field warnings should not explode from union member recursion."""
+    with caplog.at_level(logging.WARNING):
+        validate_docling_document_schema()
+    # Count occurrences of "Fields in Pydantic but not in proto"
+    pydantic_only_lines = [
+        line for line in caplog.text.splitlines()
+        if "Fields in Pydantic but not in proto" in line
+    ]
+    proto_only_lines = [
+        line for line in caplog.text.splitlines()
+        if "Fields in proto but not in Pydantic" in line
+    ]
+    # Should be exactly one warning line each, not per-union-member explosion
+    assert len(pydantic_only_lines) == 1
+    assert len(proto_only_lines) == 1
+
+
 def test_fails_on_type_mismatch():
     """An incompatible type mismatch (not in allowlist) must raise RuntimeError."""
     with patch(

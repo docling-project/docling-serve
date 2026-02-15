@@ -30,11 +30,25 @@ ALLOWED_COERCIONS: Dict[str, Tuple[str, str]] = {
 # Key = proto message name, Value = set of Pydantic message names it wraps.
 _ONEOF_WRAPPER_MESSAGES: Dict[str, Set[str]] = {
     "SourceType": {"TrackSource"},
+    "PictureAnnotation": {
+        "DescriptionAnnotation", "MiscAnnotation",
+        "PictureClassificationData", "PictureMoleculeData",
+        "PictureTabularChartData", "PictureLineChartData",
+        "PictureBarChartData", "PictureStackedBarChartData",
+        "PicturePieChartData", "PictureScatterChartData",
+    },
+    "TableAnnotation": {"DescriptionAnnotation", "MiscAnnotation"},
+    "BaseTextItem": {
+        "TitleItem", "SectionHeaderItem", "ListItem",
+        "CodeItem", "FormulaItem", "TextItem",
+    },
 }
 
 # Pydantic tuple types that map to a named proto message with matching fields.
 _TUPLE_MESSAGE_EQUIVALENCES: Dict[str, str] = {
     "tuple<int,int>": "IntSpan",
+    "tuple<float,float>": "FloatPair",
+    "tuple<string,int>": "StringIntPair",
 }
 
 # Types that are string-serializable and compatible with proto string.
@@ -264,20 +278,12 @@ def _collect_pydantic_fields(
                     )
                 )
         elif origin is Union or origin is types.UnionType:
-            for item in args:
-                if item is type(None):
-                    continue
-                item = _unwrap_annotated(item)
-                if isinstance(item, type) and issubclass(item, BaseModel):
-                    result.update(
-                        _collect_pydantic_fields(
-                            item,
-                            path,
-                            max_depth,
-                            _depth + 1,
-                            _visited,
-                        )
-                    )
+            # Don't recurse into union member fields.  Union variants are
+            # matched at the type level (_types_compatible handles oneof
+            # wrappers).  Recursing would emit "missing in proto" warnings
+            # for every sub-field of every variant since proto represents
+            # them through a oneof wrapper with different paths.
+            pass
 
     return result
 

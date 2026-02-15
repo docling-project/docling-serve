@@ -11,6 +11,7 @@ from docling_core.types.doc.document import (
     BoundingBox,
     CodeItem,
     ContentLayer,
+    DescriptionAnnotation,
     DescriptionMetaField,
     DoclingDocument,
     DocumentOrigin,
@@ -26,12 +27,21 @@ from docling_core.types.doc.document import (
     ImageRef,
     KeyValueItem,
     ListItem,
+    MiscAnnotation,
     MoleculeMetaField,
     PageItem,
+    PictureBarChartData,
+    PictureClassificationData,
     PictureClassificationMetaField,
     PictureClassificationPrediction,
+    PictureLineChartData,
     PictureMeta,
+    PictureMoleculeData,
     PictureItem,
+    PicturePieChartData,
+    PictureScatterChartData,
+    PictureStackedBarChartData,
+    PictureTabularChartData,
     ProvenanceItem,
     RefItem,
     RichTableCell,
@@ -318,6 +328,141 @@ def _to_picture_meta(meta: Optional[PictureMeta]) -> Optional[pb2.PictureMeta]:
     return msg
 
 
+def _to_float_pair(pair: tuple) -> pb2.FloatPair:
+    return pb2.FloatPair(first=float(pair[0]), second=float(pair[1]))
+
+
+def _to_string_int_pair(pair: tuple) -> pb2.StringIntPair:
+    return pb2.StringIntPair(key=str(pair[0]), value=int(pair[1]))
+
+
+def _to_picture_annotation(annotation) -> pb2.PictureAnnotation:
+    """Convert a Pydantic picture annotation to its proto oneof wrapper."""
+    msg = pb2.PictureAnnotation()
+    if isinstance(annotation, DescriptionAnnotation):
+        msg.description.CopyFrom(pb2.DescriptionAnnotation(
+            kind=annotation.kind,
+            text=annotation.text,
+            provenance=annotation.provenance,
+        ))
+    elif isinstance(annotation, MiscAnnotation):
+        misc = pb2.MiscAnnotation(kind=annotation.kind)
+        if annotation.content:
+            struct = struct_pb2.Struct()
+            for k, v in annotation.content.items():
+                struct.fields[str(k)].CopyFrom(_to_struct_value(v))
+            misc.content.CopyFrom(struct)
+        msg.misc.CopyFrom(misc)
+    elif isinstance(annotation, PictureClassificationData):
+        msg.classification.CopyFrom(pb2.PictureClassificationData(
+            kind=annotation.kind,
+            provenance=annotation.provenance,
+            predicted_classes=[
+                pb2.PictureClassificationClass(
+                    class_name=c.class_name, confidence=c.confidence,
+                )
+                for c in annotation.predicted_classes
+            ],
+        ))
+    elif isinstance(annotation, PictureMoleculeData):
+        mol = pb2.PictureMoleculeData(
+            kind=annotation.kind,
+            smi=annotation.smi,
+            confidence=annotation.confidence,
+            class_name=annotation.class_name,
+            provenance=annotation.provenance,
+        )
+        if annotation.segmentation:
+            mol.segmentation.extend([_to_float_pair(p) for p in annotation.segmentation])
+        msg.molecule.CopyFrom(mol)
+    elif isinstance(annotation, PictureTabularChartData):
+        msg.tabular_chart.CopyFrom(pb2.PictureTabularChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            chart_data=_to_table_data(annotation.chart_data),
+        ))
+    elif isinstance(annotation, PictureLineChartData):
+        msg.line_chart.CopyFrom(pb2.PictureLineChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            x_axis_label=annotation.x_axis_label,
+            y_axis_label=annotation.y_axis_label,
+            lines=[
+                pb2.ChartLine(
+                    label=line.label,
+                    values=[_to_float_pair(v) for v in line.values],
+                )
+                for line in annotation.lines
+            ],
+        ))
+    elif isinstance(annotation, PictureBarChartData):
+        msg.bar_chart.CopyFrom(pb2.PictureBarChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            x_axis_label=annotation.x_axis_label,
+            y_axis_label=annotation.y_axis_label,
+            bars=[
+                pb2.ChartBar(label=bar.label, values=bar.values)
+                for bar in annotation.bars
+            ],
+        ))
+    elif isinstance(annotation, PictureStackedBarChartData):
+        msg.stacked_bar_chart.CopyFrom(pb2.PictureStackedBarChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            x_axis_label=annotation.x_axis_label,
+            y_axis_label=annotation.y_axis_label,
+            stacked_bars=[
+                pb2.ChartStackedBar(
+                    label=list(sb.label),
+                    values=[_to_string_int_pair(v) for v in sb.values],
+                )
+                for sb in annotation.stacked_bars
+            ],
+        ))
+    elif isinstance(annotation, PicturePieChartData):
+        msg.pie_chart.CopyFrom(pb2.PicturePieChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            slices=[
+                pb2.ChartSlice(label=s.label, value=s.value)
+                for s in annotation.slices
+            ],
+        ))
+    elif isinstance(annotation, PictureScatterChartData):
+        msg.scatter_chart.CopyFrom(pb2.PictureScatterChartData(
+            kind=annotation.kind,
+            title=annotation.title,
+            x_axis_label=annotation.x_axis_label,
+            y_axis_label=annotation.y_axis_label,
+            points=[
+                pb2.ChartPoint(value=_to_float_pair(p.value))
+                for p in annotation.points
+            ],
+        ))
+    return msg
+
+
+def _to_table_annotation(annotation) -> pb2.TableAnnotation:
+    """Convert a Pydantic table annotation to its proto oneof wrapper."""
+    msg = pb2.TableAnnotation()
+    if isinstance(annotation, DescriptionAnnotation):
+        msg.description.CopyFrom(pb2.DescriptionAnnotation(
+            kind=annotation.kind,
+            text=annotation.text,
+            provenance=annotation.provenance,
+        ))
+    elif isinstance(annotation, MiscAnnotation):
+        misc = pb2.MiscAnnotation(kind=annotation.kind)
+        if annotation.content:
+            struct = struct_pb2.Struct()
+            for k, v in annotation.content.items():
+                struct.fields[str(k)].CopyFrom(_to_struct_value(v))
+            misc.content.CopyFrom(struct)
+        msg.misc.CopyFrom(misc)
+    return msg
+
+
 def _to_formatting(fmt: Optional[Formatting]) -> Optional[pb2.Formatting]:
     if fmt is None:
         return None
@@ -518,6 +663,8 @@ def _to_table_item_base(item: TableItem) -> pb2.TableItem:
 def _to_table_item(item: TableItem) -> pb2.TableItem:
     msg = _to_table_item_base(item)
     msg.data.CopyFrom(_to_table_data(item.data))
+    if item.annotations:
+        msg.annotations.extend([_to_table_annotation(a) for a in item.annotations])
     return msg
 
 
@@ -549,6 +696,8 @@ def _to_picture_item(item: PictureItem) -> pb2.PictureItem:
     image = _to_image_ref(item.image)
     if image is not None:
         msg.image.CopyFrom(image)
+    if item.annotations:
+        msg.annotations.extend([_to_picture_annotation(a) for a in item.annotations])
     return msg
 
 
@@ -688,6 +837,7 @@ def docling_document_to_proto(doc: DoclingDocument) -> pb2.DoclingDocument:
     msg = pb2.DoclingDocument(
         name=doc.name,
         body=_to_group_item(doc.body),
+        furniture=_to_group_item(doc.furniture),
     )
     if doc.schema_name is not None:
         msg.schema_name = doc.schema_name

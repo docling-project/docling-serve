@@ -573,3 +573,59 @@ async def test_api_key_streaming_accepted_with_key(api_key_stub):
             docling_serve_types_pb2.TASK_STATUS_STARTED,
         )
         break
+
+
+# ---------------------------------------------------------------------------
+# Review-driven regression tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_no_to_formats_yields_doc_without_exports(grpc_stub):
+    """A request with no to_formats returns doc but no exports (gRPC-native default)."""
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            # No options → no to_formats
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+    assert not response.response.document.HasField("exports")
+
+
+@pytest.mark.asyncio
+async def test_explicit_json_export_matches_model_dump_json(grpc_stub):
+    """When JSON export is requested, it equals the canonical Pydantic serializer output."""
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            options=docling_serve_types_pb2.ConvertDocumentOptions(
+                to_formats=[docling_serve_types_pb2.OUTPUT_FORMAT_JSON],
+            ),
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.HasField("exports")
+    json_export = response.response.document.exports.json
+    # The canonical serializer produces valid JSON with the schema_name field
+    import json
+    parsed = json.loads(json_export)
+    assert parsed["name"] == "doc"
+    assert "schema_name" in parsed

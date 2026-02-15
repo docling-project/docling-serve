@@ -116,10 +116,15 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             await asyncio.sleep(docling_serve_settings.sync_poll_interval)
 
     @staticmethod
-    def _ensure_doc_format(options) -> None:
+    def _ensure_doc_format(options, requested_formats: set = frozenset()) -> None:
         if options is None:
             return
-        if OutputFormat.JSON not in options.to_formats:
+        # When no exports were requested, only generate JSON (for the proto
+        # doc field).  The upstream default is [MARKDOWN] which would waste
+        # cycles producing Markdown that is never returned.
+        if not requested_formats:
+            options.to_formats = [OutputFormat.JSON]
+        elif OutputFormat.JSON not in options.to_formats:
             options.to_formats.append(OutputFormat.JSON)
 
     # -------------------- RPCs --------------------
@@ -147,7 +152,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
 
         task = await self._orchestrator.enqueue(
@@ -203,7 +208,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
 
         task = await self._orchestrator.enqueue(
@@ -236,7 +241,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hierarchical_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -305,7 +310,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hybrid_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -374,7 +379,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hierarchical_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -416,7 +421,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        self._ensure_doc_format(options)
+        self._ensure_doc_format(options, requested_formats)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hybrid_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None

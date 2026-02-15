@@ -19,10 +19,10 @@ option java_package = "ai.docling.core.v1";
 // ===========================
 //
 // A DoclingDocument contains:
-// - Hierarchical structure (body, groups)
+// - Hierarchical structure (body, furniture, groups)
 // - Text content (titles, headers, paragraphs, lists, code, formulas)
-// - Visual elements (pictures with AI-generated descriptions)
-// - Tabular data (tables with cell-level structure)
+// - Visual elements (pictures with AI-generated descriptions and annotations)
+// - Tabular data (tables with cell-level structure and annotations)
 // - Form data (key-value pairs, form fields)
 // - Page metadata (size, images)
 // - Provenance tracking (bounding boxes, page numbers)
@@ -40,6 +40,11 @@ message DoclingDocument {
 
   // Metadata about the source document (file info, hash, etc.)
   optional DocumentOrigin origin = 4;
+
+  // Document furniture: headers, footers, page numbers, watermarks, and other
+  // non-content elements that appear on the page but are not part of the
+  // document's semantic body.
+  GroupItem furniture = 13;
 
   // The root body group containing the main document structure.
   GroupItem body = 5;
@@ -128,6 +133,20 @@ message RefItem {
 message IntSpan {
   int32 start = 1;
   int32 end = 2;
+}
+
+// FloatPair represents a pair of floating-point values.
+// Used for 2D coordinates in chart data (e.g., scatter points, line values).
+message FloatPair {
+  double first = 1;
+  double second = 2;
+}
+
+// StringIntPair represents a (string, int) pair.
+// Used for labeled integer values (e.g., stacked bar chart segments).
+message StringIntPair {
+  string key = 1;
+  int32 value = 2;
 }
 
 // FineRef is a reference with optional span range info.
@@ -308,6 +327,153 @@ message Size {
   double height = 2;
 }
 
+// ============================================================================
+// Annotation types
+// ============================================================================
+
+// DescriptionAnnotation is a text description annotation on a picture or table.
+message DescriptionAnnotation {
+  string kind = 1;
+  string text = 2;
+  string provenance = 3;
+}
+
+// MiscAnnotation holds arbitrary annotation data as a struct.
+message MiscAnnotation {
+  string kind = 1;
+  google.protobuf.Struct content = 2;
+}
+
+// PictureClassificationClass is a single predicted class with confidence.
+message PictureClassificationClass {
+  string class_name = 1;
+  double confidence = 2;
+}
+
+// PictureClassificationData contains classification results for a picture.
+message PictureClassificationData {
+  string kind = 1;
+  string provenance = 2;
+  repeated PictureClassificationClass predicted_classes = 3;
+}
+
+// PictureMoleculeData contains chemical structure information for a picture.
+message PictureMoleculeData {
+  string kind = 1;
+  string smi = 2;
+  double confidence = 3;
+  string class_name = 4;
+  repeated FloatPair segmentation = 5;
+  string provenance = 6;
+}
+
+// PictureTabularChartData contains tabular chart data extracted from a picture.
+message PictureTabularChartData {
+  string kind = 1;
+  string title = 2;
+  TableData chart_data = 3;
+}
+
+// ChartLine represents a single line in a line chart.
+message ChartLine {
+  string label = 1;
+  repeated FloatPair values = 2;
+}
+
+// PictureLineChartData contains line chart data extracted from a picture.
+message PictureLineChartData {
+  string kind = 1;
+  string title = 2;
+  string x_axis_label = 3;
+  string y_axis_label = 4;
+  repeated ChartLine lines = 5;
+}
+
+// ChartBar represents a single bar in a bar chart.
+message ChartBar {
+  string label = 1;
+  double values = 2;
+}
+
+// PictureBarChartData contains bar chart data extracted from a picture.
+message PictureBarChartData {
+  string kind = 1;
+  string title = 2;
+  string x_axis_label = 3;
+  string y_axis_label = 4;
+  repeated ChartBar bars = 5;
+}
+
+// ChartStackedBar represents a stacked bar with multiple labeled segments.
+message ChartStackedBar {
+  repeated string label = 1;
+  repeated StringIntPair values = 2;
+}
+
+// PictureStackedBarChartData contains stacked bar chart data.
+message PictureStackedBarChartData {
+  string kind = 1;
+  string title = 2;
+  string x_axis_label = 3;
+  string y_axis_label = 4;
+  repeated ChartStackedBar stacked_bars = 5;
+}
+
+// ChartSlice represents a single slice in a pie chart.
+message ChartSlice {
+  string label = 1;
+  double value = 2;
+}
+
+// PicturePieChartData contains pie chart data extracted from a picture.
+message PicturePieChartData {
+  string kind = 1;
+  string title = 2;
+  repeated ChartSlice slices = 3;
+}
+
+// ChartPoint represents a single point in a scatter chart.
+message ChartPoint {
+  FloatPair value = 1;
+}
+
+// PictureScatterChartData contains scatter chart data extracted from a picture.
+message PictureScatterChartData {
+  string kind = 1;
+  string title = 2;
+  string x_axis_label = 3;
+  string y_axis_label = 4;
+  repeated ChartPoint points = 5;
+}
+
+// PictureAnnotation is a union of all annotation types that can appear on a picture.
+message PictureAnnotation {
+  oneof annotation {
+    DescriptionAnnotation description = 1;
+    MiscAnnotation misc = 2;
+    PictureClassificationData classification = 3;
+    PictureMoleculeData molecule = 4;
+    PictureTabularChartData tabular_chart = 5;
+    PictureLineChartData line_chart = 6;
+    PictureBarChartData bar_chart = 7;
+    PictureStackedBarChartData stacked_bar_chart = 8;
+    PicturePieChartData pie_chart = 9;
+    PictureScatterChartData scatter_chart = 10;
+  }
+}
+
+// TableAnnotation is a union of annotation types that can appear on a table.
+message TableAnnotation {
+  oneof annotation {
+    DescriptionAnnotation description = 1;
+    MiscAnnotation misc = 2;
+  }
+}
+
+// ============================================================================
+// Picture and Table items
+// ============================================================================
+
 // PictureItem represents an image or figure in the document.
 message PictureItem {
   optional string self_ref = 1;
@@ -323,6 +489,7 @@ message PictureItem {
   optional ImageRef image = 11;
   repeated SourceType source = 12;
   repeated FineRef comments = 13;
+  repeated PictureAnnotation annotations = 14;
 }
 
 // PictureMeta contains rich metadata for pictures, including AI analysis.
@@ -397,6 +564,7 @@ message TableItem {
   TableData data = 12;
   repeated SourceType source = 13;
   repeated FineRef comments = 14;
+  repeated TableAnnotation annotations = 15;
 }
 
 // TableData contains the complete table structure and content.
