@@ -152,7 +152,7 @@ Tests are organised with pytest markers so you can run exactly the subset you ne
 # Fast feedback — unit tests only (no models, no network)
 uv run pytest -m unit -k grpc -v
 
-# Integration tests excluding OCR (avoids large model downloads)
+# Integration tests excluding OCR (avoids OCR model downloads; other models may still download)
 uv run pytest -m "integration and not ocr" -k grpc -v
 
 # Everything, including OCR (requires an OCR extra installed)

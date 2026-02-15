@@ -138,3 +138,15 @@ run-docling-rocm: ## Run the docling-serve container with GPU support and assign
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) rm -f docling-serve-rocm 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN ROCm 6.3]"
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) run -it --name docling-serve-rocm -p 5001:5001 ghcr.io/docling-project/docling-serve-rocm:main
+
+.PHONY: test-grpc-unit
+test-grpc-unit: ## Run gRPC unit tests (no models)
+	$(CMD_PREFIX) uv run pytest -m unit -k grpc -v
+
+.PHONY: test-grpc-integration
+test-grpc-integration: ## Run gRPC integration tests (excludes OCR)
+	$(CMD_PREFIX) uv run pytest -m "integration and not ocr" -k grpc -v
+
+.PHONY: test-grpc-ocr
+test-grpc-ocr: ## Run gRPC OCR integration tests
+	$(CMD_PREFIX) uv run pytest -m "integration and ocr" -k grpc -v
