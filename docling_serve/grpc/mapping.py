@@ -268,13 +268,13 @@ def requested_output_formats(
     proto_options: Optional[docling_serve_types_pb2.ConvertDocumentOptions],
 ) -> Set[OutputFormat]:
     if not proto_options or not proto_options.to_formats:
-        return {OutputFormat.MARKDOWN}
+        return set()
     values = [
         v
         for v in (_map_output_format(v) for v in proto_options.to_formats)
         if v is not None
     ]
-    return set(values) if values else {OutputFormat.MARKDOWN}
+    return set(values) if values else set()
 
 
 def to_convert_options(
@@ -490,7 +490,7 @@ def _build_exports(
     has_any = False
 
     if wants(OutputFormat.JSON) and doc.json_content is not None:
-        exports.json = doc.json_content.model_dump_json(exclude_none=True)
+        exports.json = doc.json_content.model_dump_json()
         has_any = True
     if wants(OutputFormat.MARKDOWN) and doc.md_content is not None:
         exports.md = doc.md_content

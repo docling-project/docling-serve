@@ -210,7 +210,7 @@ def test_to_convert_options_picture_description_api():
 
 
 def test_requested_output_formats_default_and_custom():
-    assert requested_output_formats(None) == {OutputFormat.MARKDOWN}
+    assert requested_output_formats(None) == set()
     options = docling_serve_types_pb2.ConvertDocumentOptions(
         to_formats=[
             docling_serve_types_pb2.OUTPUT_FORMAT_TEXT,

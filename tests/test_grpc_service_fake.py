@@ -172,7 +172,7 @@ async def test_get_convert_result(grpc_stub, orchestrator):
         )
     )
 
-    assert response.response.document.exports.md == "hello"
+    assert not response.response.document.HasField("exports")
     assert response.response.document.doc.schema_name == "DoclingDocument"
 
 

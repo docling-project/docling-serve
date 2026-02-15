@@ -123,10 +123,17 @@ message RefItem {
   string ref = 1;
 }
 
+// IntSpan represents a half-open integer range [start, end).
+// Used for character spans, fine-reference ranges, and similar positional pairs.
+message IntSpan {
+  int32 start = 1;
+  int32 end = 2;
+}
+
 // FineRef is a reference with optional span range info.
 message FineRef {
   string ref = 1;
-  repeated int32 range = 2; // start_inclusive, end_exclusive
+  optional IntSpan range = 2;
 }
 
 // TrackSource identifies a cue in a media track (audio, video, subtitles).
@@ -275,7 +282,7 @@ message TextItem {
 message ProvenanceItem {
   int32 page_no = 1;
   BoundingBox bbox = 2;
-  repeated int32 charspan = 3;
+  IntSpan charspan = 3;
 }
 
 // BoundingBox defines a rectangular region in page coordinates.

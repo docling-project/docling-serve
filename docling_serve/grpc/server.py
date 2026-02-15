@@ -483,7 +483,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.GetConvertResultResponse()
 
-        requested_formats = self._requested_formats.pop(request.request.task_id, None)
+        requested_formats = self._requested_formats.pop(request.request.task_id, set())
         response = convert_result_to_proto(
             task_result.result,
             task_result.processing_time,
@@ -514,7 +514,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.GetChunkResultResponse()
 
-        requested_formats = self._requested_formats.pop(request.request.task_id, None)
+        requested_formats = self._requested_formats.pop(request.request.task_id, set())
         response = chunk_result_to_proto(
             task_result.result,
             task_result.processing_time,
@@ -653,6 +653,10 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
 
 
 async def serve(host: str, port: int) -> None:
+    from .schema_validator import validate_docling_document_schema
+
+    validate_docling_document_schema()
+
     server = grpc.aio.server()
     service = DoclingServeGrpcService()
     await service.start()

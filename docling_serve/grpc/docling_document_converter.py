@@ -188,7 +188,9 @@ def _apply_custom_fields(msg: Any, model: Any) -> None:
 def _to_fine_ref(ref: FineRef) -> pb2.FineRef:
     msg = pb2.FineRef(ref=ref.cref)
     if ref.range is not None:
-        msg.range.extend([int(ref.range[0]), int(ref.range[1])])
+        msg.range.CopyFrom(
+            pb2.IntSpan(start=int(ref.range[0]), end=int(ref.range[1]))
+        )
     return msg
 
 
@@ -357,7 +359,9 @@ def _to_image_ref(image: Optional[ImageRef]) -> Optional[pb2.ImageRef]:
 def _to_provenance_item(prov: ProvenanceItem) -> pb2.ProvenanceItem:
     msg = pb2.ProvenanceItem(page_no=prov.page_no)
     msg.bbox.CopyFrom(_to_bbox(prov.bbox))
-    msg.charspan.extend([int(prov.charspan[0]), int(prov.charspan[1])])
+    msg.charspan.CopyFrom(
+        pb2.IntSpan(start=int(prov.charspan[0]), end=int(prov.charspan[1]))
+    )
     return msg
 
 

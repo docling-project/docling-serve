@@ -337,6 +337,7 @@ message ErrorItem {
 
 // DocumentExports contains optional serialized output formats.
 message DocumentExports {
+  // Canonical Docling JSON document (same serialization as REST).
   optional string json = 1;
   optional string md = 2;
   optional string html = 3;
@@ -348,7 +349,7 @@ message DocumentExports {
 message DocumentResponse {
   // Filename of the source document
   string filename = 1;
-  // Native DoclingDocument proto
+  // Native protobuf DoclingDocument (always present)
   ai.docling.core.v1.DoclingDocument doc = 2;
   // Optional serialized outputs (markdown/html/text/doctags/json)
   optional DocumentExports exports = 3;

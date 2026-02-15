@@ -145,7 +145,8 @@ def test_docling_document_to_proto_text_items():
     assert proto.texts[0].title.base.source[0].track.start_time == 1.0
     assert proto.texts[0].title.base.source[0].track.identifier == "seg-1"
     assert proto.texts[0].title.base.comments[0].ref == "#/comments/0"
-    assert list(proto.texts[0].title.base.comments[0].range) == [2, 5]
+    assert proto.texts[0].title.base.comments[0].range.start == 2
+    assert proto.texts[0].title.base.comments[0].range.end == 5
     assert proto.texts[1].section_header.level == 2
     assert proto.texts[1].section_header.base.formatting.script == pb2.SCRIPT_SUB
     assert proto.texts[2].text.base.parent.ref == "#/body"
@@ -550,7 +551,8 @@ def test_docling_document_to_proto_text_meta_and_provenance_bbox():
     assert base.meta.summary.text == "summary"
     assert base.prov[0].page_no == 2
     assert base.prov[0].bbox.coord_origin == "BOTTOMLEFT"
-    assert base.prov[0].charspan == [5, 9]
+    assert base.prov[0].charspan.start == 5
+    assert base.prov[0].charspan.end == 9
 
 
 def test_docling_document_to_proto_floating_item_refs_and_image():
