@@ -54,13 +54,31 @@ _TUPLE_MESSAGE_EQUIVALENCES: Dict[str, str] = {
 # Types that are string-serializable and compatible with proto string.
 _STRING_COMPATIBLE_TYPES: Set[str] = {"Path"}
 
+# ---------------------------------------------------------------------------
+# Suppression rulesets
+# ---------------------------------------------------------------------------
+# Each ruleset below documents a structural divergence between the Pydantic
+# model and the proto definition that is *intentional* and *understood*.
+# Adding an entry here requires a comment explaining WHY the suppression
+# exists.  When either schema changes, the validator will surface any new
+# paths that don't fall into a known ruleset — forcing an explicit decision.
+#
+# See docs/grpc_schema_validation.md for the full specification.
+# ---------------------------------------------------------------------------
+
 # Field name aliases between Pydantic and proto.
+# Pydantic's RefItem/FineRef use "cref" (aliased from "$ref" in JSON);
+# the proto field is simply "ref".  These are the same data.
 _FIELD_NAME_ALIASES: Dict[str, str] = {
     "cref": "ref",
     "ref": "cref",
 }
 
 # Messages that wrap a base message field (flatten base fields for comparison).
+# Proto text-item variants (TitleItem, SectionHeaderItem, …) contain a
+# "base" sub-message (TextItemBase) that holds the common fields.  Pydantic
+# uses class inheritance instead.  We flatten through the "base" field so
+# paths align: proto "texts.title.base.text" → compared as "texts.text".
 _BASE_FIELD_WRAPPERS: Dict[str, str] = {
     "TitleItem": "base",
     "SectionHeaderItem": "base",
@@ -68,10 +86,13 @@ _BASE_FIELD_WRAPPERS: Dict[str, str] = {
     "CodeItem": "base",
     "FormulaItem": "base",
     "TextItem": "base",
-    "TableRow": "cells",
 }
 
 # Proto messages that should be treated as leaf nodes (no recursive descent).
+# google.protobuf well-known types (Struct/Value/ListValue) model dynamic
+# JSON-like data — Pydantic uses Dict[str, Any] / get_custom_part() instead.
+# Tuple-equivalent messages (IntSpan, FloatPair, StringIntPair) are matched
+# structurally via _TUPLE_MESSAGE_EQUIVALENCES.
 _PROTO_LEAF_MESSAGES: Set[str] = {
     "Struct",
     "Value",
@@ -79,6 +100,32 @@ _PROTO_LEAF_MESSAGES: Set[str] = {
     "IntSpan",
     "FloatPair",
     "StringIntPair",
+}
+
+# Proto-only paths that exist because of structural divergences.
+# Each entry documents a proto path prefix whose sub-fields have no
+# Pydantic counterpart — because the converter builds them from different
+# Pydantic structures.
+#
+# "*.data.grid" / "*.chart_data.grid":
+#   Proto uses `repeated TableRow grid` as a row-major accessor.
+#   Pydantic's TableData has no `grid` field — the converter builds
+#   grid rows from `table_cells`.  All grid sub-paths are proto-only.
+_PROTO_ONLY_PREFIXES: Set[str] = {
+    "tables.data.grid",
+    "pictures.meta.tabular_chart.chart_data.grid",
+    # Same grid path surfaced during oneof wrapper member validation
+    # (PictureTabularChartData is validated independently with its own prefix).
+    "chart_data.grid",
+}
+
+# Proto-only field name suffixes for enum fallback fields.
+# When a proto enum field (e.g., coord_origin, code_language) encounters
+# an unknown value, the raw string is stored in a companion *_raw field.
+# These have no Pydantic counterpart by design.
+_RAW_FALLBACK_SUFFIXES: Set[str] = {
+    "coord_origin_raw",
+    "code_language_raw",
 }
 
 _WRAPPER_MEMBER_NAMES: Set[str] = {
@@ -708,11 +755,20 @@ def _compare_fields(
         pr_type = proto_fields.get(path)
 
         if py_type is None and pr_type is not None:
+            # --- Suppression rulesets for proto-only paths ---
+            # custom_fields: Pydantic uses get_custom_part() method, not a
+            # declared model field.  Proto uses map<string, Value>.
             if ".custom_fields" in path:
                 continue
-            if ".grid" in path:
+            # Proto-only structural prefixes (e.g., TableRow grid).
+            if any(
+                path == pfx or path.startswith(pfx + ".")
+                for pfx in _PROTO_ONLY_PREFIXES
+            ):
                 continue
-            if path.endswith("_raw"):
+            # Enum fallback *_raw companion fields.
+            parts = path.rsplit(".", 1)
+            if (parts[-1] if len(parts) > 1 else path) in _RAW_FALLBACK_SUFFIXES:
                 continue
             alias = _resolve_alias(path, pydantic_fields)
             if alias is not None:
