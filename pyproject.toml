@@ -89,6 +89,7 @@ dev = [
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
     "grpcio-tools>=1.76.0",
+    "docling-jobkit>=1.10.1",
 ]
 
 pypi = [
