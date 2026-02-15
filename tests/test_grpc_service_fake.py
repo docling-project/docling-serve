@@ -148,6 +148,28 @@ def orchestrator(grpc_server):
 
 
 @pytest.mark.asyncio
+async def test_health_returns_version(grpc_stub):
+    """Health RPC returns status and version."""
+    response = await grpc_stub.Health(docling_serve_pb2.HealthRequest())
+    assert response.status == "ok"
+    assert response.HasField("version")
+    # When installed via uv/pip, version is e.g. "1.12.0"; fallback is "0.0.0"
+    assert isinstance(response.version, str) and len(response.version) > 0
+
+
+@pytest.mark.asyncio
+async def test_convert_source_empty_sources_invalid_argument(grpc_stub):
+    """ConvertSource with empty sources list fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(sources=[])
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
 async def test_get_convert_result(grpc_stub, orchestrator):
     task_id = "convert-1"
     export = ExportResult(
@@ -269,7 +291,18 @@ async def test_poll_task_status_not_found(grpc_stub):
                 request=docling_serve_types_pb2.TaskStatusPollRequest(task_id="missing")
             )
         )
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
 
+
+@pytest.mark.asyncio
+async def test_poll_task_status_empty_task_id_not_found(grpc_stub):
+    """PollTaskStatus with empty task_id returns NOT_FOUND."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.PollTaskStatus(
+            docling_serve_pb2.PollTaskStatusRequest(
+                request=docling_serve_types_pb2.TaskStatusPollRequest(task_id="")
+            )
+        )
     assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
 
 

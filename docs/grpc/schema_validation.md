@@ -1,6 +1,6 @@
 # gRPC Schema Validation Matrix
 
-This document defines how to validate the Docling Pydantic schema against protobuf descriptors at startup. The goal is to prevent data loss and hard-fail on breaking type mismatches, while tolerating missing fields with warnings.
+This document defines how to validate the Docling Pydantic schema against protobuf descriptors at startup. For an overview of gRPC support, see [README.md](README.md). The goal is to prevent data loss and hard-fail on breaking type mismatches, while tolerating missing fields with warnings.
 
 ## 1) Core Rules
 
@@ -52,7 +52,10 @@ Normalize Pydantic types into canonical forms before comparison:
 
 **Notes**
 - `Annotated[...]`: strip and use inner type.
-- `Tuple[int,int]`: treat as `list<int>` if proto uses repeated int (e.g., `charspan`).
+- `Tuple` types map to dedicated proto messages via `_TUPLE_MESSAGE_EQUIVALENCES`:
+  - `Tuple[int,int]` → `message:IntSpan` (charspan, FineRef.range)
+  - `Tuple[float,float]` → `message:FloatPair` (chart coordinates, scatter points)
+  - `Tuple[str,int]` → `message:StringIntPair` (stacked bar chart segments)
 - Discriminated unions: treat as `union` with discriminator.
 
 ---
@@ -109,7 +112,9 @@ Normalize Pydantic types into canonical forms before comparison:
 |---------|-------|--------|
 | `list<T>` | repeated `T` | OK |
 | `map<K,V>` | map `K,V` | OK |
-| `tuple[T,T]` | repeated `T` | OK if allowlisted |
+| `tuple<int,int>` | `message:IntSpan` | OK (charspan, range) |
+| `tuple<float,float>` | `message:FloatPair` | OK (chart coords) |
+| `tuple<string,int>` | `message:StringIntPair` | OK (stacked bar) |
 
 ---
 
@@ -286,11 +291,12 @@ When adding a new field to either the Pydantic model or the proto definition:
 1. Add the field to both schemas (Pydantic model AND proto).
 2. Add the converter mapping in `docling_document_converter.py`.
 3. Run the validator: `uv run python -c "from docling_serve.grpc.schema_validator import validate_docling_document_schema; validate_docling_document_schema()"`.
+   - The validator runs automatically at gRPC server startup.
 4. If the validator warns about a new missing field:
    - **If intentional** (structural divergence): add it to the appropriate suppression ruleset above and document why.
    - **If unintentional**: fix the schema or converter.
 5. If the validator fails with a type mismatch:
    - **If the coercion is safe**: add it to `ALLOWED_COERCIONS` and document why.
    - **If not**: fix the type to match.
-6. Add or update converter tests.
-7. Regenerate proto stubs: `uv run python -m grpc_tools.protoc ...`
+6. Add or update converter tests. Run `test_docling_document_round_trip_no_field_loss` to verify no silent field loss.
+7. Regenerate proto stubs: `uv run python scripts/gen_grpc.py`

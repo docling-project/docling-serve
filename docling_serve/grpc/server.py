@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.metadata
 import logging
 from typing import AsyncIterator, Optional
 
@@ -135,7 +136,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         context: grpc.aio.ServicerContext,
     ) -> docling_serve_pb2.HealthResponse:
         await self._check_api_key(context)
-        return docling_serve_pb2.HealthResponse(status="ok")
+        try:
+            version = importlib.metadata.version("docling-serve")
+        except importlib.metadata.PackageNotFoundError:
+            version = "0.0.0"
+        return docling_serve_pb2.HealthResponse(status="ok", version=version)
 
     async def ConvertSource(
         self,
@@ -149,6 +154,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             request.request.options if request.request.HasField("options") else None
         )
         sources = to_task_sources(request.request.sources)
+        if not sources:
+            await self._abort(
+                context,
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "At least one source is required.",
+            )
+            return docling_serve_pb2.ConvertSourceResponse()
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )

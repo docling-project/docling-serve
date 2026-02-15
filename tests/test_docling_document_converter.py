@@ -1,5 +1,8 @@
 import pytest
 
+from docling.datamodel.base_models import OutputFormat
+from docling_jobkit.datamodel.result import ExportDocumentResponse
+from docling_serve.grpc.mapping import export_document_to_proto
 from docling_core.types.doc.document import (
     BaseMeta,
     BoundingBox,
@@ -678,3 +681,88 @@ def test_docling_document_to_proto_rejects_unknown_source_type():
 
     with pytest.raises(TypeError, match="Unsupported source type"):
         converter._to_source_type(FakeSource())
+
+
+def test_docling_document_round_trip_no_field_loss():
+    """Round-trip: Pydantic DoclingDocument -> proto (via export) -> Pydantic via exports.json.
+
+    Verifies no silent field loss when converting to protobuf. The export flow stores
+    the canonical JSON in exports.json; we round-trip through that to ensure fidelity.
+    """
+    doc = _base_doc()
+    doc.pages = {
+        1: PageItem(size=Size(width=100.0, height=200.0), page_no=1),
+        2: PageItem(size=Size(width=300.0, height=400.0), page_no=2),
+    }
+    doc.texts = [
+        TitleItem(
+            self_ref="#/texts/0",
+            label=DocItemLabel.TITLE,
+            orig="Title",
+            text="Title",
+            prov=[_prov()],
+        ),
+        SectionHeaderItem(
+            self_ref="#/texts/1",
+            label=DocItemLabel.SECTION_HEADER,
+            orig="Section",
+            text="Section",
+            level=2,
+            formatting=Formatting(bold=True, script=Script.SUB),
+        ),
+        TextItem(
+            self_ref="#/texts/2",
+            label=DocItemLabel.TEXT,
+            orig="Body",
+            text="Body",
+            parent=_ref("#/body"),
+        ),
+    ]
+    doc.tables = [
+        TableItem(
+            self_ref="#/tables/0",
+            label=DocItemLabel.TABLE,
+            data=TableData(
+                table_cells=[
+                    TableCell(
+                        start_row_offset_idx=0,
+                        end_row_offset_idx=1,
+                        start_col_offset_idx=0,
+                        end_col_offset_idx=1,
+                        text="A1",
+                        row_span=1,
+                        col_span=1,
+                    ),
+                ],
+                num_rows=1,
+                num_cols=1,
+            ),
+            prov=[_prov()],
+        ),
+    ]
+
+    export_doc = ExportDocumentResponse(
+        filename="round_trip_test",
+        json_content=doc,
+    )
+    proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+
+    assert proto.HasField("exports"), "exports must include JSON for round-trip"
+    assert proto.exports.json, "exports.json must be populated"
+
+    round_tripped = DoclingDocument.model_validate_json(proto.exports.json)
+
+    assert round_tripped.name == doc.name
+    assert round_tripped.origin is not None and doc.origin is not None
+    assert round_tripped.origin.filename == doc.origin.filename
+    assert round_tripped.origin.mimetype == doc.origin.mimetype
+    assert round_tripped.pages.keys() == doc.pages.keys()
+    for k in doc.pages:
+        assert round_tripped.pages[k].page_no == doc.pages[k].page_no
+        assert round_tripped.pages[k].size.width == doc.pages[k].size.width
+    assert len(round_tripped.texts) == len(doc.texts)
+    assert round_tripped.texts[0].text == doc.texts[0].text
+    assert round_tripped.texts[1].level == doc.texts[1].level
+    assert len(round_tripped.tables) == len(doc.tables)
+    assert round_tripped.tables[0].data.num_rows == doc.tables[0].data.num_rows
+    assert round_tripped.tables[0].data.table_cells[0].text == doc.tables[0].data.table_cells[0].text

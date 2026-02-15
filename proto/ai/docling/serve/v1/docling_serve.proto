@@ -55,8 +55,8 @@ service DoclingServeService {
   // Clear stale results - mirrors GET /v1/clear/results
   rpc ClearResults(ClearResultsRequest) returns (ClearResultsResponse);
 
-  // Streaming document conversion - sends results as they complete per source.
-  // This is an addition beyond the REST API that leverages gRPC's streaming.
+  // Streaming document conversion - currently yields a single response when complete.
+  // Placeholder for future per-source streaming; extends REST API via gRPC streaming.
   rpc ConvertSourceStream(ConvertSourceStreamRequest) returns (stream ConvertSourceStreamResponse);
 
   // --- Watch RPCs (server-managed polling via streaming) ---
@@ -84,6 +84,7 @@ message HealthRequest {}
 
 message HealthResponse {
   optional string status = 1;
+  optional string version = 2;  // docling-serve version, e.g. "1.12.0"
 }
 
 // --- Convert ---

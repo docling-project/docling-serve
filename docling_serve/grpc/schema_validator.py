@@ -4,7 +4,7 @@ Compares the Pydantic DoclingDocument model against the protobuf descriptor
 at startup. Raises RuntimeError on incompatible type mismatches (not in
 allowlist). Logs warnings for missing fields. Logs info for allowed coercions.
 
-See docs/grpc_schema_validation.md for the full specification.
+See docs/grpc/schema_validation.md for the full specification.
 """
 
 import enum
@@ -63,7 +63,7 @@ _STRING_COMPATIBLE_TYPES: Set[str] = {"Path"}
 # exists.  When either schema changes, the validator will surface any new
 # paths that don't fall into a known ruleset — forcing an explicit decision.
 #
-# See docs/grpc_schema_validation.md for the full specification.
+# See docs/grpc/schema_validation.md for the full specification.
 # ---------------------------------------------------------------------------
 
 # Field name aliases between Pydantic and proto.

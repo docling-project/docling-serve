@@ -222,8 +222,8 @@ class DoclingServeServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ConvertSourceStream(self, request, context):
-        """Streaming document conversion - sends results as they complete per source.
-        This is an addition beyond the REST API that leverages gRPC's streaming.
+        """Streaming document conversion - currently yields a single response when complete.
+        Placeholder for future per-source streaming; extends REST API via gRPC streaming.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

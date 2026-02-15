@@ -450,3 +450,7 @@ cookies.txt
 
 # Examples
 /examples/splitted_pdf/*
+
+
+# Cursor workspace
+*.code-workspace

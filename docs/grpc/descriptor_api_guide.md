@@ -6,7 +6,6 @@ schema and for building compatibility checks.
 
 ## Project Context
 
-- Work dir: `/work/docling-serve_2953_grpc_server`
 - Proto source: `proto/ai/docling/core/v1/docling_document.proto`
 - Generated code: `docling_serve/grpc/gen/ai/docling/core/v1/docling_document_pb2.py`
 - Root message: `DoclingDocument` (highly nested structure)
