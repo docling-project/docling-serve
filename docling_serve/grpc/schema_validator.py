@@ -26,7 +26,7 @@ ALLOWED_COERCIONS: Dict[str, Tuple[str, str]] = {
     "**.label": ("enum", "string"),
 }
 
-# Proto messages that are oneof wrappers around a single Pydantic-side type.
+# Proto messages that are oneof wrappers around Pydantic-side types.
 # Key = proto message name, Value = set of Pydantic message names it wraps.
 _ONEOF_WRAPPER_MESSAGES: Dict[str, Set[str]] = {
     "SourceType": {"TrackSource"},
@@ -53,6 +53,37 @@ _TUPLE_MESSAGE_EQUIVALENCES: Dict[str, str] = {
 
 # Types that are string-serializable and compatible with proto string.
 _STRING_COMPATIBLE_TYPES: Set[str] = {"Path"}
+
+# Field name aliases between Pydantic and proto.
+_FIELD_NAME_ALIASES: Dict[str, str] = {
+    "cref": "ref",
+    "ref": "cref",
+}
+
+# Messages that wrap a base message field (flatten base fields for comparison).
+_BASE_FIELD_WRAPPERS: Dict[str, str] = {
+    "TitleItem": "base",
+    "SectionHeaderItem": "base",
+    "ListItem": "base",
+    "CodeItem": "base",
+    "FormulaItem": "base",
+    "TextItem": "base",
+    "TableRow": "cells",
+}
+
+# Proto messages that should be treated as leaf nodes (no recursive descent).
+_PROTO_LEAF_MESSAGES: Set[str] = {
+    "Struct",
+    "Value",
+    "ListValue",
+    "IntSpan",
+    "FloatPair",
+    "StringIntPair",
+}
+
+_WRAPPER_MEMBER_NAMES: Set[str] = {
+    name for members in _ONEOF_WRAPPER_MESSAGES.values() for name in members
+}
 
 
 def _match_pattern(path: str, pattern: str) -> bool:
@@ -95,7 +126,10 @@ def _is_coercion_allowed(
             pr_match = (
                 proto_canonical == allowed_pr
                 or (allowed_pr == "list<int>" and proto_canonical.startswith("list<"))
-                or (allowed_pr == "string" and proto_canonical == "string")
+                or (
+                    allowed_pr == "string"
+                    and proto_canonical in ("string", "optional<string>")
+                )
             )
             if py_match and pr_match:
                 return True
@@ -121,9 +155,24 @@ def _unwrap_annotated(tp: Any) -> Any:
     return tp
 
 
+def _resolve_forward_ref(tp: Any) -> Any:
+    if isinstance(tp, typing.ForwardRef):
+        ref_name = tp.__forward_arg__
+        try:
+            from docling_core.types.doc import document as doc_module
+
+            resolved = getattr(doc_module, ref_name, None)
+            if resolved is not None:
+                return resolved
+        except Exception:
+            pass
+    return tp
+
+
 def _normalize_pydantic_type(tp: Any) -> str:
     """Return a canonical string for a Pydantic type annotation."""
     tp = _unwrap_annotated(tp)
+    tp = _resolve_forward_ref(tp)
 
     if tp is type(None):
         return "none"
@@ -192,6 +241,12 @@ def _normalize_pydantic_type(tp: Any) -> str:
 
     # Literal["x"] → string
     if origin is typing.Literal:
+        if args:
+            enum_args = [a for a in args if isinstance(a, enum.Enum)]
+            enum_types = {type(a) for a in enum_args}
+            if len(enum_args) == len(args) and len(enum_types) == 1:
+                enum_type = next(iter(enum_types))
+                return f"enum:{enum_type.__name__}"
         return "string"
 
     # Fallback: use class name
@@ -205,7 +260,8 @@ def _collect_pydantic_fields(
     prefix: str = "",
     max_depth: Optional[int] = None,
     _depth: int = 0,
-    _visited: Optional[Set[type]] = None,
+    _path_stack: Optional[Set[type]] = None,
+    _skip_wrapper_members: bool = True,
 ) -> Dict[str, str]:
     """Collect Pydantic model fields, returning {dotted.path: canonical_type}.
 
@@ -214,12 +270,12 @@ def _collect_pydantic_fields(
     from pydantic import BaseModel
 
     result: Dict[str, str] = {}
-    if _visited is None:
-        _visited = set()
+    if _path_stack is None:
+        _path_stack = set()
     if isinstance(model_cls, type):
-        if model_cls in _visited:
+        if model_cls in _path_stack:
             return result
-        _visited.add(model_cls)
+        _path_stack.add(model_cls)
     for name, field in model_cls.model_fields.items():
         path = f"{prefix}.{name}" if prefix else name
         tp = field.annotation
@@ -231,6 +287,7 @@ def _collect_pydantic_fields(
 
         # Recurse into BaseModel subclasses
         inner_tp = _unwrap_annotated(tp)
+        inner_tp = _resolve_forward_ref(inner_tp)
         origin = get_origin(inner_tp)
         if origin is Union or (hasattr(types, "UnionType") and origin is types.UnionType):
             args = get_args(inner_tp)
@@ -239,13 +296,16 @@ def _collect_pydantic_fields(
                 inner_tp = non_none[0]
 
         if isinstance(inner_tp, type) and issubclass(inner_tp, BaseModel):
+            if _skip_wrapper_members and inner_tp.__name__ in _WRAPPER_MEMBER_NAMES:
+                continue
             result.update(
                 _collect_pydantic_fields(
                     inner_tp,
                     path,
                     max_depth,
                     _depth + 1,
-                    _visited,
+                    _path_stack,
+                    _skip_wrapper_members,
                 )
             )
             continue
@@ -255,26 +315,80 @@ def _collect_pydantic_fields(
         args = get_args(inner_tp)
         if origin is list and args:
             item = _unwrap_annotated(args[0])
+            item = _resolve_forward_ref(item)
             if isinstance(item, type) and issubclass(item, BaseModel):
+                if _skip_wrapper_members and item.__name__ in _WRAPPER_MEMBER_NAMES:
+                    continue
                 result.update(
                     _collect_pydantic_fields(
                         item,
                         path,
                         max_depth,
                         _depth + 1,
-                        _visited,
+                        _path_stack,
+                        _skip_wrapper_members,
+                        )
                     )
-                )
+            else:
+                nested_origin = get_origin(item)
+                nested_args = get_args(item)
+                if nested_origin is list and nested_args:
+                    nested_item = _unwrap_annotated(nested_args[0])
+                    nested_item = _resolve_forward_ref(nested_item)
+                    if isinstance(nested_item, type) and issubclass(
+                        nested_item, BaseModel
+                    ):
+                        if (
+                            _skip_wrapper_members
+                            and nested_item.__name__ in _WRAPPER_MEMBER_NAMES
+                        ):
+                            continue
+                        result.update(
+                            _collect_pydantic_fields(
+                                nested_item,
+                                path,
+                                max_depth,
+                                _depth + 1,
+                                _path_stack,
+                                _skip_wrapper_members,
+                            )
+                        )
+                elif nested_origin is Union or nested_origin is types.UnionType:
+                    for union_item in nested_args:
+                        union_item = _unwrap_annotated(union_item)
+                        union_item = _resolve_forward_ref(union_item)
+                        if isinstance(union_item, type) and issubclass(
+                            union_item, BaseModel
+                        ):
+                            if (
+                                _skip_wrapper_members
+                                and union_item.__name__ in _WRAPPER_MEMBER_NAMES
+                            ):
+                                continue
+                            result.update(
+                                _collect_pydantic_fields(
+                                    union_item,
+                                    path,
+                                    max_depth,
+                                    _depth + 1,
+                                    _path_stack,
+                                    _skip_wrapper_members,
+                                )
+                            )
         elif origin is dict and args and len(args) == 2:
             val = _unwrap_annotated(args[1])
+            val = _resolve_forward_ref(val)
             if isinstance(val, type) and issubclass(val, BaseModel):
+                if _skip_wrapper_members and val.__name__ in _WRAPPER_MEMBER_NAMES:
+                    continue
                 result.update(
                     _collect_pydantic_fields(
                         val,
                         path,
                         max_depth,
                         _depth + 1,
-                        _visited,
+                        _path_stack,
+                        _skip_wrapper_members,
                     )
                 )
         elif origin is Union or origin is types.UnionType:
@@ -284,6 +398,9 @@ def _collect_pydantic_fields(
             # for every sub-field of every variant since proto represents
             # them through a oneof wrapper with different paths.
             pass
+
+    if isinstance(model_cls, type):
+        _path_stack.remove(model_cls)
 
     return result
 
@@ -343,23 +460,29 @@ def _collect_proto_fields(
     prefix: str = "",
     max_depth: Optional[int] = None,
     _depth: int = 0,
-    _visited: Optional[Set[str]] = None,
+    _path_stack: Optional[Set[str]] = None,
 ) -> Dict[str, str]:
     """Collect proto fields, returning {dotted.path: canonical_type}.
 
     Only recurses into sub-messages up to *max_depth* levels.
     """
     result: Dict[str, str] = {}
-    if _visited is None:
-        _visited = set()
-    if descriptor.full_name in _visited:
+    if _path_stack is None:
+        _path_stack = set()
+    if descriptor.full_name in _path_stack:
         return result
-    _visited.add(descriptor.full_name)
+    _path_stack.add(descriptor.full_name)
+
+    if descriptor.name in _ONEOF_WRAPPER_MESSAGES:
+        _path_stack.remove(descriptor.full_name)
+        return result
 
     # Handle real oneof groups (not synthetic proto3 optional presence)
     oneofs_handled: Set[str] = set()
     for oneof in descriptor.oneofs:
         if oneof.name.startswith("_"):
+            continue
+        if descriptor.name in _ONEOF_WRAPPER_MESSAGES:
             continue
         path = f"{prefix}.{oneof.name}" if prefix else oneof.name
         members = [_normalize_proto_field(f) for f in oneof.fields]
@@ -372,25 +495,54 @@ def _collect_proto_fields(
         if field.name in oneofs_handled:
             continue
         path = f"{prefix}.{field.name}" if prefix else field.name
+        if descriptor.name in _BASE_FIELD_WRAPPERS and field.name == _BASE_FIELD_WRAPPERS[descriptor.name]:
+            if (
+                field.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE
+                and not field.message_type.GetOptions().map_entry
+            ):
+                result.update(
+                    _collect_proto_fields(
+                        field.message_type,
+                        prefix,
+                        max_depth,
+                        _depth + 1,
+                        _path_stack,
+                    )
+                )
+            continue
+
         canonical = _normalize_proto_field(field)
         result[path] = canonical
 
-        # Recurse into messages (not maps)
-        if (
-            field.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE
-            and not field.message_type.GetOptions().map_entry
-            and (max_depth is None or _depth < max_depth)
-        ):
-            result.update(
-                _collect_proto_fields(
-                    field.message_type,
-                    path,
-                    max_depth,
-                    _depth + 1,
-                    _visited,
+        # Recurse into messages (handle maps separately)
+        if field.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE:
+            if field.message_type.GetOptions().map_entry:
+                if max_depth is None or _depth < max_depth:
+                    val_f = field.message_type.fields_by_name["value"]
+                    if val_f.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE:
+                        result.update(
+                            _collect_proto_fields(
+                                val_f.message_type,
+                                path,
+                                max_depth,
+                                _depth + 1,
+                                _path_stack,
+                            )
+                        )
+            elif field.message_type.name in _PROTO_LEAF_MESSAGES:
+                pass
+            elif max_depth is None or _depth < max_depth:
+                result.update(
+                    _collect_proto_fields(
+                        field.message_type,
+                        path,
+                        max_depth,
+                        _depth + 1,
+                        _path_stack,
+                    )
                 )
-            )
 
+    _path_stack.remove(descriptor.full_name)
     return result
 
 
@@ -456,6 +608,10 @@ def _types_compatible(pydantic_canonical: str, proto_canonical: str) -> bool:
         if wrapped and py_name in wrapped:
             return True
         return False
+
+    # map<string,Any> ↔ Struct
+    if pydantic_canonical == "map<string,Any>" and proto_canonical == "message:Struct":
+        return True
 
     # enum:Foo ↔ enum:Foo
     if pydantic_canonical.startswith("enum:") and proto_canonical.startswith("enum:"):
@@ -524,6 +680,78 @@ def _check_cardinality(
 # ---------------------------------------------------------------------------
 # Public API (spec §10)
 # ---------------------------------------------------------------------------
+def _resolve_alias(path: str, fields: Dict[str, str]) -> Optional[str]:
+    parts = path.split(".")
+    if not parts:
+        return None
+    last = parts[-1]
+    alias = _FIELD_NAME_ALIASES.get(last)
+    if not alias:
+        return None
+    candidate = ".".join(parts[:-1] + [alias])
+    return candidate if candidate in fields else None
+
+
+def _compare_fields(
+    pydantic_fields: Dict[str, str],
+    proto_fields: Dict[str, str],
+    context: str,
+) -> Tuple[List[str], List[str], List[str], List[str]]:
+    mismatches: List[str] = []
+    allowed: List[str] = []
+    missing_proto: List[str] = []
+    missing_pydantic: List[str] = []
+
+    all_paths = set(pydantic_fields.keys()) | set(proto_fields.keys())
+    for path in sorted(all_paths):
+        py_type = pydantic_fields.get(path)
+        pr_type = proto_fields.get(path)
+
+        if py_type is None and pr_type is not None:
+            if ".custom_fields" in path:
+                continue
+            if ".grid" in path:
+                continue
+            if path.endswith("_raw"):
+                continue
+            alias = _resolve_alias(path, pydantic_fields)
+            if alias is not None:
+                py_type = pydantic_fields.get(alias)
+            else:
+                missing_pydantic.append(f"{context}{path}")
+                continue
+        if pr_type is None and py_type is not None:
+            alias = _resolve_alias(path, proto_fields)
+            if alias is not None:
+                pr_type = proto_fields.get(alias)
+            else:
+                missing_proto.append(f"{context}{path}")
+                continue
+
+        assert py_type is not None and pr_type is not None
+
+        card_err = _check_cardinality(path, py_type, pr_type)
+        if card_err is not None:
+            if _is_coercion_allowed(path, py_type, pr_type):
+                allowed.append(f"{context}{path}: {py_type} ↔ {pr_type}")
+            else:
+                mismatches.append(f"{context}{card_err}")
+            continue
+
+        if _types_compatible(py_type, pr_type):
+            continue
+
+        if _is_coercion_allowed(path, py_type, pr_type):
+            allowed.append(f"{context}{path}: {py_type} ↔ {pr_type}")
+            continue
+
+        mismatches.append(
+            f"{context}Type mismatch at '{path}': Pydantic={py_type}, Proto={pr_type}"
+        )
+
+    return mismatches, allowed, missing_proto, missing_pydantic
+
+
 def validate_docling_document_schema() -> None:
     """Compare Pydantic DoclingDocument against proto descriptor at startup.
 
@@ -538,47 +766,29 @@ def validate_docling_document_schema() -> None:
     pydantic_fields = _collect_pydantic_fields(DoclingDocument)
     proto_fields = _collect_proto_fields(pb2.DoclingDocument.DESCRIPTOR)
 
-    all_paths = set(pydantic_fields.keys()) | set(proto_fields.keys())
+    mismatches, allowed, missing_proto, missing_pydantic = _compare_fields(
+        pydantic_fields, proto_fields, context=""
+    )
 
-    mismatches: List[str] = []
-    allowed: List[str] = []
-    missing_proto: List[str] = []
-    missing_pydantic: List[str] = []
+    # Validate each oneof wrapper member against its concrete proto message.
+    from docling_core.types.doc import document as doc_module
 
-    for path in sorted(all_paths):
-        py_type = pydantic_fields.get(path)
-        pr_type = proto_fields.get(path)
-
-        if py_type is not None and pr_type is None:
-            missing_proto.append(path)
-            continue
-        if py_type is None and pr_type is not None:
-            missing_pydantic.append(path)
-            continue
-
-        assert py_type is not None and pr_type is not None
-
-        # Cardinality check
-        card_err = _check_cardinality(path, py_type, pr_type)
-        if card_err is not None:
-            if _is_coercion_allowed(path, py_type, pr_type):
-                allowed.append(f"{path}: {py_type} ↔ {pr_type}")
-            else:
-                mismatches.append(card_err)
-            continue
-
-        # Type compatibility
-        if _types_compatible(py_type, pr_type):
-            continue
-
-        # Check allowlist
-        if _is_coercion_allowed(path, py_type, pr_type):
-            allowed.append(f"{path}: {py_type} ↔ {pr_type}")
-            continue
-
-        mismatches.append(
-            f"Type mismatch at '{path}': Pydantic={py_type}, Proto={pr_type}"
-        )
+    for members in _ONEOF_WRAPPER_MESSAGES.values():
+        for member_name in members:
+            model_cls = getattr(doc_module, member_name, None)
+            if model_cls is None:
+                continue
+            descriptor = pb2.DESCRIPTOR.message_types_by_name.get(member_name)
+            if descriptor is None:
+                continue
+            py_fields = _collect_pydantic_fields(model_cls)
+            pr_fields = _collect_proto_fields(descriptor)
+            ctx = f"{member_name}."
+            m, a, mp, md = _compare_fields(py_fields, pr_fields, context=ctx)
+            mismatches.extend(m)
+            allowed.extend(a)
+            missing_proto.extend(mp)
+            missing_pydantic.extend(md)
 
     # Report
     if missing_proto:

@@ -161,6 +161,7 @@ message TrackSource {
   double end_time = 2;
   optional string identifier = 3;
   optional string voice = 4;
+  optional string kind = 5;
 }
 
 // SourceType is a union of possible source descriptors.
@@ -218,6 +219,76 @@ enum Script {
   SCRIPT_BASELINE = 1;
   SCRIPT_SUB = 2;
   SCRIPT_SUPER = 3;
+}
+
+// CoordOrigin defines the coordinate system origin for bounding boxes.
+enum CoordOrigin {
+  COORD_ORIGIN_UNSPECIFIED = 0;
+  COORD_ORIGIN_TOPLEFT = 1;
+  COORD_ORIGIN_BOTTOMLEFT = 2;
+}
+
+// CodeLanguageLabel defines the programming language for code blocks.
+enum CodeLanguageLabel {
+  CODE_LANGUAGE_LABEL_UNSPECIFIED = 0;
+  CODE_LANGUAGE_LABEL_ADA = 1;
+  CODE_LANGUAGE_LABEL_AWK = 2;
+  CODE_LANGUAGE_LABEL_BASH = 3;
+  CODE_LANGUAGE_LABEL_BC = 4;
+  CODE_LANGUAGE_LABEL_C = 5;
+  CODE_LANGUAGE_LABEL_C_SHARP = 6;
+  CODE_LANGUAGE_LABEL_C_PLUS_PLUS = 7;
+  CODE_LANGUAGE_LABEL_CMAKE = 8;
+  CODE_LANGUAGE_LABEL_COBOL = 9;
+  CODE_LANGUAGE_LABEL_CSS = 10;
+  CODE_LANGUAGE_LABEL_CEYLON = 11;
+  CODE_LANGUAGE_LABEL_CLOJURE = 12;
+  CODE_LANGUAGE_LABEL_CRYSTAL = 13;
+  CODE_LANGUAGE_LABEL_CUDA = 14;
+  CODE_LANGUAGE_LABEL_CYTHON = 15;
+  CODE_LANGUAGE_LABEL_D = 16;
+  CODE_LANGUAGE_LABEL_DART = 17;
+  CODE_LANGUAGE_LABEL_DC = 18;
+  CODE_LANGUAGE_LABEL_DOCKERFILE = 19;
+  CODE_LANGUAGE_LABEL_ELIXIR = 20;
+  CODE_LANGUAGE_LABEL_ERLANG = 21;
+  CODE_LANGUAGE_LABEL_FORTRAN = 22;
+  CODE_LANGUAGE_LABEL_FORTH = 23;
+  CODE_LANGUAGE_LABEL_GO = 24;
+  CODE_LANGUAGE_LABEL_HTML = 25;
+  CODE_LANGUAGE_LABEL_HASKELL = 26;
+  CODE_LANGUAGE_LABEL_HAXE = 27;
+  CODE_LANGUAGE_LABEL_JAVA = 28;
+  CODE_LANGUAGE_LABEL_JAVASCRIPT = 29;
+  CODE_LANGUAGE_LABEL_JSON = 30;
+  CODE_LANGUAGE_LABEL_JULIA = 31;
+  CODE_LANGUAGE_LABEL_KOTLIN = 32;
+  CODE_LANGUAGE_LABEL_LISP = 33;
+  CODE_LANGUAGE_LABEL_LUA = 34;
+  CODE_LANGUAGE_LABEL_MATLAB = 35;
+  CODE_LANGUAGE_LABEL_MOONSCRIPT = 36;
+  CODE_LANGUAGE_LABEL_NIM = 37;
+  CODE_LANGUAGE_LABEL_OCAML = 38;
+  CODE_LANGUAGE_LABEL_OBJECTIVEC = 39;
+  CODE_LANGUAGE_LABEL_OCTAVE = 40;
+  CODE_LANGUAGE_LABEL_PHP = 41;
+  CODE_LANGUAGE_LABEL_PASCAL = 42;
+  CODE_LANGUAGE_LABEL_PERL = 43;
+  CODE_LANGUAGE_LABEL_PROLOG = 44;
+  CODE_LANGUAGE_LABEL_PYTHON = 45;
+  CODE_LANGUAGE_LABEL_RACKET = 46;
+  CODE_LANGUAGE_LABEL_RUBY = 47;
+  CODE_LANGUAGE_LABEL_RUST = 48;
+  CODE_LANGUAGE_LABEL_SML = 49;
+  CODE_LANGUAGE_LABEL_SQL = 50;
+  CODE_LANGUAGE_LABEL_SCALA = 51;
+  CODE_LANGUAGE_LABEL_SCHEME = 52;
+  CODE_LANGUAGE_LABEL_SWIFT = 53;
+  CODE_LANGUAGE_LABEL_TYPESCRIPT = 54;
+  CODE_LANGUAGE_LABEL_UNKNOWN = 55;
+  CODE_LANGUAGE_LABEL_VISUALBASIC = 56;
+  CODE_LANGUAGE_LABEL_XML = 57;
+  CODE_LANGUAGE_LABEL_YAML = 58;
 }
 
 // Formatting contains text formatting/styling information.
@@ -284,7 +355,9 @@ message CodeItem {
   repeated RefItem references = 4;
   repeated RefItem footnotes = 5;
   optional ImageRef image = 6;
-  optional string code_language = 7;
+  optional CodeLanguageLabel code_language = 7;
+  // Raw label string (fallback for unknown enum values).
+  optional string code_language_raw = 8;
 }
 
 // FormulaItem represents a mathematical formula or equation.
@@ -310,7 +383,9 @@ message BoundingBox {
   double t = 2;
   double r = 3;
   double b = 4;
-  optional string coord_origin = 5;
+  optional CoordOrigin coord_origin = 5;
+  // Raw label string (fallback for unknown enum values).
+  optional string coord_origin_raw = 6;
 }
 
 // ImageRef references an embedded image with its properties.
@@ -594,6 +669,7 @@ message TableCell {
   bool row_header = 10;
   bool row_section = 11;
   bool fillable = 12;
+  optional RefItem ref = 13;
 }
 
 // KeyValueItem represents a key-value pair extracted from forms.

@@ -57,7 +57,9 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+from docling_core.types.doc.base import CoordOrigin
 from docling_core.types.doc.labels import (
+    CodeLanguageLabel,
     DocItemLabel,
     GraphCellLabel,
     GraphLinkLabel,
@@ -147,6 +149,72 @@ _GRAPH_LINK_LABEL_MAP = {
     GraphLinkLabel.TO_CHILD.value: pb2.GRAPH_LINK_LABEL_TO_CHILD,
 }
 
+_COORD_ORIGIN_MAP = {
+    CoordOrigin.TOPLEFT.value: pb2.COORD_ORIGIN_TOPLEFT,
+    CoordOrigin.BOTTOMLEFT.value: pb2.COORD_ORIGIN_BOTTOMLEFT,
+}
+
+_CODE_LANGUAGE_MAP = {
+    CodeLanguageLabel.ADA.value: pb2.CODE_LANGUAGE_LABEL_ADA,
+    CodeLanguageLabel.AWK.value: pb2.CODE_LANGUAGE_LABEL_AWK,
+    CodeLanguageLabel.BASH.value: pb2.CODE_LANGUAGE_LABEL_BASH,
+    CodeLanguageLabel.BC.value: pb2.CODE_LANGUAGE_LABEL_BC,
+    CodeLanguageLabel.C.value: pb2.CODE_LANGUAGE_LABEL_C,
+    CodeLanguageLabel.C_SHARP.value: pb2.CODE_LANGUAGE_LABEL_C_SHARP,
+    CodeLanguageLabel.C_PLUS_PLUS.value: pb2.CODE_LANGUAGE_LABEL_C_PLUS_PLUS,
+    CodeLanguageLabel.CMAKE.value: pb2.CODE_LANGUAGE_LABEL_CMAKE,
+    CodeLanguageLabel.COBOL.value: pb2.CODE_LANGUAGE_LABEL_COBOL,
+    CodeLanguageLabel.CSS.value: pb2.CODE_LANGUAGE_LABEL_CSS,
+    CodeLanguageLabel.CEYLON.value: pb2.CODE_LANGUAGE_LABEL_CEYLON,
+    CodeLanguageLabel.CLOJURE.value: pb2.CODE_LANGUAGE_LABEL_CLOJURE,
+    CodeLanguageLabel.CRYSTAL.value: pb2.CODE_LANGUAGE_LABEL_CRYSTAL,
+    CodeLanguageLabel.CUDA.value: pb2.CODE_LANGUAGE_LABEL_CUDA,
+    CodeLanguageLabel.CYTHON.value: pb2.CODE_LANGUAGE_LABEL_CYTHON,
+    CodeLanguageLabel.D.value: pb2.CODE_LANGUAGE_LABEL_D,
+    CodeLanguageLabel.DART.value: pb2.CODE_LANGUAGE_LABEL_DART,
+    CodeLanguageLabel.DC.value: pb2.CODE_LANGUAGE_LABEL_DC,
+    CodeLanguageLabel.DOCKERFILE.value: pb2.CODE_LANGUAGE_LABEL_DOCKERFILE,
+    CodeLanguageLabel.ELIXIR.value: pb2.CODE_LANGUAGE_LABEL_ELIXIR,
+    CodeLanguageLabel.ERLANG.value: pb2.CODE_LANGUAGE_LABEL_ERLANG,
+    CodeLanguageLabel.FORTRAN.value: pb2.CODE_LANGUAGE_LABEL_FORTRAN,
+    CodeLanguageLabel.FORTH.value: pb2.CODE_LANGUAGE_LABEL_FORTH,
+    CodeLanguageLabel.GO.value: pb2.CODE_LANGUAGE_LABEL_GO,
+    CodeLanguageLabel.HTML.value: pb2.CODE_LANGUAGE_LABEL_HTML,
+    CodeLanguageLabel.HASKELL.value: pb2.CODE_LANGUAGE_LABEL_HASKELL,
+    CodeLanguageLabel.HAXE.value: pb2.CODE_LANGUAGE_LABEL_HAXE,
+    CodeLanguageLabel.JAVA.value: pb2.CODE_LANGUAGE_LABEL_JAVA,
+    CodeLanguageLabel.JAVASCRIPT.value: pb2.CODE_LANGUAGE_LABEL_JAVASCRIPT,
+    CodeLanguageLabel.JSON.value: pb2.CODE_LANGUAGE_LABEL_JSON,
+    CodeLanguageLabel.JULIA.value: pb2.CODE_LANGUAGE_LABEL_JULIA,
+    CodeLanguageLabel.KOTLIN.value: pb2.CODE_LANGUAGE_LABEL_KOTLIN,
+    CodeLanguageLabel.LISP.value: pb2.CODE_LANGUAGE_LABEL_LISP,
+    CodeLanguageLabel.LUA.value: pb2.CODE_LANGUAGE_LABEL_LUA,
+    CodeLanguageLabel.MATLAB.value: pb2.CODE_LANGUAGE_LABEL_MATLAB,
+    CodeLanguageLabel.MOONSCRIPT.value: pb2.CODE_LANGUAGE_LABEL_MOONSCRIPT,
+    CodeLanguageLabel.NIM.value: pb2.CODE_LANGUAGE_LABEL_NIM,
+    CodeLanguageLabel.OCAML.value: pb2.CODE_LANGUAGE_LABEL_OCAML,
+    CodeLanguageLabel.OBJECTIVEC.value: pb2.CODE_LANGUAGE_LABEL_OBJECTIVEC,
+    CodeLanguageLabel.OCTAVE.value: pb2.CODE_LANGUAGE_LABEL_OCTAVE,
+    CodeLanguageLabel.PHP.value: pb2.CODE_LANGUAGE_LABEL_PHP,
+    CodeLanguageLabel.PASCAL.value: pb2.CODE_LANGUAGE_LABEL_PASCAL,
+    CodeLanguageLabel.PERL.value: pb2.CODE_LANGUAGE_LABEL_PERL,
+    CodeLanguageLabel.PROLOG.value: pb2.CODE_LANGUAGE_LABEL_PROLOG,
+    CodeLanguageLabel.PYTHON.value: pb2.CODE_LANGUAGE_LABEL_PYTHON,
+    CodeLanguageLabel.RACKET.value: pb2.CODE_LANGUAGE_LABEL_RACKET,
+    CodeLanguageLabel.RUBY.value: pb2.CODE_LANGUAGE_LABEL_RUBY,
+    CodeLanguageLabel.RUST.value: pb2.CODE_LANGUAGE_LABEL_RUST,
+    CodeLanguageLabel.SML.value: pb2.CODE_LANGUAGE_LABEL_SML,
+    CodeLanguageLabel.SQL.value: pb2.CODE_LANGUAGE_LABEL_SQL,
+    CodeLanguageLabel.SCALA.value: pb2.CODE_LANGUAGE_LABEL_SCALA,
+    CodeLanguageLabel.SCHEME.value: pb2.CODE_LANGUAGE_LABEL_SCHEME,
+    CodeLanguageLabel.SWIFT.value: pb2.CODE_LANGUAGE_LABEL_SWIFT,
+    CodeLanguageLabel.TYPESCRIPT.value: pb2.CODE_LANGUAGE_LABEL_TYPESCRIPT,
+    CodeLanguageLabel.UNKNOWN.value: pb2.CODE_LANGUAGE_LABEL_UNKNOWN,
+    CodeLanguageLabel.VISUALBASIC.value: pb2.CODE_LANGUAGE_LABEL_VISUALBASIC,
+    CodeLanguageLabel.XML.value: pb2.CODE_LANGUAGE_LABEL_XML,
+    CodeLanguageLabel.YAML.value: pb2.CODE_LANGUAGE_LABEL_YAML,
+}
+
 
 def _to_ref(ref: Optional[RefItem]) -> Optional[pb2.RefItem]:
     if ref is None:
@@ -210,6 +278,8 @@ def _to_track_source(source: TrackSource) -> pb2.TrackSource:
         msg.identifier = source.identifier
     if source.voice is not None:
         msg.voice = source.voice
+    if source.kind is not None:
+        msg.kind = source.kind
     return msg
 
 
@@ -440,6 +510,8 @@ def _to_picture_annotation(annotation) -> pb2.PictureAnnotation:
                 for p in annotation.points
             ],
         ))
+    else:
+        raise TypeError(f"Unsupported picture annotation type: {type(annotation)!r}")
     return msg
 
 
@@ -460,6 +532,8 @@ def _to_table_annotation(annotation) -> pb2.TableAnnotation:
                 struct.fields[str(k)].CopyFrom(_to_struct_value(v))
             misc.content.CopyFrom(struct)
         msg.misc.CopyFrom(misc)
+    else:
+        raise TypeError(f"Unsupported table annotation type: {type(annotation)!r}")
     return msg
 
 
@@ -481,7 +555,13 @@ def _to_bbox(bbox: Optional[BoundingBox]) -> Optional[pb2.BoundingBox]:
         return None
     msg = pb2.BoundingBox(l=bbox.l, t=bbox.t, r=bbox.r, b=bbox.b)
     if bbox.coord_origin is not None:
-        msg.coord_origin = str(bbox.coord_origin.value)
+        key = bbox.coord_origin.value if isinstance(bbox.coord_origin, Enum) else str(bbox.coord_origin)
+        enum_val = _COORD_ORIGIN_MAP.get(str(key))
+        if enum_val is None:
+            msg.coord_origin = pb2.COORD_ORIGIN_UNSPECIFIED
+            msg.coord_origin_raw = str(key)
+        else:
+            msg.coord_origin = enum_val
     return msg
 
 
@@ -569,7 +649,13 @@ def _to_code_item(item: CodeItem) -> pb2.CodeItem:
     if image is not None:
         msg.image.CopyFrom(image)
     if item.code_language is not None:
-        msg.code_language = str(item.code_language.value)
+        key = item.code_language.value if isinstance(item.code_language, Enum) else str(item.code_language)
+        enum_val = _CODE_LANGUAGE_MAP.get(str(key))
+        if enum_val is None:
+            msg.code_language = pb2.CODE_LANGUAGE_LABEL_UNSPECIFIED
+            msg.code_language_raw = str(key)
+        else:
+            msg.code_language = enum_val
     return msg
 
 
@@ -615,6 +701,8 @@ def _to_table_cell(cell: TableCell | RichTableCell) -> pb2.TableCell:
     bbox = _to_bbox(cell.bbox)
     if bbox is not None:
         msg.bbox.CopyFrom(bbox)
+    if getattr(cell, "ref", None) is not None:
+        msg.ref.CopyFrom(_to_ref(cell.ref))
     return msg
 
 

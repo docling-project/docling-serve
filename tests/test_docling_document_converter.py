@@ -109,7 +109,13 @@ def test_docling_document_to_proto_pages_map_keys():
 def test_docling_document_to_proto_text_items():
     doc = _base_doc()
 
-    track = TrackSource(start_time=1.0, end_time=2.0, identifier="seg-1", voice="Speaker")
+    track = TrackSource(
+        start_time=1.0,
+        end_time=2.0,
+        identifier="seg-1",
+        voice="Speaker",
+        kind="track",
+    )
     comment = FineRef(cref="#/comments/0", range=(2, 5))
     title = TitleItem(
         self_ref="#/texts/0",
@@ -144,6 +150,7 @@ def test_docling_document_to_proto_text_items():
     assert proto.texts[0].title.base.text == "Title"
     assert proto.texts[0].title.base.source[0].track.start_time == 1.0
     assert proto.texts[0].title.base.source[0].track.identifier == "seg-1"
+    assert proto.texts[0].title.base.source[0].track.kind == "track"
     assert proto.texts[0].title.base.comments[0].ref == "#/comments/0"
     assert proto.texts[0].title.base.comments[0].range.start == 2
     assert proto.texts[0].title.base.comments[0].range.end == 5
@@ -165,7 +172,17 @@ def test_docling_document_to_proto_table_grid():
         row_span=1,
         col_span=1,
     )
-    data = TableData(table_cells=[cell], num_rows=1, num_cols=1)
+    rich_cell = RichTableCell(
+        start_row_offset_idx=1,
+        end_row_offset_idx=2,
+        start_col_offset_idx=0,
+        end_col_offset_idx=1,
+        text="A2",
+        row_span=1,
+        col_span=1,
+        ref=_ref("#/tables/0"),
+    )
+    data = TableData(table_cells=[cell, rich_cell], num_rows=2, num_cols=1)
     table = TableItem(
         self_ref="#/tables/0",
         label=DocItemLabel.TABLE,
@@ -178,11 +195,11 @@ def test_docling_document_to_proto_table_grid():
 
     proto = docling_document_to_proto(doc)
     assert len(proto.tables) == 1
-    assert proto.tables[0].data.num_rows == 1
+    assert proto.tables[0].data.num_rows == 2
     assert proto.tables[0].data.num_cols == 1
-    assert len(proto.tables[0].data.grid) == 1
-    assert len(proto.tables[0].data.grid[0].cells) == 1
-    assert proto.tables[0].data.grid[0].cells[0].text == "A1"
+    assert len(proto.tables[0].data.table_cells) == 2
+    assert proto.tables[0].data.table_cells[0].text == "A1"
+    assert proto.tables[0].data.table_cells[1].ref.ref == "#/tables/0"
     assert proto.tables[0].source[0].track.end_time == 4.0
     assert proto.tables[0].comments[0].ref == "#/comments/1"
 
@@ -200,6 +217,13 @@ def test_docling_document_to_proto_picture_item():
     proto = docling_document_to_proto(doc)
     assert len(proto.pictures) == 1
     assert proto.pictures[0].label == DocItemLabel.PICTURE.value
+
+
+def test_annotation_unknown_type_raises():
+    with pytest.raises(TypeError, match="Unsupported picture annotation type"):
+        converter._to_picture_annotation(object())
+    with pytest.raises(TypeError, match="Unsupported table annotation type"):
+        converter._to_table_annotation(object())
 
 
 def test_docling_document_to_proto_key_value_graph():
@@ -346,7 +370,7 @@ def test_docling_document_to_proto_code_and_list_items():
     doc.texts = [code, list_item, formula]
 
     proto = docling_document_to_proto(doc)
-    assert proto.texts[0].code.code_language == CodeLanguageLabel.PYTHON.value
+    assert proto.texts[0].code.code_language == pb2.CODE_LANGUAGE_LABEL_PYTHON
     assert proto.texts[1].list_item.enumerated is True
     assert proto.texts[1].list_item.marker == "*"
     assert proto.texts[2].formula.base.text == "E=mc^2"
@@ -550,7 +574,7 @@ def test_docling_document_to_proto_text_meta_and_provenance_bbox():
     base = proto.texts[0].text.base
     assert base.meta.summary.text == "summary"
     assert base.prov[0].page_no == 2
-    assert base.prov[0].bbox.coord_origin == "BOTTOMLEFT"
+    assert base.prov[0].bbox.coord_origin == pb2.COORD_ORIGIN_BOTTOMLEFT
     assert base.prov[0].charspan.start == 5
     assert base.prov[0].charspan.end == 9
 

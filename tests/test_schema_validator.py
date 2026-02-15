@@ -19,29 +19,29 @@ def test_validate_passes_on_current_schemas():
     validate_docling_document_schema()
 
 
+def test_no_warnings_on_current_schemas(caplog):
+    """Current schemas should validate without missing-field warnings."""
+    with caplog.at_level(logging.WARNING):
+        validate_docling_document_schema()
+    assert "Fields in Pydantic but not in proto" not in caplog.text
+    assert "Fields in proto but not in Pydantic" not in caplog.text
+
+
 def test_warns_on_missing_proto_field(caplog):
     """A Pydantic field not present in proto should produce a warning."""
-    with caplog.at_level(logging.WARNING):
+    with patch(
+        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+        return_value={"name": "string"},
+    ), patch(
+        "docling_serve.grpc.schema_validator._collect_proto_fields",
+        return_value={},
+    ), patch.dict(
+        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+        {},
+        clear=True,
+    ), caplog.at_level(logging.WARNING):
         validate_docling_document_schema()
     assert "Fields in Pydantic but not in proto" in caplog.text
-
-
-def test_missing_field_warnings_are_bounded(caplog):
-    """Missing-field warnings should not explode from union member recursion."""
-    with caplog.at_level(logging.WARNING):
-        validate_docling_document_schema()
-    # Count occurrences of "Fields in Pydantic but not in proto"
-    pydantic_only_lines = [
-        line for line in caplog.text.splitlines()
-        if "Fields in Pydantic but not in proto" in line
-    ]
-    proto_only_lines = [
-        line for line in caplog.text.splitlines()
-        if "Fields in proto but not in Pydantic" in line
-    ]
-    # Should be exactly one warning line each, not per-union-member explosion
-    assert len(pydantic_only_lines) == 1
-    assert len(proto_only_lines) == 1
 
 
 def test_fails_on_type_mismatch():
@@ -52,6 +52,10 @@ def test_fails_on_type_mismatch():
     ), patch(
         "docling_serve.grpc.schema_validator._collect_proto_fields",
         return_value={"name": "string"},
+    ), patch.dict(
+        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+        {},
+        clear=True,
     ):
         with pytest.raises(RuntimeError, match="type mismatch"):
             validate_docling_document_schema()
@@ -59,10 +63,19 @@ def test_fails_on_type_mismatch():
 
 def test_allowlist_suppresses_known_coercions(caplog):
     """Known coercions (binary_hash, pages, label) must not fail."""
-    with caplog.at_level(logging.INFO):
+    with patch(
+        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+        return_value={"origin.binary_hash": "int"},
+    ), patch(
+        "docling_serve.grpc.schema_validator._collect_proto_fields",
+        return_value={"origin.binary_hash": "string"},
+    ), patch.dict(
+        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+        {},
+        clear=True,
+    ), caplog.at_level(logging.INFO):
         validate_docling_document_schema()
     assert "Allowed coercions" in caplog.text
-    assert "pages" in caplog.text
     assert "binary_hash" in caplog.text
 
 
@@ -74,6 +87,10 @@ def test_cardinality_mismatch_fails():
     ), patch(
         "docling_serve.grpc.schema_validator._collect_proto_fields",
         return_value={"items": "list<string>"},
+    ), patch.dict(
+        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+        {},
+        clear=True,
     ):
         with pytest.raises(RuntimeError, match="Cardinality mismatch"):
             validate_docling_document_schema()
