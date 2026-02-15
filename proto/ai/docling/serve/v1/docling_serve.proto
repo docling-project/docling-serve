@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package ai.docling.serve.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "DoclingServeProto";
+option java_package = "ai.docling.serve.v1";
+
+import "ai/docling/serve/v1/docling_serve_types.proto";
+
+// ============================================================================
+// Service Definition
+// ============================================================================
+
+// DoclingServeService is the gRPC service definition that provides a mapping
+// of the docling-serve REST API endpoints.
+//
+// Adheres to Buf linting and Google gRPC style guide by providing unique
+// request and response messages for every RPC.
+service DoclingServeService {
+
+  // Health check - mirrors GET /health
+  rpc Health(HealthRequest) returns (HealthResponse);
+
+  // Synchronous document conversion - mirrors POST /v1/convert/source
+  rpc ConvertSource(ConvertSourceRequest) returns (ConvertSourceResponse);
+
+  // Asynchronous document conversion - submits the task and returns status immediately.
+  rpc ConvertSourceAsync(ConvertSourceAsyncRequest) returns (ConvertSourceAsyncResponse);
+
+  // Synchronous hierarchical chunking - mirrors POST /v1/chunk/hierarchical/source
+  rpc ChunkHierarchicalSource(ChunkHierarchicalSourceRequest) returns (ChunkHierarchicalSourceResponse);
+
+  // Synchronous hybrid chunking - mirrors POST /v1/chunk/hybrid/source
+  rpc ChunkHybridSource(ChunkHybridSourceRequest) returns (ChunkHybridSourceResponse);
+
+  // Async hierarchical chunking - mirrors POST /v1/chunk/hierarchical/source/async
+  rpc ChunkHierarchicalSourceAsync(ChunkHierarchicalSourceAsyncRequest) returns (ChunkHierarchicalSourceAsyncResponse);
+
+  // Async hybrid chunking - mirrors POST /v1/chunk/hybrid/source/async
+  rpc ChunkHybridSourceAsync(ChunkHybridSourceAsyncRequest) returns (ChunkHybridSourceAsyncResponse);
+
+  // Poll async task status - mirrors GET /v1/status/poll/{taskId}
+  rpc PollTaskStatus(PollTaskStatusRequest) returns (PollTaskStatusResponse);
+
+  // Get convert task result - mirrors GET /v1/result/{taskId} for convert tasks
+  rpc GetConvertResult(GetConvertResultRequest) returns (GetConvertResultResponse);
+
+  // Get chunk task result - mirrors GET /v1/result/{taskId} for chunk tasks
+  rpc GetChunkResult(GetChunkResultRequest) returns (GetChunkResultResponse);
+
+  // Clear converters - mirrors GET /v1/clear/converters
+  rpc ClearConverters(ClearConvertersRequest) returns (ClearConvertersResponse);
+
+  // Clear stale results - mirrors GET /v1/clear/results
+  rpc ClearResults(ClearResultsRequest) returns (ClearResultsResponse);
+
+  // Streaming document conversion - sends results as they complete per source.
+  // This is an addition beyond the REST API that leverages gRPC's streaming.
+  rpc ConvertSourceStream(ConvertSourceStreamRequest) returns (stream ConvertSourceStreamResponse);
+
+  // --- Watch RPCs (server-managed polling via streaming) ---
+  // These RPCs submit the task, then internally poll and stream each status
+  // update until the task completes or fails. Clients just read the stream
+  // instead of managing their own poll loop.
+
+  // Watch convert task - submit and stream status updates until done.
+  rpc WatchConvertSource(WatchConvertSourceRequest) returns (stream WatchConvertSourceResponse);
+
+  // Watch hierarchical chunk task - submit and stream status updates until done.
+  rpc WatchChunkHierarchicalSource(WatchChunkHierarchicalSourceRequest) returns (stream WatchChunkHierarchicalSourceResponse);
+
+  // Watch hybrid chunk task - submit and stream status updates until done.
+  rpc WatchChunkHybridSource(WatchChunkHybridSourceRequest) returns (stream WatchChunkHybridSourceResponse);
+}
+
+// ============================================================================
+// RPC Request / Response Wrappers
+// ============================================================================
+
+// --- Health ---
+
+message HealthRequest {}
+
+message HealthResponse {
+  optional string status = 1;
+}
+
+// --- Convert ---
+
+message ConvertSourceRequest {
+  ConvertDocumentRequest request = 1;
+}
+
+message ConvertSourceResponse {
+  ConvertDocumentResponse response = 1;
+}
+
+message ConvertSourceAsyncRequest {
+  ConvertDocumentRequest request = 1;
+}
+
+message ConvertSourceAsyncResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+message ConvertSourceStreamRequest {
+  ConvertDocumentRequest request = 1;
+}
+
+message ConvertSourceStreamResponse {
+  ConvertDocumentResponse response = 1;
+}
+
+// --- Chunk ---
+
+message ChunkHierarchicalSourceRequest {
+  HierarchicalChunkRequest request = 1;
+}
+
+message ChunkHierarchicalSourceResponse {
+  ChunkDocumentResponse response = 1;
+}
+
+message ChunkHybridSourceRequest {
+  HybridChunkRequest request = 1;
+}
+
+message ChunkHybridSourceResponse {
+  ChunkDocumentResponse response = 1;
+}
+
+message ChunkHierarchicalSourceAsyncRequest {
+  HierarchicalChunkRequest request = 1;
+}
+
+message ChunkHierarchicalSourceAsyncResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+message ChunkHybridSourceAsyncRequest {
+  HybridChunkRequest request = 1;
+}
+
+message ChunkHybridSourceAsyncResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+// --- Task ---
+
+message PollTaskStatusRequest {
+  TaskStatusPollRequest request = 1;
+}
+
+message PollTaskStatusResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+message GetConvertResultRequest {
+  TaskResultRequest request = 1;
+}
+
+message GetConvertResultResponse {
+  ConvertDocumentResponse response = 1;
+}
+
+message GetChunkResultRequest {
+  TaskResultRequest request = 1;
+}
+
+message GetChunkResultResponse {
+  ChunkDocumentResponse response = 1;
+}
+
+// --- Clear ---
+
+message ClearConvertersRequest {}
+
+message ClearConvertersResponse {
+  ClearResponse response = 1;
+}
+
+message ClearResultsRequest {
+  // Clear results older than this many seconds (default: 3600)
+  optional double older_than = 1;
+}
+
+message ClearResultsResponse {
+  ClearResponse response = 1;
+}
+
+// --- Watch ---
+
+message WatchConvertSourceRequest {
+  ConvertDocumentRequest request = 1;
+}
+
+message WatchConvertSourceResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+message WatchChunkHierarchicalSourceRequest {
+  HierarchicalChunkRequest request = 1;
+}
+
+message WatchChunkHierarchicalSourceResponse {
+  TaskStatusPollResponse response = 1;
+}
+
+message WatchChunkHybridSourceRequest {
+  HybridChunkRequest request = 1;
+}
+
+message WatchChunkHybridSourceResponse {
+  TaskStatusPollResponse response = 1;
+}

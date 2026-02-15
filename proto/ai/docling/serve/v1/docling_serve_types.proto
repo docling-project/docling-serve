@@ -1,0 +1,482 @@
+syntax = "proto3";
+
+package ai.docling.serve.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "DoclingServeTypesProto";
+option java_package = "ai.docling.serve.v1";
+
+import "ai/docling/core/v1/docling_document.proto";
+import "google/protobuf/struct.proto";
+
+// ============================================================================
+// Enumerations - 1:1 mapping of the REST API enum types
+// ============================================================================
+
+// Input document format types supported by Docling.
+enum InputFormat {
+  INPUT_FORMAT_UNSPECIFIED = 0;
+  INPUT_FORMAT_ASCIIDOC = 1;
+  INPUT_FORMAT_AUDIO = 2;
+  INPUT_FORMAT_CSV = 3;
+  INPUT_FORMAT_DOCX = 4;
+  INPUT_FORMAT_HTML = 5;
+  INPUT_FORMAT_IMAGE = 6;
+  INPUT_FORMAT_JSON_DOCLING = 7;
+  INPUT_FORMAT_MD = 8;
+  INPUT_FORMAT_METS_GBS = 9;
+  INPUT_FORMAT_PDF = 10;
+  INPUT_FORMAT_PPTX = 11;
+  INPUT_FORMAT_XLSX = 12;
+  INPUT_FORMAT_XML_JATS = 13;
+  INPUT_FORMAT_XML_USPTO = 14;
+}
+
+// Output format types for converted documents.
+enum OutputFormat {
+  OUTPUT_FORMAT_UNSPECIFIED = 0;
+  OUTPUT_FORMAT_DOCTAGS = 1;
+  OUTPUT_FORMAT_HTML = 2;
+  OUTPUT_FORMAT_HTML_SPLIT_PAGE = 3;
+  OUTPUT_FORMAT_JSON = 4;
+  OUTPUT_FORMAT_MD = 5;
+  OUTPUT_FORMAT_TEXT = 6;
+}
+
+// OCR engine selection.
+enum OcrEngine {
+  OCR_ENGINE_UNSPECIFIED = 0;
+  OCR_ENGINE_AUTO = 1;
+  OCR_ENGINE_EASYOCR = 2;
+  OCR_ENGINE_OCRMAC = 3;
+  OCR_ENGINE_RAPIDOCR = 4;
+  OCR_ENGINE_TESSEROCR = 5;
+  OCR_ENGINE_TESSERACT = 6;
+}
+
+// PDF processing backend.
+enum PdfBackend {
+  PDF_BACKEND_UNSPECIFIED = 0;
+  PDF_BACKEND_DLPARSE_V1 = 1;
+  PDF_BACKEND_DLPARSE_V2 = 2;
+  PDF_BACKEND_DLPARSE_V4 = 3;
+  PDF_BACKEND_PYPDFIUM2 = 4;
+}
+
+// Table structure extraction mode.
+enum TableFormerMode {
+  TABLE_FORMER_MODE_UNSPECIFIED = 0;
+  TABLE_FORMER_MODE_ACCURATE = 1;
+  TABLE_FORMER_MODE_FAST = 2;
+}
+
+// Document processing pipeline.
+enum ProcessingPipeline {
+  PROCESSING_PIPELINE_UNSPECIFIED = 0;
+  PROCESSING_PIPELINE_ASR = 1;
+  PROCESSING_PIPELINE_STANDARD = 2;
+  PROCESSING_PIPELINE_VLM = 3;
+}
+
+// Image reference mode for export.
+enum ImageRefMode {
+  IMAGE_REF_MODE_UNSPECIFIED = 0;
+  IMAGE_REF_MODE_EMBEDDED = 1;
+  IMAGE_REF_MODE_PLACEHOLDER = 2;
+  IMAGE_REF_MODE_REFERENCED = 3;
+}
+
+// Preset VLM model types.
+enum VlmModelType {
+  VLM_MODEL_TYPE_UNSPECIFIED = 0;
+  VLM_MODEL_TYPE_SMOLDOCLING = 1;
+  VLM_MODEL_TYPE_SMOLDOCLING_VLLM = 2;
+  VLM_MODEL_TYPE_GRANITE_VISION = 3;
+  VLM_MODEL_TYPE_GRANITE_VISION_VLLM = 4;
+  VLM_MODEL_TYPE_GRANITE_VISION_OLLAMA = 5;
+  VLM_MODEL_TYPE_GOT_OCR_2 = 6;
+}
+
+// Response format for VLM model output.
+enum ResponseFormat {
+  RESPONSE_FORMAT_UNSPECIFIED = 0;
+  RESPONSE_FORMAT_DOCTAGS = 1;
+  RESPONSE_FORMAT_MARKDOWN = 2;
+  RESPONSE_FORMAT_HTML = 3;
+  RESPONSE_FORMAT_OTSL = 4;
+  RESPONSE_FORMAT_PLAINTEXT = 5;
+}
+
+// Inference framework for local VLM models.
+enum InferenceFramework {
+  INFERENCE_FRAMEWORK_UNSPECIFIED = 0;
+  INFERENCE_FRAMEWORK_MLX = 1;
+  INFERENCE_FRAMEWORK_TRANSFORMERS = 2;
+  INFERENCE_FRAMEWORK_VLLM = 3;
+}
+
+// Type of transformers auto-model to use.
+enum TransformersModelType {
+  TRANSFORMERS_MODEL_TYPE_UNSPECIFIED = 0;
+  TRANSFORMERS_MODEL_TYPE_AUTOMODEL = 1;
+  TRANSFORMERS_MODEL_TYPE_AUTOMODEL_VISION2SEQ = 2;
+  TRANSFORMERS_MODEL_TYPE_AUTOMODEL_CAUSALLM = 3;
+  TRANSFORMERS_MODEL_TYPE_AUTOMODEL_IMAGETEXTTOTEXT = 4;
+}
+
+// Async task status.
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_STARTED = 2;
+  TASK_STATUS_SUCCESS = 3;
+  TASK_STATUS_FAILURE = 4;
+}
+
+// ============================================================================
+// Source Types - where documents come from
+// ============================================================================
+
+// Source represents a document input source (polymorphic via oneof).
+message Source {
+  oneof source {
+    FileSource file = 1;
+    HttpSource http = 2;
+    S3Source s3 = 3;
+  }
+}
+
+// FileSource provides a document as base64-encoded content.
+message FileSource {
+  // Base64-encoded file content
+  string base64_string = 1;
+  // Original filename
+  string filename = 2;
+}
+
+// HttpSource provides a document via HTTP URL.
+message HttpSource {
+  // URL to fetch the document from
+  string url = 1;
+  // Optional HTTP headers (e.g., authentication)
+  map<string, string> headers = 2;
+}
+
+// S3Source provides a document from an S3-compatible store.
+message S3Source {
+  string endpoint = 1;
+  string access_key = 2;
+  string secret_key = 3;
+  string bucket = 4;
+  optional string key_prefix = 5;
+  bool verify_ssl = 6;
+}
+
+// ============================================================================
+// Target Types - where results go
+// ============================================================================
+
+// Target represents a result destination (polymorphic via oneof).
+message Target {
+  oneof target {
+    InBodyTarget inbody = 1;
+    PutTarget put = 2;
+    S3Target s3 = 3;
+    ZipTarget zip = 4;
+  }
+}
+
+// InBodyTarget returns results in the response body (default).
+message InBodyTarget {}
+
+// PutTarget sends results via HTTP PUT.
+message PutTarget {
+  string url = 1;
+}
+
+// S3Target sends results to an S3-compatible store.
+message S3Target {
+  string endpoint = 1;
+  string access_key = 2;
+  string secret_key = 3;
+  string bucket = 4;
+  optional string key_prefix = 5;
+  bool verify_ssl = 6;
+}
+
+// ZipTarget returns results as a ZIP archive.
+message ZipTarget {}
+
+// ============================================================================
+// Convert Options
+// ============================================================================
+
+// PictureDescriptionLocal configures a local VLM for picture descriptions.
+message PictureDescriptionLocal {
+  // Hugging Face repository ID
+  string repo_id = 1;
+  // Optional prompt for the model
+  optional string prompt = 2;
+  // Optional generation config parameters
+  map<string, google.protobuf.Value> generation_config = 3;
+}
+
+// PictureDescriptionApi configures an API-based VLM for picture descriptions.
+message PictureDescriptionApi {
+  // API endpoint URL
+  string url = 1;
+  // Optional HTTP headers
+  map<string, string> headers = 2;
+  // Optional model parameters
+  map<string, google.protobuf.Value> params = 3;
+  // Timeout in seconds
+  optional double timeout = 4;
+  // Max concurrent requests
+  optional int32 concurrency = 5;
+  // Optional prompt
+  optional string prompt = 6;
+}
+
+// VlmModelLocal configures a local vision-language model for the VLM pipeline.
+message VlmModelLocal {
+  optional string repo_id = 1;
+  optional string prompt = 2;
+  optional int32 scale = 3;
+  optional ResponseFormat response_format = 4;
+  optional InferenceFramework inference_framework = 5;
+  optional TransformersModelType transformers_model_type = 6;
+  map<string, google.protobuf.Value> extra_generation_config = 7;
+}
+
+// VlmModelApi configures an API-based vision-language model for the VLM pipeline.
+message VlmModelApi {
+  optional string url = 1;
+  map<string, string> headers = 2;
+  map<string, google.protobuf.Value> params = 3;
+  optional double timeout = 4;
+  optional int32 concurrency = 5;
+  optional string prompt = 6;
+  optional int32 scale = 7;
+  optional ResponseFormat response_format = 8;
+}
+
+// ConvertDocumentOptions mirrors all conversion settings from the REST API.
+message ConvertDocumentOptions {
+  // Input format(s) to convert from
+  repeated InputFormat from_formats = 1;
+  // Output format(s) to convert to
+  repeated OutputFormat to_formats = 2;
+  // Image export mode
+  optional ImageRefMode image_export_mode = 3;
+  // Enable OCR processing
+  optional bool do_ocr = 4;
+  // Replace text with OCR output
+  optional bool force_ocr = 5;
+  // OCR engine selection
+  optional OcrEngine ocr_engine = 6;
+  // OCR language codes
+  repeated string ocr_lang = 7;
+  // PDF processing backend
+  optional PdfBackend pdf_backend = 8;
+  // Table structure mode
+  optional TableFormerMode table_mode = 9;
+  // Match table cells to PDF cells
+  optional bool table_cell_matching = 10;
+  // Processing pipeline
+  optional ProcessingPipeline pipeline = 11;
+  // Page range to process (1-indexed)
+  repeated int32 page_range = 12;
+  // Per-document timeout in seconds
+  optional double document_timeout = 13;
+  // Abort on first error
+  optional bool abort_on_error = 14;
+  // Extract table structure
+  optional bool do_table_structure = 15;
+  // Extract images
+  optional bool include_images = 16;
+  // Image scale factor
+  optional double images_scale = 17;
+  // Markdown page break placeholder
+  optional string md_page_break_placeholder = 18;
+  // Enable code OCR enrichment
+  optional bool do_code_enrichment = 19;
+  // Enable formula OCR enrichment
+  optional bool do_formula_enrichment = 20;
+  // Enable picture classification
+  optional bool do_picture_classification = 21;
+  // Enable picture description
+  optional bool do_picture_description = 22;
+  // Min area percentage for picture processing
+  optional double picture_description_area_threshold = 23;
+  // Local VLM for picture description (mutually exclusive with api)
+  optional PictureDescriptionLocal picture_description_local = 24;
+  // API VLM for picture description (mutually exclusive with local)
+  optional PictureDescriptionApi picture_description_api = 25;
+  // Preset VLM model (mutually exclusive with local/api)
+  optional VlmModelType vlm_pipeline_model = 26;
+  // Local VLM model string (mutually exclusive with api/preset)
+  optional string vlm_pipeline_model_local = 27;
+  // API VLM model string (mutually exclusive with local/preset)
+  optional string vlm_pipeline_model_api = 28;
+}
+
+// ============================================================================
+// Error types
+// ============================================================================
+
+// ErrorItem represents a processing error from a specific component.
+message ErrorItem {
+  string component_type = 1;
+  string error_message = 2;
+  string module_name = 3;
+}
+
+// ============================================================================
+// Document response types
+// ============================================================================
+
+// DocumentResponse contains the converted document in multiple output formats.
+message DocumentResponse {
+  // Filename of the source document
+  string filename = 1;
+  // Full DoclingDocument JSON structure
+  optional ai.docling.core.v1.DoclingDocument json_content = 2;
+  // Markdown representation
+  optional string md_content = 3;
+  // HTML representation
+  optional string html_content = 4;
+  // Plain text representation
+  optional string text_content = 5;
+  // DocTags representation
+  optional string doctags_content = 6;
+}
+
+// ExportDocumentResponse is the document format used within chunk responses.
+message ExportDocumentResponse {
+  string filename = 1;
+  optional ai.docling.core.v1.DoclingDocument json_content = 2;
+  optional string md_content = 3;
+  optional string html_content = 4;
+  optional string text_content = 5;
+  optional string doctags_content = 6;
+}
+
+// Document wraps an exported document with status and error info.
+message Document {
+  optional string kind = 1;
+  ExportDocumentResponse content = 2;
+  string status = 3;
+  repeated ErrorItem errors = 4;
+}
+
+// ============================================================================
+// Task types
+// ============================================================================
+
+// TaskStatusMetadata provides progress information for async tasks.
+message TaskStatusMetadata {
+  int64 num_docs = 1;
+  int64 num_processed = 2;
+  int64 num_succeeded = 3;
+  int64 num_failed = 4;
+}
+
+// ============================================================================
+// Request / Response Domain Models (Moved from docling_serve.proto)
+// ============================================================================
+
+// ConvertDocumentRequest mirrors POST /v1/convert/source
+message ConvertDocumentRequest {
+  repeated Source sources = 1;
+  ConvertDocumentOptions options = 2;
+  optional Target target = 3;
+}
+
+// ConvertDocumentResponse mirrors the REST convert response body.
+message ConvertDocumentResponse {
+  DocumentResponse document = 1;
+  repeated ErrorItem errors = 2;
+  double processing_time = 3;
+  string status = 4;
+  map<string, double> timings = 5;
+}
+
+// HierarchicalChunkerOptions configures the hierarchical chunker.
+message HierarchicalChunkerOptions {
+  bool use_markdown_tables = 1;
+  bool include_raw_text = 2;
+}
+
+// HybridChunkerOptions configures the hybrid chunker.
+message HybridChunkerOptions {
+  bool use_markdown_tables = 1;
+  bool include_raw_text = 2;
+  optional int32 max_tokens = 3;
+  optional string tokenizer = 4;
+  optional bool merge_peers = 5;
+}
+
+// HierarchicalChunkRequest mirrors POST /v1/chunk/hierarchical/source
+message HierarchicalChunkRequest {
+  repeated Source sources = 1;
+  ConvertDocumentOptions convert_options = 2;
+  optional Target target = 3;
+  bool include_converted_doc = 4;
+  HierarchicalChunkerOptions chunking_options = 5;
+}
+
+// HybridChunkRequest mirrors POST /v1/chunk/hybrid/source
+message HybridChunkRequest {
+  repeated Source sources = 1;
+  ConvertDocumentOptions convert_options = 2;
+  optional Target target = 3;
+  bool include_converted_doc = 4;
+  HybridChunkerOptions chunking_options = 5;
+}
+
+// Chunk represents a single document chunk in the response.
+message Chunk {
+  string filename = 1;
+  int32 chunk_index = 2;
+  string text = 3;
+  optional string raw_text = 4;
+  optional int32 num_tokens = 5;
+  repeated string headings = 6;
+  repeated string captions = 7;
+  repeated string doc_items = 8;
+  repeated int32 page_numbers = 9;
+  map<string, string> metadata = 10;
+}
+
+// ChunkDocumentResponse mirrors the REST chunk response body.
+message ChunkDocumentResponse {
+  repeated Chunk chunks = 1;
+  repeated Document documents = 2;
+  double processing_time = 3;
+}
+
+// TaskStatusPollRequest mirrors GET /v1/status/poll/{taskId}
+message TaskStatusPollRequest {
+  string task_id = 1;
+  // Wait time in seconds (0 = no wait / immediate poll)
+  double wait_time = 2;
+}
+
+// TaskStatusPollResponse mirrors the REST task status response.
+message TaskStatusPollResponse {
+  string task_id = 1;
+  optional string task_type = 2;
+  TaskStatus task_status = 3;
+  optional int64 task_position = 4;
+  optional TaskStatusMetadata task_meta = 5;
+}
+
+// TaskResultRequest mirrors GET /v1/result/{taskId}
+message TaskResultRequest {
+  string task_id = 1;
+}
+
+// ClearResponse mirrors the REST clear response body.
+message ClearResponse {
+  optional string status = 1;
+}

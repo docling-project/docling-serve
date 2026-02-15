@@ -52,6 +52,8 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.57b0,<0.58",
     "opentelemetry-exporter-prometheus>=0.57b0",
     "prometheus-client>=0.21.0",
+    "grpcio>=1.76.0",
+    "protobuf>=4.29.3",
 ]
 
 [project.optional-dependencies]
@@ -86,6 +88,7 @@ dev = [
     "pytest-check~=2.4",
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
+    "grpcio-tools>=1.76.0",
 ]
 
 pypi = [
@@ -203,6 +206,7 @@ namespaces = true
 
 [project.scripts]
 docling-serve = "docling_serve.__main__:main"
+docling-serve-grpc = "docling_serve.grpc.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/docling-project/docling-serve"
@@ -311,6 +315,7 @@ testpaths = [
 addopts = "-rA --color=yes --tb=short --maxfail=5"
 markers = [
 "asyncio",
+"ocr",
 ]
 
 [tool.semantic_release]
