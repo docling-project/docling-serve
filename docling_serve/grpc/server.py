@@ -13,7 +13,11 @@ from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator, Tas
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.settings import docling_serve_settings
 
-from .gen.ai.docling.serve.v1 import docling_serve_pb2, docling_serve_pb2_grpc
+from .gen.ai.docling.serve.v1 import (
+    docling_serve_pb2,
+    docling_serve_pb2_grpc,
+    docling_serve_types_pb2,
+)
 from .mapping import (
     chunk_result_to_proto,
     clear_response_to_proto,
@@ -517,7 +521,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         request: docling_serve_pb2.WatchChunkHierarchicalSourceRequest,
         context: grpc.aio.ServicerContext,
     ) -> AsyncIterator[docling_serve_pb2.WatchChunkHierarchicalSourceResponse]:
-        self._check_api_key(context)
+        await self._check_api_key(context)
         await self._ensure_queue_started()
 
         sources = to_task_sources(request.request.sources)
@@ -551,7 +555,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         request: docling_serve_pb2.WatchChunkHybridSourceRequest,
         context: grpc.aio.ServicerContext,
     ) -> AsyncIterator[docling_serve_pb2.WatchChunkHybridSourceResponse]:
-        self._check_api_key(context)
+        await self._check_api_key(context)
         await self._ensure_queue_started()
 
         sources = to_task_sources(request.request.sources)

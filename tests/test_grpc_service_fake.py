@@ -15,6 +15,7 @@ from docling_jobkit.datamodel.result import (
 )
 from docling_jobkit.datamodel.task import Task
 from docling_jobkit.datamodel.task_meta import TaskProcessingMeta, TaskStatus, TaskType
+from docling_jobkit.orchestrators.base_orchestrator import TaskNotFoundError
 
 from docling_serve.grpc.gen.ai.docling.serve.v1 import (
     docling_serve_pb2,
@@ -55,6 +56,18 @@ class FakeOrchestrator:
         )
         self.tasks[task_id] = task
         self.positions[task_id] = 0
+        if task_type == TaskType.CONVERT:
+            export = ExportResult(
+                content=ExportDocumentResponse(filename="doc.md", md_content="hello"),
+                status=ConversionStatus.SUCCESS,
+            )
+            self.results[task_id] = DoclingTaskResult(
+                result=export,
+                processing_time=0.1,
+                num_converted=1,
+                num_succeeded=1,
+                num_failed=0,
+            )
         return task
 
     async def task_status(self, *, task_id: str, wait: float | None = None) -> Task:
@@ -204,6 +217,18 @@ async def test_poll_task_status(grpc_stub, orchestrator):
 
 
 @pytest.mark.asyncio
+async def test_poll_task_status_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.PollTaskStatus(
+            docling_serve_pb2.PollTaskStatusRequest(
+                request=docling_serve_types_pb2.TaskStatusPollRequest(task_id="missing")
+            )
+        )
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
 async def test_clear_results_and_converters(grpc_stub, orchestrator):
     response = await grpc_stub.ClearResults(
         docling_serve_pb2.ClearResultsRequest(older_than=12)
@@ -239,3 +264,83 @@ async def test_watch_convert_source(grpc_stub):
             docling_serve_types_pb2.TASK_STATUS_STARTED,
         )
         break
+
+
+@pytest.mark.asyncio
+async def test_watch_chunk_hierarchical_source(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+        request=docling_serve_types_pb2.HierarchicalChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            chunking_options=docling_serve_types_pb2.HierarchicalChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=False,
+            ),
+        )
+    )
+
+    async for response in grpc_stub.WatchChunkHierarchicalSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+@pytest.mark.asyncio
+async def test_watch_chunk_hybrid_source(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.WatchChunkHybridSourceRequest(
+        request=docling_serve_types_pb2.HybridChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            chunking_options=docling_serve_types_pb2.HybridChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=False,
+                max_tokens=64,
+            ),
+        )
+    )
+
+    async for response in grpc_stub.WatchChunkHybridSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+@pytest.mark.asyncio
+async def test_convert_source_stream(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceStreamRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ]
+        )
+    )
+
+    responses = [response async for response in grpc_stub.ConvertSourceStream(request)]
+    assert len(responses) == 1
+    assert responses[0].response.HasField("document")
