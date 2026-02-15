@@ -25,6 +25,8 @@ from docling_serve.grpc.gen.ai.docling.serve.v1 import (
 from docling_serve.grpc.server import DoclingServeGrpcService
 from docling_serve.settings import docling_serve_settings
 
+pytestmark = pytest.mark.unit
+
 
 class FakeOrchestrator:
     def __init__(self) -> None:
@@ -161,6 +163,18 @@ async def test_get_convert_result(grpc_stub, orchestrator):
 
 
 @pytest.mark.asyncio
+async def test_get_convert_result_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.GetConvertResult(
+            docling_serve_pb2.GetConvertResultRequest(
+                request=docling_serve_types_pb2.TaskResultRequest(task_id="missing")
+            )
+        )
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
 async def test_get_chunk_result(grpc_stub, orchestrator):
     task_id = "chunk-1"
     chunk = ChunkedDocumentResultItem(
@@ -193,6 +207,18 @@ async def test_get_chunk_result(grpc_stub, orchestrator):
 
     assert len(response.response.chunks) == 1
     assert response.response.chunks[0].text == "chunk text"
+
+
+@pytest.mark.asyncio
+async def test_get_chunk_result_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.GetChunkResult(
+            docling_serve_pb2.GetChunkResultRequest(
+                request=docling_serve_types_pb2.TaskResultRequest(task_id="missing")
+            )
+        )
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -344,3 +370,187 @@ async def test_convert_source_stream(grpc_stub):
     responses = [response async for response in grpc_stub.ConvertSourceStream(request)]
     assert len(responses) == 1
     assert responses[0].response.HasField("document")
+
+
+# --------------- API key enforcement for streaming RPCs ---------------
+
+
+@pytest_asyncio.fixture
+async def api_key_server():
+    """Server with API key required."""
+    original_key = docling_serve_settings.api_key
+    docling_serve_settings.api_key = "test-secret-key"
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
+
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    server = grpc.aio.server(options=options)
+    orchestrator = FakeOrchestrator()
+    service = DoclingServeGrpcService(orchestrator=orchestrator)
+    await service.start()
+    docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+
+    port = server.add_insecure_port("[::]:0")
+    await server.start()
+
+    yield f"localhost:{port}"
+
+    await service.close()
+    await server.stop(grace=1)
+    docling_serve_settings.api_key = original_key
+    docling_serve_settings.single_use_results = original_single_use
+
+
+@pytest_asyncio.fixture
+async def api_key_stub(api_key_server):
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    async with grpc.aio.insecure_channel(api_key_server, options=options) as channel:
+        yield docling_serve_pb2_grpc.DoclingServeServiceStub(channel)
+
+
+def _dummy_convert_request():
+    return docling_serve_types_pb2.ConvertDocumentRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ]
+    )
+
+
+def _dummy_hierarchical_request():
+    return docling_serve_types_pb2.HierarchicalChunkRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ],
+    )
+
+
+def _dummy_hybrid_request():
+    return docling_serve_types_pb2.HybridChunkRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_key_health_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await api_key_stub.Health(docling_serve_pb2.HealthRequest())
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_health_accepted(api_key_stub):
+    response = await api_key_stub.Health(
+        docling_serve_pb2.HealthRequest(),
+        metadata=(("x-api-key", "test-secret-key"),),
+    )
+    assert response.status == "ok"
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_convert_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchConvertSource(
+            docling_serve_pb2.WatchConvertSourceRequest(request=_dummy_convert_request())
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_chunk_hierarchical_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchChunkHierarchicalSource(
+            docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+                request=_dummy_hierarchical_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_chunk_hybrid_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchChunkHybridSource(
+            docling_serve_pb2.WatchChunkHybridSourceRequest(
+                request=_dummy_hybrid_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_convert_source_stream_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.ConvertSourceStream(
+            docling_serve_pb2.ConvertSourceStreamRequest(request=_dummy_convert_request())
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_streaming_accepted_with_key(api_key_stub):
+    """Streaming RPCs succeed when the correct API key is provided."""
+    metadata = (("x-api-key", "test-secret-key"),)
+
+    async for response in api_key_stub.WatchConvertSource(
+        docling_serve_pb2.WatchConvertSourceRequest(request=_dummy_convert_request()),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+    async for response in api_key_stub.WatchChunkHierarchicalSource(
+        docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+            request=_dummy_hierarchical_request()
+        ),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+    async for response in api_key_stub.WatchChunkHybridSource(
+        docling_serve_pb2.WatchChunkHybridSourceRequest(
+            request=_dummy_hybrid_request()
+        ),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break

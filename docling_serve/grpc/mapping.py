@@ -446,10 +446,23 @@ def to_hybrid_chunk_options(
 # -------------------- Python domain -> Proto --------------------
 
 
+def _coerce_binary_hash(value):
+    if isinstance(value, dict):
+        return {
+            key: (str(val) if key == "binary_hash" and isinstance(val, int) else _coerce_binary_hash(val))
+            for key, val in value.items()
+        }
+    if isinstance(value, list):
+        return [_coerce_binary_hash(item) for item in value]
+    return value
+
+
 def _docling_document_to_proto(doc) -> docling_document_pb2.DoclingDocument:
     message = docling_document_pb2.DoclingDocument()
+    payload = doc.model_dump(exclude_none=True)
+    payload = _coerce_binary_hash(payload)
     json_format.ParseDict(
-        doc.model_dump(exclude_none=True),
+        payload,
         message,
         ignore_unknown_fields=True,
     )
@@ -474,7 +487,10 @@ def _timings_to_proto(timings: dict[str, ProfilingItem]) -> dict[str, float]:
 def export_document_to_proto(doc) -> docling_serve_types_pb2.ExportDocumentResponse:
     message = docling_serve_types_pb2.ExportDocumentResponse(filename=doc.filename)
     if doc.json_content is not None:
-        message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
+        try:
+            message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
+        except Exception as exc:
+            _log.warning("Failed to serialize json_content for export document: %s", exc)
     if doc.md_content is not None:
         message.md_content = doc.md_content
     if doc.html_content is not None:
@@ -489,7 +505,10 @@ def export_document_to_proto(doc) -> docling_serve_types_pb2.ExportDocumentRespo
 def document_response_to_proto(doc) -> docling_serve_types_pb2.DocumentResponse:
     message = docling_serve_types_pb2.DocumentResponse(filename=doc.filename)
     if doc.json_content is not None:
-        message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
+        try:
+            message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
+        except Exception as exc:
+            _log.warning("Failed to serialize json_content for document response: %s", exc)
     if doc.md_content is not None:
         message.md_content = doc.md_content
     if doc.html_content is not None:

@@ -34,6 +34,8 @@ from docling_serve.grpc.mapping import (
     to_task_target,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def test_enum_mappings():
     assert _map_input_format(docling_serve_types_pb2.INPUT_FORMAT_PDF) == InputFormat.PDF
@@ -232,4 +234,51 @@ def test_task_status_enum():
     assert (
         _task_status_enum("unknown")
         == docling_serve_types_pb2.TaskStatus.TASK_STATUS_UNSPECIFIED
+    )
+
+
+def test_enum_mappings_unspecified_returns_none():
+    """UNSPECIFIED (0) must map to None for every enum mapper."""
+    assert _map_input_format(0) is None
+    assert _map_output_format(0) is None
+    assert _map_image_ref_mode(0) is None
+    assert _map_ocr_engine(0) is None
+    assert _map_pdf_backend(0) is None
+    assert _map_table_mode(0) is None
+    assert _map_pipeline(0) is None
+    assert _map_vlm_model_type(0) is None
+    assert _map_response_format(0) is None
+    assert _map_inference_framework(0) is None
+    assert _map_transformers_model_type(0) is None
+
+
+def test_enum_mappings_bogus_values_return_none():
+    """Out-of-range / future enum values must map to None, not crash."""
+    bogus = 9999
+    assert _map_input_format(bogus) is None
+    assert _map_output_format(bogus) is None
+    assert _map_image_ref_mode(bogus) is None
+    assert _map_ocr_engine(bogus) is None
+    assert _map_pdf_backend(bogus) is None
+    assert _map_table_mode(bogus) is None
+    assert _map_pipeline(bogus) is None
+    assert _map_vlm_model_type(bogus) is None
+    assert _map_response_format(bogus) is None
+    assert _map_inference_framework(bogus) is None
+    assert _map_transformers_model_type(bogus) is None
+
+
+def test_task_status_enum_all_values():
+    """Every known TaskStatus string maps to the correct proto enum."""
+    assert (
+        _task_status_enum("pending")
+        == docling_serve_types_pb2.TaskStatus.TASK_STATUS_PENDING
+    )
+    assert (
+        _task_status_enum("started")
+        == docling_serve_types_pb2.TaskStatus.TASK_STATUS_STARTED
+    )
+    assert (
+        _task_status_enum("failure")
+        == docling_serve_types_pb2.TaskStatus.TASK_STATUS_FAILURE
     )

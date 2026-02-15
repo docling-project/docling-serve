@@ -316,6 +316,8 @@ addopts = "-rA --color=yes --tb=short --maxfail=5"
 markers = [
 "asyncio",
 "ocr",
+"unit",
+"integration",
 ]
 
 [tool.semantic_release]

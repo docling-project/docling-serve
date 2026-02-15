@@ -22,7 +22,6 @@ CONFIGURATION:
 - Orchestrator queue properly started/stopped in fixtures
 """
 
-import asyncio
 import base64
 import importlib.util
 import os
@@ -37,24 +36,25 @@ from docling_serve.grpc.gen.ai.docling.serve.v1 import (
     docling_serve_types_pb2,
 )
 from docling_serve.grpc.server import DoclingServeGrpcService
+from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.settings import docling_serve_settings
 
+pytestmark = pytest.mark.integration
 
-@pytest.fixture(scope="session")
-def event_loop():
-    return asyncio.get_event_loop()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def grpc_server():
     """Start a gRPC server for testing."""
+    get_async_orchestrator.cache_clear()
+    orchestrator = get_async_orchestrator()
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
     # Increase max message size for tests
     options = [
         ("grpc.max_send_message_length", 50 * 1024 * 1024),
         ("grpc.max_receive_message_length", 50 * 1024 * 1024),
     ]
     server = grpc.aio.server(options=options)
-    service = DoclingServeGrpcService()
+    service = DoclingServeGrpcService(orchestrator=orchestrator)
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
     
@@ -64,10 +64,12 @@ async def grpc_server():
     yield f"localhost:{port}"
     
     await service.close()
+    docling_serve_settings.single_use_results = original_single_use
+    get_async_orchestrator.cache_clear()
     await server.stop(grace=1)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def grpc_channel(grpc_server):
     """Create a gRPC channel."""
     options = [
@@ -78,7 +80,7 @@ async def grpc_channel(grpc_server):
         yield channel
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def grpc_stub(grpc_channel):
     """Create a gRPC stub."""
     return docling_serve_pb2_grpc.DoclingServeServiceStub(grpc_channel)
@@ -236,6 +238,93 @@ async def test_convert_source_async(grpc_stub):
     assert response.response.task_type == "convert"
     # Verify status is a valid enum value (1 = PENDING)
     assert response.response.task_status >= 0
+
+
+@pytest.mark.asyncio
+async def test_chunk_hierarchical_source_sync(grpc_stub):
+    """Test ChunkHierarchicalSource RPC with the real pipeline."""
+    pdf_path = os.path.join(os.path.dirname(__file__), "2206.01062v1.pdf")
+
+    with open(pdf_path, "rb") as f:
+        pdf_content = base64.b64encode(f.read()).decode("utf-8")
+
+    request = docling_serve_pb2.ChunkHierarchicalSourceRequest(
+        request=docling_serve_types_pb2.HierarchicalChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    ),
+                )
+            ],
+            convert_options=docling_serve_types_pb2.ConvertDocumentOptions(
+                do_ocr=False,
+                force_ocr=False,
+                to_formats=[docling_serve_types_pb2.OUTPUT_FORMAT_TEXT],
+            ),
+            include_converted_doc=True,
+            chunking_options=docling_serve_types_pb2.HierarchicalChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=False,
+            ),
+        )
+    )
+
+    response = await grpc_stub.ChunkHierarchicalSource(request, metadata=get_metadata())
+
+    assert len(response.response.chunks) > 0
+    first_chunk = response.response.chunks[0]
+    assert len(first_chunk.text) > 0
+    assert len(first_chunk.filename) > 0
+    assert response.response.processing_time > 0
+    # We asked for the converted doc to be included
+    assert len(response.response.documents) > 0
+
+
+@pytest.mark.asyncio
+async def test_chunk_hybrid_source_sync(grpc_stub):
+    """Test ChunkHybridSource RPC with the real pipeline."""
+    pdf_path = os.path.join(os.path.dirname(__file__), "2206.01062v1.pdf")
+
+    with open(pdf_path, "rb") as f:
+        pdf_content = base64.b64encode(f.read()).decode("utf-8")
+
+    request = docling_serve_pb2.ChunkHybridSourceRequest(
+        request=docling_serve_types_pb2.HybridChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    ),
+                )
+            ],
+            convert_options=docling_serve_types_pb2.ConvertDocumentOptions(
+                do_ocr=False,
+                force_ocr=False,
+                to_formats=[docling_serve_types_pb2.OUTPUT_FORMAT_TEXT],
+            ),
+            include_converted_doc=False,
+            chunking_options=docling_serve_types_pb2.HybridChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=True,
+                max_tokens=512,
+                merge_peers=True,
+            ),
+        )
+    )
+
+    response = await grpc_stub.ChunkHybridSource(request, metadata=get_metadata())
+
+    assert len(response.response.chunks) > 0
+    first_chunk = response.response.chunks[0]
+    assert len(first_chunk.text) > 0
+    assert len(first_chunk.filename) > 0
+    assert response.response.processing_time > 0
+    # The pipeline may or may not return a converted document.
+    if response.response.documents:
+        assert len(response.response.documents[0].content.filename) > 0
 
 
 @pytest.mark.asyncio
