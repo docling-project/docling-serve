@@ -609,6 +609,153 @@ async def test_api_key_streaming_accepted_with_key(api_key_stub):
 
 
 # ---------------------------------------------------------------------------
+# Source validation and source-type coverage
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_convert_source_no_variant_invalid_argument(grpc_stub):
+    """A Source with no variant (file/http/s3) fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[docling_serve_types_pb2.Source()]
+                )
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "no variant set" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_convert_source_mixed_with_empty_variant_invalid_argument(grpc_stub):
+    """A mix of valid and empty-variant sources fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[
+                        docling_serve_types_pb2.Source(
+                            file=docling_serve_types_pb2.FileSource(
+                                base64_string=base64.b64encode(b"dummy").decode(),
+                                filename="a.pdf",
+                            )
+                        ),
+                        docling_serve_types_pb2.Source(),  # no variant
+                    ]
+                )
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "index 1" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_convert_source_http_source(grpc_stub):
+    """ConvertSource with HttpSource succeeds end-to-end through fake orchestrator."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/doc.pdf",
+                        headers={"Authorization": "Bearer token"},
+                    )
+                )
+            ]
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_convert_source_s3_source(grpc_stub):
+    """ConvertSource with S3Source succeeds end-to-end through fake orchestrator."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        key_prefix="docs/",
+                        verify_ssl=True,
+                    )
+                )
+            ]
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_convert_source_mixed_file_and_http(grpc_stub):
+    """ConvertSource with mixed file + http sources succeeds."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=base64.b64encode(b"dummy").decode(),
+                        filename="test.pdf",
+                    )
+                ),
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/other.pdf",
+                    )
+                ),
+            ]
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_watch_convert_source_no_variant_invalid_argument(grpc_stub):
+    """Streaming RPC also rejects sources with no variant."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in grpc_stub.WatchConvertSource(
+            docling_serve_pb2.WatchConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[docling_serve_types_pb2.Source()]
+                )
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
+async def test_watch_convert_source_http_source(grpc_stub):
+    """WatchConvertSource with HttpSource succeeds end-to-end."""
+    request = docling_serve_pb2.WatchConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/doc.pdf",
+                    )
+                )
+            ]
+        )
+    )
+    async for response in grpc_stub.WatchConvertSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+# ---------------------------------------------------------------------------
 # Review-driven regression tests
 # ---------------------------------------------------------------------------
 

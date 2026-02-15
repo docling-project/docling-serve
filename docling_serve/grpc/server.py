@@ -80,6 +80,22 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
     ) -> None:
         await context.abort(code, message)
 
+    async def _parse_sources(self, request_sources, context: grpc.aio.ServicerContext):
+        """Parse proto sources, aborting with INVALID_ARGUMENT on bad input."""
+        try:
+            sources = to_task_sources(request_sources)
+        except ValueError as exc:
+            await self._abort(context, grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+            return None
+        if not sources:
+            await self._abort(
+                context,
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "At least one source is required.",
+            )
+            return None
+        return sources
+
     async def _wait_task_complete(self, task_id: str) -> bool:
         start = asyncio.get_running_loop().time()
         while True:
@@ -153,13 +169,8 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         requested_formats = requested_output_formats(
             request.request.options if request.request.HasField("options") else None
         )
-        sources = to_task_sources(request.request.sources)
-        if not sources:
-            await self._abort(
-                context,
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "At least one source is required.",
-            )
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
             return docling_serve_pb2.ConvertSourceResponse()
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
@@ -216,7 +227,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         requested_formats = requested_output_formats(
             request.request.options if request.request.HasField("options") else None
         )
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return docling_serve_pb2.ConvertSourceAsyncResponse()
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
@@ -247,7 +260,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return docling_serve_pb2.ChunkHierarchicalSourceResponse()
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
@@ -316,7 +331,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return docling_serve_pb2.ChunkHybridSourceResponse()
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
@@ -385,7 +402,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return docling_serve_pb2.ChunkHierarchicalSourceAsyncResponse()
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
@@ -427,7 +446,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return docling_serve_pb2.ChunkHybridSourceAsyncResponse()
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
@@ -584,7 +605,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
@@ -608,7 +631,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
@@ -642,7 +667,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
-        sources = to_task_sources(request.request.sources)
+        sources = await self._parse_sources(request.request.sources, context)
+        if sources is None:
+            return
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")

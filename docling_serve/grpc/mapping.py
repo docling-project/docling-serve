@@ -210,7 +210,7 @@ def _value_to_python(value) -> object:
 
 def to_task_sources(proto_sources: Iterable[docling_serve_types_pb2.Source]):
     sources = []
-    for source in proto_sources:
+    for i, source in enumerate(proto_sources):
         kind = source.WhichOneof("source")
         if kind == "file":
             file_src = source.file
@@ -239,6 +239,10 @@ def to_task_sources(proto_sources: Iterable[docling_serve_types_pb2.Source]):
                     key_prefix=s3_src.key_prefix if s3_src.HasField("key_prefix") else "",
                     verify_ssl=s3_src.verify_ssl,
                 )
+            )
+        else:
+            raise ValueError(
+                f"Source at index {i} has no variant set (expected file, http, or s3)."
             )
     return sources
 

@@ -128,6 +128,25 @@ def test_to_task_sources_and_target():
     )
 
 
+def test_to_task_sources_empty_oneof_raises():
+    """A Source with no variant set raises ValueError."""
+    with pytest.raises(ValueError, match="no variant set"):
+        to_task_sources([docling_serve_types_pb2.Source()])
+
+
+def test_to_task_sources_mixed_with_empty_oneof_raises():
+    """If any Source in the list has no variant, ValueError is raised."""
+    with pytest.raises(ValueError, match="index 1"):
+        to_task_sources([
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string="aGVsbG8=", filename="a.pdf"
+                )
+            ),
+            docling_serve_types_pb2.Source(),  # no variant
+        ])
+
+
 def test_to_convert_options_full():
     options = docling_serve_types_pb2.ConvertDocumentOptions(
         from_formats=[docling_serve_types_pb2.INPUT_FORMAT_PDF],
