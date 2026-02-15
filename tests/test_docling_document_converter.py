@@ -766,3 +766,580 @@ def test_docling_document_round_trip_no_field_loss():
     assert len(round_tripped.tables) == len(doc.tables)
     assert round_tripped.tables[0].data.num_rows == doc.tables[0].data.num_rows
     assert round_tripped.tables[0].data.table_cells[0].text == doc.tables[0].data.table_cells[0].text
+
+
+def _build_rich_doc() -> DoclingDocument:
+    """Build a DoclingDocument exercising all major features for round-trip tests."""
+    import warnings
+
+    doc = _base_doc()
+
+    # Pages with image
+    doc.pages = {
+        1: PageItem(size=Size(width=612.0, height=792.0), page_no=1),
+        2: PageItem(
+            size=Size(width=612.0, height=792.0),
+            page_no=2,
+            image=ImageRef(
+                mimetype="image/png",
+                dpi=150,
+                size=Size(width=612.0, height=792.0),
+                uri="file:///tmp/page2.png",
+            ),
+        ),
+    }
+
+    # Furniture with a page-header child (texts/0 is parented to furniture)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        doc.furniture = GroupItem(
+            self_ref="#/furniture",
+            name="_furniture_",
+            label=GroupLabel.UNSPECIFIED,
+            children=[_ref("#/texts/0")],
+        )
+
+    # Text items: page header (furniture child), title, section, code, list, formula
+    doc.texts = [
+        TextItem(
+            self_ref="#/texts/0",
+            label=DocItemLabel.PAGE_HEADER,
+            orig="Page Header",
+            text="Page Header",
+            parent=_ref("#/furniture"),
+        ),
+        TitleItem(
+            self_ref="#/texts/1",
+            label=DocItemLabel.TITLE,
+            orig="Document Title",
+            text="Document Title",
+            prov=[_prov(1)],
+            parent=_ref("#/body"),
+            source=[TrackSource(start_time=0.0, end_time=1.5, identifier="seg-0", voice="Speaker1")],
+            comments=[FineRef(cref="#/texts/3", range=(0, 5))],
+        ),
+        SectionHeaderItem(
+            self_ref="#/texts/2",
+            label=DocItemLabel.SECTION_HEADER,
+            orig="Section One",
+            text="Section One",
+            level=2,
+            formatting=Formatting(bold=True, italic=True, script=Script.SUB),
+            parent=_ref("#/body"),
+        ),
+        TextItem(
+            self_ref="#/texts/3",
+            label=DocItemLabel.TEXT,
+            orig="Body paragraph with provenance.",
+            text="Body paragraph with provenance.",
+            parent=_ref("#/body"),
+            children=[_ref("#/texts/4")],
+            prov=[
+                ProvenanceItem(
+                    page_no=1,
+                    bbox=BoundingBox(l=10.0, t=20.0, r=200.0, b=40.0),
+                    charspan=(0, 30),
+                ),
+            ],
+            hyperlink="https://example.com",
+        ),
+        CodeItem(
+            self_ref="#/texts/4",
+            label=DocItemLabel.CODE,
+            orig="def hello(): pass",
+            text="def hello(): pass",
+            code_language=CodeLanguageLabel.PYTHON,
+        ),
+        ListItem(
+            self_ref="#/texts/5",
+            label=DocItemLabel.LIST_ITEM,
+            orig="* first item",
+            text="first item",
+            enumerated=True,
+            marker="*",
+        ),
+        FormulaItem(
+            self_ref="#/texts/6",
+            label=DocItemLabel.FORMULA,
+            orig="E=mc^2",
+            text="E=mc^2",
+        ),
+    ]
+
+    # Table with spanning cells, rich cells, and provenance
+    rich_cell = RichTableCell(
+        ref=_ref("#/texts/2"),
+        start_row_offset_idx=1,
+        end_row_offset_idx=2,
+        start_col_offset_idx=0,
+        end_col_offset_idx=1,
+        text="Rich",
+        row_span=1,
+        col_span=1,
+    )
+    spanning_cell = TableCell(
+        start_row_offset_idx=0,
+        end_row_offset_idx=2,
+        start_col_offset_idx=1,
+        end_col_offset_idx=3,
+        text="Spanning",
+        row_span=2,
+        col_span=2,
+        column_header=True,
+    )
+    table_data = TableData(
+        table_cells=[
+            TableCell(
+                start_row_offset_idx=0,
+                end_row_offset_idx=1,
+                start_col_offset_idx=0,
+                end_col_offset_idx=1,
+                text="A1",
+                row_span=1,
+                col_span=1,
+            ),
+            rich_cell,
+            spanning_cell,
+        ],
+        num_rows=2,
+        num_cols=3,
+    )
+    doc.tables = [
+        TableItem(
+            self_ref="#/tables/0",
+            label=DocItemLabel.TABLE,
+            data=table_data,
+            prov=[_prov(1)],
+            source=[TrackSource(start_time=2.0, end_time=3.0)],
+        ),
+    ]
+
+    # Picture with full metadata
+    doc.pictures = [
+        PictureItem(
+            self_ref="#/pictures/0",
+            label=DocItemLabel.PICTURE,
+            prov=[_prov(2)],
+            captions=[_ref("#/texts/1")],
+            references=[_ref("#/texts/3")],
+            footnotes=[_ref("#/texts/6")],
+            image=ImageRef(
+                mimetype="image/jpeg",
+                dpi=72,
+                size=Size(width=300.0, height=200.0),
+                uri="file:///tmp/pic.jpg",
+            ),
+            meta=PictureMeta(
+                summary=SummaryMetaField(text="A summary"),
+                description=DescriptionMetaField(text="Detailed description"),
+                classification=PictureClassificationMetaField(
+                    predictions=[
+                        PictureClassificationPrediction(class_name="chart", confidence=0.95),
+                        PictureClassificationPrediction(class_name="photo", confidence=0.05),
+                    ]
+                ),
+                molecule=MoleculeMetaField(smi="CCO", confidence=0.8),
+                tabular_chart=TabularChartMetaField(
+                    title="Sales Q1",
+                    chart_data=TableData(
+                        table_cells=[
+                            TableCell(
+                                start_row_offset_idx=0,
+                                end_row_offset_idx=1,
+                                start_col_offset_idx=0,
+                                end_col_offset_idx=1,
+                                text="Q1",
+                                row_span=1,
+                                col_span=1,
+                            ),
+                        ],
+                        num_rows=1,
+                        num_cols=1,
+                    ),
+                ),
+            ),
+        ),
+    ]
+
+    # Key-value items with graph
+    doc.key_value_items = [
+        KeyValueItem(
+            self_ref="#/key_value_items/0",
+            label=DocItemLabel.KEY_VALUE_REGION,
+            prov=[_prov(1)],
+            graph=GraphData(
+                cells=[
+                    GraphCell(label=GraphCellLabel.KEY, cell_id=1, text="Name", orig="Name"),
+                    GraphCell(label=GraphCellLabel.VALUE, cell_id=2, text="Alice", orig="Alice"),
+                ],
+                links=[
+                    GraphLink(label=GraphLinkLabel.TO_VALUE, source_cell_id=1, target_cell_id=2),
+                ],
+            ),
+        ),
+    ]
+
+    # Groups
+    doc.groups = [
+        GroupItem(
+            self_ref="#/groups/0",
+            name="Chapter 1",
+            label=GroupLabel.CHAPTER,
+            parent=_ref("#/body"),
+            children=[_ref("#/texts/2"), _ref("#/texts/3")],
+            meta=BaseMeta(summary=SummaryMetaField(text="chapter summary")),
+        ),
+    ]
+
+    return doc
+
+
+class TestRoundTrip:
+    """Round-trip tests verifying data integrity through proto conversion."""
+
+    def test_json_export_round_trip_rich_document(self):
+        """Rich document survives Pydantic -> exports.json -> Pydantic round-trip."""
+        doc = _build_rich_doc()
+
+        export_doc = ExportDocumentResponse(filename="rich_rt", json_content=doc)
+        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+
+        assert proto.exports.json, "exports.json must be populated"
+        rt = DoclingDocument.model_validate_json(proto.exports.json)
+
+        # Top-level
+        assert rt.name == doc.name
+        assert rt.origin.filename == doc.origin.filename
+        assert rt.origin.binary_hash == doc.origin.binary_hash
+
+        # Pages
+        assert set(rt.pages.keys()) == set(doc.pages.keys())
+        assert rt.pages[2].image is not None
+        assert rt.pages[2].image.dpi == 150
+
+        # Furniture
+        assert rt.furniture.name == "_furniture_"
+        assert len(rt.furniture.children) == 1
+        assert rt.texts[0].parent.cref == "#/furniture"
+
+        # Texts - verify each type round-trips
+        assert len(rt.texts) == len(doc.texts)
+        assert rt.texts[0].text == "Page Header"  # furniture child
+
+        assert isinstance(rt.texts[1], TitleItem)
+        assert rt.texts[1].text == "Document Title"
+        assert len(rt.texts[1].prov) == 1
+        assert len(rt.texts[1].source) == 1
+        assert rt.texts[1].source[0].identifier == "seg-0"
+        assert len(rt.texts[1].comments) == 1
+        assert rt.texts[1].comments[0].range == (0, 5)
+
+        assert isinstance(rt.texts[2], SectionHeaderItem)
+        assert rt.texts[2].level == 2
+        assert rt.texts[2].formatting.bold is True
+        assert rt.texts[2].formatting.italic is True
+
+        assert isinstance(rt.texts[4], CodeItem)
+        assert rt.texts[4].code_language == CodeLanguageLabel.PYTHON
+
+        assert isinstance(rt.texts[5], ListItem)
+        assert rt.texts[5].enumerated is True
+        assert rt.texts[5].marker == "*"
+
+        assert isinstance(rt.texts[6], FormulaItem)
+        assert rt.texts[6].text == "E=mc^2"
+
+        # Tables
+        assert len(rt.tables) == 1
+        assert rt.tables[0].data.num_rows == 2
+        assert rt.tables[0].data.num_cols == 3
+        assert len(rt.tables[0].data.table_cells) == 3
+
+        # Pictures
+        assert len(rt.pictures) == 1
+        assert rt.pictures[0].image.mimetype == "image/jpeg"
+        assert len(rt.pictures[0].captions) == 1
+        assert rt.pictures[0].meta.summary.text == "A summary"
+        assert rt.pictures[0].meta.description.text == "Detailed description"
+        assert len(rt.pictures[0].meta.classification.predictions) == 2
+        assert rt.pictures[0].meta.molecule.smi == "CCO"
+        assert rt.pictures[0].meta.tabular_chart.title == "Sales Q1"
+
+        # Key-value items
+        assert len(rt.key_value_items) == 1
+        assert len(rt.key_value_items[0].graph.cells) == 2
+        assert len(rt.key_value_items[0].graph.links) == 1
+
+        # Groups
+        assert len(rt.groups) == 1
+        assert rt.groups[0].label == GroupLabel.CHAPTER
+        assert rt.groups[0].meta.summary.text == "chapter summary"
+
+    def test_proto_native_fields_rich_document(self):
+        """Verify native proto converter preserves all fields on a rich document."""
+        doc = _build_rich_doc()
+        proto = docling_document_to_proto(doc)
+
+        # Top-level
+        assert proto.name == "test"
+        assert proto.schema_name == "DoclingDocument"
+        assert proto.origin.filename == "test.pdf"
+        assert proto.origin.binary_hash == "123456"
+
+        # Pages
+        assert len(proto.pages) == 2
+        assert proto.pages["2"].image.dpi == 150
+        assert proto.pages["2"].image.mimetype == "image/png"
+
+        # Furniture
+        assert proto.furniture.name == "_furniture_"
+        assert len(proto.furniture.children) == 1
+        assert proto.furniture.children[0].ref == "#/texts/0"
+
+        # Texts
+        assert len(proto.texts) == 7
+        # Page header (furniture child)
+        assert proto.texts[0].text.base.text == "Page Header"
+        assert proto.texts[0].text.base.parent.ref == "#/furniture"
+        # Title
+        assert proto.texts[1].title.base.text == "Document Title"
+        assert proto.texts[1].title.base.prov[0].page_no == 1
+        assert proto.texts[1].title.base.source[0].track.identifier == "seg-0"
+        assert proto.texts[1].title.base.comments[0].ref == "#/texts/3"
+        assert proto.texts[1].title.base.comments[0].range.start == 0
+        assert proto.texts[1].title.base.comments[0].range.end == 5
+        # Section header
+        assert proto.texts[2].section_header.level == 2
+        assert proto.texts[2].section_header.base.formatting.bold is True
+        assert proto.texts[2].section_header.base.formatting.italic is True
+        assert proto.texts[2].section_header.base.formatting.script == pb2.SCRIPT_SUB
+        assert proto.texts[2].section_header.base.parent.ref == "#/body"
+        # Text with hyperlink
+        assert proto.texts[3].text.base.hyperlink == "https://example.com/"
+        assert proto.texts[3].text.base.parent.ref == "#/body"
+        assert len(proto.texts[3].text.base.children) == 1
+        assert proto.texts[3].text.base.prov[0].bbox.l == pytest.approx(10.0)
+        assert proto.texts[3].text.base.prov[0].charspan.start == 0
+        assert proto.texts[3].text.base.prov[0].charspan.end == 30
+        # Code
+        assert proto.texts[4].code.code_language == pb2.CODE_LANGUAGE_LABEL_PYTHON
+        # List
+        assert proto.texts[5].list_item.enumerated is True
+        assert proto.texts[5].list_item.marker == "*"
+        # Formula
+        assert proto.texts[6].formula.base.text == "E=mc^2"
+
+        # Tables
+        assert len(proto.tables) == 1
+        assert proto.tables[0].data.num_rows == 2
+        assert proto.tables[0].data.num_cols == 3
+        assert len(proto.tables[0].data.table_cells) == 3
+        assert proto.tables[0].data.table_cells[1].ref.ref == "#/texts/2"
+        # Spanning cell
+        grid_row0 = proto.tables[0].data.grid[0]
+        spanning = None
+        for c in grid_row0.cells:
+            if c.text == "Spanning":
+                spanning = c
+                break
+        assert spanning is not None
+        assert spanning.col_span == 2
+        assert spanning.column_header is True
+        # Source on table
+        assert proto.tables[0].source[0].track.start_time == pytest.approx(2.0)
+
+        # Pictures
+        assert len(proto.pictures) == 1
+        pic = proto.pictures[0]
+        assert pic.image.mimetype == "image/jpeg"
+        assert pic.image.size.width == pytest.approx(300.0)
+        assert len(pic.captions) == 1
+        assert pic.captions[0].ref == "#/texts/1"
+        assert len(pic.references) == 1
+        assert len(pic.footnotes) == 1
+        assert pic.meta.summary.text == "A summary"
+        assert pic.meta.description.text == "Detailed description"
+        assert len(pic.meta.classification.predictions) == 2
+        assert pic.meta.classification.predictions[0].confidence == pytest.approx(0.95)
+        assert pic.meta.molecule.smi == "CCO"
+        assert pic.meta.tabular_chart.title == "Sales Q1"
+        assert pic.meta.tabular_chart.chart_data.num_rows == 1
+
+        # Key-value items
+        assert len(proto.key_value_items) == 1
+        kv = proto.key_value_items[0]
+        assert len(kv.graph.cells) == 2
+        assert kv.graph.cells[0].label == pb2.GRAPH_CELL_LABEL_KEY
+        assert kv.graph.cells[1].text == "Alice"
+        assert len(kv.graph.links) == 1
+        assert kv.graph.links[0].label == pb2.GRAPH_LINK_LABEL_TO_VALUE
+
+        # Groups
+        assert len(proto.groups) == 1
+        assert proto.groups[0].label == pb2.GROUP_LABEL_CHAPTER
+        assert proto.groups[0].meta.summary.text == "chapter summary"
+        assert proto.groups[0].parent.ref == "#/body"
+        assert len(proto.groups[0].children) == 2
+
+    def test_custom_fields_round_trip(self):
+        """Custom fields on meta objects survive the JSON export round-trip."""
+        doc = _base_doc()
+        meta = BaseMeta(summary=SummaryMetaField(text="summary"))
+        meta.set_custom_field("acme", "score", 42)
+        meta.set_custom_field("acme", "tag", "important")
+        meta.summary.set_custom_field("vendor", "note", "reviewed")
+
+        doc.groups = [
+            GroupItem(
+                self_ref="#/groups/0",
+                name="G",
+                label=GroupLabel.SECTION,
+                meta=meta,
+            ),
+        ]
+
+        export_doc = ExportDocumentResponse(filename="custom_rt", json_content=doc)
+        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        rt = DoclingDocument.model_validate_json(proto.exports.json)
+
+        custom = rt.groups[0].meta.get_custom_part()
+        assert custom["acme__score"] == 42
+        assert custom["acme__tag"] == "important"
+        summary_custom = rt.groups[0].meta.summary.get_custom_part()
+        assert summary_custom["vendor__note"] == "reviewed"
+
+    def test_custom_fields_in_proto(self):
+        """Custom fields are correctly encoded as Struct values in native proto."""
+        doc = _base_doc()
+        meta = FloatingMeta(summary=SummaryMetaField(text="s"))
+        meta.set_custom_field("acme", "rating", 5)
+        meta.set_custom_field("acme", "verified", True)
+        meta.set_custom_field("acme", "note", "good")
+
+        doc.tables = [
+            TableItem(
+                self_ref="#/tables/0",
+                label=DocItemLabel.TABLE,
+                data=TableData(
+                    table_cells=[
+                        TableCell(
+                            start_row_offset_idx=0,
+                            end_row_offset_idx=1,
+                            start_col_offset_idx=0,
+                            end_col_offset_idx=1,
+                            text="X",
+                            row_span=1,
+                            col_span=1,
+                        ),
+                    ],
+                    num_rows=1,
+                    num_cols=1,
+                ),
+                meta=meta,
+            ),
+        ]
+
+        proto = docling_document_to_proto(doc)
+        cf = proto.tables[0].meta.custom_fields
+        assert cf["acme__rating"].number_value == 5
+        assert cf["acme__verified"].bool_value is True
+        assert cf["acme__note"].string_value == "good"
+
+    def test_coord_origin_round_trip(self):
+        """CoordOrigin on bounding boxes survives JSON export round-trip."""
+        doc = _base_doc()
+        bbox = BoundingBox(l=0.0, t=0.0, r=100.0, b=100.0)
+        bbox.coord_origin = CoordOrigin.BOTTOMLEFT
+        doc.texts = [
+            TextItem(
+                self_ref="#/texts/0",
+                label=DocItemLabel.TEXT,
+                orig="text",
+                text="text",
+                prov=[ProvenanceItem(page_no=1, bbox=bbox, charspan=(0, 4))],
+            ),
+        ]
+
+        export_doc = ExportDocumentResponse(filename="coord_rt", json_content=doc)
+        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        rt = DoclingDocument.model_validate_json(proto.exports.json)
+
+        assert rt.texts[0].prov[0].bbox.coord_origin == CoordOrigin.BOTTOMLEFT
+
+    def test_coord_origin_in_proto(self):
+        """CoordOrigin is correctly mapped to proto enum."""
+        doc = _base_doc()
+        bbox = BoundingBox(l=0.0, t=0.0, r=100.0, b=100.0)
+        bbox.coord_origin = CoordOrigin.BOTTOMLEFT
+        doc.texts = [
+            TextItem(
+                self_ref="#/texts/0",
+                label=DocItemLabel.TEXT,
+                orig="t",
+                text="t",
+                prov=[ProvenanceItem(page_no=1, bbox=bbox, charspan=(0, 1))],
+            ),
+        ]
+
+        proto = docling_document_to_proto(doc)
+        assert proto.texts[0].text.base.prov[0].bbox.coord_origin == pb2.COORD_ORIGIN_BOTTOMLEFT
+
+    def test_form_items_round_trip(self):
+        """FormItem with graph data survives JSON export round-trip."""
+        from docling_core.types.doc.document import FormItem
+
+        doc = _base_doc()
+        doc.form_items = [
+            FormItem(
+                self_ref="#/form_items/0",
+                label=DocItemLabel.FORM,
+                prov=[_prov()],
+                graph=GraphData(
+                    cells=[
+                        GraphCell(label=GraphCellLabel.KEY, cell_id=1, text="Field", orig="Field"),
+                        GraphCell(label=GraphCellLabel.VALUE, cell_id=2, text="Value", orig="Value"),
+                        GraphCell(label=GraphCellLabel.CHECKBOX, cell_id=3, text="Check", orig="Check"),
+                    ],
+                    links=[
+                        GraphLink(label=GraphLinkLabel.TO_VALUE, source_cell_id=1, target_cell_id=2),
+                    ],
+                ),
+            ),
+        ]
+
+        export_doc = ExportDocumentResponse(filename="form_rt", json_content=doc)
+        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        rt = DoclingDocument.model_validate_json(proto.exports.json)
+
+        assert len(rt.form_items) == 1
+        assert len(rt.form_items[0].graph.cells) == 3
+        assert rt.form_items[0].graph.cells[2].label == GraphCellLabel.CHECKBOX
+        assert len(rt.form_items[0].graph.links) == 1
+
+    def test_empty_document_round_trip(self):
+        """A minimal document with no items survives round-trip."""
+        doc = _base_doc()
+
+        export_doc = ExportDocumentResponse(filename="empty_rt", json_content=doc)
+        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        rt = DoclingDocument.model_validate_json(proto.exports.json)
+
+        assert rt.name == "test"
+        assert len(rt.texts) == 0
+        assert len(rt.tables) == 0
+        assert len(rt.pictures) == 0
+        assert len(rt.key_value_items) == 0
+        assert len(rt.groups) == 0
+
+    def test_empty_document_proto_fields(self):
+        """A minimal document produces valid proto with correct defaults."""
+        doc = _base_doc()
+        proto = docling_document_to_proto(doc)
+
+        assert proto.name == "test"
+        assert len(proto.texts) == 0
+        assert len(proto.tables) == 0
+        assert len(proto.pictures) == 0
+        assert len(proto.key_value_items) == 0
+        assert len(proto.groups) == 0
+        assert proto.body.name == "_root_"
