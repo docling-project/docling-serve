@@ -76,6 +76,30 @@ Regenerate Python stubs with:
 uv run python scripts/gen_grpc.py
 ```
 
+## End-to-End Testing
+
+Two E2E test scripts are provided. Both require a running gRPC server.
+
+**Start the server:**
+
+```sh
+docling-serve-grpc run --port 50051
+```
+
+**Python client** (`tests/e2e_grpc_client.py`) — covers Health, ConvertSource, streaming, Watch, JSON/MD export, error paths, async workflow, chunking (hierarchical + hybrid), and admin RPCs:
+
+```sh
+uv run python tests/e2e_grpc_client.py [--port 50051] [--pdf PATH]
+```
+
+**grpcurl script** (`tests/e2e_grpcurl.sh`) — shell-based tests using grpcurl (starts its own server):
+
+```sh
+./tests/e2e_grpcurl.sh [port]
+```
+
+PDF-dependent tests use `tests/2206.01062v1.pdf`. If the file is absent, those tests are skipped gracefully. Any PDF can be substituted with the `--pdf` flag.
+
 ## Schema Validation
 
 At startup, the gRPC server validates that the `DoclingDocument` protobuf definition matches the Pydantic schema from docling-core. Incompatible type mismatches cause startup failure; new fields in either schema produce warnings. See [schema_validation.md](schema_validation.md) for details. For a reference on the protobuf descriptor API used by the validator, see [descriptor_api_guide.md](descriptor_api_guide.md).

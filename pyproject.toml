@@ -267,7 +267,6 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
 "tests/*.py" = ["ASYNC"] # Disable ASYNC check for tests
-"tests/e2e_grpc_client.py" = ["E402"] # sys.path insert before import
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15

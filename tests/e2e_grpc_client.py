@@ -20,15 +20,24 @@ from pathlib import Path
 
 import grpc
 
-# Add the repo root so we can import generated stubs
-REPO_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_DIR))
-
+# Must be run from the docling-serve project root with its venv active.
+# Proto descriptors must be loaded in dependency order:
+# struct.proto -> docling_document.proto -> docling_serve_types.proto -> docling_serve.proto
+# isort: off
+from google.protobuf import struct_pb2 as _struct_pb2  # noqa: F401
+from docling_serve.grpc.gen.ai.docling.core.v1 import (  # noqa: F401
+    docling_document_pb2 as _doc_pb2,
+)
 from docling_serve.grpc.gen.ai.docling.serve.v1 import (
-    docling_serve_pb2 as pb2,
-    docling_serve_pb2_grpc as pb2_grpc,
     docling_serve_types_pb2 as types_pb2,
 )
+from docling_serve.grpc.gen.ai.docling.serve.v1 import (
+    docling_serve_pb2 as pb2,
+)
+from docling_serve.grpc.gen.ai.docling.serve.v1 import (
+    docling_serve_pb2_grpc as pb2_grpc,
+)
+# isort: on
 
 
 class GrpcE2ETests:
@@ -359,13 +368,67 @@ class GrpcE2ETests:
         else:
             self._fail("get result", f"got {doc.doc.schema_name!r}")
 
+    def test_chunk_hierarchical_source(self):
+        print("\n=== 10. ChunkHierarchicalSource ===")
+        if not self.pdf_path or not self.pdf_path.exists():
+            self._skip("ChunkHierarchicalSource", "no test PDF")
+            return
+
+        t0 = time.monotonic()
+        inner = types_pb2.HierarchicalChunkRequest(
+            sources=[self._make_file_request().sources[0]],
+        )
+        req = pb2.ChunkHierarchicalSourceRequest(request=inner)
+        resp = self.stub.ChunkHierarchicalSource(req)
+        elapsed = time.monotonic() - t0
+
+        chunks = resp.response.chunks
+        if len(chunks) > 0:
+            self._pass("hierarchical chunks", f"{len(chunks)} chunk(s)")
+            first = chunks[0]
+            if first.text:
+                self._pass("chunk[0].text", f"{len(first.text)} chars")
+            else:
+                self._fail("chunk[0].text", "empty")
+        else:
+            self._fail("hierarchical chunks", "no chunks returned")
+
+        print(f"  Chunking took {elapsed:.2f}s")
+
+    def test_chunk_hybrid_source(self):
+        print("\n=== 11. ChunkHybridSource ===")
+        if not self.pdf_path or not self.pdf_path.exists():
+            self._skip("ChunkHybridSource", "no test PDF")
+            return
+
+        t0 = time.monotonic()
+        inner = types_pb2.HybridChunkRequest(
+            sources=[self._make_file_request().sources[0]],
+        )
+        req = pb2.ChunkHybridSourceRequest(request=inner)
+        resp = self.stub.ChunkHybridSource(req)
+        elapsed = time.monotonic() - t0
+
+        chunks = resp.response.chunks
+        if len(chunks) > 0:
+            self._pass("hybrid chunks", f"{len(chunks)} chunk(s)")
+            first = chunks[0]
+            if first.text:
+                self._pass("chunk[0].text", f"{len(first.text)} chars")
+            else:
+                self._fail("chunk[0].text", "empty")
+        else:
+            self._fail("hybrid chunks", "no chunks returned")
+
+        print(f"  Chunking took {elapsed:.2f}s")
+
     def test_clear_converters(self):
-        print("\n=== 10. ClearConverters ===")
+        print("\n=== 12. ClearConverters ===")
         self.stub.ClearConverters(pb2.ClearConvertersRequest())
         self._pass("ClearConverters", "no error")
 
     def test_clear_results(self):
-        print("\n=== 11. ClearResults ===")
+        print("\n=== 13. ClearResults ===")
         self.stub.ClearResults(pb2.ClearResultsRequest())
         self._pass("ClearResults", "no error")
 
@@ -387,6 +450,8 @@ class GrpcE2ETests:
         self.test_convert_empty_source_rejected()
         self.test_convert_no_sources_rejected()
         self.test_async_workflow()
+        self.test_chunk_hierarchical_source()
+        self.test_chunk_hybrid_source()
         self.test_clear_converters()
         self.test_clear_results()
 

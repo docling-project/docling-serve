@@ -171,23 +171,9 @@ echo ""
 # --- Test 8: ConvertSource with JSON export format ---
 echo "=== 8. ConvertSource with JSON export format ==="
 if [[ -f "${TMPFILE:-}" ]]; then
-    # Rebuild request with JSON export option
+    # Add options to the existing request using jq
     TMPFILE_JSON=$(mktemp /tmp/grpc_e2e_json.XXXXXX.json)
-    cat > "$TMPFILE_JSON" <<JSONEOF
-{
-  "request": {
-    "sources": [{
-      "file": {
-        "base64_string": "$B64",
-        "filename": "json_export.pdf"
-      }
-    }],
-    "options": {
-      "to_formats": ["OUTPUT_FORMAT_JSON"]
-    }
-  }
-}
-JSONEOF
+    jq '.request.options = {"to_formats": ["OUTPUT_FORMAT_JSON"]}' "$TMPFILE" > "$TMPFILE_JSON"
     JSON_RESULT=$(grpcurl -plaintext -d @ "localhost:$PORT" ai.docling.serve.v1.DoclingServeService/ConvertSource < "$TMPFILE_JSON" 2>&1)
     rm -f "$TMPFILE_JSON"
     if echo "$JSON_RESULT" | grep -q '"json"'; then
