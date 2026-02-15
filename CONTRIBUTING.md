@@ -138,6 +138,32 @@ This creates a Virtual Environment with Python 3.10. For other versions, replace
 poetry add NAME
 ```
 
+## Running tests
+
+Tests are organised with pytest markers so you can run exactly the subset you need:
+
+| Marker | What it covers | Typical runtime |
+|---|---|---|
+| `unit` | Mapping logic, fake-orchestrator gRPC tests (no models loaded) | ~2 s |
+| `integration` | Real pipeline end-to-end through the gRPC server | ~60 s+ |
+| `ocr` | Tests that require an OCR engine (easyocr, rapidocr, etc.) | varies |
+
+```bash
+# Fast feedback — unit tests only (no models, no network)
+uv run pytest -m unit -k grpc -v
+
+# Integration tests excluding OCR (avoids large model downloads)
+uv run pytest -m "integration and not ocr" -k grpc -v
+
+# Everything, including OCR (requires an OCR extra installed)
+uv run pytest -m integration -k grpc -v
+
+# Run a single test file
+uv run pytest tests/test_grpc_service_fake.py -v
+```
+
+CI runs `unit` and `integration` (excluding `ocr`) as separate jobs so unit failures surface fast.
+
 ## Coding style guidelines
 
 We use the following tools to enforce code style:
