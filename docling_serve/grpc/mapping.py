@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional, Set
+from collections.abc import Iterable
+from typing import Optional
 
 from google.protobuf import json_format
 
-from docling.datamodel.base_models import ConversionStatus, InputFormat, OutputFormat
-from docling.datamodel.pipeline_options import PdfBackend, ProcessingPipeline, TableFormerMode
-from docling.datamodel.vlm_model_specs import VlmModelType
+from docling.datamodel.base_models import InputFormat, OutputFormat
+from docling.datamodel.pipeline_options import (
+    PdfBackend,
+    ProcessingPipeline,
+    TableFormerMode,
+)
 from docling.datamodel.pipeline_options_vlm_model import (
     InferenceFramework,
     ResponseFormat,
     TransformersModelType,
 )
+from docling.datamodel.vlm_model_specs import VlmModelType
+from docling.utils.profiling import ProfilingItem
 from docling_core.types.doc import ImageRefMode
 from docling_jobkit.datamodel.chunking import (
     HierarchicalChunkerOptions,
@@ -21,16 +27,20 @@ from docling_jobkit.datamodel.chunking import (
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
 from docling_jobkit.datamodel.task import Task
-from docling_jobkit.datamodel.task_meta import TaskStatus, TaskType
-from docling_jobkit.datamodel.task_targets import InBodyTarget, PutTarget, S3Target, ZipTarget
+from docling_jobkit.datamodel.task_meta import TaskStatus
+from docling_jobkit.datamodel.task_targets import (
+    InBodyTarget,
+    PutTarget,
+    S3Target,
+    ZipTarget,
+)
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.settings import docling_serve_settings
-from docling.utils.profiling import ProfilingItem
 
 from .docling_document_converter import docling_document_to_proto
 from .gen.ai.docling.core.v1 import docling_document_pb2
-from .gen.ai.docling.serve.v1 import docling_serve_pb2, docling_serve_types_pb2
+from .gen.ai.docling.serve.v1 import docling_serve_types_pb2
 
 _log = logging.getLogger(__name__)
 
@@ -236,7 +246,9 @@ def to_task_sources(proto_sources: Iterable[docling_serve_types_pb2.Source]):
                     access_key=s3_src.access_key,
                     secret_key=s3_src.secret_key,
                     bucket=s3_src.bucket,
-                    key_prefix=s3_src.key_prefix if s3_src.HasField("key_prefix") else "",
+                    key_prefix=s3_src.key_prefix
+                    if s3_src.HasField("key_prefix")
+                    else "",
                     verify_ssl=s3_src.verify_ssl,
                 )
             )
@@ -270,7 +282,7 @@ def to_task_target(proto_target: Optional[docling_serve_types_pb2.Target]):
 
 def requested_output_formats(
     proto_options: Optional[docling_serve_types_pb2.ConvertDocumentOptions],
-) -> Set[OutputFormat]:
+) -> set[OutputFormat]:
     if not proto_options or not proto_options.to_formats:
         return set()
     values = [
@@ -485,7 +497,7 @@ def _timings_to_proto(timings: dict[str, ProfilingItem]) -> dict[str, float]:
 
 def _build_exports(
     doc,
-    requested_formats: Optional[Set[OutputFormat]],
+    requested_formats: Optional[set[OutputFormat]],
 ) -> Optional[docling_serve_types_pb2.DocumentExports]:
     def wants(fmt: OutputFormat) -> bool:
         return requested_formats is None or fmt in requested_formats
@@ -513,7 +525,7 @@ def _build_exports(
 
 
 def export_document_to_proto(
-    doc, requested_formats: Optional[Set[OutputFormat]] = None
+    doc, requested_formats: Optional[set[OutputFormat]] = None
 ) -> docling_serve_types_pb2.ExportDocumentResponse:
     message = docling_serve_types_pb2.ExportDocumentResponse(filename=doc.filename)
     # doc.json_content is the live Pydantic DoclingDocument object (not a JSON string).
@@ -528,7 +540,7 @@ def export_document_to_proto(
 
 
 def document_response_to_proto(
-    doc, requested_formats: Optional[Set[OutputFormat]] = None
+    doc, requested_formats: Optional[set[OutputFormat]] = None
 ) -> docling_serve_types_pb2.DocumentResponse:
     message = docling_serve_types_pb2.DocumentResponse(filename=doc.filename)
     # See export_document_to_proto for why this field is called json_content.
@@ -541,7 +553,9 @@ def document_response_to_proto(
 
 
 def convert_result_to_proto(
-    result, processing_time: float, requested_formats: Optional[Set[OutputFormat]] = None
+    result,
+    processing_time: float,
+    requested_formats: Optional[set[OutputFormat]] = None,
 ) -> docling_serve_types_pb2.ConvertDocumentResponse:
     status = result.status
     if hasattr(status, "value"):
@@ -557,7 +571,9 @@ def convert_result_to_proto(
 
 
 def chunk_result_to_proto(
-    result, processing_time: float, requested_formats: Optional[Set[OutputFormat]] = None
+    result,
+    processing_time: float,
+    requested_formats: Optional[set[OutputFormat]] = None,
 ) -> docling_serve_types_pb2.ChunkDocumentResponse:
     chunks = []
     for chunk in result.chunks:
@@ -638,10 +654,14 @@ def _task_status_enum(status: TaskStatus | str) -> int:
         TaskStatus.SUCCESS: docling_serve_types_pb2.TaskStatus.TASK_STATUS_SUCCESS,
         TaskStatus.FAILURE: docling_serve_types_pb2.TaskStatus.TASK_STATUS_FAILURE,
     }
-    return mapping.get(status, docling_serve_types_pb2.TaskStatus.TASK_STATUS_UNSPECIFIED)
+    return mapping.get(
+        status, docling_serve_types_pb2.TaskStatus.TASK_STATUS_UNSPECIFIED
+    )
 
 
-def clear_response_to_proto(status: str = "ok") -> docling_serve_types_pb2.ClearResponse:
+def clear_response_to_proto(
+    status: str = "ok",
+) -> docling_serve_types_pb2.ClearResponse:
     return docling_serve_types_pb2.ClearResponse(status=status)
 
 

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 _GEN_PATH = Path(__file__).resolve().parent / "gen"
 if _GEN_PATH.exists():

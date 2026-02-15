@@ -11,7 +11,7 @@ import enum
 import logging
 import types
 import typing
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, get_args, get_origin
+from typing import Any, Optional, Union, get_args, get_origin
 
 from google.protobuf import descriptor as descriptor_mod
 
@@ -20,7 +20,7 @@ _log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Allowed coercions (spec §6)
 # ---------------------------------------------------------------------------
-ALLOWED_COERCIONS: Dict[str, Tuple[str, str]] = {
+ALLOWED_COERCIONS: dict[str, tuple[str, str]] = {
     "**.binary_hash": ("int", "string"),
     "pages": ("map<int,*>", "map<string,*>"),
     "**.label": ("enum", "string"),
@@ -28,31 +28,40 @@ ALLOWED_COERCIONS: Dict[str, Tuple[str, str]] = {
 
 # Proto messages that are oneof wrappers around Pydantic-side types.
 # Key = proto message name, Value = set of Pydantic message names it wraps.
-_ONEOF_WRAPPER_MESSAGES: Dict[str, Set[str]] = {
+_ONEOF_WRAPPER_MESSAGES: dict[str, set[str]] = {
     "SourceType": {"TrackSource"},
     "PictureAnnotation": {
-        "DescriptionAnnotation", "MiscAnnotation",
-        "PictureClassificationData", "PictureMoleculeData",
-        "PictureTabularChartData", "PictureLineChartData",
-        "PictureBarChartData", "PictureStackedBarChartData",
-        "PicturePieChartData", "PictureScatterChartData",
+        "DescriptionAnnotation",
+        "MiscAnnotation",
+        "PictureClassificationData",
+        "PictureMoleculeData",
+        "PictureTabularChartData",
+        "PictureLineChartData",
+        "PictureBarChartData",
+        "PictureStackedBarChartData",
+        "PicturePieChartData",
+        "PictureScatterChartData",
     },
     "TableAnnotation": {"DescriptionAnnotation", "MiscAnnotation"},
     "BaseTextItem": {
-        "TitleItem", "SectionHeaderItem", "ListItem",
-        "CodeItem", "FormulaItem", "TextItem",
+        "TitleItem",
+        "SectionHeaderItem",
+        "ListItem",
+        "CodeItem",
+        "FormulaItem",
+        "TextItem",
     },
 }
 
 # Pydantic tuple types that map to a named proto message with matching fields.
-_TUPLE_MESSAGE_EQUIVALENCES: Dict[str, str] = {
+_TUPLE_MESSAGE_EQUIVALENCES: dict[str, str] = {
     "tuple<int,int>": "IntSpan",
     "tuple<float,float>": "FloatPair",
     "tuple<string,int>": "StringIntPair",
 }
 
 # Types that are string-serializable and compatible with proto string.
-_STRING_COMPATIBLE_TYPES: Set[str] = {"Path"}
+_STRING_COMPATIBLE_TYPES: set[str] = {"Path"}
 
 # ---------------------------------------------------------------------------
 # Suppression rulesets
@@ -69,7 +78,7 @@ _STRING_COMPATIBLE_TYPES: Set[str] = {"Path"}
 # Field name aliases between Pydantic and proto.
 # Pydantic's RefItem/FineRef use "cref" (aliased from "$ref" in JSON);
 # the proto field is simply "ref".  These are the same data.
-_FIELD_NAME_ALIASES: Dict[str, str] = {
+_FIELD_NAME_ALIASES: dict[str, str] = {
     "cref": "ref",
     "ref": "cref",
 }
@@ -79,7 +88,7 @@ _FIELD_NAME_ALIASES: Dict[str, str] = {
 # "base" sub-message (TextItemBase) that holds the common fields.  Pydantic
 # uses class inheritance instead.  We flatten through the "base" field so
 # paths align: proto "texts.title.base.text" → compared as "texts.text".
-_BASE_FIELD_WRAPPERS: Dict[str, str] = {
+_BASE_FIELD_WRAPPERS: dict[str, str] = {
     "TitleItem": "base",
     "SectionHeaderItem": "base",
     "ListItem": "base",
@@ -93,7 +102,7 @@ _BASE_FIELD_WRAPPERS: Dict[str, str] = {
 # JSON-like data — Pydantic uses Dict[str, Any] / get_custom_part() instead.
 # Tuple-equivalent messages (IntSpan, FloatPair, StringIntPair) are matched
 # structurally via _TUPLE_MESSAGE_EQUIVALENCES.
-_PROTO_LEAF_MESSAGES: Set[str] = {
+_PROTO_LEAF_MESSAGES: set[str] = {
     "Struct",
     "Value",
     "ListValue",
@@ -111,7 +120,7 @@ _PROTO_LEAF_MESSAGES: Set[str] = {
 #   Proto uses `repeated TableRow grid` as a row-major accessor.
 #   Pydantic's TableData has no `grid` field — the converter builds
 #   grid rows from `table_cells`.  All grid sub-paths are proto-only.
-_PROTO_ONLY_PREFIXES: Set[str] = {
+_PROTO_ONLY_PREFIXES: set[str] = {
     "tables.data.grid",
     "pictures.meta.tabular_chart.chart_data.grid",
     # Same grid path surfaced during oneof wrapper member validation
@@ -123,12 +132,12 @@ _PROTO_ONLY_PREFIXES: Set[str] = {
 # When a proto enum field (e.g., coord_origin, code_language) encounters
 # an unknown value, the raw string is stored in a companion *_raw field.
 # These have no Pydantic counterpart by design.
-_RAW_FALLBACK_SUFFIXES: Set[str] = {
+_RAW_FALLBACK_SUFFIXES: set[str] = {
     "coord_origin_raw",
     "code_language_raw",
 }
 
-_WRAPPER_MEMBER_NAMES: Set[str] = {
+_WRAPPER_MEMBER_NAMES: set[str] = {
     name for members in _ONEOF_WRAPPER_MESSAGES.values() for name in members
 }
 
@@ -154,10 +163,9 @@ def _is_coercion_allowed(
             if allowed_py.startswith("map<") and "*>" in allowed_py:
                 py_prefix = allowed_py.split(",")[0]  # "map<int"
                 pr_prefix = allowed_pr.split(",")[0]  # "map<string"
-                if (
-                    pydantic_canonical.startswith(py_prefix + ",")
-                    and proto_canonical.startswith(pr_prefix + ",")
-                ):
+                if pydantic_canonical.startswith(
+                    py_prefix + ","
+                ) and proto_canonical.startswith(pr_prefix + ","):
                     return True
                 continue
 
@@ -188,9 +196,17 @@ def _is_coercion_allowed(
 # ---------------------------------------------------------------------------
 
 # Types that should be treated as "string" even though they're not `str`
-_STRING_LIKE_TYPES: Set[str] = {
-    "AnyUrl", "HttpUrl", "AnyHttpUrl", "FileUrl", "PostgresDsn",
-    "RedisDsn", "MongoDsn", "KafkaDsn", "Url", "MultiHostUrl",
+_STRING_LIKE_TYPES: set[str] = {
+    "AnyUrl",
+    "HttpUrl",
+    "AnyHttpUrl",
+    "FileUrl",
+    "PostgresDsn",
+    "RedisDsn",
+    "MongoDsn",
+    "KafkaDsn",
+    "Url",
+    "MultiHostUrl",
 }
 
 
@@ -307,16 +323,16 @@ def _collect_pydantic_fields(
     prefix: str = "",
     max_depth: Optional[int] = None,
     _depth: int = 0,
-    _path_stack: Optional[Set[type]] = None,
+    _path_stack: Optional[set[type]] = None,
     _skip_wrapper_members: bool = True,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Collect Pydantic model fields, returning {dotted.path: canonical_type}.
 
     Only recurses into BaseModel subfields up to *max_depth* levels.
     """
     from pydantic import BaseModel
 
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
     if _path_stack is None:
         _path_stack = set()
     if isinstance(model_cls, type):
@@ -336,7 +352,9 @@ def _collect_pydantic_fields(
         inner_tp = _unwrap_annotated(tp)
         inner_tp = _resolve_forward_ref(inner_tp)
         origin = get_origin(inner_tp)
-        if origin is Union or (hasattr(types, "UnionType") and origin is types.UnionType):
+        if origin is Union or (
+            hasattr(types, "UnionType") and origin is types.UnionType
+        ):
             args = get_args(inner_tp)
             non_none = [a for a in args if a is not type(None)]
             if len(non_none) == 1:
@@ -374,8 +392,8 @@ def _collect_pydantic_fields(
                         _depth + 1,
                         _path_stack,
                         _skip_wrapper_members,
-                        )
                     )
+                )
             else:
                 nested_origin = get_origin(item)
                 nested_args = get_args(item)
@@ -483,7 +501,9 @@ def _normalize_proto_field(field: descriptor_mod.FieldDescriptor) -> str:
         if msg.GetOptions().map_entry:
             key_f = msg.fields_by_name["key"]
             val_f = msg.fields_by_name["value"]
-            return f"map<{_normalize_proto_field(key_f)},{_normalize_proto_field(val_f)}>"
+            return (
+                f"map<{_normalize_proto_field(key_f)},{_normalize_proto_field(val_f)}>"
+            )
         base = f"message:{msg.name}"
     else:
         base = _PROTO_TYPE_MAP.get(field.type, f"unknown:{field.type}")
@@ -507,13 +527,13 @@ def _collect_proto_fields(
     prefix: str = "",
     max_depth: Optional[int] = None,
     _depth: int = 0,
-    _path_stack: Optional[Set[str]] = None,
-) -> Dict[str, str]:
+    _path_stack: Optional[set[str]] = None,
+) -> dict[str, str]:
     """Collect proto fields, returning {dotted.path: canonical_type}.
 
     Only recurses into sub-messages up to *max_depth* levels.
     """
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
     if _path_stack is None:
         _path_stack = set()
     if descriptor.full_name in _path_stack:
@@ -525,7 +545,7 @@ def _collect_proto_fields(
         return result
 
     # Handle real oneof groups (not synthetic proto3 optional presence)
-    oneofs_handled: Set[str] = set()
+    oneofs_handled: set[str] = set()
     for oneof in descriptor.oneofs:
         if oneof.name.startswith("_"):
             continue
@@ -542,7 +562,10 @@ def _collect_proto_fields(
         if field.name in oneofs_handled:
             continue
         path = f"{prefix}.{field.name}" if prefix else field.name
-        if descriptor.name in _BASE_FIELD_WRAPPERS and field.name == _BASE_FIELD_WRAPPERS[descriptor.name]:
+        if (
+            descriptor.name in _BASE_FIELD_WRAPPERS
+            and field.name == _BASE_FIELD_WRAPPERS[descriptor.name]
+        ):
             if (
                 field.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE
                 and not field.message_type.GetOptions().map_entry
@@ -627,7 +650,9 @@ def _types_compatible(pydantic_canonical: str, proto_canonical: str) -> bool:
             return True
 
     # Tuple ↔ named message (e.g. tuple<int,int> ↔ message:IntSpan)
-    if pydantic_canonical.startswith("tuple<") and proto_canonical.startswith("message:"):
+    if pydantic_canonical.startswith("tuple<") and proto_canonical.startswith(
+        "message:"
+    ):
         proto_msg_name = proto_canonical[8:]
         expected_msg = _TUPLE_MESSAGE_EQUIVALENCES.get(pydantic_canonical)
         if expected_msg == proto_msg_name:
@@ -638,9 +663,7 @@ def _types_compatible(pydantic_canonical: str, proto_canonical: str) -> bool:
     if pydantic_canonical.startswith("union<") and proto_canonical == "string":
         inner = pydantic_canonical[6:-1]
         parts = [p.strip() for p in inner.split(",")]
-        if all(
-            p == "string" or p in _STRING_COMPATIBLE_TYPES for p in parts
-        ):
+        if all(p == "string" or p in _STRING_COMPATIBLE_TYPES for p in parts):
             return True
 
     # message:Foo ↔ message:Foo, or Foo is a oneof wrapper for Bar
@@ -680,9 +703,9 @@ def _types_compatible(pydantic_canonical: str, proto_canonical: str) -> bool:
         py_parts = py_inner.split(",", 1)
         pr_parts = pr_inner.split(",", 1)
         if len(py_parts) == 2 and len(pr_parts) == 2:
-            return _types_compatible(
-                py_parts[0], pr_parts[0]
-            ) and _types_compatible(py_parts[1], pr_parts[1])
+            return _types_compatible(py_parts[0], pr_parts[0]) and _types_compatible(
+                py_parts[1], pr_parts[1]
+            )
 
     # union ↔ union (loose)
     if pydantic_canonical.startswith("union<") and proto_canonical.startswith("union<"):
@@ -727,7 +750,7 @@ def _check_cardinality(
 # ---------------------------------------------------------------------------
 # Public API (spec §10)
 # ---------------------------------------------------------------------------
-def _resolve_alias(path: str, fields: Dict[str, str]) -> Optional[str]:
+def _resolve_alias(path: str, fields: dict[str, str]) -> Optional[str]:
     parts = path.split(".")
     if not parts:
         return None
@@ -740,14 +763,14 @@ def _resolve_alias(path: str, fields: Dict[str, str]) -> Optional[str]:
 
 
 def _compare_fields(
-    pydantic_fields: Dict[str, str],
-    proto_fields: Dict[str, str],
+    pydantic_fields: dict[str, str],
+    proto_fields: dict[str, str],
     context: str,
-) -> Tuple[List[str], List[str], List[str], List[str]]:
-    mismatches: List[str] = []
-    allowed: List[str] = []
-    missing_proto: List[str] = []
-    missing_pydantic: List[str] = []
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    mismatches: list[str] = []
+    allowed: list[str] = []
+    missing_proto: list[str] = []
+    missing_pydantic: list[str] = []
 
     all_paths = set(pydantic_fields.keys()) | set(proto_fields.keys())
     for path in sorted(all_paths):

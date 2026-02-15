@@ -6,8 +6,6 @@ from unittest.mock import patch
 import pytest
 
 from docling_serve.grpc.schema_validator import (
-    _collect_pydantic_fields,
-    _collect_proto_fields,
     _is_coercion_allowed,
     _types_compatible,
     validate_docling_document_schema,
@@ -29,33 +27,42 @@ def test_no_warnings_on_current_schemas(caplog):
 
 def test_warns_on_missing_proto_field(caplog):
     """A Pydantic field not present in proto should produce a warning."""
-    with patch(
-        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
-        return_value={"name": "string"},
-    ), patch(
-        "docling_serve.grpc.schema_validator._collect_proto_fields",
-        return_value={},
-    ), patch.dict(
-        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
-        {},
-        clear=True,
-    ), caplog.at_level(logging.WARNING):
+    with (
+        patch(
+            "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+            return_value={"name": "string"},
+        ),
+        patch(
+            "docling_serve.grpc.schema_validator._collect_proto_fields",
+            return_value={},
+        ),
+        patch.dict(
+            "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+            {},
+            clear=True,
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
         validate_docling_document_schema()
     assert "Fields in Pydantic but not in proto" in caplog.text
 
 
 def test_fails_on_type_mismatch():
     """An incompatible type mismatch (not in allowlist) must raise RuntimeError."""
-    with patch(
-        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
-        return_value={"name": "int"},
-    ), patch(
-        "docling_serve.grpc.schema_validator._collect_proto_fields",
-        return_value={"name": "string"},
-    ), patch.dict(
-        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
-        {},
-        clear=True,
+    with (
+        patch(
+            "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+            return_value={"name": "int"},
+        ),
+        patch(
+            "docling_serve.grpc.schema_validator._collect_proto_fields",
+            return_value={"name": "string"},
+        ),
+        patch.dict(
+            "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+            {},
+            clear=True,
+        ),
     ):
         with pytest.raises(RuntimeError, match="type mismatch"):
             validate_docling_document_schema()
@@ -63,17 +70,22 @@ def test_fails_on_type_mismatch():
 
 def test_allowlist_suppresses_known_coercions(caplog):
     """Known coercions (binary_hash, pages, label) must not fail."""
-    with patch(
-        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
-        return_value={"origin.binary_hash": "int"},
-    ), patch(
-        "docling_serve.grpc.schema_validator._collect_proto_fields",
-        return_value={"origin.binary_hash": "string"},
-    ), patch.dict(
-        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
-        {},
-        clear=True,
-    ), caplog.at_level(logging.INFO):
+    with (
+        patch(
+            "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+            return_value={"origin.binary_hash": "int"},
+        ),
+        patch(
+            "docling_serve.grpc.schema_validator._collect_proto_fields",
+            return_value={"origin.binary_hash": "string"},
+        ),
+        patch.dict(
+            "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+            {},
+            clear=True,
+        ),
+        caplog.at_level(logging.INFO),
+    ):
         validate_docling_document_schema()
     assert "Allowed coercions" in caplog.text
     assert "binary_hash" in caplog.text
@@ -81,16 +93,20 @@ def test_allowlist_suppresses_known_coercions(caplog):
 
 def test_cardinality_mismatch_fails():
     """Proto repeated ↔ Pydantic non-list must fail."""
-    with patch(
-        "docling_serve.grpc.schema_validator._collect_pydantic_fields",
-        return_value={"items": "string"},
-    ), patch(
-        "docling_serve.grpc.schema_validator._collect_proto_fields",
-        return_value={"items": "list<string>"},
-    ), patch.dict(
-        "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
-        {},
-        clear=True,
+    with (
+        patch(
+            "docling_serve.grpc.schema_validator._collect_pydantic_fields",
+            return_value={"items": "string"},
+        ),
+        patch(
+            "docling_serve.grpc.schema_validator._collect_proto_fields",
+            return_value={"items": "list<string>"},
+        ),
+        patch.dict(
+            "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
+            {},
+            clear=True,
+        ),
     ):
         with pytest.raises(RuntimeError, match="Cardinality mismatch"):
             validate_docling_document_schema()
@@ -142,7 +158,9 @@ class TestStructuralEquivalences:
 
     def test_optional_tuple_intspan(self):
         """optional<tuple<int,int>> ↔ optional<message:IntSpan> should be compatible."""
-        assert _types_compatible("optional<tuple<int,int>>", "optional<message:IntSpan>")
+        assert _types_compatible(
+            "optional<tuple<int,int>>", "optional<message:IntSpan>"
+        )
 
     def test_oneof_wrapper_sourcetype(self):
         """union<message:TrackSource> ↔ message:SourceType (oneof wrapper)."""

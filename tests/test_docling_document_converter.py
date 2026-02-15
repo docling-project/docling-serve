@@ -1,18 +1,17 @@
 import pytest
 
 from docling.datamodel.base_models import OutputFormat
-from docling_jobkit.datamodel.result import ExportDocumentResponse
-from docling_serve.grpc.mapping import export_document_to_proto
+from docling_core.types.doc.base import CoordOrigin
 from docling_core.types.doc.document import (
     BaseMeta,
     BoundingBox,
     CodeItem,
     DescriptionMetaField,
-    DocumentOrigin,
     DoclingDocument,
+    DocumentOrigin,
+    FineRef,
     FloatingMeta,
     Formatting,
-    FineRef,
     FormulaItem,
     GraphCell,
     GraphData,
@@ -23,9 +22,9 @@ from docling_core.types.doc.document import (
     ListItem,
     MoleculeMetaField,
     PageItem,
-    PictureItem,
     PictureClassificationMetaField,
     PictureClassificationPrediction,
+    PictureItem,
     PictureMeta,
     ProvenanceItem,
     RefItem,
@@ -34,15 +33,14 @@ from docling_core.types.doc.document import (
     SectionHeaderItem,
     Size,
     SummaryMetaField,
-    TabularChartMetaField,
     TableCell,
     TableData,
     TableItem,
-    TrackSource,
+    TabularChartMetaField,
     TextItem,
     TitleItem,
+    TrackSource,
 )
-from docling_core.types.doc.base import CoordOrigin
 from docling_core.types.doc.labels import (
     CodeLanguageLabel,
     DocItemLabel,
@@ -50,10 +48,12 @@ from docling_core.types.doc.labels import (
     GraphLinkLabel,
     GroupLabel,
 )
+from docling_jobkit.datamodel.result import ExportDocumentResponse
 
 from docling_serve.grpc import docling_document_converter as converter
 from docling_serve.grpc.docling_document_converter import docling_document_to_proto
 from docling_serve.grpc.gen.ai.docling.core.v1 import docling_document_pb2 as pb2
+from docling_serve.grpc.mapping import export_document_to_proto
 
 pytestmark = pytest.mark.unit
 
@@ -262,7 +262,9 @@ def test_docling_document_to_proto_graph_links_and_form_item():
     graph = GraphData(
         cells=[
             GraphCell(label=GraphCellLabel.KEY, cell_id=1, text="Key", orig="Key"),
-            GraphCell(label=GraphCellLabel.VALUE, cell_id=2, text="Value", orig="Value"),
+            GraphCell(
+                label=GraphCellLabel.VALUE, cell_id=2, text="Value", orig="Value"
+            ),
         ],
         links=[
             GraphLink(
@@ -339,8 +341,17 @@ def test_docling_document_to_proto_picture_meta_and_floating_meta():
     assert proto.tables[0].meta.summary.custom_fields["acme__note"].string_value == "ok"
     assert proto.pictures[0].meta.description.text == "desc"
     assert proto.pictures[0].meta.classification.predictions[0].class_name == "other"
-    assert proto.pictures[0].meta.classification.custom_fields["acme__model"].string_value == "v1"
-    assert proto.pictures[0].meta.classification.predictions[0].custom_fields["acme__score"].number_value == 1
+    assert (
+        proto.pictures[0].meta.classification.custom_fields["acme__model"].string_value
+        == "v1"
+    )
+    assert (
+        proto.pictures[0]
+        .meta.classification.predictions[0]
+        .custom_fields["acme__score"]
+        .number_value
+        == 1
+    )
     assert proto.pictures[0].meta.molecule.smi == "C"
     assert proto.pictures[0].meta.tabular_chart.title == "chart"
     assert proto.pictures[0].meta.custom_fields["acme__source"].string_value == "vision"
@@ -437,10 +448,18 @@ def test_docling_document_to_proto_doc_item_label_enum_mapping():
     doc = _base_doc()
     doc.texts = [
         TextItem(self_ref="#/texts/0", label=DocItemLabel.TEXT, orig="a", text="a"),
-        TextItem(self_ref="#/texts/1", label=DocItemLabel.PARAGRAPH, orig="b", text="b"),
-        TextItem(self_ref="#/texts/2", label=DocItemLabel.REFERENCE, orig="c", text="c"),
-        TextItem(self_ref="#/texts/3", label=DocItemLabel.PAGE_HEADER, orig="d", text="d"),
-        TextItem(self_ref="#/texts/4", label=DocItemLabel.PAGE_FOOTER, orig="e", text="e"),
+        TextItem(
+            self_ref="#/texts/1", label=DocItemLabel.PARAGRAPH, orig="b", text="b"
+        ),
+        TextItem(
+            self_ref="#/texts/2", label=DocItemLabel.REFERENCE, orig="c", text="c"
+        ),
+        TextItem(
+            self_ref="#/texts/3", label=DocItemLabel.PAGE_HEADER, orig="d", text="d"
+        ),
+        TextItem(
+            self_ref="#/texts/4", label=DocItemLabel.PAGE_FOOTER, orig="e", text="e"
+        ),
     ]
 
     proto = docling_document_to_proto(doc)
@@ -765,7 +784,10 @@ def test_docling_document_round_trip_no_field_loss():
     assert round_tripped.texts[1].level == doc.texts[1].level
     assert len(round_tripped.tables) == len(doc.tables)
     assert round_tripped.tables[0].data.num_rows == doc.tables[0].data.num_rows
-    assert round_tripped.tables[0].data.table_cells[0].text == doc.tables[0].data.table_cells[0].text
+    assert (
+        round_tripped.tables[0].data.table_cells[0].text
+        == doc.tables[0].data.table_cells[0].text
+    )
 
 
 def _build_rich_doc() -> DoclingDocument:
@@ -815,7 +837,11 @@ def _build_rich_doc() -> DoclingDocument:
             text="Document Title",
             prov=[_prov(1)],
             parent=_ref("#/body"),
-            source=[TrackSource(start_time=0.0, end_time=1.5, identifier="seg-0", voice="Speaker1")],
+            source=[
+                TrackSource(
+                    start_time=0.0, end_time=1.5, identifier="seg-0", voice="Speaker1"
+                )
+            ],
             comments=[FineRef(cref="#/texts/3", range=(0, 5))],
         ),
         SectionHeaderItem(
@@ -934,8 +960,12 @@ def _build_rich_doc() -> DoclingDocument:
                 description=DescriptionMetaField(text="Detailed description"),
                 classification=PictureClassificationMetaField(
                     predictions=[
-                        PictureClassificationPrediction(class_name="chart", confidence=0.95),
-                        PictureClassificationPrediction(class_name="photo", confidence=0.05),
+                        PictureClassificationPrediction(
+                            class_name="chart", confidence=0.95
+                        ),
+                        PictureClassificationPrediction(
+                            class_name="photo", confidence=0.05
+                        ),
                     ]
                 ),
                 molecule=MoleculeMetaField(smi="CCO", confidence=0.8),
@@ -969,11 +999,22 @@ def _build_rich_doc() -> DoclingDocument:
             prov=[_prov(1)],
             graph=GraphData(
                 cells=[
-                    GraphCell(label=GraphCellLabel.KEY, cell_id=1, text="Name", orig="Name"),
-                    GraphCell(label=GraphCellLabel.VALUE, cell_id=2, text="Alice", orig="Alice"),
+                    GraphCell(
+                        label=GraphCellLabel.KEY, cell_id=1, text="Name", orig="Name"
+                    ),
+                    GraphCell(
+                        label=GraphCellLabel.VALUE,
+                        cell_id=2,
+                        text="Alice",
+                        orig="Alice",
+                    ),
                 ],
                 links=[
-                    GraphLink(label=GraphLinkLabel.TO_VALUE, source_cell_id=1, target_cell_id=2),
+                    GraphLink(
+                        label=GraphLinkLabel.TO_VALUE,
+                        source_cell_id=1,
+                        target_cell_id=2,
+                    ),
                 ],
             ),
         ),
@@ -1002,7 +1043,9 @@ class TestRoundTrip:
         doc = _build_rich_doc()
 
         export_doc = ExportDocumentResponse(filename="rich_rt", json_content=doc)
-        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        proto = export_document_to_proto(
+            export_doc, requested_formats={OutputFormat.JSON}
+        )
 
         assert proto.exports.json, "exports.json must be populated"
         rt = DoclingDocument.model_validate_json(proto.exports.json)
@@ -1199,7 +1242,9 @@ class TestRoundTrip:
         ]
 
         export_doc = ExportDocumentResponse(filename="custom_rt", json_content=doc)
-        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        proto = export_document_to_proto(
+            export_doc, requested_formats={OutputFormat.JSON}
+        )
         rt = DoclingDocument.model_validate_json(proto.exports.json)
 
         custom = rt.groups[0].meta.get_custom_part()
@@ -1261,7 +1306,9 @@ class TestRoundTrip:
         ]
 
         export_doc = ExportDocumentResponse(filename="coord_rt", json_content=doc)
-        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        proto = export_document_to_proto(
+            export_doc, requested_formats={OutputFormat.JSON}
+        )
         rt = DoclingDocument.model_validate_json(proto.exports.json)
 
         assert rt.texts[0].prov[0].bbox.coord_origin == CoordOrigin.BOTTOMLEFT
@@ -1282,7 +1329,10 @@ class TestRoundTrip:
         ]
 
         proto = docling_document_to_proto(doc)
-        assert proto.texts[0].text.base.prov[0].bbox.coord_origin == pb2.COORD_ORIGIN_BOTTOMLEFT
+        assert (
+            proto.texts[0].text.base.prov[0].bbox.coord_origin
+            == pb2.COORD_ORIGIN_BOTTOMLEFT
+        )
 
     def test_form_items_round_trip(self):
         """FormItem with graph data survives JSON export round-trip."""
@@ -1296,19 +1346,40 @@ class TestRoundTrip:
                 prov=[_prov()],
                 graph=GraphData(
                     cells=[
-                        GraphCell(label=GraphCellLabel.KEY, cell_id=1, text="Field", orig="Field"),
-                        GraphCell(label=GraphCellLabel.VALUE, cell_id=2, text="Value", orig="Value"),
-                        GraphCell(label=GraphCellLabel.CHECKBOX, cell_id=3, text="Check", orig="Check"),
+                        GraphCell(
+                            label=GraphCellLabel.KEY,
+                            cell_id=1,
+                            text="Field",
+                            orig="Field",
+                        ),
+                        GraphCell(
+                            label=GraphCellLabel.VALUE,
+                            cell_id=2,
+                            text="Value",
+                            orig="Value",
+                        ),
+                        GraphCell(
+                            label=GraphCellLabel.CHECKBOX,
+                            cell_id=3,
+                            text="Check",
+                            orig="Check",
+                        ),
                     ],
                     links=[
-                        GraphLink(label=GraphLinkLabel.TO_VALUE, source_cell_id=1, target_cell_id=2),
+                        GraphLink(
+                            label=GraphLinkLabel.TO_VALUE,
+                            source_cell_id=1,
+                            target_cell_id=2,
+                        ),
                     ],
                 ),
             ),
         ]
 
         export_doc = ExportDocumentResponse(filename="form_rt", json_content=doc)
-        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        proto = export_document_to_proto(
+            export_doc, requested_formats={OutputFormat.JSON}
+        )
         rt = DoclingDocument.model_validate_json(proto.exports.json)
 
         assert len(rt.form_items) == 1
@@ -1321,7 +1392,9 @@ class TestRoundTrip:
         doc = _base_doc()
 
         export_doc = ExportDocumentResponse(filename="empty_rt", json_content=doc)
-        proto = export_document_to_proto(export_doc, requested_formats={OutputFormat.JSON})
+        proto = export_document_to_proto(
+            export_doc, requested_formats={OutputFormat.JSON}
+        )
         rt = DoclingDocument.model_validate_json(proto.exports.json)
 
         assert rt.name == "test"

@@ -1,7 +1,11 @@
 import pytest
 
 from docling.datamodel.base_models import InputFormat, OutputFormat
-from docling.datamodel.pipeline_options import PdfBackend, ProcessingPipeline, TableFormerMode
+from docling.datamodel.pipeline_options import (
+    PdfBackend,
+    ProcessingPipeline,
+    TableFormerMode,
+)
 from docling.datamodel.pipeline_options_vlm_model import (
     InferenceFramework,
     ResponseFormat,
@@ -12,7 +16,12 @@ from docling_core.types.doc import ImageRefMode
 from docling_jobkit.datamodel.chunking import HybridChunkerOptions
 from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.s3_coords import S3Coordinates
-from docling_jobkit.datamodel.task_targets import InBodyTarget, PutTarget, S3Target, ZipTarget
+from docling_jobkit.datamodel.task_targets import (
+    InBodyTarget,
+    PutTarget,
+    S3Target,
+    ZipTarget,
+)
 
 from docling_serve.grpc.gen.ai.docling.serve.v1 import docling_serve_types_pb2
 from docling_serve.grpc.mapping import (
@@ -39,24 +48,45 @@ pytestmark = pytest.mark.unit
 
 
 def test_enum_mappings():
-    assert _map_input_format(docling_serve_types_pb2.INPUT_FORMAT_PDF) == InputFormat.PDF
-    assert _map_output_format(docling_serve_types_pb2.OUTPUT_FORMAT_MD) == OutputFormat.MARKDOWN
+    assert (
+        _map_input_format(docling_serve_types_pb2.INPUT_FORMAT_PDF) == InputFormat.PDF
+    )
+    assert (
+        _map_output_format(docling_serve_types_pb2.OUTPUT_FORMAT_MD)
+        == OutputFormat.MARKDOWN
+    )
     assert (
         _map_image_ref_mode(docling_serve_types_pb2.IMAGE_REF_MODE_REFERENCED)
         == ImageRefMode.REFERENCED
     )
     assert _map_ocr_engine(docling_serve_types_pb2.OCR_ENGINE_TESSEROCR) == "tesseract"
-    assert _map_ocr_engine(docling_serve_types_pb2.OCR_ENGINE_TESSERACT) == "tesseract_cli"
-    assert _map_pdf_backend(docling_serve_types_pb2.PDF_BACKEND_DLPARSE_V4) == PdfBackend.DLPARSE_V4
-    assert _map_table_mode(docling_serve_types_pb2.TABLE_FORMER_MODE_FAST) == TableFormerMode.FAST
-    assert _map_pipeline(docling_serve_types_pb2.PROCESSING_PIPELINE_VLM) == ProcessingPipeline.VLM
-    assert _map_vlm_model_type(docling_serve_types_pb2.VLM_MODEL_TYPE_GOT_OCR_2) == VlmModelType.GOT_OCR_2
+    assert (
+        _map_ocr_engine(docling_serve_types_pb2.OCR_ENGINE_TESSERACT) == "tesseract_cli"
+    )
+    assert (
+        _map_pdf_backend(docling_serve_types_pb2.PDF_BACKEND_DLPARSE_V4)
+        == PdfBackend.DLPARSE_V4
+    )
+    assert (
+        _map_table_mode(docling_serve_types_pb2.TABLE_FORMER_MODE_FAST)
+        == TableFormerMode.FAST
+    )
+    assert (
+        _map_pipeline(docling_serve_types_pb2.PROCESSING_PIPELINE_VLM)
+        == ProcessingPipeline.VLM
+    )
+    assert (
+        _map_vlm_model_type(docling_serve_types_pb2.VLM_MODEL_TYPE_GOT_OCR_2)
+        == VlmModelType.GOT_OCR_2
+    )
     assert (
         _map_response_format(docling_serve_types_pb2.RESPONSE_FORMAT_PLAINTEXT)
         == ResponseFormat.PLAINTEXT
     )
     assert (
-        _map_inference_framework(docling_serve_types_pb2.INFERENCE_FRAMEWORK_TRANSFORMERS)
+        _map_inference_framework(
+            docling_serve_types_pb2.INFERENCE_FRAMEWORK_TRANSFORMERS
+        )
         == InferenceFramework.TRANSFORMERS
     )
     assert (
@@ -80,7 +110,9 @@ def test_to_task_sources_and_target():
                 )
             ),
             docling_serve_types_pb2.Source(
-                http=docling_serve_types_pb2.HttpSource(url="https://example.com/doc.pdf")
+                http=docling_serve_types_pb2.HttpSource(
+                    url="https://example.com/doc.pdf"
+                )
             ),
             docling_serve_types_pb2.Source(
                 s3=docling_serve_types_pb2.S3Source(
@@ -101,7 +133,9 @@ def test_to_task_sources_and_target():
 
     assert isinstance(to_task_target(None), InBodyTarget)
     assert isinstance(
-        to_task_target(docling_serve_types_pb2.Target(zip=docling_serve_types_pb2.ZipTarget())),
+        to_task_target(
+            docling_serve_types_pb2.Target(zip=docling_serve_types_pb2.ZipTarget())
+        ),
         ZipTarget,
     )
     assert isinstance(
@@ -137,14 +171,16 @@ def test_to_task_sources_empty_oneof_raises():
 def test_to_task_sources_mixed_with_empty_oneof_raises():
     """If any Source in the list has no variant, ValueError is raised."""
     with pytest.raises(ValueError, match="index 1"):
-        to_task_sources([
-            docling_serve_types_pb2.Source(
-                file=docling_serve_types_pb2.FileSource(
-                    base64_string="aGVsbG8=", filename="a.pdf"
-                )
-            ),
-            docling_serve_types_pb2.Source(),  # no variant
-        ])
+        to_task_sources(
+            [
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string="aGVsbG8=", filename="a.pdf"
+                    )
+                ),
+                docling_serve_types_pb2.Source(),  # no variant
+            ]
+        )
 
 
 def test_to_convert_options_full():
@@ -236,7 +272,10 @@ def test_requested_output_formats_default_and_custom():
             docling_serve_types_pb2.OUTPUT_FORMAT_MD,
         ]
     )
-    assert requested_output_formats(options) == {OutputFormat.TEXT, OutputFormat.MARKDOWN}
+    assert requested_output_formats(options) == {
+        OutputFormat.TEXT,
+        OutputFormat.MARKDOWN,
+    }
 
 
 def test_to_hybrid_chunk_options():

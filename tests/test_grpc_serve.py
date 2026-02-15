@@ -10,7 +10,7 @@ TEST STATUS (as of 2026-02-15):
 
 BUGS FOUND:
 1. **Missing dependency handling**: Worker crashes when EasyOCR not installed instead of graceful fallback
-2. **Error handling bug in server.py line 145**: 
+2. **Error handling bug in server.py line 145**:
    ```python
    if not hasattr(task_result.result, "content"):  # AttributeError if task_result is None
    ```
@@ -41,6 +41,7 @@ from docling_serve.settings import docling_serve_settings
 
 pytestmark = pytest.mark.integration
 
+
 @pytest_asyncio.fixture
 async def grpc_server():
     """Start a gRPC server for testing."""
@@ -57,12 +58,12 @@ async def grpc_server():
     service = DoclingServeGrpcService(orchestrator=orchestrator)
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
-    
+
     port = server.add_insecure_port("[::]:0")
     await server.start()
-    
+
     yield f"localhost:{port}"
-    
+
     await service.close()
     docling_serve_settings.single_use_results = original_single_use
     get_async_orchestrator.cache_clear()
@@ -112,23 +113,23 @@ async def test_health(grpc_stub):
 @pytest.mark.asyncio
 async def test_convert_source_sync(grpc_stub):
     """Test ConvertSource RPC with a simple PDF.
-    
+
     CURRENT STATUS: FAILS
-    
+
     Issues found:
     1. Worker fails: "EasyOCR is not installed. Please install it via `pip install easyocr`"
     2. Server error handling bug at line 145: AttributeError when task_result is None
        - Code tries to access task_result.result without checking if task_result is None first
     3. context.abort() is async but not awaited (line 143)
-    
+
     This test validates the synchronous conversion flow where the server waits
     for task completion before returning results.
     """
     pdf_path = os.path.join(os.path.dirname(__file__), "2206.01062v1.pdf")
-    
+
     with open(pdf_path, "rb") as f:
         pdf_content = base64.b64encode(f.read()).decode("utf-8")
-    
+
     request = docling_serve_pb2.ConvertSourceRequest(
         request=docling_serve_types_pb2.ConvertDocumentRequest(
             sources=[
@@ -146,9 +147,9 @@ async def test_convert_source_sync(grpc_stub):
             ),
         )
     )
-    
+
     response = await grpc_stub.ConvertSource(request, metadata=get_metadata())
-    
+
     # Verify we got a document response
     assert response.response.HasField("document")
     # Check that we have a filename
@@ -203,7 +204,7 @@ async def test_convert_source_sync_ocr(grpc_stub):
 @pytest.mark.asyncio
 async def test_convert_source_async(grpc_stub):
     """Test ConvertSourceAsync RPC.
-    
+
     Tests that async endpoint accepts requests and returns task IDs.
     Uses HTTP source to avoid base64 encoding overhead.
     """
@@ -218,9 +219,9 @@ async def test_convert_source_async(grpc_stub):
             ]
         )
     )
-    
+
     response = await grpc_stub.ConvertSourceAsync(request, metadata=get_metadata())
-    
+
     # Verify we got a valid task ID
     assert len(response.response.task_id) > 0
     # Verify task type is set
@@ -361,18 +362,18 @@ async def test_api_key_validation(grpc_channel):
     """Test API key validation if configured."""
     if not docling_serve_settings.api_key:
         pytest.skip("API key not configured")
-    
+
     stub = docling_serve_pb2_grpc.DoclingServeServiceStub(grpc_channel)
     request = docling_serve_pb2.HealthRequest()
-    
+
     # Test without API key
     with pytest.raises(grpc.aio.AioRpcError) as exc_info:
         await stub.Health(request)
-    
+
     assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
-    
+
     # Test with wrong API key
     with pytest.raises(grpc.aio.AioRpcError) as exc_info:
         await stub.Health(request, metadata=(("x-api-key", "wrong-key"),))
-    
+
     assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED

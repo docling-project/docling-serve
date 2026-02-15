@@ -50,7 +50,9 @@ class FakeOrchestrator:
     async def process_queue(self) -> None:
         await self._stop.wait()
 
-    async def enqueue(self, *, task_type, sources, convert_options, target, **kwargs) -> Task:
+    async def enqueue(
+        self, *, task_type, sources, convert_options, target, **kwargs
+    ) -> Task:
         self._counter += 1
         task_id = f"task-{self._counter}"
         task = Task(
@@ -133,7 +135,9 @@ async def grpc_channel(grpc_server):
         ("grpc.max_send_message_length", 50 * 1024 * 1024),
         ("grpc.max_receive_message_length", 50 * 1024 * 1024),
     ]
-    async with grpc.aio.insecure_channel(grpc_server["address"], options=options) as channel:
+    async with grpc.aio.insecure_channel(
+        grpc_server["address"], options=options
+    ) as channel:
         yield channel
 
 
@@ -314,7 +318,9 @@ async def test_clear_results_and_converters(grpc_stub, orchestrator):
     assert response.response.status == "ok"
     assert orchestrator.cleared_results == [12]
 
-    response = await grpc_stub.ClearConverters(docling_serve_pb2.ClearConvertersRequest())
+    response = await grpc_stub.ClearConverters(
+        docling_serve_pb2.ClearConvertersRequest()
+    )
     assert response.response.status == "ok"
     assert orchestrator.cleared_converters is True
 
@@ -525,7 +531,9 @@ async def test_api_key_health_accepted(api_key_stub):
 async def test_api_key_watch_convert_rejected(api_key_stub):
     with pytest.raises(grpc.aio.AioRpcError) as exc_info:
         async for _ in api_key_stub.WatchConvertSource(
-            docling_serve_pb2.WatchConvertSourceRequest(request=_dummy_convert_request())
+            docling_serve_pb2.WatchConvertSourceRequest(
+                request=_dummy_convert_request()
+            )
         ):
             pass
     assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
@@ -559,7 +567,9 @@ async def test_api_key_watch_chunk_hybrid_rejected(api_key_stub):
 async def test_api_key_convert_source_stream_rejected(api_key_stub):
     with pytest.raises(grpc.aio.AioRpcError) as exc_info:
         async for _ in api_key_stub.ConvertSourceStream(
-            docling_serve_pb2.ConvertSourceStreamRequest(request=_dummy_convert_request())
+            docling_serve_pb2.ConvertSourceStreamRequest(
+                request=_dummy_convert_request()
+            )
         ):
             pass
     assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
@@ -806,6 +816,7 @@ async def test_explicit_json_export_matches_model_dump_json(grpc_stub):
     json_export = response.response.document.exports.json
     # The canonical serializer produces valid JSON with the schema_name field
     import json
+
     parsed = json.loads(json_export)
     assert parsed["name"] == "doc"
     assert "schema_name" in parsed

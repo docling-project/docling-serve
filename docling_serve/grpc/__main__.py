@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from docling_serve.settings import docling_serve_settings
+
 from .server import serve
 
 console = Console()
@@ -45,7 +46,9 @@ def run(
 
 @app.command()
 def version() -> None:
-    console.print(f"Python: {platform.python_version()} ({sys.implementation.cache_tag})")
+    console.print(
+        f"Python: {platform.python_version()} ({sys.implementation.cache_tag})"
+    )
 
 
 def main() -> None:

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from google.protobuf import struct_pb2
 
+from docling_core.types.doc.base import CoordOrigin
 from docling_core.types.doc.document import (
     BaseMeta,
     BaseSource,
@@ -15,9 +16,9 @@ from docling_core.types.doc.document import (
     DescriptionMetaField,
     DoclingDocument,
     DocumentOrigin,
+    FineRef,
     FloatingMeta,
     Formatting,
-    FineRef,
     FormItem,
     FormulaItem,
     GraphCell,
@@ -34,10 +35,10 @@ from docling_core.types.doc.document import (
     PictureClassificationData,
     PictureClassificationMetaField,
     PictureClassificationPrediction,
+    PictureItem,
     PictureLineChartData,
     PictureMeta,
     PictureMoleculeData,
-    PictureItem,
     PicturePieChartData,
     PictureScatterChartData,
     PictureStackedBarChartData,
@@ -49,15 +50,14 @@ from docling_core.types.doc.document import (
     SectionHeaderItem,
     Size,
     SummaryMetaField,
-    TabularChartMetaField,
     TableCell,
     TableData,
     TableItem,
-    TrackSource,
+    TabularChartMetaField,
     TextItem,
     TitleItem,
+    TrackSource,
 )
-from docling_core.types.doc.base import CoordOrigin
 from docling_core.types.doc.labels import (
     CodeLanguageLabel,
     DocItemLabel,
@@ -266,9 +266,7 @@ def _apply_custom_fields(msg: Any, model: Any) -> None:
 def _to_fine_ref(ref: FineRef) -> pb2.FineRef:
     msg = pb2.FineRef(ref=ref.cref)
     if ref.range is not None:
-        msg.range.CopyFrom(
-            pb2.IntSpan(start=int(ref.range[0]), end=int(ref.range[1]))
-        )
+        msg.range.CopyFrom(pb2.IntSpan(start=int(ref.range[0]), end=int(ref.range[1])))
     return msg
 
 
@@ -340,7 +338,9 @@ def _to_picture_classification_meta(
     meta: PictureClassificationMetaField,
 ) -> pb2.PictureClassificationMetaField:
     msg = pb2.PictureClassificationMetaField()
-    msg.predictions.extend([_to_picture_classification_prediction(p) for p in meta.predictions])
+    msg.predictions.extend(
+        [_to_picture_classification_prediction(p) for p in meta.predictions]
+    )
     _apply_custom_fields(msg, meta)
     return msg
 
@@ -389,7 +389,9 @@ def _to_picture_meta(meta: Optional[PictureMeta]) -> Optional[pb2.PictureMeta]:
     if meta.description is not None:
         msg.description.CopyFrom(_to_description_meta(meta.description))
     if meta.classification is not None:
-        msg.classification.CopyFrom(_to_picture_classification_meta(meta.classification))
+        msg.classification.CopyFrom(
+            _to_picture_classification_meta(meta.classification)
+        )
     if meta.molecule is not None:
         msg.molecule.CopyFrom(_to_molecule_meta(meta.molecule))
     if meta.tabular_chart is not None:
@@ -410,11 +412,13 @@ def _to_picture_annotation(annotation) -> pb2.PictureAnnotation:
     """Convert a Pydantic picture annotation to its proto oneof wrapper."""
     msg = pb2.PictureAnnotation()
     if isinstance(annotation, DescriptionAnnotation):
-        msg.description.CopyFrom(pb2.DescriptionAnnotation(
-            kind=annotation.kind,
-            text=annotation.text,
-            provenance=annotation.provenance,
-        ))
+        msg.description.CopyFrom(
+            pb2.DescriptionAnnotation(
+                kind=annotation.kind,
+                text=annotation.text,
+                provenance=annotation.provenance,
+            )
+        )
     elif isinstance(annotation, MiscAnnotation):
         misc = pb2.MiscAnnotation(kind=annotation.kind)
         if annotation.content:
@@ -424,16 +428,19 @@ def _to_picture_annotation(annotation) -> pb2.PictureAnnotation:
             misc.content.CopyFrom(struct)
         msg.misc.CopyFrom(misc)
     elif isinstance(annotation, PictureClassificationData):
-        msg.classification.CopyFrom(pb2.PictureClassificationData(
-            kind=annotation.kind,
-            provenance=annotation.provenance,
-            predicted_classes=[
-                pb2.PictureClassificationClass(
-                    class_name=c.class_name, confidence=c.confidence,
-                )
-                for c in annotation.predicted_classes
-            ],
-        ))
+        msg.classification.CopyFrom(
+            pb2.PictureClassificationData(
+                kind=annotation.kind,
+                provenance=annotation.provenance,
+                predicted_classes=[
+                    pb2.PictureClassificationClass(
+                        class_name=c.class_name,
+                        confidence=c.confidence,
+                    )
+                    for c in annotation.predicted_classes
+                ],
+            )
+        )
     elif isinstance(annotation, PictureMoleculeData):
         mol = pb2.PictureMoleculeData(
             kind=annotation.kind,
@@ -443,73 +450,87 @@ def _to_picture_annotation(annotation) -> pb2.PictureAnnotation:
             provenance=annotation.provenance,
         )
         if annotation.segmentation:
-            mol.segmentation.extend([_to_float_pair(p) for p in annotation.segmentation])
+            mol.segmentation.extend(
+                [_to_float_pair(p) for p in annotation.segmentation]
+            )
         msg.molecule.CopyFrom(mol)
     elif isinstance(annotation, PictureTabularChartData):
-        msg.tabular_chart.CopyFrom(pb2.PictureTabularChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            chart_data=_to_table_data(annotation.chart_data),
-        ))
+        msg.tabular_chart.CopyFrom(
+            pb2.PictureTabularChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                chart_data=_to_table_data(annotation.chart_data),
+            )
+        )
     elif isinstance(annotation, PictureLineChartData):
-        msg.line_chart.CopyFrom(pb2.PictureLineChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            x_axis_label=annotation.x_axis_label,
-            y_axis_label=annotation.y_axis_label,
-            lines=[
-                pb2.ChartLine(
-                    label=line.label,
-                    values=[_to_float_pair(v) for v in line.values],
-                )
-                for line in annotation.lines
-            ],
-        ))
+        msg.line_chart.CopyFrom(
+            pb2.PictureLineChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                x_axis_label=annotation.x_axis_label,
+                y_axis_label=annotation.y_axis_label,
+                lines=[
+                    pb2.ChartLine(
+                        label=line.label,
+                        values=[_to_float_pair(v) for v in line.values],
+                    )
+                    for line in annotation.lines
+                ],
+            )
+        )
     elif isinstance(annotation, PictureBarChartData):
-        msg.bar_chart.CopyFrom(pb2.PictureBarChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            x_axis_label=annotation.x_axis_label,
-            y_axis_label=annotation.y_axis_label,
-            bars=[
-                pb2.ChartBar(label=bar.label, values=bar.values)
-                for bar in annotation.bars
-            ],
-        ))
+        msg.bar_chart.CopyFrom(
+            pb2.PictureBarChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                x_axis_label=annotation.x_axis_label,
+                y_axis_label=annotation.y_axis_label,
+                bars=[
+                    pb2.ChartBar(label=bar.label, values=bar.values)
+                    for bar in annotation.bars
+                ],
+            )
+        )
     elif isinstance(annotation, PictureStackedBarChartData):
-        msg.stacked_bar_chart.CopyFrom(pb2.PictureStackedBarChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            x_axis_label=annotation.x_axis_label,
-            y_axis_label=annotation.y_axis_label,
-            stacked_bars=[
-                pb2.ChartStackedBar(
-                    label=list(sb.label),
-                    values=[_to_string_int_pair(v) for v in sb.values],
-                )
-                for sb in annotation.stacked_bars
-            ],
-        ))
+        msg.stacked_bar_chart.CopyFrom(
+            pb2.PictureStackedBarChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                x_axis_label=annotation.x_axis_label,
+                y_axis_label=annotation.y_axis_label,
+                stacked_bars=[
+                    pb2.ChartStackedBar(
+                        label=list(sb.label),
+                        values=[_to_string_int_pair(v) for v in sb.values],
+                    )
+                    for sb in annotation.stacked_bars
+                ],
+            )
+        )
     elif isinstance(annotation, PicturePieChartData):
-        msg.pie_chart.CopyFrom(pb2.PicturePieChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            slices=[
-                pb2.ChartSlice(label=s.label, value=s.value)
-                for s in annotation.slices
-            ],
-        ))
+        msg.pie_chart.CopyFrom(
+            pb2.PicturePieChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                slices=[
+                    pb2.ChartSlice(label=s.label, value=s.value)
+                    for s in annotation.slices
+                ],
+            )
+        )
     elif isinstance(annotation, PictureScatterChartData):
-        msg.scatter_chart.CopyFrom(pb2.PictureScatterChartData(
-            kind=annotation.kind,
-            title=annotation.title,
-            x_axis_label=annotation.x_axis_label,
-            y_axis_label=annotation.y_axis_label,
-            points=[
-                pb2.ChartPoint(value=_to_float_pair(p.value))
-                for p in annotation.points
-            ],
-        ))
+        msg.scatter_chart.CopyFrom(
+            pb2.PictureScatterChartData(
+                kind=annotation.kind,
+                title=annotation.title,
+                x_axis_label=annotation.x_axis_label,
+                y_axis_label=annotation.y_axis_label,
+                points=[
+                    pb2.ChartPoint(value=_to_float_pair(p.value))
+                    for p in annotation.points
+                ],
+            )
+        )
     else:
         raise TypeError(f"Unsupported picture annotation type: {type(annotation)!r}")
     return msg
@@ -519,11 +540,13 @@ def _to_table_annotation(annotation) -> pb2.TableAnnotation:
     """Convert a Pydantic table annotation to its proto oneof wrapper."""
     msg = pb2.TableAnnotation()
     if isinstance(annotation, DescriptionAnnotation):
-        msg.description.CopyFrom(pb2.DescriptionAnnotation(
-            kind=annotation.kind,
-            text=annotation.text,
-            provenance=annotation.provenance,
-        ))
+        msg.description.CopyFrom(
+            pb2.DescriptionAnnotation(
+                kind=annotation.kind,
+                text=annotation.text,
+                provenance=annotation.provenance,
+            )
+        )
     elif isinstance(annotation, MiscAnnotation):
         misc = pb2.MiscAnnotation(kind=annotation.kind)
         if annotation.content:
@@ -555,7 +578,11 @@ def _to_bbox(bbox: Optional[BoundingBox]) -> Optional[pb2.BoundingBox]:
         return None
     msg = pb2.BoundingBox(l=bbox.l, t=bbox.t, r=bbox.r, b=bbox.b)
     if bbox.coord_origin is not None:
-        key = bbox.coord_origin.value if isinstance(bbox.coord_origin, Enum) else str(bbox.coord_origin)
+        key = (
+            bbox.coord_origin.value
+            if isinstance(bbox.coord_origin, Enum)
+            else str(bbox.coord_origin)
+        )
         enum_val = _COORD_ORIGIN_MAP.get(str(key))
         if enum_val is None:
             msg.coord_origin = pb2.COORD_ORIGIN_UNSPECIFIED
@@ -593,8 +620,12 @@ def _to_provenance_item(prov: ProvenanceItem) -> pb2.ProvenanceItem:
 def _to_text_item_base(item: TextItem) -> pb2.TextItemBase:
     msg = pb2.TextItemBase(
         self_ref=item.self_ref,
-        content_layer=_enum_value(item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
-        label=_enum_value(item.label, _DOC_ITEM_LABEL_MAP, pb2.DOC_ITEM_LABEL_UNSPECIFIED),
+        content_layer=_enum_value(
+            item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
+        label=_enum_value(
+            item.label, _DOC_ITEM_LABEL_MAP, pb2.DOC_ITEM_LABEL_UNSPECIFIED
+        ),
         orig=item.orig,
         text=item.text,
     )
@@ -649,7 +680,11 @@ def _to_code_item(item: CodeItem) -> pb2.CodeItem:
     if image is not None:
         msg.image.CopyFrom(image)
     if item.code_language is not None:
-        key = item.code_language.value if isinstance(item.code_language, Enum) else str(item.code_language)
+        key = (
+            item.code_language.value
+            if isinstance(item.code_language, Enum)
+            else str(item.code_language)
+        )
         enum_val = _CODE_LANGUAGE_MAP.get(str(key))
         if enum_val is None:
             msg.code_language = pb2.CODE_LANGUAGE_LABEL_UNSPECIFIED
@@ -720,7 +755,9 @@ def _to_table_data(data: TableData) -> pb2.TableData:
 def _to_table_item_base(item: TableItem) -> pb2.TableItem:
     msg = pb2.TableItem(
         self_ref=item.self_ref,
-        content_layer=_enum_value(item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
+        content_layer=_enum_value(
+            item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
         label=str(item.label.value),
     )
     if item.parent is not None:
@@ -759,7 +796,9 @@ def _to_table_item(item: TableItem) -> pb2.TableItem:
 def _to_picture_item(item: PictureItem) -> pb2.PictureItem:
     msg = pb2.PictureItem(
         self_ref=item.self_ref,
-        content_layer=_enum_value(item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
+        content_layer=_enum_value(
+            item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
         label=str(item.label.value),
     )
     if item.parent is not None:
@@ -791,7 +830,9 @@ def _to_picture_item(item: PictureItem) -> pb2.PictureItem:
 
 def _to_graph_cell(cell: GraphCell) -> pb2.GraphCell:
     msg = pb2.GraphCell(
-        label=_enum_value(cell.label, _GRAPH_CELL_LABEL_MAP, pb2.GRAPH_CELL_LABEL_UNSPECIFIED),
+        label=_enum_value(
+            cell.label, _GRAPH_CELL_LABEL_MAP, pb2.GRAPH_CELL_LABEL_UNSPECIFIED
+        ),
         cell_id=cell.cell_id,
         text=cell.text,
         orig=cell.orig,
@@ -805,7 +846,9 @@ def _to_graph_cell(cell: GraphCell) -> pb2.GraphCell:
 
 def _to_graph_link(link: GraphLink) -> pb2.GraphLink:
     msg = pb2.GraphLink(
-        label=_enum_value(link.label, _GRAPH_LINK_LABEL_MAP, pb2.GRAPH_LINK_LABEL_UNSPECIFIED),
+        label=_enum_value(
+            link.label, _GRAPH_LINK_LABEL_MAP, pb2.GRAPH_LINK_LABEL_UNSPECIFIED
+        ),
         source_cell_id=link.source_cell_id,
         target_cell_id=link.target_cell_id,
     )
@@ -824,7 +867,9 @@ def _to_graph_data(data: GraphData) -> pb2.GraphData:
 def _to_key_value_item(item: KeyValueItem) -> pb2.KeyValueItem:
     msg = pb2.KeyValueItem(
         self_ref=item.self_ref,
-        content_layer=_enum_value(item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
+        content_layer=_enum_value(
+            item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
         label=str(item.label.value),
     )
     if item.parent is not None:
@@ -856,7 +901,9 @@ def _to_key_value_item(item: KeyValueItem) -> pb2.KeyValueItem:
 def _to_form_item(item: FormItem) -> pb2.FormItem:
     msg = pb2.FormItem(
         self_ref=item.self_ref,
-        content_layer=_enum_value(item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
+        content_layer=_enum_value(
+            item.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
         label=str(item.label.value),
     )
     if item.parent is not None:
@@ -888,7 +935,9 @@ def _to_form_item(item: FormItem) -> pb2.FormItem:
 def _to_group_item(group: GroupItem) -> pb2.GroupItem:
     msg = pb2.GroupItem(
         self_ref=group.self_ref,
-        content_layer=_enum_value(group.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED),
+        content_layer=_enum_value(
+            group.content_layer, _CONTENT_LAYER_MAP, pb2.CONTENT_LAYER_UNSPECIFIED
+        ),
         label=_enum_value(group.label, _GROUP_LABEL_MAP, pb2.GROUP_LABEL_UNSPECIFIED),
         name=group.name,
     )
@@ -942,7 +991,9 @@ def docling_document_to_proto(doc: DoclingDocument) -> pb2.DoclingDocument:
     if doc.tables:
         msg.tables.extend([_to_table_item(tbl) for tbl in doc.tables])
     if doc.key_value_items:
-        msg.key_value_items.extend([_to_key_value_item(item) for item in doc.key_value_items])
+        msg.key_value_items.extend(
+            [_to_key_value_item(item) for item in doc.key_value_items]
+        )
     if doc.form_items:
         msg.form_items.extend([_to_form_item(item) for item in doc.form_items])
     for key, page in doc.pages.items():

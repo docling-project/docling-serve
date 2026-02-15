@@ -3,14 +3,18 @@ from __future__ import annotations
 import asyncio
 import importlib.metadata
 import logging
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from typing import Optional
 
 import grpc
 
 from docling.datamodel.base_models import OutputFormat
 from docling_jobkit.datamodel.chunking import ChunkingExportOptions
 from docling_jobkit.datamodel.task_meta import TaskType
-from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator, TaskNotFoundError
+from docling_jobkit.orchestrators.base_orchestrator import (
+    BaseOrchestrator,
+    TaskNotFoundError,
+)
 
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.settings import docling_serve_settings
@@ -176,7 +180,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             request.request.options if request.request.HasField("options") else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -196,7 +202,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
 
         task_result = await self._orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
-            await self._abort(context, grpc.StatusCode.NOT_FOUND, "Task result not found.")
+            await self._abort(
+                context, grpc.StatusCode.NOT_FOUND, "Task result not found."
+            )
             return docling_serve_pb2.ConvertSourceResponse()
 
         if not hasattr(task_result.result, "content"):
@@ -234,7 +242,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             request.request.options if request.request.HasField("options") else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -269,9 +279,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hierarchical_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
 
         export_options = ChunkingExportOptions(
@@ -298,7 +312,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
 
         task_result = await self._orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
-            await self._abort(context, grpc.StatusCode.NOT_FOUND, "Task result not found.")
+            await self._abort(
+                context, grpc.StatusCode.NOT_FOUND, "Task result not found."
+            )
             return docling_serve_pb2.ChunkHierarchicalSourceResponse()
 
         if not hasattr(task_result.result, "chunks"):
@@ -340,9 +356,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hybrid_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
 
         export_options = ChunkingExportOptions(
@@ -369,7 +389,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
 
         task_result = await self._orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
-            await self._abort(context, grpc.StatusCode.NOT_FOUND, "Task result not found.")
+            await self._abort(
+                context, grpc.StatusCode.NOT_FOUND, "Task result not found."
+            )
             return docling_serve_pb2.ChunkHybridSourceResponse()
 
         if not hasattr(task_result.result, "chunks"):
@@ -411,9 +433,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hierarchical_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
 
         export_options = ChunkingExportOptions(
@@ -455,9 +481,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             else None
         )
         self._ensure_doc_format(options, requested_formats)
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hybrid_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
 
         export_options = ChunkingExportOptions(
@@ -510,7 +540,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             task_id=request.request.task_id
         )
         if task_result is None:
-            await self._abort(context, grpc.StatusCode.NOT_FOUND, "Task result not found.")
+            await self._abort(
+                context, grpc.StatusCode.NOT_FOUND, "Task result not found."
+            )
             return docling_serve_pb2.GetConvertResultResponse()
 
         if not hasattr(task_result.result, "content"):
@@ -541,7 +573,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             task_id=request.request.task_id
         )
         if task_result is None:
-            await self._abort(context, grpc.StatusCode.NOT_FOUND, "Task result not found.")
+            await self._abort(
+                context, grpc.StatusCode.NOT_FOUND, "Task result not found."
+            )
             return docling_serve_pb2.GetChunkResultResponse()
 
         if not hasattr(task_result.result, "chunks"):
@@ -611,7 +645,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -639,9 +675,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hierarchical_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
@@ -657,7 +697,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         )
 
         async for status in self._poll_status_stream(task.task_id, context):
-            yield docling_serve_pb2.WatchChunkHierarchicalSourceResponse(response=status)
+            yield docling_serve_pb2.WatchChunkHierarchicalSourceResponse(
+                response=status
+            )
 
     async def WatchChunkHybridSource(
         self,
@@ -675,9 +717,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             if request.request.HasField("convert_options")
             else None
         )
-        target = to_task_target(request.request.target if request.request.HasField("target") else None)
+        target = to_task_target(
+            request.request.target if request.request.HasField("target") else None
+        )
         chunking_options = to_hybrid_chunk_options(
-            request.request.chunking_options if request.request.HasField("chunking_options") else None
+            request.request.chunking_options
+            if request.request.HasField("chunking_options")
+            else None
         )
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc

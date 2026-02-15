@@ -232,9 +232,7 @@ class GrpcE2ETests:
         opts = types_pb2.ConvertDocumentOptions(
             to_formats=[types_pb2.OUTPUT_FORMAT_JSON]
         )
-        req = pb2.ConvertSourceRequest(
-            request=self._make_file_request(options=opts)
-        )
+        req = pb2.ConvertSourceRequest(request=self._make_file_request(options=opts))
         resp = self.stub.ConvertSource(req)
 
         doc = resp.response.document
@@ -258,12 +256,8 @@ class GrpcE2ETests:
             self._skip("Markdown export", "no test PDF")
             return
 
-        opts = types_pb2.ConvertDocumentOptions(
-            to_formats=[types_pb2.OUTPUT_FORMAT_MD]
-        )
-        req = pb2.ConvertSourceRequest(
-            request=self._make_file_request(options=opts)
-        )
+        opts = types_pb2.ConvertDocumentOptions(to_formats=[types_pb2.OUTPUT_FORMAT_MD])
+        req = pb2.ConvertSourceRequest(request=self._make_file_request(options=opts))
         resp = self.stub.ConvertSource(req)
 
         doc = resp.response.document
@@ -291,9 +285,7 @@ class GrpcE2ETests:
             if e.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 self._pass("empty source rejected", e.details())
             else:
-                self._fail(
-                    "empty source", f"wrong status: {e.code()} — {e.details()}"
-                )
+                self._fail("empty source", f"wrong status: {e.code()} — {e.details()}")
 
     def test_convert_no_sources_rejected(self):
         print("\n=== 8. ConvertSource with no sources (expect error) ===")
@@ -307,9 +299,7 @@ class GrpcE2ETests:
             if e.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 self._pass("no sources rejected", e.details())
             else:
-                self._fail(
-                    "no sources", f"wrong status: {e.code()} — {e.details()}"
-                )
+                self._fail("no sources", f"wrong status: {e.code()} — {e.details()}")
 
     def test_async_workflow(self):
         print("\n=== 9. Async workflow: submit -> poll -> get result ===")
@@ -335,9 +325,7 @@ class GrpcE2ETests:
         status_name = ""
         for _ in range(120):
             poll_req = pb2.PollTaskStatusRequest(
-                request=types_pb2.TaskStatusPollRequest(
-                    task_id=task_id, wait_time=1.0
-                )
+                request=types_pb2.TaskStatusPollRequest(task_id=task_id, wait_time=1.0)
             )
             poll_resp = self.stub.PollTaskStatus(poll_req)
             status = poll_resp.response.task_status
