@@ -28,6 +28,7 @@ from docling_serve.grpc.mapping import (
     _map_transformers_model_type,
     _map_vlm_model_type,
     _task_status_enum,
+    requested_output_formats,
     to_convert_options,
     to_hybrid_chunk_options,
     to_task_sources,
@@ -206,6 +207,17 @@ def test_to_convert_options_picture_description_api():
     assert data["picture_description_api"]["timeout"] == 3.0
     assert data["picture_description_api"]["concurrency"] == 2
     assert data["picture_description_api"]["prompt"] == "describe"
+
+
+def test_requested_output_formats_default_and_custom():
+    assert requested_output_formats(None) == {OutputFormat.MARKDOWN}
+    options = docling_serve_types_pb2.ConvertDocumentOptions(
+        to_formats=[
+            docling_serve_types_pb2.OUTPUT_FORMAT_TEXT,
+            docling_serve_types_pb2.OUTPUT_FORMAT_MD,
+        ]
+    )
+    assert requested_output_formats(options) == {OutputFormat.TEXT, OutputFormat.MARKDOWN}
 
 
 def test_to_hybrid_chunk_options():

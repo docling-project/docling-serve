@@ -335,30 +335,30 @@ message ErrorItem {
 // Document response types
 // ============================================================================
 
-// DocumentResponse contains the converted document in multiple output formats.
+// DocumentExports contains optional serialized output formats.
+message DocumentExports {
+  optional string json = 1;
+  optional string md = 2;
+  optional string html = 3;
+  optional string text = 4;
+  optional string doctags = 5;
+}
+
+// DocumentResponse contains the converted document and optional exports.
 message DocumentResponse {
   // Filename of the source document
   string filename = 1;
-  // Full DoclingDocument JSON structure
-  optional ai.docling.core.v1.DoclingDocument json_content = 2;
-  // Markdown representation
-  optional string md_content = 3;
-  // HTML representation
-  optional string html_content = 4;
-  // Plain text representation
-  optional string text_content = 5;
-  // DocTags representation
-  optional string doctags_content = 6;
+  // Native DoclingDocument proto
+  ai.docling.core.v1.DoclingDocument doc = 2;
+  // Optional serialized outputs (markdown/html/text/doctags/json)
+  optional DocumentExports exports = 3;
 }
 
 // ExportDocumentResponse is the document format used within chunk responses.
 message ExportDocumentResponse {
   string filename = 1;
-  optional ai.docling.core.v1.DoclingDocument json_content = 2;
-  optional string md_content = 3;
-  optional string html_content = 4;
-  optional string text_content = 5;
-  optional string doctags_content = 6;
+  ai.docling.core.v1.DoclingDocument doc = 2;
+  optional DocumentExports exports = 3;
 }
 
 // Document wraps an exported document with status and error info.

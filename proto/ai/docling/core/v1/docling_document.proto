@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.docling.core.v1;
 
+import "google/protobuf/struct.proto";
+
 option java_multiple_files = true;
 option java_outer_classname = "DoclingDocumentProto";
 option java_package = "ai.docling.core.v1";
@@ -121,9 +123,31 @@ message RefItem {
   string ref = 1;
 }
 
+// FineRef is a reference with optional span range info.
+message FineRef {
+  string ref = 1;
+  repeated int32 range = 2; // start_inclusive, end_exclusive
+}
+
+// TrackSource identifies a cue in a media track (audio, video, subtitles).
+message TrackSource {
+  double start_time = 1;
+  double end_time = 2;
+  optional string identifier = 3;
+  optional string voice = 4;
+}
+
+// SourceType is a union of possible source descriptors.
+message SourceType {
+  oneof source {
+    TrackSource track = 1;
+  }
+}
+
 // BaseMeta contains metadata fields common to most document items.
 message BaseMeta {
   optional SummaryMetaField summary = 1;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // SummaryMetaField contains an AI-generated text summary with confidence.
@@ -131,6 +155,7 @@ message SummaryMetaField {
   optional double confidence = 1;
   optional string created_by = 2;
   string text = 3;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // DocItemLabel defines the semantic type of document content items.
@@ -203,6 +228,8 @@ message TextItemBase {
   string text = 9;
   optional Formatting formatting = 10;
   optional string hyperlink = 11;
+  repeated SourceType source = 12;
+  repeated FineRef comments = 13;
 }
 
 // TitleItem represents a document title or major heading.
@@ -287,6 +314,8 @@ message PictureItem {
   repeated RefItem references = 9;
   repeated RefItem footnotes = 10;
   optional ImageRef image = 11;
+  repeated SourceType source = 12;
+  repeated FineRef comments = 13;
 }
 
 // PictureMeta contains rich metadata for pictures, including AI analysis.
@@ -296,6 +325,7 @@ message PictureMeta {
   optional PictureClassificationMetaField classification = 3;
   optional MoleculeMetaField molecule = 4;
   optional TabularChartMetaField tabular_chart = 5;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // DescriptionMetaField contains an AI-generated detailed description.
@@ -303,11 +333,13 @@ message DescriptionMetaField {
   optional double confidence = 1;
   optional string created_by = 2;
   string text = 3;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // PictureClassificationMetaField contains AI classification results.
 message PictureClassificationMetaField {
   repeated PictureClassificationPrediction predictions = 1;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // PictureClassificationPrediction is a single classification result.
@@ -315,6 +347,7 @@ message PictureClassificationPrediction {
   optional double confidence = 1;
   optional string created_by = 2;
   string class_name = 3;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // MoleculeMetaField contains chemical structure information.
@@ -322,6 +355,7 @@ message MoleculeMetaField {
   optional double confidence = 1;
   optional string created_by = 2;
   string smi = 3;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // TabularChartMetaField contains chart data extracted from images.
@@ -330,12 +364,14 @@ message TabularChartMetaField {
   optional string created_by = 2;
   optional string title = 3;
   TableData chart_data = 4;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // FloatingMeta contains metadata for floating elements (tables, code blocks, figures).
 message FloatingMeta {
   optional SummaryMetaField summary = 1;
   optional DescriptionMetaField description = 2;
+  map<string, google.protobuf.Value> custom_fields = 100;
 }
 
 // TableItem represents a table in the document with full structure.
@@ -352,6 +388,8 @@ message TableItem {
   repeated RefItem footnotes = 10;
   optional ImageRef image = 11;
   TableData data = 12;
+  repeated SourceType source = 13;
+  repeated FineRef comments = 14;
 }
 
 // TableData contains the complete table structure and content.
@@ -397,6 +435,8 @@ message KeyValueItem {
   repeated RefItem footnotes = 10;
   optional ImageRef image = 11;
   GraphData graph = 12;
+  repeated SourceType source = 13;
+  repeated FineRef comments = 14;
 }
 
 // GraphData represents the structure of key-value relationships as a graph.
@@ -453,6 +493,8 @@ message FormItem {
   repeated RefItem footnotes = 10;
   optional ImageRef image = 11;
   GraphData graph = 12;
+  repeated SourceType source = 13;
+  repeated FineRef comments = 14;
 }
 
 // PageItem represents metadata about a single page in the document.

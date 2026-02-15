@@ -6,6 +6,7 @@ import pytest
 import pytest_asyncio
 
 from docling.datamodel.base_models import ConversionStatus
+from docling_core.types.doc.document import DoclingDocument
 from docling_jobkit.datamodel.result import (
     ChunkedDocumentResult,
     ChunkedDocumentResultItem,
@@ -26,6 +27,10 @@ from docling_serve.grpc.server import DoclingServeGrpcService
 from docling_serve.settings import docling_serve_settings
 
 pytestmark = pytest.mark.unit
+
+
+def _fake_docling_document() -> DoclingDocument:
+    return DoclingDocument(name="doc")
 
 
 class FakeOrchestrator:
@@ -60,7 +65,11 @@ class FakeOrchestrator:
         self.positions[task_id] = 0
         if task_type == TaskType.CONVERT:
             export = ExportResult(
-                content=ExportDocumentResponse(filename="doc.md", md_content="hello"),
+                content=ExportDocumentResponse(
+                    filename="doc.md",
+                    md_content="hello",
+                    json_content=_fake_docling_document(),
+                ),
                 status=ConversionStatus.SUCCESS,
             )
             self.results[task_id] = DoclingTaskResult(
@@ -142,7 +151,11 @@ def orchestrator(grpc_server):
 async def test_get_convert_result(grpc_stub, orchestrator):
     task_id = "convert-1"
     export = ExportResult(
-        content=ExportDocumentResponse(filename="doc.md", md_content="hello"),
+        content=ExportDocumentResponse(
+            filename="doc.md",
+            md_content="hello",
+            json_content=_fake_docling_document(),
+        ),
         status=ConversionStatus.SUCCESS,
     )
     orchestrator.results[task_id] = DoclingTaskResult(
@@ -159,7 +172,8 @@ async def test_get_convert_result(grpc_stub, orchestrator):
         )
     )
 
-    assert response.response.document.md_content == "hello"
+    assert response.response.document.exports.md == "hello"
+    assert response.response.document.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio
@@ -184,7 +198,11 @@ async def test_get_chunk_result(grpc_stub, orchestrator):
         doc_items=[],
     )
     doc_export = ExportResult(
-        content=ExportDocumentResponse(filename="doc.md", md_content="hello"),
+        content=ExportDocumentResponse(
+            filename="doc.md",
+            md_content="hello",
+            json_content=_fake_docling_document(),
+        ),
         status=ConversionStatus.SUCCESS,
     )
     chunked = ChunkedDocumentResult(
@@ -207,6 +225,7 @@ async def test_get_chunk_result(grpc_stub, orchestrator):
 
     assert len(response.response.chunks) == 1
     assert response.response.chunks[0].text == "chunk text"
+    assert response.response.documents[0].content.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio

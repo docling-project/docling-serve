@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Set
 
 from google.protobuf import json_format
 
@@ -28,6 +28,7 @@ from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.settings import docling_serve_settings
 from docling.utils.profiling import ProfilingItem
 
+from .docling_document_converter import docling_document_to_proto
 from .gen.ai.docling.core.v1 import docling_document_pb2
 from .gen.ai.docling.serve.v1 import docling_serve_pb2, docling_serve_types_pb2
 
@@ -263,6 +264,19 @@ def to_task_target(proto_target: Optional[docling_serve_types_pb2.Target]):
     return InBodyTarget()
 
 
+def requested_output_formats(
+    proto_options: Optional[docling_serve_types_pb2.ConvertDocumentOptions],
+) -> Set[OutputFormat]:
+    if not proto_options or not proto_options.to_formats:
+        return {OutputFormat.MARKDOWN}
+    values = [
+        v
+        for v in (_map_output_format(v) for v in proto_options.to_formats)
+        if v is not None
+    ]
+    return set(values) if values else {OutputFormat.MARKDOWN}
+
+
 def to_convert_options(
     proto_options: Optional[docling_serve_types_pb2.ConvertDocumentOptions],
 ) -> ConvertDocumentsRequestOptions:
@@ -446,27 +460,8 @@ def to_hybrid_chunk_options(
 # -------------------- Python domain -> Proto --------------------
 
 
-def _coerce_binary_hash(value):
-    if isinstance(value, dict):
-        return {
-            key: (str(val) if key == "binary_hash" and isinstance(val, int) else _coerce_binary_hash(val))
-            for key, val in value.items()
-        }
-    if isinstance(value, list):
-        return [_coerce_binary_hash(item) for item in value]
-    return value
-
-
 def _docling_document_to_proto(doc) -> docling_document_pb2.DoclingDocument:
-    message = docling_document_pb2.DoclingDocument()
-    payload = doc.model_dump(exclude_none=True)
-    payload = _coerce_binary_hash(payload)
-    json_format.ParseDict(
-        payload,
-        message,
-        ignore_unknown_fields=True,
-    )
-    return message
+    return docling_document_to_proto(doc)
 
 
 def _error_item_to_proto(error) -> docling_serve_types_pb2.ErrorItem:
@@ -484,50 +479,67 @@ def _timings_to_proto(timings: dict[str, ProfilingItem]) -> dict[str, float]:
     return {key: item.total() for key, item in timings.items()}
 
 
-def export_document_to_proto(doc) -> docling_serve_types_pb2.ExportDocumentResponse:
+def _build_exports(
+    doc,
+    requested_formats: Optional[Set[OutputFormat]],
+) -> Optional[docling_serve_types_pb2.DocumentExports]:
+    def wants(fmt: OutputFormat) -> bool:
+        return requested_formats is None or fmt in requested_formats
+
+    exports = docling_serve_types_pb2.DocumentExports()
+    has_any = False
+
+    if wants(OutputFormat.JSON) and doc.json_content is not None:
+        exports.json = doc.json_content.model_dump_json(exclude_none=True)
+        has_any = True
+    if wants(OutputFormat.MARKDOWN) and doc.md_content is not None:
+        exports.md = doc.md_content
+        has_any = True
+    if wants(OutputFormat.HTML) and doc.html_content is not None:
+        exports.html = doc.html_content
+        has_any = True
+    if wants(OutputFormat.TEXT) and doc.text_content is not None:
+        exports.text = doc.text_content
+        has_any = True
+    if wants(OutputFormat.DOCTAGS) and doc.doctags_content is not None:
+        exports.doctags = doc.doctags_content
+        has_any = True
+
+    return exports if has_any else None
+
+
+def export_document_to_proto(
+    doc, requested_formats: Optional[Set[OutputFormat]] = None
+) -> docling_serve_types_pb2.ExportDocumentResponse:
     message = docling_serve_types_pb2.ExportDocumentResponse(filename=doc.filename)
     if doc.json_content is not None:
-        try:
-            message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
-        except Exception as exc:
-            _log.warning("Failed to serialize json_content for export document: %s", exc)
-    if doc.md_content is not None:
-        message.md_content = doc.md_content
-    if doc.html_content is not None:
-        message.html_content = doc.html_content
-    if doc.text_content is not None:
-        message.text_content = doc.text_content
-    if doc.doctags_content is not None:
-        message.doctags_content = doc.doctags_content
+        message.doc.CopyFrom(_docling_document_to_proto(doc.json_content))
+    exports = _build_exports(doc, requested_formats)
+    if exports is not None:
+        message.exports.CopyFrom(exports)
     return message
 
 
-def document_response_to_proto(doc) -> docling_serve_types_pb2.DocumentResponse:
+def document_response_to_proto(
+    doc, requested_formats: Optional[Set[OutputFormat]] = None
+) -> docling_serve_types_pb2.DocumentResponse:
     message = docling_serve_types_pb2.DocumentResponse(filename=doc.filename)
     if doc.json_content is not None:
-        try:
-            message.json_content.CopyFrom(_docling_document_to_proto(doc.json_content))
-        except Exception as exc:
-            _log.warning("Failed to serialize json_content for document response: %s", exc)
-    if doc.md_content is not None:
-        message.md_content = doc.md_content
-    if doc.html_content is not None:
-        message.html_content = doc.html_content
-    if doc.text_content is not None:
-        message.text_content = doc.text_content
-    if doc.doctags_content is not None:
-        message.doctags_content = doc.doctags_content
+        message.doc.CopyFrom(_docling_document_to_proto(doc.json_content))
+    exports = _build_exports(doc, requested_formats)
+    if exports is not None:
+        message.exports.CopyFrom(exports)
     return message
 
 
 def convert_result_to_proto(
-    result, processing_time: float
+    result, processing_time: float, requested_formats: Optional[Set[OutputFormat]] = None
 ) -> docling_serve_types_pb2.ConvertDocumentResponse:
     status = result.status
     if hasattr(status, "value"):
         status = status.value
     response = docling_serve_types_pb2.ConvertDocumentResponse(
-        document=document_response_to_proto(result.content),
+        document=document_response_to_proto(result.content, requested_formats),
         errors=[_error_item_to_proto(err) for err in result.errors],
         processing_time=processing_time,
         status=str(status),
@@ -536,7 +548,9 @@ def convert_result_to_proto(
     return response
 
 
-def chunk_result_to_proto(result, processing_time: float) -> docling_serve_types_pb2.ChunkDocumentResponse:
+def chunk_result_to_proto(
+    result, processing_time: float, requested_formats: Optional[Set[OutputFormat]] = None
+) -> docling_serve_types_pb2.ChunkDocumentResponse:
     chunks = []
     for chunk in result.chunks:
         message = docling_serve_types_pb2.Chunk(
@@ -563,7 +577,7 @@ def chunk_result_to_proto(result, processing_time: float) -> docling_serve_types
         documents.append(
             docling_serve_types_pb2.Document(
                 kind=doc.kind,
-                content=export_document_to_proto(doc.content),
+                content=export_document_to_proto(doc.content, requested_formats),
                 status=str(status),
                 errors=[_error_item_to_proto(err) for err in doc.errors],
             )

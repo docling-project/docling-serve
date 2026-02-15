@@ -142,6 +142,7 @@ async def test_convert_source_sync(grpc_stub):
             options=docling_serve_types_pb2.ConvertDocumentOptions(
                 do_ocr=False,
                 force_ocr=False,
+                to_formats=[docling_serve_types_pb2.OUTPUT_FORMAT_JSON],
             ),
         )
     )
@@ -152,13 +153,7 @@ async def test_convert_source_sync(grpc_stub):
     assert response.response.HasField("document")
     # Check that we have a filename
     assert len(response.response.document.filename) > 0
-    # Check that at least one content field is populated
-    has_content = (
-        response.response.document.HasField("json_content") or
-        response.response.document.HasField("md_content") or
-        response.response.document.HasField("text_content")
-    )
-    assert has_content, "No content fields populated in response"
+    assert response.response.document.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio
@@ -202,13 +197,7 @@ async def test_convert_source_sync_ocr(grpc_stub):
     assert response.response.HasField("document")
     # Check that we have a filename
     assert len(response.response.document.filename) > 0
-    # Check that at least one content field is populated
-    has_content = (
-        response.response.document.HasField("json_content") or
-        response.response.document.HasField("md_content") or
-        response.response.document.HasField("text_content")
-    )
-    assert has_content, "No content fields populated in response"
+    assert response.response.document.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio
@@ -238,6 +227,45 @@ async def test_convert_source_async(grpc_stub):
     assert response.response.task_type == "convert"
     # Verify status is a valid enum value (1 = PENDING)
     assert response.response.task_status >= 0
+
+
+@pytest.mark.asyncio
+async def test_convert_source_multiple_formats(grpc_stub):
+    pdf_path = os.path.join(os.path.dirname(__file__), "2206.01062v1.pdf")
+
+    with open(pdf_path, "rb") as f:
+        pdf_content = base64.b64encode(f.read()).decode("utf-8")
+
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    ),
+                )
+            ],
+            options=docling_serve_types_pb2.ConvertDocumentOptions(
+                do_ocr=False,
+                force_ocr=False,
+                to_formats=[
+                    docling_serve_types_pb2.OUTPUT_FORMAT_MD,
+                    docling_serve_types_pb2.OUTPUT_FORMAT_TEXT,
+                    docling_serve_types_pb2.OUTPUT_FORMAT_HTML,
+                    docling_serve_types_pb2.OUTPUT_FORMAT_DOCTAGS,
+                ],
+            ),
+        )
+    )
+
+    response = await grpc_stub.ConvertSource(request, metadata=get_metadata())
+
+    assert response.response.document.exports.md
+    assert response.response.document.exports.text
+    assert response.response.document.exports.html
+    assert response.response.document.exports.doctags
+    assert response.response.document.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio
@@ -280,6 +308,7 @@ async def test_chunk_hierarchical_source_sync(grpc_stub):
     assert response.response.processing_time > 0
     # We asked for the converted doc to be included
     assert len(response.response.documents) > 0
+    assert response.response.documents[0].content.doc.schema_name == "DoclingDocument"
 
 
 @pytest.mark.asyncio

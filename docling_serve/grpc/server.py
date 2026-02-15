@@ -6,6 +6,7 @@ from typing import AsyncIterator, Optional
 
 import grpc
 
+from docling.datamodel.base_models import OutputFormat
 from docling_jobkit.datamodel.chunking import ChunkingExportOptions
 from docling_jobkit.datamodel.task_meta import TaskType
 from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator, TaskNotFoundError
@@ -22,6 +23,7 @@ from .mapping import (
     chunk_result_to_proto,
     clear_response_to_proto,
     convert_result_to_proto,
+    requested_output_formats,
     task_status_to_proto,
     to_convert_options,
     to_hierarchical_chunk_options,
@@ -39,6 +41,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         self._orchestrator = orchestrator or get_async_orchestrator()
         self._queue_task: Optional[asyncio.Task] = None
         self._queue_lock = asyncio.Lock()
+        self._requested_formats: dict[str, set[OutputFormat]] = {}
 
     async def start(self) -> None:
         await self._ensure_queue_started()
@@ -112,6 +115,13 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
                 return
             await asyncio.sleep(docling_serve_settings.sync_poll_interval)
 
+    @staticmethod
+    def _ensure_doc_format(options) -> None:
+        if options is None:
+            return
+        if OutputFormat.JSON not in options.to_formats:
+            options.to_formats.append(OutputFormat.JSON)
+
     # -------------------- RPCs --------------------
 
     async def Health(
@@ -130,10 +140,14 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.options if request.request.HasField("options") else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
 
         task = await self._orchestrator.enqueue(
@@ -165,7 +179,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.ConvertSourceResponse()
 
-        response = convert_result_to_proto(task_result.result, task_result.processing_time)
+        response = convert_result_to_proto(
+            task_result.result,
+            task_result.processing_time,
+            requested_formats=requested_formats,
+        )
         with_single_use_cleanup(self._orchestrator, task.task_id)
 
         return docling_serve_pb2.ConvertSourceResponse(response=response)
@@ -178,10 +196,14 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.options if request.request.HasField("options") else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.options if request.request.HasField("options") else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
 
         task = await self._orchestrator.enqueue(
@@ -191,6 +213,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             target=target,
         )
         position = await self._orchestrator.get_queue_position(task_id=task.task_id)
+        self._requested_formats[task.task_id] = requested_formats
         response = task_status_to_proto(task, position)
         return docling_serve_pb2.ConvertSourceAsyncResponse(response=response)
 
@@ -202,12 +225,18 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.convert_options
+            if request.request.HasField("convert_options")
+            else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
             else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hierarchical_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -248,7 +277,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.ChunkHierarchicalSourceResponse()
 
-        response = chunk_result_to_proto(task_result.result, task_result.processing_time)
+        response = chunk_result_to_proto(
+            task_result.result,
+            task_result.processing_time,
+            requested_formats=requested_formats,
+        )
         with_single_use_cleanup(self._orchestrator, task.task_id)
 
         return docling_serve_pb2.ChunkHierarchicalSourceResponse(response=response)
@@ -261,12 +294,18 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.convert_options
+            if request.request.HasField("convert_options")
+            else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
             else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hybrid_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -307,7 +346,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.ChunkHybridSourceResponse()
 
-        response = chunk_result_to_proto(task_result.result, task_result.processing_time)
+        response = chunk_result_to_proto(
+            task_result.result,
+            task_result.processing_time,
+            requested_formats=requested_formats,
+        )
         with_single_use_cleanup(self._orchestrator, task.task_id)
 
         return docling_serve_pb2.ChunkHybridSourceResponse(response=response)
@@ -320,12 +363,18 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.convert_options
+            if request.request.HasField("convert_options")
+            else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
             else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hierarchical_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -344,6 +393,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             target=target,
         )
         position = await self._orchestrator.get_queue_position(task_id=task.task_id)
+        self._requested_formats[task.task_id] = requested_formats
         response = task_status_to_proto(task, position)
         return docling_serve_pb2.ChunkHierarchicalSourceAsyncResponse(response=response)
 
@@ -355,12 +405,18 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         await self._check_api_key(context)
         await self._ensure_queue_started()
 
+        requested_formats = requested_output_formats(
+            request.request.convert_options
+            if request.request.HasField("convert_options")
+            else None
+        )
         sources = to_task_sources(request.request.sources)
         options = to_convert_options(
             request.request.convert_options
             if request.request.HasField("convert_options")
             else None
         )
+        self._ensure_doc_format(options)
         target = to_task_target(request.request.target if request.request.HasField("target") else None)
         chunking_options = to_hybrid_chunk_options(
             request.request.chunking_options if request.request.HasField("chunking_options") else None
@@ -379,6 +435,7 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             target=target,
         )
         position = await self._orchestrator.get_queue_position(task_id=task.task_id)
+        self._requested_formats[task.task_id] = requested_formats
         response = task_status_to_proto(task, position)
         return docling_serve_pb2.ChunkHybridSourceAsyncResponse(response=response)
 
@@ -426,7 +483,12 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.GetConvertResultResponse()
 
-        response = convert_result_to_proto(task_result.result, task_result.processing_time)
+        requested_formats = self._requested_formats.pop(request.request.task_id, None)
+        response = convert_result_to_proto(
+            task_result.result,
+            task_result.processing_time,
+            requested_formats=requested_formats,
+        )
         with_single_use_cleanup(self._orchestrator, request.request.task_id)
         return docling_serve_pb2.GetConvertResultResponse(response=response)
 
@@ -452,7 +514,12 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return docling_serve_pb2.GetChunkResultResponse()
 
-        response = chunk_result_to_proto(task_result.result, task_result.processing_time)
+        requested_formats = self._requested_formats.pop(request.request.task_id, None)
+        response = chunk_result_to_proto(
+            task_result.result,
+            task_result.processing_time,
+            requested_formats=requested_formats,
+        )
         with_single_use_cleanup(self._orchestrator, request.request.task_id)
         return docling_serve_pb2.GetChunkResultResponse(response=response)
 
