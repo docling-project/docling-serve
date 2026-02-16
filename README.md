@@ -61,8 +61,26 @@ The following container images are available for running **Docling Serve** with 
 |-------|-------------|----------------|------|
 | [`ghcr.io/docling-project/docling-serve`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve) <br> [`quay.io/docling-project/docling-serve`](https://quay.io/repository/docling-project/docling-serve) | Base image with all packages installed from the official PyPI index. | `linux/amd64`, `linux/arm64` | 4.4 GB (arm64) <br> 8.7 GB (amd64) |
 | [`ghcr.io/docling-project/docling-serve-cpu`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cpu) <br> [`quay.io/docling-project/docling-serve-cpu`](https://quay.io/repository/docling-project/docling-serve-cpu) | CPU-only variant, using `torch` from the PyTorch CPU index. | `linux/amd64`, `linux/arm64` | 4.4 GB |
-| [`ghcr.io/docling-project/docling-serve-cu126`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu126) <br> [`quay.io/docling-project/docling-serve-cu126`](https://quay.io/repository/docling-project/docling-serve-cu126) | CUDA 12.6 build with `torch` from the cu126 index. | `linux/amd64` | 10.0 GB |
 | [`ghcr.io/docling-project/docling-serve-cu128`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu128) <br> [`quay.io/docling-project/docling-serve-cu128`](https://quay.io/repository/docling-project/docling-serve-cu128) | CUDA 12.8 build with `torch` from the cu128 index. | `linux/amd64` | 11.4 GB |
+| [`ghcr.io/docling-project/docling-serve-cu130`](https://github.com/docling-project/docling-serve/pkgs/container/docling-serve-cu130) <br> [`quay.io/docling-project/docling-serve-cu130`](https://quay.io/repository/docling-project/docling-serve-cu130) | CUDA 13.0 build with `torch` from the cu130 index. | `linux/amd64`, `linux/arm64` | TBD |
+
+> [!IMPORTANT]
+> **CUDA Image Tagging Policy**
+>
+> CUDA-specific images (`-cu128`, `-cu130`) follow PyTorch's CUDA version support lifecycle and are tagged differently from base images:
+>
+> - **Base images** (`docling-serve`, `docling-serve-cpu`): Tagged with `latest` and `main` for convenience
+> - **CUDA images** (`docling-serve-cu*`): **Only tagged with explicit versions** (e.g., `1.12.0`) and `main`
+>
+> **Why?** CUDA versions are deprecated over time as PyTorch adds support for newer CUDA releases. To avoid accidentally pulling deprecated CUDA versions, CUDA images intentionally exclude the `latest` tag. Always use explicit version tags like:
+>
+> ```bash
+> # ✅ Recommended: Explicit version
+> docker pull quay.io/docling-project/docling-serve-cu130:1.12.0
+>
+> # ❌ Not available for CUDA images
+> docker pull quay.io/docling-project/docling-serve-cu130:latest
+> ```
 
 #### 🚫 Not Distributed
 
