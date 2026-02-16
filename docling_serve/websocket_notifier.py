@@ -28,7 +28,9 @@ class WebsocketNotifier(BaseNotifier):
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
-            raise RuntimeError(f"Task {task_id} does not have a subscribers list.")
+            # Task has no websocket subscribers - this is normal for tasks that were
+            # never subscribed to via websocket, or during shutdown cleanup
+            return
 
         try:
             # Get task status from Redis or RQ directly instead of in-memory registry
