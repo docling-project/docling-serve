@@ -11,14 +11,14 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `mets_gbs`, `json_docling`, `audio`, `vtt`, `latex`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
 | `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
-| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `dlparse_v4`. |
+| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `docling_parse`. |
 | `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
@@ -35,11 +35,78 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_chart_extraction` | bool | If enabled, extract numeric data from charts. Boolean. Optional, defaults to false. |
 | `do_picture_description` | bool | If enabled, describe pictures in documents. Boolean. Optional, defaults to false. |
 | `picture_description_area_threshold` | float | Minimum percentage of the area for a picture to be processed with the models. |
-| `picture_description_local` | PictureDescriptionLocal or NoneType | Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`. |
-| `picture_description_api` | PictureDescriptionApi or NoneType | API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`. |
-| `vlm_pipeline_model` | VlmModelType or NoneType | Preset of local and API models for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model_api`. Use the other options for more parameters. |
-| `vlm_pipeline_model_local` | VlmModelLocal or NoneType | Options for running a local vision-language model for the `vlm` pipeline. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `vlm_pipeline_model_api` and `vlm_pipeline_model`. |
-| `vlm_pipeline_model_api` | VlmModelApi or NoneType | API details for using a vision-language model for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model`. |
+| `picture_description_local` | PictureDescriptionLocal or NoneType | DEPRECATED: Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`. Please migrate to `picture_description_preset` or `picture_description_custom_config`. |
+| `picture_description_api` | PictureDescriptionApi or NoneType | DEPRECATED: API details for using a vision-language model in the picture description. This parameter is mutually exclusive with `picture_description_local`. Please migrate to `picture_description_preset` or `picture_description_custom_config`. |
+| `vlm_pipeline_model` | VlmModelType or NoneType | DEPRECATED: Preset of local and API models for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model_api`. Use the other options for more parameters. Please migrate to `vlm_pipeline_preset` or `vlm_pipeline_custom_config`. |
+| `vlm_pipeline_model_local` | VlmModelLocal or NoneType | DEPRECATED: Options for running a local vision-language model for the `vlm` pipeline. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `vlm_pipeline_model_api` and `vlm_pipeline_model`. Please migrate to `vlm_pipeline_preset` or `vlm_pipeline_custom_config`. |
+| `vlm_pipeline_model_api` | VlmModelApi or NoneType | DEPRECATED: API details for using a vision-language model for the `vlm` pipeline. This parameter is mutually exclusive with `vlm_pipeline_model_local` and `vlm_pipeline_model`. Please migrate to `vlm_pipeline_preset` or `vlm_pipeline_custom_config`. |
+| `vlm_pipeline_preset` | str or NoneType | Preset ID to use (e.g., "default", "`granite_docling`"). Use "default" for stable, admin-controlled configuration. |
+| `picture_description_preset` | str or NoneType | Preset ID for picture description. |
+| `code_formula_preset` | str or NoneType | Preset ID for code/formula extraction. |
+| `vlm_pipeline_custom_config` | VlmConvertOptions or dict or NoneType | Custom VLM configuration including model spec and engine options. Only available if admin allows it. Must include '`model_spec`' and '`engine_options`'. |
+| `picture_description_custom_config` | PictureDescriptionVlmEngineOptions or dict or NoneType | Custom picture description configuration including model spec and engine options. |
+| `code_formula_custom_config` | CodeFormulaVlmOptions or dict or NoneType | Custom code/formula extraction configuration including model spec and engine options. |
+| `table_structure_custom_config` | Dict[str, Any] or NoneType | Custom configuration for table structure model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which table structure implementation to use. If not specified, uses the default kind with preset configuration. |
+| `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. |
+
+<h4>CodeFormulaVlmOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
+| `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
+| `scale` | float | Image scaling factor for preprocessing |
+| `max_size` | int or NoneType | Maximum image dimension (width or height) |
+| `extract_code` | bool | Extract code blocks |
+| `extract_formulas` | bool | Extract mathematical formulas |
+
+<h4>VlmModelSpec</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `name` | str | Human-readable model name |
+| `default_repo_id` | str | Default HuggingFace repository ID |
+| `revision` | str | Default model revision |
+| `prompt` | str | Prompt template for this model |
+| `response_format` | ResponseFormat | Expected response format from the model |
+| `supported_engines` | Set or NoneType | Set of supported engines (None = all supported) |
+| `engine_overrides` | Dict[VlmEngineType, EngineModelConfig] | Engine-specific configuration overrides |
+| `api_overrides` | Dict[VlmEngineType, ApiModelConfig] | API-specific configuration overrides |
+| `trust_remote_code` | bool | Whether to trust remote code for this model |
+| `stop_strings` | List[str] | Stop strings for generation |
+| `max_new_tokens` | int | Maximum number of new tokens to generate |
+
+<h4>BaseVlmEngineOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `engine_type` | VlmEngineType | Type of inference engine to use |
+
+<h4>PictureDescriptionVlmEngineOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `batch_size` | int | Number of images to process in a single batch during picture description. Higher values improve throughput but increase memory usage. Adjust based on available GPU/CPU memory. |
+| `scale` | float | Scaling factor for image resolution before processing. Higher values (e.g., 2.0) provide more detail for the vision model but increase processing time and memory. Range: 0.5-4.0 typical. |
+| `picture_area_threshold` | float | Minimum picture area as fraction of page area (0.0-1.0) to trigger description. Pictures smaller than this threshold are skipped. Use lower values (e.g., 0.01) to describe small images. |
+| `classification_allow` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to allow for description. Only pictures classified with these labels will be processed. If None, all picture types are allowed unless explicitly denied. Use to focus description on specific image types (e.g., diagrams, charts). |
+| `classification_deny` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to exclude from description. Pictures classified with these labels will be skipped. If None, no picture types are denied unless not in allow list. Use to exclude unwanted image types (e.g., decorative images, logos). |
+| `classification_min_confidence` | float | Minimum classification confidence score (0.0-1.0) required for a picture to be processed. Pictures with classification confidence below this threshold are skipped. Higher values ensure only confidently classified images are described. Range: 0.0 (no filtering) to 1.0 (maximum confidence). |
+| `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
+| `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
+| `prompt` | str | Prompt template for the vision model. Customize to control description style, detail level, or focus. |
+| `generation_config` | Dict[str, Any] | Generation configuration for text generation. Controls output length, sampling strategy, temperature, etc. |
+
+<h4>VlmConvertOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
+| `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
+| `scale` | float | Image scaling factor for preprocessing |
+| `max_size` | int or NoneType | Maximum image dimension (width or height) |
+| `batch_size` | int | Batch size for processing multiple pages |
+| `force_backend_text` | bool | Force use of backend text extraction instead of VLM |
 
 <h4>VlmModelApi</h4>
 
