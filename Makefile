@@ -63,6 +63,13 @@ docling-serve-cu128-image: Containerfile ## Build docling-serve container image 
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) ghcr.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) quay.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
 
+.PHONY: docling-serve-cu130-image
+docling-serve-cu130-image: Containerfile ## Build docling-serve container image with CUDA 13.0 support
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 13.0]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu130:$(TAG) .
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu130:$(TAG) ghcr.io/docling-project/docling-serve-cu130:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu130:$(TAG) quay.io/docling-project/docling-serve-cu130:$(BRANCH_TAG)
+
 .PHONY: docling-serve-rocm-image
 docling-serve-rocm-image: Containerfile ## Build docling-serve container image with ROCm support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with ROCm 6.3]"
@@ -131,6 +138,13 @@ run-docling-cu128: ## Run the docling-serve container with GPU support and assig
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) rm -f docling-serve-cu128 2>/dev/null || true
 	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN CUDA 12.8]"
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) run -it --name docling-serve-cu128 -p 5001:5001 ghcr.io/docling-project/docling-serve-cu128:main
+
+.PHONY: run-docling-cu130
+run-docling-cu130: ## Run the docling-serve container with GPU support and assign a container name
+	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) rm -f docling-serve-cu130 2>/dev/null || true
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with GPU support on port 5001...\n" "[RUN CUDA 13.0]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) run -it --name docling-serve-cu130 -p 5001:5001 ghcr.io/docling-project/docling-serve-cu130:main
 
 .PHONY: run-docling-rocm
 run-docling-rocm: ## Run the docling-serve container with GPU support and assign a container name

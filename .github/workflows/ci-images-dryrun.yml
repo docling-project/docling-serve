@@ -17,22 +17,32 @@ jobs:
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-extra flash-attn
             platforms: linux/amd64, linux/arm64
+            tag_latest: true
           - name: docling-project/docling-serve-cpu
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn
             platforms: linux/amd64, linux/arm64
+            tag_latest: true
           # - name: docling-project/docling-serve-cu124
           #   build_args: |
           #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124
           #   platforms: linux/amd64
-          - name: docling-project/docling-serve-cu126
-            build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126
-            platforms: linux/amd64
+          #   tag_latest: false
+          # - name: docling-project/docling-serve-cu126
+          #   build_args: |
+          #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126
+          #   platforms: linux/amd64
+          #   tag_latest: false
           - name: docling-project/docling-serve-cu128
             build_args: |
               UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128
-            platforms: linux/amd64
+            platforms: linux/amd64, linux/arm64
+            tag_latest: false
+          - name: docling-project/docling-serve-cu130
+            build_args: |
+              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130
+            platforms: linux/amd64, linux/arm64
+            tag_latest: false
           # - name: docling-project/docling-serve-rocm
           #   build_args: |
           #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn
@@ -51,3 +61,4 @@ jobs:
       ghcr_image_name: ${{ matrix.spec.name }}
       quay_image_name: ""
       platforms: ${{ matrix.spec.platforms }}
+      tag_latest: ${{ matrix.spec.tag_latest }}
