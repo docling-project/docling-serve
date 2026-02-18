@@ -577,9 +577,8 @@ with gr.Blocks(
                     logo_path,
                     height=80,
                     width=80,
-                    show_download_button=False,
+                    buttons=[],
                     show_label=False,
-                    show_fullscreen_button=False,
                     container=False,
                     elem_id="logo",
                     scale=0,
@@ -611,7 +610,7 @@ with gr.Blocks(
                         document.querySelector('body').classList.add('dark');
                     }
                 }""",
-                show_api=False,
+                api_visibility="undocumented",
             )
 
     # URL Processing Tab
@@ -720,9 +719,9 @@ with gr.Blocks(
         with gr.Row():
             with gr.Column(scale=4):
                 pdf_backend = gr.Radio(
-                    [v.value for v in PdfBackend],
+                    [v.value for v in (PdfBackend.DOCLING_PARSE, PdfBackend.PYPDFIUM2)],
                     label="PDF Backend",
-                    value=PdfBackend.DLPARSE_V4.value,
+                    value=PdfBackend.DOCLING_PARSE.value,
                 )
             with gr.Column(scale=2):
                 table_mode = gr.Radio(

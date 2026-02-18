@@ -35,15 +35,15 @@ requires-python = ">=3.10"
 dependencies = [
     "docling~=2.38",
     "docling-core>=2.45.0",
-    "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
-    "fastapi[standard]<0.129.0",  # ~=0.115
+    "docling-jobkit[kfp,rq,vlm]>=1.11.0,<2.0.0",
+    "fastapi[standard]<0.130.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
     "python-multipart>=0.0.14,<0.1.0",
     "typer~=0.12",
     "uvicorn[standard]>=0.29.0,<1.0.0",
-    "websockets~=14.0",
+    "websockets>=14.0,<17.0",
     "scalar-fastapi>=1.0.3",
     "docling-mcp>=1.0.0",
     "opentelemetry-api>=1.36.0,<2.0.0",
@@ -56,7 +56,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ui = [
-    "gradio>=5.23.2,<6.0.0",
+    "gradio>=6.0.0,<7.0.0",
 ]
 tesserocr = [
     "tesserocr~=2.7"

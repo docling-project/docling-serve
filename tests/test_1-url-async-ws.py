@@ -35,7 +35,22 @@ async def test_convert_url(async_client: httpx.AsyncClient):
             "image_export_mode": "placeholder",
             "ocr": True,
             "abort_on_error": False,
-            # "do_picture_description": True,
+            # "layout_custom_config": {
+            #     "kind": "layout_object_detection",
+            #     "engine_options": {
+            #         "engine_type": "onnxruntime",
+            #     },
+            # },
+            # "table_structure_custom_config": {
+            #     "kind": "table_structure_object_detection",
+            #     "engine_options": {
+            #         "engine_type": "onnxruntime",
+            #         # "engine_type": "transformers",
+            #     },
+            # },
+            "do_picture_description": False,
+            "picture_description_preset": "granite_vision",
+            # "picture_description_preset": "default",
             # "picture_description_api": {
             #     "url": "http://localhost:11434/v1/chat/completions",
             #     "params": {

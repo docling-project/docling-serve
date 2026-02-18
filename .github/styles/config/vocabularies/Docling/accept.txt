@@ -4,7 +4,7 @@ asgi
 async
 (?i)urls
 uvicorn
-Config
+(?i)Config
 [Ww]ebserver
 RQ
 (?i)url
@@ -24,6 +24,7 @@ Kubeflow
 (?i)NVIDIA
 (?i)ROCm
 (?i)env
+mlx
 Gradio
 Podman
 bool
