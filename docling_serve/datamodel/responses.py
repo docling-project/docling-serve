@@ -53,6 +53,7 @@ class TaskStatusResponse(BaseModel):
     task_status: str
     task_position: Optional[int] = None
     task_meta: Optional[TaskProcessingMeta] = None
+    error_message: Optional[str] = None
 
 
 class MessageKind(str, enum.Enum):
