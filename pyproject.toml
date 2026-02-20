@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "1.12.0"  # DO NOT EDIT, updated automatically
+version = "1.13.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -33,17 +33,17 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling>=2.60",
-    "docling-core==2.48.4",
-    "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
-    "fastapi[standard]<0.129.0",  # ~=0.115
+    "docling==2.74.0",
+    "docling-core==2.65.1",
+    "docling-jobkit[kfp,rq,vlm]>=1.11.0,<2.0.0",
+    "fastapi[standard]<0.130.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
     "python-multipart>=0.0.14,<0.1.0",
     "typer~=0.12",
     "uvicorn[standard]>=0.29.0,<1.0.0",
-    "websockets~=14.0",
+    "websockets>=14.0,<17.0",
     "scalar-fastapi>=1.0.3",
     "docling-mcp>=1.0.0",
     "opentelemetry-api>=1.36.0,<2.0.0",
@@ -56,7 +56,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ui = [
-    "gradio>=5.23.2,<6.0.0",
+    "gradio>=6.0.0,<7.0.0",
 ]
 tesserocr = [
     "tesserocr~=2.7"
@@ -65,11 +65,11 @@ easyocr = [
     "easyocr>=1.7",
 ]
 rapidocr = [
-    "rapidocr (>=3.3,<4.0.0) ; python_version < '3.14'",
+    "rapidocr (>=3.3,<4.0.0)",
     "onnxruntime (>=1.7.0,<2.0.0)",
 ]
 flash-attn = [
-  "flash-attn~=2.8.2; sys_platform == 'linux' and platform_machine == 'x86_64'"
+  "flash-attn~=2.8.2; sys_platform == 'linux'"
 ]
 
 [dependency-groups]
@@ -116,6 +116,10 @@ cu128 = [
   "torchvision>=0.22.1",
 ]
 
+cu130 = [
+  "torch>=2.7.1",
+  "torchvision>=0.22.1",
+]
 rocm = [
   "torch>=2.7.1",
   "torchvision>=0.22.1",
@@ -132,6 +136,7 @@ conflicts = [
     # { group = "cu124" },
     { group = "cu126" },
     { group = "cu128" },
+    { group = "cu130" },
     { group = "rocm" },
   ],
 ]
@@ -148,6 +153,7 @@ torch = [
   # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
 
@@ -157,6 +163,7 @@ torchvision = [
   # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
 ]
 
@@ -190,6 +197,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]

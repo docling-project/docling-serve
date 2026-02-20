@@ -3,13 +3,12 @@ from time import gmtime, strftime
 
 REGION = "us-east-1"
 SAGEMAKER_URL = f"https://api.sagemaker.{REGION}.amazonaws.com"
-IMAGE_VERSION = "v1.5.1"
+IMAGE_VERSION = "v1.13.0"
 STS_URL = f"https://sts.{REGION}.amazonaws.com"
 
 account_id = boto3.client('sts', endpoint_url=STS_URL).get_caller_identity()['Account']
 sm_client = boto3.client(service_name='sagemaker', endpoint_url=SAGEMAKER_URL, region_name=REGION)
 instance_type = 'ml.g5.4xlarge'
-existing_model_name = 'docling-serve-2025-09-04-03-09-07'  # Get this from endpoint settings, under the Production variants section
 endpoint_name = "docling-serve-2025-09-04-03-09-08"
 role = f"arn:aws:iam::{account_id}:role/sagemaker-execution-role"
 

@@ -2,7 +2,7 @@
 ```bash
 git remote add upstream git@github.com:docling-project/docling-serve.git # this only needs to be run once
 git fetch upstream
-git checkout main
+git checkout -b new-branch
 git merge upstream/main
 git push
 ```
@@ -24,7 +24,36 @@ git push
     * `docling-serve/Containerfile`
 5. Build the image - First login to AWS and then run `build.sh`
 6. Run the image `docker run --rm -e DOCLING_SERVE_ENABLE_UI="1" -e S3_MODEL_URI="s3://201486032796-sagemaker-models/app/models" -e AWS_ACCESS_KEY_ID="" -e AWS_SECRET_ACCESS_KEY="" -e AWS_SESSION_TOKEN="" -p 8080:8080 201486032796.dkr.ecr.us-east-1.amazonaws.com/docling-sagemaker:$VERSION`
-7. Test conversion `python test_docling.py`
+7. Test conversion - see [Testing the image](#testing-the-image) below
+
+## Testing the image
+1. Start the container
+```bash
+docker run -d --name docling-test -p 8080:8080 201486032796.dkr.ecr.us-east-1.amazonaws.com/docling-sagemaker:$VERSION
+```
+2. Wait for the container to be ready
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health
+# Should return 200
+```
+3. Set up the test venv (first time only)
+```bash
+cd customization
+python -m venv .venv
+source .venv/bin/activate
+pip install requests
+```
+4. Run the test with a local PDF
+```bash
+source .venv/bin/activate
+python test_docling.py
+```
+Edit the bottom of `test_docling.py` to switch between a local file path and an S3 URI.
+
+5. Stop the container
+```bash
+docker stop docling-test && docker rm docling-test
+```
 
 
 ## Running outside docker
