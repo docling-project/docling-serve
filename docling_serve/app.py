@@ -498,7 +498,6 @@ def create_app():  # noqa: C901
             media_type="text/plain; version=0.0.4",
         )
 
-
     # Convert a document from URL(s)
     @app.post(
         "/v1/convert/source",
@@ -1030,7 +1029,7 @@ def create_app():  # noqa: C901
             return
 
         # Track active WebSocket connections for this job
-        orchestrator.notifier.task_subscribers[task_id].add(websocket)
+        orchestrator.notifier.task_subscribers.setdefault(task_id, set()).add(websocket)
 
         try:
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)

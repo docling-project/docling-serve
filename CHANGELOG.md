@@ -1,3 +1,25 @@
+## [v1.13.0](https://github.com/docling-project/docling-serve/releases/tag/v1.13.0) - 2026-02-18
+
+### Feature
+
+* New docling parse, model inference engines and presets ([#499](https://github.com/docling-project/docling-serve/issues/499)) ([`b4800c5`](https://github.com/docling-project/docling-serve/commit/b4800c50f28a9420136ce0ff1cd545d827bdf66f))
+* Distribute linux arm64 images and update cuda versions ([#496](https://github.com/docling-project/docling-serve/issues/496)) ([`c590cb4`](https://github.com/docling-project/docling-serve/commit/c590cb42e16c6aa98a2d35194e896c6c12cfb787))
+* Add DOCLING_SERVE_LOG_LEVEL environment variable support ([#482](https://github.com/docling-project/docling-serve/issues/482)) ([`1508f1c`](https://github.com/docling-project/docling-serve/commit/1508f1c762f7e7d0c7c3db1142c544b586815e0d))
+
+### Fix
+
+* Prevent WebsocketNotifier crash when task has no subscribers ([#498](https://github.com/docling-project/docling-serve/issues/498)) ([`bec4bf0`](https://github.com/docling-project/docling-serve/commit/bec4bf01809c02281983e745a973f9877ccf7101))
+* HybridChunkerOptions being used for hierarchical chunking ([#492](https://github.com/docling-project/docling-serve/issues/492)) ([`19f659c`](https://github.com/docling-project/docling-serve/commit/19f659cb30d4dda6e92d3151505b387d0b0b3ba6))
+
+### Docling libraries included in this release:
+- docling 2.74.0
+- docling-core 2.65.1
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.11.0
+- docling-mcp 1.3.4
+- docling-parse 5.3.2
+- docling-serve 1.13.0
+
 ## [v1.12.0](https://github.com/docling-project/docling-serve/releases/tag/v1.12.0) - 2026-02-06
 
 ### Feature

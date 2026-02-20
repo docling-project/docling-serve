@@ -16,9 +16,17 @@ VARIABLE_WORDS: list[str] = [
     "ocr_engines_enum",
     "easyocr",
     "dlparse_v4",
+    "docling_parse",
     "fast",
     "picture_description_api",
     "vlm_pipeline_model_local",
+    "picture_description_preset",
+    "picture_description_custom_config",
+    "vlm_pipeline_preset",
+    "vlm_pipeline_custom_config",
+    "granite_docling",
+    "model_spec",
+    "engine_options",
 ]
 
 
@@ -112,10 +120,12 @@ def generate_model_doc(model: type[BaseModel]) -> str:
     """Generate documentation for a Pydantic model."""
 
     models_stack = [model]
+    models_done = set()
 
     doc = ""
     while models_stack:
         current_model = models_stack.pop()
+        models_done.add(current_model)
 
         doc += f"<h4>{current_model.__name__}</h4>\n"
 
@@ -153,8 +163,10 @@ def generate_model_doc(model: type[BaseModel]) -> str:
                     doc += f"| `{field_name}` | {field_type} | {description} |\n"
 
                     for field_type in _unroll_types(base_type):
-                        if inspect.isclass(field_type) and issubclass(
-                            field_type, BaseModel
+                        if (
+                            inspect.isclass(field_type)
+                            and issubclass(field_type, BaseModel)
+                            and field_type not in models_done
                         ):
                             models_stack.append(field_type)
 
