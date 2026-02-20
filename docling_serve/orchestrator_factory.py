@@ -210,7 +210,7 @@ class RedisTaskStatusMixin:
                 ),
                 "task_status": task.task_status.value,
                 "processing_meta": meta,
-                "error_message": task.error_message,
+                "error_message": getattr(task, "error_message", None),
             }
             async with redis.Redis(connection_pool=self._redis_pool) as r:
                 await r.set(

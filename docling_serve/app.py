@@ -612,7 +612,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=task.error_message,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Convert a document from file(s) using the async api
@@ -650,7 +650,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=task.error_message,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Chunking endpoints
@@ -682,7 +682,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=task.error_message,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -746,7 +746,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=task.error_message,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -901,7 +901,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=task.error_message,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Task status websocket
@@ -947,7 +947,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=task.error_message,
+                error_message=getattr(task, "error_message", None),
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -964,7 +964,7 @@ def create_app():  # noqa: C901
                     task_status=task.task_status,
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
-                    error_message=task.error_message,
+                    error_message=getattr(task, "error_message", None),
                 )
                 await websocket.send_text(
                     WebsocketMessage(
