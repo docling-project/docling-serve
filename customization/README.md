@@ -2,7 +2,7 @@
 ```bash
 git remote add upstream git@github.com:docling-project/docling-serve.git # this only needs to be run once
 git fetch upstream
-git checkout main
+git checkout -b new-branch
 git merge upstream/main
 git push
 ```
