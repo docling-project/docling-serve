@@ -3,7 +3,7 @@ from time import gmtime, strftime
 
 REGION = "us-east-1"
 SAGEMAKER_URL = f"https://api.sagemaker.{REGION}.amazonaws.com"
-IMAGE_VERSION = "v1.13.0"
+IMAGE_VERSION = "v1.13.1"
 STS_URL = f"https://sts.{REGION}.amazonaws.com"
 
 account_id = boto3.client('sts', endpoint_url=STS_URL).get_caller_identity()['Account']

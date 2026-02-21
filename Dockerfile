@@ -43,6 +43,8 @@ ENV \
 COPY --chown=65532:65532 ./docling_serve ./docling_serve
 COPY --chown=65532:65532 --chmod=755 ./serve /usr/bin/serve
 
+USER nonroot
+
 EXPOSE 8080
 
 ENTRYPOINT ["/usr/bin/serve"]
