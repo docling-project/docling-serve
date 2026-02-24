@@ -17,15 +17,15 @@ ARG MIMALLOC_VERSION
 
 USER 0
 
-WORKDIR /opt/app-root/src
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake git
 
-RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake wget && \
-    wget -q https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz && \
-    tar -xzf ${MIMALLOC_VERSION}.tar.gz --strip-components=1 --warning=no-unknown-keyword 2>/dev/null || tar -xzf ${MIMALLOC_VERSION}.tar.gz --strip-components=1 --ignore-failed-read || true && \
-    rm -f ${MIMALLOC_VERSION}.tar.gz && \
-    mkdir -p out/release
+RUN git clone --depth 1 --branch ${MIMALLOC_VERSION} https://github.com/microsoft/mimalloc.git /opt/app-root/src/mimalloc
 
-WORKDIR /opt/app-root/src/out/release
+WORKDIR /opt/app-root/src/mimalloc
+
+RUN mkdir -p out/release
+
+WORKDIR /opt/app-root/src/mimalloc/out/release
 RUN cmake ../.. && make
 
 
@@ -46,7 +46,7 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y clean all && \
     rm -rf /var/cache/dnf
 
-COPY --from=mimalloc /opt/app-root/src/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
+COPY --from=mimalloc /opt/app-root/src/mimalloc/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
 RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
