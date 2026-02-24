@@ -1,13 +1,17 @@
 import asyncio
 import copy
+import gc
 import importlib.metadata
 import logging
+import os
 import shutil
 import time
+from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
 from typing import Annotated
 
+import psutil
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -879,6 +883,7 @@ def create_app():  # noqa: C901
         try:
             task = await orchestrator.task_status(task_id=task_id, wait=wait)
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
+            gc.collect()
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
         return TaskStatusResponse(
@@ -1052,5 +1057,61 @@ def create_app():  # noqa: C901
     ):
         await orchestrator.clear_results(older_than=older_then)
         return ClearResponse()
+
+    @app.get("/v1/memory/stats", tags=["management"])
+    async def memory_stats():
+        if not docling_serve_settings.enable_management_endpoints:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing internal managament details.",
+            )
+        process = psutil.Process(os.getpid())
+        rss_mb = process.memory_info().rss / 1024 / 1024
+        stats = {}
+
+        # total memory (this is what triggers OOM)
+        with open("/sys/fs/cgroup/memory.current") as f:  # noqa: ASYNC230
+            stats["cgroup_total"] = int(f.read()) / 1024 / 1024
+
+        # detailed breakdown
+        with open("/sys/fs/cgroup/memory.stat") as f:  # noqa: ASYNC230
+            for line in f:
+                key, value = line.split()
+                stats[key] = int(value) / 1024 / 1024
+
+        return {
+            "rss": rss_mb,
+            "anon": stats.get("anon", 0.0),
+            "file": stats.get("file", 0.0),
+            "slab": stats.get("slab", 0.0),
+            "cgroup_total": stats["cgroup_total"],
+        }
+
+    @app.get("/v1/memory/counts", tags=["management"])
+    async def memory_counts():
+        if not docling_serve_settings.enable_management_endpoints:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing internal managament details.",
+            )
+        gc.collect()
+        objs = gc.get_objects()
+        counter = Counter(type(o).__name__ for o in objs)
+        tasks = asyncio.all_tasks()
+
+        return {
+            "gc": {
+                "counts": gc.get_count(),
+                "threshold": gc.get_threshold(),
+            },
+            "objects": {
+                "total": len(objs),
+            },
+            "asyncio": {
+                "all_tasks": len(tasks),
+                "pending_tasks": sum(1 for t in tasks if not t.done()),
+            },
+            "top_types": [{"type": k, "count": v} for k, v in counter.most_common(20)],
+        }
 
     return app
