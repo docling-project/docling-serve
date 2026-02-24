@@ -26,11 +26,41 @@ class RedisTaskStatusMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.redis_prefix = "docling:tasks:"
+
         self._redis_pool = redis.ConnectionPool.from_url(
             self.config.redis_url,
-            max_connections=10,
-            socket_timeout=2.0,
+            max_connections=docling_serve_settings.eng_rq_redis_max_connections,
+            socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
+            decode_responses=False,
         )
+        _log.info(
+            f"Redis connection pool initialized with max_connections="
+            f"{docling_serve_settings.eng_rq_redis_max_connections}, "
+            f"socket_timeout={docling_serve_settings.eng_rq_redis_socket_timeout}, "
+            f"socket_connect_timeout={docling_serve_settings.eng_rq_redis_socket_connect_timeout}"
+        )
+
+    async def close_redis_pool(self) -> None:
+        """Close the Redis connection pool and release all connections."""
+        try:
+            await self._redis_pool.aclose()
+            _log.info("Redis connection pool closed successfully")
+        except Exception as e:
+            _log.error(f"Error closing Redis connection pool: {e}")
+
+    def get_redis_pool_stats(self) -> dict[str, Any]:
+        """Get current Redis connection pool statistics for monitoring."""
+        try:
+            # Access internal pool state for monitoring
+            pool = self._redis_pool
+            return {
+                "max_connections": docling_serve_settings.eng_rq_redis_max_connections,
+                "pool_class": pool.__class__.__name__,
+            }
+        except Exception as e:
+            _log.warning(f"Could not retrieve Redis pool stats: {e}")
+            return {}
 
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         """
@@ -399,6 +429,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             sub_channel=docling_serve_settings.eng_rq_sub_channel,
             scratch_dir=get_scratch(),
             results_ttl=docling_serve_settings.eng_rq_results_ttl,
+            redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
+            redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
         )
 
         return RedisAwareRQOrchestrator(config=rq_config)
