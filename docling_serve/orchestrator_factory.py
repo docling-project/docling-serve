@@ -1,9 +1,12 @@
+import asyncio
+import datetime
 import json
 import logging
 from functools import lru_cache
-from typing import Any
+from typing import Any, Union
 
 import redis.asyncio as redis
+from rq.exceptions import NoSuchJobError
 
 from docling_jobkit.datamodel.task import Task
 from docling_jobkit.datamodel.task_meta import TaskStatus
@@ -16,6 +19,13 @@ from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 
 _log = logging.getLogger(__name__)
+
+
+class _RQJobGone:
+    """Sentinel: the RQ job has been deleted / TTL-expired."""
+
+
+_RQ_JOB_GONE = _RQJobGone()
 
 
 class RedisTaskStatusMixin:
@@ -64,43 +74,65 @@ class RedisTaskStatusMixin:
 
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         """
-        Get task status by checking Redis first, then falling back to RQ verification.
+        Get task status with zombie task reconciliation.
 
-        When Redis shows 'pending' but RQ shows 'success', we update Redis
-        and return the RQ status for cross-instance consistency.
+        Checks RQ first (authoritative), then Redis cache, then in-memory.
+        When the RQ job is definitively gone (NoSuchJobError), reconciles:
+        - Terminal status in Redis -> return it, clean up tracking
+        - Non-terminal status in Redis -> mark FAILURE (orphaned task)
+        - Not in Redis at all -> raise TaskNotFoundError
         """
         _log.info(f"Task {task_id} status check")
 
-        # Always check RQ directly first - this is the most reliable source
-        rq_task = await self._get_task_from_rq_direct(task_id)
-        if rq_task:
-            _log.info(f"Task {task_id} in RQ: {rq_task.task_status}")
+        rq_result = await self._get_task_from_rq_direct(task_id)
 
-            # Update memory registry
-            self.tasks[task_id] = rq_task
+        if isinstance(rq_result, Task):
+            _log.info(f"Task {task_id} in RQ: {rq_result.task_status}")
+            self.tasks[task_id] = rq_result
+            await self._store_task_in_redis(rq_result)
+            return rq_result
 
-            # Store/update in Redis for other instances
-            await self._store_task_in_redis(rq_task)
-            return rq_task
+        job_is_gone = isinstance(rq_result, _RQJobGone)
 
-        # If not in RQ, check Redis (maybe it's cached from another instance)
         task = await self._get_task_from_redis(task_id)
         if task:
             _log.info(f"Task {task_id} in Redis: {task.task_status}")
 
-            # CRITICAL FIX: Check if Redis status might be stale
-            # STARTED tasks might have completed since they were cached
+            if job_is_gone:
+                if task.is_completed():
+                    _log.info(
+                        f"Task {task_id} completed ({task.task_status}) "
+                        f"and RQ job expired — cleaning up tracking"
+                    )
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    return task
+                else:
+                    _log.warning(
+                        f"Task {task_id} was {task.task_status} but RQ job is gone "
+                        f"— marking as FAILURE (orphaned)"
+                    )
+                    task.set_status(TaskStatus.FAILURE)
+                    task.error_message = (
+                        f"Task orphaned: RQ job expired while status was "
+                        f"{task.task_status}. Likely caused by worker restart or "
+                        f"Redis eviction."
+                    )
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    await self._store_task_in_redis(task)
+                    return task
+
             if task.task_status in [TaskStatus.PENDING, TaskStatus.STARTED]:
                 _log.debug(f"Task {task_id} verifying stale status")
-
-                # Try to get fresh status from RQ
                 fresh_rq_task = await self._get_task_from_rq_direct(task_id)
-                if fresh_rq_task and fresh_rq_task.task_status != task.task_status:
+                if (
+                    isinstance(fresh_rq_task, Task)
+                    and fresh_rq_task.task_status != task.task_status
+                ):
                     _log.info(
                         f"Task {task_id} status updated: {fresh_rq_task.task_status}"
                     )
-
-                    # Update memory and Redis with fresh status
                     self.tasks[task_id] = fresh_rq_task
                     await self._store_task_in_redis(fresh_rq_task)
                     return fresh_rq_task
@@ -109,12 +141,14 @@ class RedisTaskStatusMixin:
 
             return task
 
-        # Fall back to parent implementation
+        if job_is_gone:
+            _log.warning(f"Task {task_id} not in RQ or Redis — truly gone")
+            self.tasks.pop(task_id, None)
+            raise TaskNotFoundError(task_id)
+
         try:
             parent_task = await super().task_status(task_id, wait)  # type: ignore[misc]
             _log.debug(f"Task {task_id} from parent: {parent_task.task_status}")
-
-            # Store in Redis for other instances to find
             await self._store_task_in_redis(parent_task)
             return parent_task
         except TaskNotFoundError:
@@ -135,18 +169,23 @@ class RedisTaskStatusMixin:
                 meta.setdefault("num_succeeded", 0)
                 meta.setdefault("num_failed", 0)
 
-                return Task(
+                task = Task(
                     task_id=data["task_id"],
                     task_type=data["task_type"],
                     task_status=TaskStatus(data["task_status"]),
                     processing_meta=meta,
                     error_message=data.get("error_message"),
                 )
+                if data.get("error_message"):
+                    task.error_message = data["error_message"]
+                return task
         except Exception as e:
             _log.error(f"Redis get task {task_id}: {e}")
             return None
 
-    async def _get_task_from_rq_direct(self, task_id: str) -> Task | None:
+    async def _get_task_from_rq_direct(
+        self, task_id: str
+    ) -> Union[Task, _RQJobGone, None]:
         try:
             _log.debug(f"Checking RQ for task {task_id}")
 
@@ -172,7 +211,7 @@ class RedisTaskStatusMixin:
                 if updated_task and updated_task.task_status != TaskStatus.PENDING:
                     _log.debug(f"RQ task {task_id}: {updated_task.task_status}")
 
-                    # Store result key if available
+                    result_ttl = docling_serve_settings.eng_rq_results_ttl
                     if task_id in self._task_result_keys:
                         try:
                             async with redis.Redis(
@@ -181,7 +220,7 @@ class RedisTaskStatusMixin:
                                 await r.set(
                                     f"{self.redis_prefix}{task_id}:result_key",
                                     self._task_result_keys[task_id],
-                                    ex=86400,
+                                    ex=result_ttl,
                                 )
                                 _log.debug(f"Stored result key for {task_id}")
                         except Exception as e:
@@ -191,13 +230,14 @@ class RedisTaskStatusMixin:
                 return None
 
             finally:
-                # Restore original task state
                 if original_task:
                     self.tasks[task_id] = original_task
                 elif task_id in self.tasks and self.tasks[task_id] == temp_task:
-                    # Only remove if it's still our temp task
                     del self.tasks[task_id]
 
+        except NoSuchJobError:
+            _log.info(f"RQ job {task_id} no longer exists (TTL expired or deleted)")
+            return _RQ_JOB_GONE
         except Exception as e:
             _log.error(f"RQ check {task_id}: {e}")
             return None
@@ -242,11 +282,15 @@ class RedisTaskStatusMixin:
                 "processing_meta": meta,
                 "error_message": getattr(task, "error_message", None),
             }
+            if task.error_message:
+                data["error_message"] = task.error_message
+
+            metadata_ttl = docling_serve_settings.eng_rq_results_ttl
             async with redis.Redis(connection_pool=self._redis_pool) as r:
                 await r.set(
                     f"{self.redis_prefix}{task.task_id}:metadata",
                     json.dumps(data),
-                    ex=86400,
+                    ex=metadata_ttl,
                 )
         except Exception as e:
             _log.error(f"Store task {task.task_id}: {e}")
@@ -286,15 +330,52 @@ class RedisTaskStatusMixin:
                 await self._store_task_in_redis(self.tasks[task_id])
 
         if task_id in self._task_result_keys:
+            result_ttl = docling_serve_settings.eng_rq_results_ttl
             try:
                 async with redis.Redis(connection_pool=self._redis_pool) as r:
                     await r.set(
                         f"{self.redis_prefix}{task_id}:result_key",
                         self._task_result_keys[task_id],
-                        ex=86400,
+                        ex=result_ttl,
                     )
             except Exception as e:
                 _log.error(f"Store result key {task_id}: {e}")
+
+    async def _reap_zombie_tasks(
+        self, interval: float = 300.0, max_age: float = 3600.0
+    ) -> None:
+        """
+        Periodically remove completed tasks from in-memory tracking.
+
+        Args:
+            interval: Seconds between sweeps (default 5 min)
+            max_age: Remove completed tasks older than this (default 1h)
+        """
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                cutoff = now - datetime.timedelta(seconds=max_age)
+                to_remove: list[str] = []
+
+                for task_id, task in list(self.tasks.items()):
+                    if (
+                        task.is_completed()
+                        and task.finished_at
+                        and task.finished_at < cutoff
+                    ):
+                        to_remove.append(task_id)
+
+                for task_id in to_remove:
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    _log.debug(f"Reaped zombie task {task_id}")
+
+                if to_remove:
+                    _log.info(f"Reaped {len(to_remove)} zombie tasks from tracking")
+
+            except Exception as e:
+                _log.error(f"Zombie reaper error: {e}")
 
 
 @lru_cache
