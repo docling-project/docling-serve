@@ -58,6 +58,7 @@ class DoclingServeSettings(BaseSettings):
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
     show_version_info: bool = True
+    enable_management_endpoints: bool = False
 
     api_key: str = ""
 
