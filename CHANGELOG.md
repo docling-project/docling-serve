@@ -1,3 +1,19 @@
+## [v1.13.1](https://github.com/docling-project/docling-serve/releases/tag/v1.13.1) - 2026-02-23
+
+### Fix
+
+* Parsing of pdf with invalid uri annotations (docling-core pinned lock) ([#510](https://github.com/docling-project/docling-serve/issues/510)) ([`68b7175`](https://github.com/docling-project/docling-serve/commit/68b7175ec8baf490aaf3fddd2be221f854e7a7da))
+* Arm64 image for CUDA 12.8 ([#508](https://github.com/docling-project/docling-serve/issues/508)) ([`5a814d7`](https://github.com/docling-project/docling-serve/commit/5a814d779768af16471ede993d75edd31b80bb9c))
+
+### Docling libraries included in this release:
+- docling 2.74.0
+- docling-core 2.65.2
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.11.0
+- docling-mcp 1.3.4
+- docling-parse 5.3.2
+- docling-serve 1.13.1
+
 ## [v1.13.0](https://github.com/docling-project/docling-serve/releases/tag/v1.13.0) - 2026-02-18
 
 ### Feature
