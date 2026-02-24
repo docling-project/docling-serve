@@ -140,6 +140,7 @@ class RedisTaskStatusMixin:
                     task_type=data["task_type"],
                     task_status=TaskStatus(data["task_status"]),
                     processing_meta=meta,
+                    error_message=data.get("error_message"),
                 )
         except Exception as e:
             _log.error(f"Redis get task {task_id}: {e}")
@@ -239,6 +240,7 @@ class RedisTaskStatusMixin:
                 ),
                 "task_status": task.task_status.value,
                 "processing_meta": meta,
+                "error_message": getattr(task, "error_message", None),
             }
             async with redis.Redis(connection_pool=self._redis_pool) as r:
                 await r.set(

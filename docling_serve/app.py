@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import gc
+import hashlib
 import importlib.metadata
 import logging
 import os
@@ -344,9 +345,18 @@ def create_app():  # noqa: C901
         # Load the uploaded files to Docling DocumentStream
         file_sources: list[TaskSource] = []
         for i, file in enumerate(files):
-            buf = BytesIO(file.file.read())
+            file_bytes = file.file.read()
+            buf = BytesIO(file_bytes)
             suffix = "" if len(file_sources) == 1 else f"_{i}"
             name = file.filename if file.filename else f"file{suffix}.pdf"
+
+            # Log file details for debugging transmission issues
+            file_hash = hashlib.md5(file_bytes, usedforsecurity=False).hexdigest()[:12]
+            _log.info(
+                f"File {i}: name={name}, size={len(file_bytes)} bytes, "
+                f"md5={file_hash}, content_type={file.content_type}"
+            )
+
             file_sources.append(DocumentStream(name=name, stream=buf))
 
         task = await orchestrator.enqueue(
@@ -606,6 +616,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Convert a document from file(s) using the async api
@@ -643,6 +654,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Chunking endpoints
@@ -674,6 +686,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -737,6 +750,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -892,6 +906,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Task status websocket
@@ -937,6 +952,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -953,6 +969,7 @@ def create_app():  # noqa: C901
                     task_status=task.task_status,
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
+                    error_message=getattr(task, "error_message", None),
                 )
                 await websocket.send_text(
                     WebsocketMessage(

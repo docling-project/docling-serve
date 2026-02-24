@@ -1,5 +1,7 @@
 """Instrumented wrapper for RQ job functions with OpenTelemetry tracing."""
 
+import base64
+import hashlib
 import logging
 import shutil
 from pathlib import Path
@@ -95,30 +97,51 @@ def instrumented_docling_task(  # noqa: C901
             with tracer.start_as_current_span("prepare_sources") as prep_span:
                 convert_sources: list[Union[str, DocumentStream]] = []
                 headers: dict[str, Any] | None = None
+                source_info: list[dict[str, str]] = []
 
                 for idx, source in enumerate(task.sources):
                     if isinstance(source, DocumentStream):
                         convert_sources.append(source)
-                        prep_span.add_event(
-                            f"source_{idx}_prepared",
-                            {"type": "DocumentStream", "name": source.name},
-                        )
+                        info = {"type": "DocumentStream", "name": source.name}
+                        source_info.append(info)
+                        prep_span.add_event(f"source_{idx}_prepared", info)
                     elif isinstance(source, FileSource):
-                        convert_sources.append(source.to_document_stream())
-                        prep_span.add_event(
-                            f"source_{idx}_prepared",
-                            {"type": "FileSource", "filename": source.filename},
+                        decoded_bytes = base64.b64decode(source.base64_string)
+                        file_hash = hashlib.md5(
+                            decoded_bytes, usedforsecurity=False
+                        ).hexdigest()[:12]
+                        logger.info(
+                            f"FileSource {idx}: filename={source.filename}, "
+                            f"base64_len={len(source.base64_string)}, "
+                            f"decoded_size={len(decoded_bytes)}, md5={file_hash}"
                         )
+                        doc_stream = source.to_document_stream()
+                        convert_sources.append(doc_stream)
+                        info = {
+                            "type": "FileSource",
+                            "filename": source.filename,
+                            "size": str(len(decoded_bytes)),
+                            "md5": file_hash,
+                        }
+                        source_info.append(info)
+                        prep_span.add_event(f"source_{idx}_prepared", info)
                     elif isinstance(source, HttpSource):
                         convert_sources.append(str(source.url))
+                        info = {"type": "HttpSource", "url": str(source.url)}
+                        source_info.append(info)
                         if headers is None and source.headers:
                             headers = source.headers
-                        prep_span.add_event(
-                            f"source_{idx}_prepared",
-                            {"type": "HttpSource", "url": str(source.url)},
-                        )
+                        prep_span.add_event(f"source_{idx}_prepared", info)
 
                 prep_span.set_attribute("num_sources", len(convert_sources))
+
+                source_names = ", ".join(
+                    f"{s['type']}={s.get('name') or s.get('filename') or s.get('url', 'unknown')}"
+                    for s in source_info
+                )
+                logger.info(
+                    f"Task {task_id} processing {len(convert_sources)} source(s): {source_names}"
+                )
 
             if not conversion_manager:
                 raise RuntimeError("No converter")
@@ -140,20 +163,32 @@ def instrumented_docling_task(  # noqa: C901
             with tracer.start_as_current_span("process_results") as proc_span:
                 proc_span.set_attribute("task_type", str(task.task_type.value))
 
-                if task.task_type == TaskType.CONVERT:
-                    with tracer.start_as_current_span("process_export_results"):
-                        processed_results = process_export_results(
-                            task=task,
-                            conv_results=conv_results,
-                            work_dir=workdir,
-                        )
-                elif task.task_type == TaskType.CHUNK:
-                    with tracer.start_as_current_span("process_chunk_results"):
-                        processed_results = process_chunk_results(
-                            task=task,
-                            conv_results=conv_results,
-                            work_dir=workdir,
-                        )
+                try:
+                    if task.task_type == TaskType.CONVERT:
+                        with tracer.start_as_current_span("process_export_results"):
+                            processed_results = process_export_results(
+                                task=task,
+                                conv_results=conv_results,
+                                work_dir=workdir,
+                            )
+                    elif task.task_type == TaskType.CHUNK:
+                        with tracer.start_as_current_span("process_chunk_results"):
+                            processed_results = process_chunk_results(
+                                task=task,
+                                conv_results=conv_results,
+                                work_dir=workdir,
+                            )
+                except Exception as proc_error:
+                    source_names = ", ".join(
+                        f"{s['type']}={s.get('name') or s.get('filename') or s.get('url', 'unknown')}"
+                        for s in source_info
+                    )
+                    logger.error(
+                        f"Task {task_id} processing failed. "
+                        f"Sources: {source_names}. "
+                        f"Error: {proc_error}"
+                    )
+                    raise
 
             # Serialize and store results
             with tracer.start_as_current_span("serialize_and_store") as store_span:
@@ -195,6 +230,7 @@ def instrumented_docling_task(  # noqa: C901
                     _TaskUpdate(
                         task_id=task_id,
                         task_status=TaskStatus.FAILURE,
+                        error_message=str(e),
                     ).model_dump_json(),
                 )
             except Exception:
@@ -209,7 +245,16 @@ def instrumented_docling_task(  # noqa: C901
                     pass
 
             # Record exception and mark span as failed
-            logger.error(f"Docling task {task_id} failed: {e}", exc_info=True)
+            source_context = "N/A"
+            if "source_info" in locals():
+                source_context = ", ".join(
+                    f"{s['type']}={s.get('name') or s.get('filename') or s.get('url', 'unknown')}"
+                    for s in source_info
+                )
+            logger.error(
+                f"Docling task {task_id} failed: {e}. Sources: {source_context}",
+                exc_info=True,
+            )
             span.record_exception(e)
             span.set_status(Status(StatusCode.ERROR, str(e)))
             raise
