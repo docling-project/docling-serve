@@ -113,11 +113,12 @@ class RedisTaskStatusMixin:
                         f"— marking as FAILURE (orphaned)"
                     )
                     task.set_status(TaskStatus.FAILURE)
-                    task.error_message = (
-                        f"Task orphaned: RQ job expired while status was "
-                        f"{task.task_status}. Likely caused by worker restart or "
-                        f"Redis eviction."
-                    )
+                    if hasattr(task, "error_message"):
+                        task.error_message = (
+                            f"Task orphaned: RQ job expired while status was "
+                            f"{task.task_status}. Likely caused by worker restart or "
+                            f"Redis eviction."
+                        )
                     self.tasks.pop(task_id, None)
                     self._task_result_keys.pop(task_id, None)
                     await self._store_task_in_redis(task)
@@ -169,15 +170,15 @@ class RedisTaskStatusMixin:
                 meta.setdefault("num_succeeded", 0)
                 meta.setdefault("num_failed", 0)
 
-                task = Task(
-                    task_id=data["task_id"],
-                    task_type=data["task_type"],
-                    task_status=TaskStatus(data["task_status"]),
-                    processing_meta=meta,
-                    error_message=data.get("error_message"),
-                )
-                if data.get("error_message"):
-                    task.error_message = data["error_message"]
+                task_kwargs: dict[str, Any] = {
+                    "task_id": data["task_id"],
+                    "task_type": data["task_type"],
+                    "task_status": TaskStatus(data["task_status"]),
+                    "processing_meta": meta,
+                }
+                if data.get("error_message") and "error_message" in Task.model_fields:
+                    task_kwargs["error_message"] = data["error_message"]
+                task = Task(**task_kwargs)
                 return task
         except Exception as e:
             _log.error(f"Redis get task {task_id}: {e}")
@@ -282,8 +283,6 @@ class RedisTaskStatusMixin:
                 "processing_meta": meta,
                 "error_message": getattr(task, "error_message", None),
             }
-            if task.error_message:
-                data["error_message"] = task.error_message
 
             metadata_ttl = docling_serve_settings.eng_rq_results_ttl
             async with redis.Redis(connection_pool=self._redis_pool) as r:
