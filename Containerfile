@@ -17,12 +17,14 @@ ARG MIMALLOC_VERSION
 
 USER 0
 
-RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake && \
-    mkdir -p /mimalloc && \
-    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz | \
-    tar -xzf - -C /mimalloc --strip-components=1
+WORKDIR /opt/app-root/src
 
-WORKDIR /mimalloc/out/release
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake && \
+    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz | \
+    tar -xzf - --strip-components=1 && \
+    mkdir -p out/release
+
+WORKDIR /opt/app-root/src/out/release
 RUN cmake ../.. && make
 
 
@@ -43,7 +45,7 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y clean all && \
     rm -rf /var/cache/dnf
 
-COPY --from=mimalloc /mimalloc/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
+COPY --from=mimalloc /opt/app-root/src/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
 RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
