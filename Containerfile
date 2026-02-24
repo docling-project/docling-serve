@@ -17,11 +17,10 @@ ARG MIMALLOC_VERSION
 
 USER 0
 
-RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake tar && \
-    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz -o /tmp/mimalloc.tar.gz && \
-    tar -xzf /tmp/mimalloc.tar.gz -C /tmp && \
-    mv /tmp/mimalloc-${MIMALLOC_VERSION#v} /mimalloc && \
-    rm /tmp/mimalloc.tar.gz
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake && \
+    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz | \
+    tar -xzf - -C / && \
+    mv /mimalloc-${MIMALLOC_VERSION#v} /mimalloc
 
 WORKDIR /mimalloc/out/release
 RUN cmake ../.. && make
