@@ -408,6 +408,7 @@ def rq_worker() -> Any:
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
         results_ttl=docling_serve_settings.eng_rq_results_ttl,
+        failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
         redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
         redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
         redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
