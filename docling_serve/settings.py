@@ -94,6 +94,8 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_socket_connect_timeout: Optional[float] = (
         None  # Socket connect timeout in seconds
     )
+    zombie_reaper_interval: float = 300.0
+    zombie_reaper_max_age: float = 3600.0
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None

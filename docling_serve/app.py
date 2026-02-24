@@ -141,14 +141,30 @@ async def lifespan(app: FastAPI):
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())
 
+    reaper_task = None
+    if hasattr(orchestrator, "_reap_zombie_tasks"):
+        reaper_task = asyncio.create_task(
+            orchestrator._reap_zombie_tasks(
+                interval=docling_serve_settings.zombie_reaper_interval,
+                max_age=docling_serve_settings.zombie_reaper_max_age,
+            )
+        )
+
     yield
 
     # Cancel the background queue processor on shutdown
     queue_task.cancel()
+    if reaper_task:
+        reaper_task.cancel()
     try:
         await queue_task
     except asyncio.CancelledError:
         _log.info("Queue processor cancelled.")
+    if reaper_task:
+        try:
+            await reaper_task
+        except asyncio.CancelledError:
+            _log.info("Zombie reaper cancelled.")
 
     # Remove scratch directory in case it was a tempfile
     if docling_serve_settings.scratch_path is not None:
