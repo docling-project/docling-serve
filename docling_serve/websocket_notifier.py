@@ -24,11 +24,10 @@ class WebsocketNotifier(BaseNotifier):
         self.task_subscribers[task_id] = set()
 
     async def remove_task(self, task_id: str):
-        if task_id in self.task_subscribers:
-            for websocket in self.task_subscribers[task_id]:
+        subscribers = self.task_subscribers.pop(task_id, None)
+        if subscribers:
+            for websocket in list(subscribers):
                 await websocket.close()
-
-            del self.task_subscribers[task_id]
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
@@ -48,7 +47,7 @@ class WebsocketNotifier(BaseNotifier):
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
             )
-            for websocket in self.task_subscribers[task_id]:
+            for websocket in list(self.task_subscribers.get(task_id, set())):
                 await websocket.send_text(
                     WebsocketMessage(
                         message=MessageKind.UPDATE, task=msg
@@ -61,7 +60,7 @@ class WebsocketNotifier(BaseNotifier):
 
     async def notify_queue_positions(self):
         """Notify all subscribers of pending tasks about queue position updates."""
-        for task_id in self.task_subscribers.keys():
+        for task_id in list(self.task_subscribers.keys()):
             try:
                 # Check task status directly from Redis or RQ
                 task = await self.orchestrator.task_status(task_id)

@@ -967,7 +967,9 @@ def create_app():  # noqa: C901
             _log.info(f"WebSocket disconnected for job {task_id}")
 
         finally:
-            orchestrator.notifier.task_subscribers[task_id].remove(websocket)
+            subs = orchestrator.notifier.task_subscribers.get(task_id)
+            if subs:
+                subs.discard(websocket)
 
     # Task result
     @app.get(
