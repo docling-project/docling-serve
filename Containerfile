@@ -4,6 +4,29 @@ ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.8.19
 
 ARG UV_SYNC_EXTRA_ARGS=""
 
+ARG MIMALLOC_VERSION=v3.2.8
+
+
+###################################################################################################
+# Build mimalloc                                                                                  #
+###################################################################################################
+
+FROM ${BASE_IMAGE} AS mimalloc
+
+ARG MIMALLOC_VERSION
+
+USER 0
+
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake tar && \
+    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz -o /tmp/mimalloc.tar.gz && \
+    tar -xzf /tmp/mimalloc.tar.gz -C /tmp && \
+    mv /tmp/mimalloc-${MIMALLOC_VERSION#v} /mimalloc && \
+    rm /tmp/mimalloc.tar.gz
+
+WORKDIR /mimalloc/out/release
+RUN cmake ../.. && make
+
+
 FROM ${BASE_IMAGE} AS docling-base
 
 ###################################################################################################
@@ -21,6 +44,7 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y clean all && \
     rm -rf /var/cache/dnf
 
+COPY --from=mimalloc /mimalloc/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
 RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
@@ -75,6 +99,7 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     umask 002 && uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
 
+ENV LD_PRELOAD=/usr/local/lib/libmimalloc.so
 EXPOSE 5001
 
 CMD ["docling-serve", "run"]
