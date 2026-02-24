@@ -19,9 +19,10 @@ USER 0
 
 WORKDIR /opt/app-root/src
 
-RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake && \
-    curl -L https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz | \
-    tar -xzf - --strip-components=1 && \
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False gcc gcc-c++ make cmake wget && \
+    wget -q https://github.com/microsoft/mimalloc/archive/refs/tags/${MIMALLOC_VERSION}.tar.gz && \
+    tar -xzf ${MIMALLOC_VERSION}.tar.gz --strip-components=1 --warning=no-unknown-keyword 2>/dev/null || tar -xzf ${MIMALLOC_VERSION}.tar.gz --strip-components=1 --ignore-failed-read || true && \
+    rm -f ${MIMALLOC_VERSION}.tar.gz && \
     mkdir -p out/release
 
 WORKDIR /opt/app-root/src/out/release
