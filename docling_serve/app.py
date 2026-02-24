@@ -351,7 +351,7 @@ def create_app():  # noqa: C901
             name = file.filename if file.filename else f"file{suffix}.pdf"
 
             # Log file details for debugging transmission issues
-            file_hash = hashlib.md5(file_bytes).hexdigest()[:12]
+            file_hash = hashlib.md5(file_bytes, usedforsecurity=False).hexdigest()[:12]
             _log.info(
                 f"File {i}: name={name}, size={len(file_bytes)} bytes, "
                 f"md5={file_hash}, content_type={file.content_type}"

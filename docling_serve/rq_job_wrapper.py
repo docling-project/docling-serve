@@ -107,7 +107,9 @@ def instrumented_docling_task(  # noqa: C901
                         prep_span.add_event(f"source_{idx}_prepared", info)
                     elif isinstance(source, FileSource):
                         decoded_bytes = base64.b64decode(source.base64_string)
-                        file_hash = hashlib.md5(decoded_bytes).hexdigest()[:12]
+                        file_hash = hashlib.md5(
+                            decoded_bytes, usedforsecurity=False
+                        ).hexdigest()[:12]
                         logger.info(
                             f"FileSource {idx}: filename={source.filename}, "
                             f"base64_len={len(source.base64_string)}, "
