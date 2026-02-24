@@ -100,6 +100,15 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
 | `DOCLING_SERVE_ENG_RQ_SUB_CHANNEL` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_TTL` | `14400` (4 hours) | Time To Live (in seconds) for RQ job results in Redis. This controls how long job results are kept before being automatically deleted. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
+| `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `5.0` | Socket timeout in seconds for Redis connections. Adjust based on network latency and Redis server performance. |
+
+**Scaling Recommendations for RQ Engine:**
+
+- **Small deployments (1-4 workers):** Default settings (50 connections) are sufficient
+- **Medium deployments (5-10 workers):** Set `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS=100`
+- **Large deployments (10+ workers):** Set `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS=150-200`
+- Ensure your Redis server's `maxclients` setting can accommodate all connections from all docling-serve instances and RQ workers
 
 #### KFP engine
 
