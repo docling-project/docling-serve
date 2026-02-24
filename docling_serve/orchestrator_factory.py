@@ -26,17 +26,19 @@ class RedisTaskStatusMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.redis_prefix = "docling:tasks:"
+
         self._redis_pool = redis.ConnectionPool.from_url(
             self.config.redis_url,
             max_connections=docling_serve_settings.eng_rq_redis_max_connections,
             socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
-            socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
             decode_responses=False,
         )
         _log.info(
             f"Redis connection pool initialized with max_connections="
             f"{docling_serve_settings.eng_rq_redis_max_connections}, "
-            f"socket_timeout={docling_serve_settings.eng_rq_redis_socket_timeout}s"
+            f"socket_timeout={docling_serve_settings.eng_rq_redis_socket_timeout}, "
+            f"socket_connect_timeout={docling_serve_settings.eng_rq_redis_socket_connect_timeout}"
         )
 
     async def close_redis_pool(self) -> None:
@@ -429,6 +431,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             results_ttl=docling_serve_settings.eng_rq_results_ttl,
             redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
             redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
         )
 
         return RedisAwareRQOrchestrator(config=rq_config)

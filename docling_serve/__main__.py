@@ -410,6 +410,7 @@ def rq_worker() -> Any:
         results_ttl=docling_serve_settings.eng_rq_results_ttl,
         redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
         redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+        redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
     )
 
     cm_config = DoclingConverterManagerConfig(
