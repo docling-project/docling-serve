@@ -190,6 +190,18 @@ class RedisTaskStatusMixin:
         try:
             _log.debug(f"Checking RQ for task {task_id}")
 
+            # Do not consult RQ for tasks already in a terminal state. The temp-task
+            # swap below would replace self.tasks[task_id] with a PENDING task, making
+            # the base class's is_completed() guard ineffective and allowing a stale
+            # RQ STARTED status to overwrite a watchdog-published FAILURE.
+            original_task = self.tasks.get(task_id)
+            if original_task is not None and original_task.is_completed():
+                _log.debug(
+                    f"Task {task_id} already terminal ({original_task.task_status}), "
+                    f"skipping RQ direct check"
+                )
+                return original_task
+
             temp_task = Task(
                 task_id=task_id,
                 task_type="convert",
