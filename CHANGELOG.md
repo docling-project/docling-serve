@@ -1,3 +1,28 @@
+## [v1.14.0](https://github.com/docling-project/docling-serve/releases/tag/v1.14.0) - 2026-02-25
+
+### Feature
+
+* Update docling - XBRL instance reports, image-classification model family ([#520](https://github.com/docling-project/docling-serve/issues/520)) ([`43856f5`](https://github.com/docling-project/docling-serve/commit/43856f589997ac3916d6ecaf225c0c9b84261972))
+* Surface task error messages in status API responses ([#502](https://github.com/docling-project/docling-serve/issues/502)) ([`e1d8ea9`](https://github.com/docling-project/docling-serve/commit/e1d8ea9278c49590833a0c488b31ecd61b876e86))
+* Allow setting the redis maximum connections ([#514](https://github.com/docling-project/docling-serve/issues/514)) ([`3462b77`](https://github.com/docling-project/docling-serve/commit/3462b7731c9f73b378ac56d70e84313be7c90601))
+* Debugging endpoints with memory details ([#513](https://github.com/docling-project/docling-serve/issues/513)) ([`60bc849`](https://github.com/docling-project/docling-serve/commit/60bc849dd62101d6b61df8d9781d0abbf23ca6ef))
+
+### Fix
+
+* Configure `failure_ttl` for RQ failed jobs ([#519](https://github.com/docling-project/docling-serve/issues/519)) ([`a831796`](https://github.com/docling-project/docling-serve/commit/a83179629e4131a5669b974eaca290649793eba6))
+* Zombie task cleanup — reconcile stale RQ/Redis state ([#516](https://github.com/docling-project/docling-serve/issues/516)) ([`853003c`](https://github.com/docling-project/docling-serve/commit/853003cf3b14a763c12fc40cffe13d5e92154b01))
+* Reduce memory usage with mimalloc ([#512](https://github.com/docling-project/docling-serve/issues/512)) ([`1667bdf`](https://github.com/docling-project/docling-serve/commit/1667bdfafc6caf6200c086758a598d50d675d49b))
+* Snapshot dict/set iterations in WebsocketNotifier to prevent RuntimeError ([#511](https://github.com/docling-project/docling-serve/issues/511)) ([`dfec81c`](https://github.com/docling-project/docling-serve/commit/dfec81c00a5c3ab25843fed505b5b6cf902b0868))
+
+### Docling libraries included in this release:
+- docling 2.75.0
+- docling-core 2.65.2
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.12.1
+- docling-mcp 1.3.4
+- docling-parse 5.4.0
+- docling-serve 1.14.0
+
 ## [v1.13.1](https://github.com/docling-project/docling-serve/releases/tag/v1.13.1) - 2026-02-23
 
 ### Fix
