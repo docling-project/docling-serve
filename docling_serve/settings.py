@@ -57,6 +57,9 @@ class DoclingServeSettings(BaseSettings):
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
+    allow_custom_vlm_config: bool = False
+    allow_custom_picture_description_config: bool = False
+    allow_custom_code_formula_config: bool = False
     show_version_info: bool = True
     enable_management_endpoints: bool = False
 
