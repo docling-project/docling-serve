@@ -1,0 +1,17 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: docling-serve-metrics
+  labels:
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app: docling-serve
+      component: docling-serve-api
+  endpoints:
+    - interval: 30s
+      path: /metrics
+      scheme: http
+      port: http
