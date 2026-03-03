@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: system
         name: MyPy
-        entry: uv run --no-sync mypy docling_serve
+        entry: uv run --no-sync mypy --no-incremental docling_serve
         pass_filenames: false
         language: system
         files: '\.py$'

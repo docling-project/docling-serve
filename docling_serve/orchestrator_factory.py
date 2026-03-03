@@ -76,13 +76,37 @@ class RedisTaskStatusMixin:
         """
         Get task status with zombie task reconciliation.
 
-        Checks RQ first (authoritative), then Redis cache, then in-memory.
+        Resolution order:
+        1. Redis (terminal-state gate): if Redis already holds a completed state,
+           return it immediately without consulting RQ. Prevents stale STARTED
+           in RQ from overwriting a watchdog-published FAILURE.
+        2. RQ: authoritative source for non-terminal states. Returns a Task only
+           when the job is non-PENDING; returns None for PENDING, _RQJobGone on
+           NoSuchJobError.
+        3. Redis (fallback): reached only when RQ had no useful answer (PENDING
+           or job expired). Handles job-gone reconciliation and stale-status
+           cross-checks. Same Redis key as step 1, different role.
         When the RQ job is definitively gone (NoSuchJobError), reconciles:
         - Terminal status in Redis -> return it, clean up tracking
         - Non-terminal status in Redis -> mark FAILURE (orphaned task)
         - Not in Redis at all -> raise TaskNotFoundError
         """
         _log.info(f"Task {task_id} status check")
+
+        # Before consulting RQ (which can report stale STARTED for up to 4 hours
+        # after a worker kill), check Redis for a terminal state written by
+        # _on_task_status_changed() or a previous poll. A terminal state in Redis
+        # is authoritative: written either by the watchdog (after heartbeat expiry
+        # + grace period) or by the normal success/failure path, neither of which
+        # can be a false positive for a still-running job.
+        task_from_redis = await self._get_task_from_redis(task_id)
+        if task_from_redis is not None and task_from_redis.is_completed():
+            _log.info(
+                f"Task {task_id} terminal in Redis ({task_from_redis.task_status}), "
+                f"skipping RQ check"
+            )
+            self.tasks[task_id] = task_from_redis
+            return task_from_redis
 
         rq_result = await self._get_task_from_rq_direct(task_id)
 
@@ -305,6 +329,9 @@ class RedisTaskStatusMixin:
                 )
         except Exception as e:
             _log.error(f"Store task {task.task_id}: {e}")
+
+    async def _on_task_status_changed(self, task: Task) -> None:
+        await self._store_task_in_redis(task)
 
     async def enqueue(self, **kwargs):  # type: ignore[override]
         task = await super().enqueue(**kwargs)  # type: ignore[misc]
