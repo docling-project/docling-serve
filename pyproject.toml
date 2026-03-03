@@ -172,6 +172,9 @@ pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 
+# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
+# docling-jobkit = { path = "../docling-jobkit", editable = true }
+
 [[tool.uv.index]]
 name = "pytorch-pypi"
 url = "https://pypi.org/simple"
