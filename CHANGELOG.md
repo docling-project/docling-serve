@@ -1,3 +1,20 @@
+## [v1.14.1](https://github.com/docling-project/docling-serve/releases/tag/v1.14.1) - 2026-03-03
+
+### Fix
+
+* Updated dependencies ([#528](https://github.com/docling-project/docling-serve/issues/528)) ([`3ad3bf0`](https://github.com/docling-project/docling-serve/commit/3ad3bf0b7eb05c0c41d6088fbbf8107dec651a0f))
+* Prevent stale RQ STARTED from overwriting watchdog FAILURE ([#523](https://github.com/docling-project/docling-serve/issues/523)) ([`f4c42f4`](https://github.com/docling-project/docling-serve/commit/f4c42f4a82c98d2b35260265852ce3e16327aa5a))
+* Wire allow_custom_*_config flags from settings to DoclingConverterManagerConfig ([#527](https://github.com/docling-project/docling-serve/issues/527)) ([`0de3b4f`](https://github.com/docling-project/docling-serve/commit/0de3b4fa1c429674de6c565ffeb2ad1e7d4e5b90))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.1
+
 ## [v1.14.0](https://github.com/docling-project/docling-serve/releases/tag/v1.14.0) - 2026-02-25
 
 ### Feature
