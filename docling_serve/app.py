@@ -913,7 +913,6 @@ def create_app():  # noqa: C901
         try:
             task = await orchestrator.task_status(task_id=task_id, wait=wait)
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
-            gc.collect()
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
         return TaskStatusResponse(
