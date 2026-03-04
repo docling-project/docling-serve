@@ -1,3 +1,18 @@
+## [v1.14.2](https://github.com/docling-project/docling-serve/releases/tag/v1.14.2) - 2026-03-04
+
+### Fix
+
+* Remove gc.collect from task status poll ([#529](https://github.com/docling-project/docling-serve/issues/529)) ([`b1b4347`](https://github.com/docling-project/docling-serve/commit/b1b4347b104c47cdd63cca19114becfd3eddddd6))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.2
+
 ## [v1.14.1](https://github.com/docling-project/docling-serve/releases/tag/v1.14.1) - 2026-03-03
 
 ### Fix
