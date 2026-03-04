@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self, TypeVar
 
+from docling_jobkit.datamodel.callback import CallbackSpec
 from docling_jobkit.datamodel.chunking import (
     BaseChunkerOptions,
 )
@@ -58,6 +59,7 @@ class ConvertDocumentsRequest(BaseModel):
     options: ConvertDocumentsRequestOptions = ConvertDocumentsRequestOptions()
     sources: list[SourceRequestItem]
     target: TargetRequest = InBodyTarget()
+    callbacks: list[CallbackSpec] = []
 
     @model_validator(mode="after")
     def validate_s3_source_and_target(self) -> Self:
@@ -101,6 +103,7 @@ class BaseChunkDocumentsRequest(BaseModel):
     target: Annotated[
         TargetRequest, Field(description="Specification for the type of output target.")
     ] = InBodyTarget()
+    callbacks: list[CallbackSpec] = []
 
 
 ChunkingOptT = TypeVar("ChunkingOptT", bound=BaseChunkerOptions)
