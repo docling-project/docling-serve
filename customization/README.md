@@ -117,3 +117,17 @@ Functions available to inspect queue are [here](https://github.com/docling-proje
 
 ## Resources
 * https://docs.aws.amazon.com/sagemaker/latest/dg/adapt-inference-container.html
+
+
+## Create Endpoint
+```bash
+python create_endpoint.py --env dev|prod --image-version v1.13.1
+```
+
+## Update Endpoint
+```bash
+python update_endpoint.py --endpoint-name docling-serve-2025-09-04-03-09-08 --env dev|prod --endpoint-config-name docling-serve-2026-02-21-03-37-43
+
+# or to create an endpoint config
+python update_endpoint.py --endpoint-name docling-serve-2025-09-04-03-09-08 --env dev|prod --image-version v1.13.1
+```
