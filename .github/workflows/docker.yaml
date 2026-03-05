@@ -1,8 +1,10 @@
-name: Docker Build Publish VLLM
+name: Docker Build Publish
 
 on:
   workflow_dispatch: {}
-  push: {}
+  push:
+    branches:
+      - main
   release:
     types:
       - published
