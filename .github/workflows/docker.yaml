@@ -1,16 +1,27 @@
-name: Docker AIService
+name: Docker Build Publish VLLM
+
 on:
-  workflow_call: {}
   workflow_dispatch: {}
+  push: {}
   release:
     types:
-      - released
+      - published
+permissions: {}
+
 jobs:
-  docker:
-    name: Docker
-    uses: Onebrief/actions/.github/workflows/reusable-docker-build.yml@v3.0.4
-    secrets: inherit
+  build:
+    name: Build amd64
+    permissions:
+      actions: read
+      contents: read
+      checks: write
+      id-token: write
+      security-events: write
+    uses: ./.github/workflows/_docker-build.yaml
     with:
-      repository: onebrief/docling
+      image-name: onebrief/docling-ob
       dockerfile: Dockerfile
-      anchore: true
+      context: .
+      provenance: false
+    secrets:
+      ONEPASS_SA_TOKEN: ${{ secrets.ONEPASS_SA_TOKEN }}

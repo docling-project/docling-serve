@@ -23,13 +23,13 @@ def send_docling_request(file_path: str):
     try:
         if "s3" in file_path:
             files_payload = [
-                ('ocr_engine', (None, 'rapidocr')),
+                ('ocr_engine', (None, 'tesserocr')),
                 ('pdf_backend', (None, 'dlparse_v4')),
                 ('from_formats', (None, 'pdf')),
                 ('from_formats', (None, 'docx')),
                 ('force_ocr', (None, 'false')),
                 ('image_export_mode', (None, 'placeholder')),
-                ('ocr_lang', (None, 'en')),
+                ('ocr_lang', (None, 'eng')),
                 ('table_mode', (None, 'fast')),
                 ('abort_on_error', (None, 'false')),
                 ('to_formats', (None, 'md')),
@@ -46,13 +46,13 @@ def send_docling_request(file_path: str):
         else:
             with open(file_path, 'rb') as f:                
                 files_payload = [
-                    ('ocr_engine', (None, 'rapidocr')),
+                    ('ocr_engine', (None, 'tesserocr')),
                     ('pdf_backend', (None, 'dlparse_v4')),
                     ('from_formats', (None, 'pdf')),
                     ('from_formats', (None, 'docx')),
                     ('force_ocr', (None, 'false')),
                     ('image_export_mode', (None, 'placeholder')),
-                    ('ocr_lang', (None, 'en')),
+                    ('ocr_lang', (None, 'eng')),
                     ('table_mode', (None, 'fast')),
                     ('abort_on_error', (None, 'false')),
                     ('to_formats', (None, 'md')),

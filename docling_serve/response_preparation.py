@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 
 from fastapi import BackgroundTasks, Response
@@ -73,6 +74,7 @@ async def prepare_response(
         async def _remove_task_impl():
             await asyncio.sleep(docling_serve_settings.result_removal_delay)
             await orchestrator.delete_task(task_id=task_id)
+            gc.collect()
 
         async def _remove_task():
             asyncio.create_task(_remove_task_impl())  # noqa: RUF006

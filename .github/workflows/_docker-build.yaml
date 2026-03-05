@@ -1,0 +1,176 @@
+name: Docker Build (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: Image name under the Nexus registry (e.g. onebrief/vllm)
+        required: true
+        type: string
+      dockerfile:
+        description: Path to the Dockerfile
+        required: true
+        type: string
+      context:
+        description: Docker build context path
+        required: true
+        type: string
+      provenance:
+        description: Whether to include provenance attestations (set to false for SageMaker compatibility)
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      image:
+        value: ${{ jobs.build.outputs.image }}
+      digest:
+        value: ${{ jobs.build.outputs.digest }}
+      version:
+        value: ${{ jobs.build.outputs.version }}
+      date:
+        value: ${{ jobs.build.outputs.date }}
+      pinned-version:
+        value: ${{ jobs.build.outputs.pinned-version }}
+    secrets:
+      ONEPASS_SA_TOKEN:
+        required: true
+
+jobs:
+  build:
+    name: Build amd64 (${{ inputs.image-name }})
+    permissions:
+      actions: read
+      contents: read
+      checks: write
+      id-token: write
+      security-events: write
+    runs-on: runs-on=${{ github.run_id}}/pool=stepsecurity-x64
+    outputs:
+      image: ${{ steps.setout.outputs.image }}
+      digest: ${{ steps.setout.outputs.digest }}
+      version: ${{ steps.setout.outputs.version }}
+      date: ${{ steps.setout.outputs.date }}
+      pinned-version: ${{ steps.setout.outputs.version }}@${{ steps.setout.outputs.digest }}
+    steps:
+      - uses: runs-on/action@cd2b598b0515d39d78c38a02d529db87d2196d1e #v2
+
+      - uses: runs-on/snapshot@6a48ee4defc461496b2a630db7d769fbe1f12c7a #v1
+        with:
+          path: /var/lib/docker
+          volume_size: 128
+
+      - name: clear old images
+        run: docker image prune -f
+
+      - name: Harden Runner
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 #v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::183613197217:role/reusable-docker-build
+          aws-region: us-west-2
+          role-skip-session-tagging: true
+
+      - name: Load Nexus Secret
+        id: load_secrets
+        uses: 1password/load-secrets-action@v3
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.ONEPASS_SA_TOKEN }}
+          NEXUS_USER: op://Github Secrets/Nexus Write Service Account/username
+          NEXUS_PASS: op://Github Secrets/Nexus Write Service Account/password
+
+      - name: Login to nexus container registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 #v3.4.0
+        with:
+          registry: nexus.int.onebrief.tools
+          username: ${{ env.NEXUS_USER }}
+          password: ${{ env.NEXUS_PASS }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 #v3.11.1
+        with:
+          name: runs-on
+          keep-state: true
+
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 #v5.7.0
+        with:
+          images: |
+            nexus.int.onebrief.tools/${{ inputs.image-name }}
+
+      - name: Build and push docker image
+        id: build
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 #v6.16.0
+        with:
+          push: true
+          platforms: linux/amd64
+          file: ${{ inputs.dockerfile }}
+          context: ${{ inputs.context }}
+          tags: ${{ steps.meta.outputs.tags }}
+          provenance: ${{ inputs.provenance }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            onebrief.created=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            onebrief.version=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            onebrief.git.sha=${{ github.sha }}
+
+      - name: Set outputs
+        id: setout
+        shell: bash
+        env:
+          META_JSON: ${{ steps.meta.outputs.json }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          echo "image=$(echo "$META_JSON" | jq -r '.tags[0]')" >> $GITHUB_OUTPUT
+          echo "version=$(echo "$META_JSON" | jq -r '.labels["org.opencontainers.image.version"]')" >> $GITHUB_OUTPUT
+          echo "date=$(echo "$META_JSON" | jq -r '.labels["org.opencontainers.image.created"]')" >> $GITHUB_OUTPUT
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials for cosign
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 #v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::183613197217:role/reusable-docker-build
+          aws-region: us-east-2
+          role-skip-session-tagging: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad #v4.0.0
+        with:
+          cosign-release: "v3.0.3"
+
+      - name: Sign Nexus image
+        env:
+          REPOSITORY: ${{ inputs.image-name }}
+          NEXUS_DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          cosign version
+          echo "Nexus Digest: $NEXUS_DIGEST"
+          if ! cosign verify \
+            --key awskms:///alias/Image-signing-key \
+            --insecure-ignore-tlog=true \
+            nexus.int.onebrief.tools/${REPOSITORY}@${NEXUS_DIGEST} >/dev/null 2>&1; then
+
+            cosign sign \
+              --yes \
+              --recursive \
+              --annotations=signed=onebrief \
+              --key awskms:///alias/Image-signing-key \
+              nexus.int.onebrief.tools/${REPOSITORY}@${NEXUS_DIGEST}
+
+          else
+            echo "::notice::Nexus image already signed"
+          fi
