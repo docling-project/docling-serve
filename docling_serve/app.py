@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from scalar_fastapi import get_scalar_api_reference
 
-from docling.datamodel.base_models import DocumentStream
+from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling_jobkit.datamodel.callback import (
     ProgressCallbackRequest,
     ProgressCallbackResponse,
@@ -150,9 +150,13 @@ async def lifespan(app: FastAPI):
     notifier = WebsocketNotifier(orchestrator)
     orchestrator.bind_notifier(notifier)
 
-    # Warm up processing cache
+    # Warm up processing cache using our default options (tesserocr)
     if docling_serve_settings.load_models_at_boot:
-        await orchestrator.warm_up_caches()
+        pdf_format_option = orchestrator.cm.get_pdf_pipeline_opts(
+            ConvertDocumentsRequestOptions()
+        )
+        converter = orchestrator.cm.get_converter(pdf_format_option)
+        converter.initialize_pipeline(InputFormat.PDF)
 
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())

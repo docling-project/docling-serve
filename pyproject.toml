@@ -64,10 +64,7 @@ tesserocr = [
 easyocr = [
     "easyocr>=1.7",
 ]
-rapidocr = [
-    "rapidocr (>=3.3,<4.0.0)",
-    "onnxruntime (>=1.7.0,<2.0.0)",
-]
+rapidocr = []
 flash-attn = [
   "flash-attn~=2.8.2; sys_platform == 'linux'"
 ]
@@ -302,7 +299,6 @@ python_version = "3.10"
 module = [
     "easyocr.*",
     "tesserocr.*",
-    "rapidocr_onnxruntime.*",
     "requests.*",
     "kfp.*",
     "kfp_server_api.*",

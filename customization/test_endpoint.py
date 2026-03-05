@@ -8,21 +8,17 @@ ENDPOINT_NAME = "docling-serve-2025-09-04-03-09-08"
 SAGEMAKER_RUNTIME_URL = f"https://runtime.sagemaker.{REGION}.amazonaws.com"
 
 sm_client = boto3.client('sagemaker-runtime', region_name=REGION, endpoint_url=SAGEMAKER_RUNTIME_URL)
-filename = "2408.09869v4.pdf"
-filepath = "/Users/liamadams/repos/ai-lab/docling/2408.09869v4.pdf"
-# filepath = "/Users/liamadams/Downloads/pdf/W72HAHPKTD73IK72BPHF6NQMI365DGPL.pdf"
-# filepath = "/Users/liamadams/Downloads/pdf/b243f6218b4f2ca4de2717cf4a2af223b68210db.pdf"
 
 # https://stackoverflow.com/a/76677637/3614578
-def test_convert(s3_input: str = None):    
+def test_convert(file_name: str = None, local_file: str = None, s3_input: str = None):
     data = {
-        "files": (filename, open(filepath, "rb").read(), "application/pdf"),
-        'ocr_engine': (None, 'rapidocr'),
+        "files": (file_name, open(local_file, "rb").read(), "application/pdf"),
+        'ocr_engine': (None, 'tesserocr'),
         'pdf_backend': (None, 'dlparse_v4'),
         'from_formats': (None, 'pdf'),
         'force_ocr': (None, 'false'),
         'image_export_mode': (None, 'placeholder'),
-        'ocr_lang': (None, 'en'),
+        'ocr_lang': (None, 'eng'),
         'table_mode': (None, 'fast'),
         'abort_on_error': (None, 'false'),
         # it will convert to one of md or json, if both passed it converts to json
@@ -43,9 +39,9 @@ def test_convert(s3_input: str = None):
     result = json.loads(result)
     return result["task_id"], result["task_status"]
     
-def test_poll(task_id, task_status):
+def test_poll(task_id, task_status, file_name: str = "current"):
     data = {
-        "files": (filename, b"", "application/pdf"),
+        "files": (file_name, b"", "application/pdf"),
         'task_id': (None, task_id),
     }
 
@@ -59,9 +55,9 @@ def test_poll(task_id, task_status):
         print(f"poll response is {result}")
         time.sleep(2)
         
-def test_fetch(task_id):
+def test_fetch(task_id, file_name: str = "current"):
     data = {
-        "files": (filename, b"", "application/pdf"),
+        "files": (file_name, b"", "application/pdf"),
         'task_id': (None, task_id),
         'fetch': (None, 'true'),
         'chunk': (None, 'false'),
@@ -72,6 +68,7 @@ def test_fetch(task_id):
     print(result)
         
 
-task_id, task_status = test_convert("s3://201486032796-docling-serve/input/Nepal-Earthquake-CONPLAN.pdf")
+task_id, task_status = test_convert(file_name="2206.01062v1.pdf", local_file="../tests/2206.01062v1.pdf")
+# task_id, task_status = test_convert(s3_input="s3://201486032796-docling-serve/input/Nepal-Earthquake-CONPLAN.pdf")
 test_poll(task_id, task_status)
 test_fetch(task_id)

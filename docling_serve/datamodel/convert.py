@@ -5,6 +5,7 @@ from pydantic import Field
 
 from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
+    TesseractOcrOptions,
 )
 from docling.models.factories import get_ocr_factory
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
@@ -24,11 +25,11 @@ class ConvertDocumentsRequestOptions(ConvertDocumentsOptions):
             description=(
                 "The OCR engine to use. String. "
                 f"Allowed values: {', '.join([v.value for v in ocr_engines_enum])}. "
-                "Optional, defaults to easyocr."
+                "Optional, defaults to tesserocr."
             ),
-            examples=[EasyOcrOptions.kind],
+            examples=[TesseractOcrOptions.kind],
         ),
-    ] = ocr_engines_enum(EasyOcrOptions.kind)  # type: ignore
+    ] = ocr_engines_enum(TesseractOcrOptions.kind)  # type: ignore
 
     document_timeout: Annotated[
         float,
