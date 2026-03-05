@@ -440,6 +440,10 @@ def rq_worker() -> Any:
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
         results_ttl=docling_serve_settings.eng_rq_results_ttl,
+        failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
+        redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
+        redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+        redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
     )
 
     cm_config = DoclingConverterManagerConfig(
@@ -447,6 +451,9 @@ def rq_worker() -> Any:
         options_cache_size=docling_serve_settings.options_cache_size,
         enable_remote_services=docling_serve_settings.enable_remote_services,
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
+        allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
+        allow_custom_picture_description_config=docling_serve_settings.allow_custom_picture_description_config,
+        allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
         max_num_pages=docling_serve_settings.max_num_pages,
         max_file_size=docling_serve_settings.max_file_size,
         queue_max_size=docling_serve_settings.queue_max_size,

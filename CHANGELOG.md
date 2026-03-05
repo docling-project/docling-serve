@@ -1,3 +1,91 @@
+## [v1.14.3](https://github.com/docling-project/docling-serve/releases/tag/v1.14.3) - 2026-03-05
+
+### Fix
+
+* Don't skip CustomRQWorker.perform_job() ([#532](https://github.com/docling-project/docling-serve/issues/532)) ([`4ce8143`](https://github.com/docling-project/docling-serve/commit/4ce8143dc87c44b6e6941ec727d97373ce0e099b))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.3
+
+## [v1.14.2](https://github.com/docling-project/docling-serve/releases/tag/v1.14.2) - 2026-03-04
+
+### Fix
+
+* Remove gc.collect from task status poll ([#529](https://github.com/docling-project/docling-serve/issues/529)) ([`b1b4347`](https://github.com/docling-project/docling-serve/commit/b1b4347b104c47cdd63cca19114becfd3eddddd6))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.2
+
+## [v1.14.1](https://github.com/docling-project/docling-serve/releases/tag/v1.14.1) - 2026-03-03
+
+### Fix
+
+* Updated dependencies ([#528](https://github.com/docling-project/docling-serve/issues/528)) ([`3ad3bf0`](https://github.com/docling-project/docling-serve/commit/3ad3bf0b7eb05c0c41d6088fbbf8107dec651a0f))
+* Prevent stale RQ STARTED from overwriting watchdog FAILURE ([#523](https://github.com/docling-project/docling-serve/issues/523)) ([`f4c42f4`](https://github.com/docling-project/docling-serve/commit/f4c42f4a82c98d2b35260265852ce3e16327aa5a))
+* Wire allow_custom_*_config flags from settings to DoclingConverterManagerConfig ([#527](https://github.com/docling-project/docling-serve/issues/527)) ([`0de3b4f`](https://github.com/docling-project/docling-serve/commit/0de3b4fa1c429674de6c565ffeb2ad1e7d4e5b90))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.1
+
+## [v1.14.0](https://github.com/docling-project/docling-serve/releases/tag/v1.14.0) - 2026-02-25
+
+### Feature
+
+* Update docling - XBRL instance reports, image-classification model family ([#520](https://github.com/docling-project/docling-serve/issues/520)) ([`43856f5`](https://github.com/docling-project/docling-serve/commit/43856f589997ac3916d6ecaf225c0c9b84261972))
+* Surface task error messages in status API responses ([#502](https://github.com/docling-project/docling-serve/issues/502)) ([`e1d8ea9`](https://github.com/docling-project/docling-serve/commit/e1d8ea9278c49590833a0c488b31ecd61b876e86))
+* Allow setting the redis maximum connections ([#514](https://github.com/docling-project/docling-serve/issues/514)) ([`3462b77`](https://github.com/docling-project/docling-serve/commit/3462b7731c9f73b378ac56d70e84313be7c90601))
+* Debugging endpoints with memory details ([#513](https://github.com/docling-project/docling-serve/issues/513)) ([`60bc849`](https://github.com/docling-project/docling-serve/commit/60bc849dd62101d6b61df8d9781d0abbf23ca6ef))
+
+### Fix
+
+* Configure `failure_ttl` for RQ failed jobs ([#519](https://github.com/docling-project/docling-serve/issues/519)) ([`a831796`](https://github.com/docling-project/docling-serve/commit/a83179629e4131a5669b974eaca290649793eba6))
+* Zombie task cleanup — reconcile stale RQ/Redis state ([#516](https://github.com/docling-project/docling-serve/issues/516)) ([`853003c`](https://github.com/docling-project/docling-serve/commit/853003cf3b14a763c12fc40cffe13d5e92154b01))
+* Reduce memory usage with mimalloc ([#512](https://github.com/docling-project/docling-serve/issues/512)) ([`1667bdf`](https://github.com/docling-project/docling-serve/commit/1667bdfafc6caf6200c086758a598d50d675d49b))
+* Snapshot dict/set iterations in WebsocketNotifier to prevent RuntimeError ([#511](https://github.com/docling-project/docling-serve/issues/511)) ([`dfec81c`](https://github.com/docling-project/docling-serve/commit/dfec81c00a5c3ab25843fed505b5b6cf902b0868))
+
+### Docling libraries included in this release:
+- docling 2.75.0
+- docling-core 2.65.2
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.12.1
+- docling-mcp 1.3.4
+- docling-parse 5.4.0
+- docling-serve 1.14.0
+
+## [v1.13.1](https://github.com/docling-project/docling-serve/releases/tag/v1.13.1) - 2026-02-23
+
+### Fix
+
+* Parsing of pdf with invalid uri annotations (docling-core pinned lock) ([#510](https://github.com/docling-project/docling-serve/issues/510)) ([`68b7175`](https://github.com/docling-project/docling-serve/commit/68b7175ec8baf490aaf3fddd2be221f854e7a7da))
+* Arm64 image for CUDA 12.8 ([#508](https://github.com/docling-project/docling-serve/issues/508)) ([`5a814d7`](https://github.com/docling-project/docling-serve/commit/5a814d779768af16471ede993d75edd31b80bb9c))
+
+### Docling libraries included in this release:
+- docling 2.74.0
+- docling-core 2.65.2
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.11.0
+- docling-mcp 1.3.4
+- docling-parse 5.3.2
+- docling-serve 1.13.1
+
 ## [v1.13.0](https://github.com/docling-project/docling-serve/releases/tag/v1.13.0) - 2026-02-18
 
 ### Feature
