@@ -31,9 +31,6 @@ on:
         value: ${{ jobs.build.outputs.date }}
       pinned-version:
         value: ${{ jobs.build.outputs.pinned-version }}
-    secrets:
-      ONEPASS_SA_TOKEN:
-        required: true
 
 jobs:
   build:
