@@ -1,3 +1,18 @@
+## [v1.14.3](https://github.com/docling-project/docling-serve/releases/tag/v1.14.3) - 2026-03-05
+
+### Fix
+
+* Don't skip CustomRQWorker.perform_job() ([#532](https://github.com/docling-project/docling-serve/issues/532)) ([`4ce8143`](https://github.com/docling-project/docling-serve/commit/4ce8143dc87c44b6e6941ec727d97373ce0e099b))
+
+### Docling libraries included in this release:
+- docling 2.76.0
+- docling-core 2.66.0
+- docling-ibm-models 3.11.0
+- docling-jobkit 1.13.0
+- docling-mcp 1.3.4
+- docling-parse 5.4.1
+- docling-serve 1.14.3
+
 ## [v1.14.2](https://github.com/docling-project/docling-serve/releases/tag/v1.14.2) - 2026-03-04
 
 ### Fix
