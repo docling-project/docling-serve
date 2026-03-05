@@ -25,5 +25,4 @@ jobs:
       dockerfile: Dockerfile
       context: .
       provenance: false
-    secrets:
-      ONEPASS_SA_TOKEN: ${{ secrets.ONEPASS_SA_TOKEN }}
+    secrets: inherit
