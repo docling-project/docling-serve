@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import WebSocket
 
 from docling_jobkit.datamodel.task_meta import TaskStatus
@@ -9,6 +11,8 @@ from docling_serve.datamodel.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
+
+_log = logging.getLogger(__name__)
 
 
 class WebsocketNotifier(BaseNotifier):
@@ -28,7 +32,10 @@ class WebsocketNotifier(BaseNotifier):
 
     async def notify_task_subscribers(self, task_id: str):
         if task_id not in self.task_subscribers:
-            raise RuntimeError(f"Task {task_id} does not have a subscribers list.")
+            _log.debug(
+                f"Task {task_id} has no websocket subscribers, skipping notification."
+            )
+            return
 
         try:
             # Get task status from Redis or RQ directly instead of in-memory registry
@@ -50,10 +57,6 @@ class WebsocketNotifier(BaseNotifier):
                 if task.is_completed():
                     await websocket.close()
         except Exception as e:
-            # Log the error but don't crash the notifier
-            import logging
-
-            _log = logging.getLogger(__name__)
             _log.error(f"Error notifying subscribers for task {task_id}: {e}")
 
     async def notify_queue_positions(self):
@@ -67,10 +70,6 @@ class WebsocketNotifier(BaseNotifier):
                 if task.task_status == TaskStatus.PENDING:
                     await self.notify_task_subscribers(task_id)
             except Exception as e:
-                # Log the error but don't crash the notifier
-                import logging
-
-                _log = logging.getLogger(__name__)
                 _log.error(
                     f"Error checking task {task_id} status for queue position notification: {e}"
                 )

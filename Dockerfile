@@ -1,4 +1,4 @@
-FROM nexus.int.onebrief.tools/cgr.dev/onebrief.com/python-fips:3.13-dev AS build
+FROM nexus.int.onebrief.tools/cgr.dev/onebrief.com/python-fips:3.13.12-dev AS build
 ENV UV_COMPILE_BYTECODE=0 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
@@ -34,7 +34,7 @@ RUN mkdir -p /app/tessdata \
 
 # Multistage release build
 
-FROM nexus.int.onebrief.tools/cgr.dev/onebrief.com/python-fips:3.13 AS release
+FROM nexus.int.onebrief.tools/cgr.dev/onebrief.com/python-fips:3.13.12 AS release
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -51,6 +51,8 @@ ENV \
 
 COPY --chown=65532:65532 ./docling_serve ./docling_serve
 COPY --chown=65532:65532 --chmod=755 ./serve /usr/bin/serve
+
+USER nonroot
 
 EXPOSE 8080
 
