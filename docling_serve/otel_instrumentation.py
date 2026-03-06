@@ -23,7 +23,7 @@ from docling_serve.rq_metrics_collector import RQCollector
 logger = logging.getLogger(__name__)
 
 
-FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/readyz", "/livez"}
+FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/ready", "/readyz", "/livez"}
 
 
 class HealthMetricsFilterSampler(Sampler):
