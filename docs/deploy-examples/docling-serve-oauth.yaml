@@ -89,14 +89,22 @@ spec:
             requests:
               cpu: 800m
               memory: 1Gi
-          readinessProbe:
+          startupProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
               scheme: HTTPS
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 30
             timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+              scheme: HTTPS
             periodSeconds: 5
+            timeoutSeconds: 2
             successThreshold: 1
             failureThreshold: 3
           livenessProbe:
