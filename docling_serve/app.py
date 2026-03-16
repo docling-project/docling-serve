@@ -1,13 +1,19 @@
 import asyncio
 import copy
+import gc
+import hashlib
 import importlib.metadata
 import logging
+import os
 import shutil
 import time
+from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
 from typing import Annotated
 
+import psutil
+import redis.asyncio
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -73,6 +79,7 @@ from docling_serve.datamodel.responses import (
     HealthCheckResponse,
     MessageKind,
     PresignedUrlConvertDocumentResponse,
+    ReadinessResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -119,6 +126,11 @@ for handler in root_logger.handlers:  # Iterate through existing handlers
 
 _log = logging.getLogger(__name__)
 
+# Tracks whether warm_up_caches() has completed.  Meaningful only for the
+# LocalOrchestrator (which eagerly loads ML models); the RQ orchestrator's
+# implementation is a no-op so this event fires instantly in RQ deployments.
+_models_ready = asyncio.Event()
+
 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
@@ -129,21 +141,40 @@ async def lifespan(app: FastAPI):
     notifier = WebsocketNotifier(orchestrator)
     orchestrator.bind_notifier(notifier)
 
-    # Warm up processing cache
+    # Warm up processing cache (loads ML models for LocalOrchestrator;
+    # no-op for RQOrchestrator since models live in the worker pods).
     if docling_serve_settings.load_models_at_boot:
         await orchestrator.warm_up_caches()
 
+    _models_ready.set()
+
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())
+
+    reaper_task = None
+    if hasattr(orchestrator, "_reap_zombie_tasks"):
+        reaper_task = asyncio.create_task(
+            orchestrator._reap_zombie_tasks(
+                interval=docling_serve_settings.zombie_reaper_interval,
+                max_age=docling_serve_settings.zombie_reaper_max_age,
+            )
+        )
 
     yield
 
     # Cancel the background queue processor on shutdown
     queue_task.cancel()
+    if reaper_task:
+        reaper_task.cancel()
     try:
         await queue_task
     except asyncio.CancelledError:
         _log.info("Queue processor cancelled.")
+    if reaper_task:
+        try:
+            await reaper_task
+        except asyncio.CancelledError:
+            _log.info("Zombie reaper cancelled.")
 
     # Remove scratch directory in case it was a tempfile
     if docling_serve_settings.scratch_path is not None:
@@ -340,9 +371,18 @@ def create_app():  # noqa: C901
         # Load the uploaded files to Docling DocumentStream
         file_sources: list[TaskSource] = []
         for i, file in enumerate(files):
-            buf = BytesIO(file.file.read())
+            file_bytes = file.file.read()
+            buf = BytesIO(file_bytes)
             suffix = "" if len(file_sources) == 1 else f"_{i}"
             name = file.filename if file.filename else f"file{suffix}.pdf"
+
+            # Log file details for debugging transmission issues
+            file_hash = hashlib.md5(file_bytes, usedforsecurity=False).hexdigest()[:12]
+            _log.info(
+                f"File {i}: name={name}, size={len(file_bytes)} bytes, "
+                f"md5={file_hash}, content_type={file.content_type}"
+            )
+
             file_sources.append(DocumentStream(name=name, stream=buf))
 
         task = await orchestrator.enqueue(
@@ -448,8 +488,46 @@ def create_app():  # noqa: C901
         response = RedirectResponse(url=logo_url)
         return response
 
+    async def _check_redis() -> bool:
+        orchestrator = get_async_orchestrator()
+        if not hasattr(orchestrator, "_redis_pool"):
+            return True
+        try:
+            conn = redis.asyncio.Redis(connection_pool=orchestrator._redis_pool)
+            await conn.ping()  # type: ignore[misc]
+            return True
+        except Exception:
+            _log.exception("Redis readiness check failed")
+            return False
+
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
+        return HealthCheckResponse()
+
+    @app.get("/ready", tags=["health"])
+    async def readiness() -> ReadinessResponse:
+        # Gate on model loading (LocalOrchestrator only; instant for RQ).
+        if not _models_ready.is_set():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Models not yet loaded",
+            )
+
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ:
+            if not await _check_redis():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Redis connection failed",
+                )
+
+        return ReadinessResponse()
+
+    @app.get("/readyz", tags=["health"], include_in_schema=False)
+    async def readyz() -> ReadinessResponse:
+        return await readiness()
+
+    @app.get("/livez", tags=["health"], include_in_schema=False)
+    def livez() -> HealthCheckResponse:
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench
@@ -602,6 +680,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Convert a document from file(s) using the async api
@@ -639,6 +718,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Chunking endpoints
@@ -670,6 +750,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -733,6 +814,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
 
         @app.post(
@@ -887,6 +969,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
         )
 
     # Task status websocket
@@ -922,7 +1005,7 @@ def create_app():  # noqa: C901
             return
 
         # Track active WebSocket connections for this job
-        orchestrator.notifier.task_subscribers[task_id].add(websocket)
+        orchestrator.notifier.task_subscribers.setdefault(task_id, set()).add(websocket)
 
         try:
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
@@ -932,6 +1015,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
+                error_message=getattr(task, "error_message", None),
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -948,6 +1032,7 @@ def create_app():  # noqa: C901
                     task_status=task.task_status,
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
+                    error_message=getattr(task, "error_message", None),
                 )
                 await websocket.send_text(
                     WebsocketMessage(
@@ -962,7 +1047,9 @@ def create_app():  # noqa: C901
             _log.info(f"WebSocket disconnected for job {task_id}")
 
         finally:
-            orchestrator.notifier.task_subscribers[task_id].remove(websocket)
+            subs = orchestrator.notifier.task_subscribers.get(task_id)
+            if subs:
+                subs.discard(websocket)
 
     # Task result
     @app.get(
@@ -1050,5 +1137,61 @@ def create_app():  # noqa: C901
     ):
         await orchestrator.clear_results(older_than=older_then)
         return ClearResponse()
+
+    @app.get("/v1/memory/stats", tags=["management"])
+    async def memory_stats():
+        if not docling_serve_settings.enable_management_endpoints:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing internal managament details.",
+            )
+        process = psutil.Process(os.getpid())
+        rss_mb = process.memory_info().rss / 1024 / 1024
+        stats = {}
+
+        # total memory (this is what triggers OOM)
+        with open("/sys/fs/cgroup/memory.current") as f:  # noqa: ASYNC230
+            stats["cgroup_total"] = int(f.read()) / 1024 / 1024
+
+        # detailed breakdown
+        with open("/sys/fs/cgroup/memory.stat") as f:  # noqa: ASYNC230
+            for line in f:
+                key, value = line.split()
+                stats[key] = int(value) / 1024 / 1024
+
+        return {
+            "rss": rss_mb,
+            "anon": stats.get("anon", 0.0),
+            "file": stats.get("file", 0.0),
+            "slab": stats.get("slab", 0.0),
+            "cgroup_total": stats["cgroup_total"],
+        }
+
+    @app.get("/v1/memory/counts", tags=["management"])
+    async def memory_counts():
+        if not docling_serve_settings.enable_management_endpoints:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden. The server is configured for not showing internal managament details.",
+            )
+        gc.collect()
+        objs = gc.get_objects()
+        counter = Counter(type(o).__name__ for o in objs)
+        tasks = asyncio.all_tasks()
+
+        return {
+            "gc": {
+                "counts": gc.get_count(),
+                "threshold": gc.get_threshold(),
+            },
+            "objects": {
+                "total": len(objs),
+            },
+            "asyncio": {
+                "all_tasks": len(tasks),
+                "pending_tasks": sum(1 for t in tasks if not t.done()),
+            },
+            "top_types": [{"type": k, "count": v} for k, v in counter.most_common(20)],
+        }
 
     return app

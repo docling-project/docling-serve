@@ -23,7 +23,7 @@ from docling_serve.rq_metrics_collector import RQCollector
 logger = logging.getLogger(__name__)
 
 
-FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/readyz", "/livez"}
+FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/ready", "/readyz", "/livez"}
 
 
 class HealthMetricsFilterSampler(Sampler):
@@ -115,9 +115,16 @@ def setup_otel_instrumentation(
             )
             metrics.set_meter_provider(meter_provider)
 
-    # Instrument FastAPI
-    logger.info("Instrumenting FastAPI with OpenTelemetry")
-    FastAPIInstrumentor.instrument_app(app)
+    # Instrument FastAPI - use excluded_urls to suppress both traces AND metrics
+    # for health/readiness/metrics endpoints. The custom sampler above only filters
+    # trace spans
+    # Patterns are anchored with $ to avoid matching substrings like /healthcheck.
+    excluded_urls = ",".join(f"{p}$" for p in FILTERED_PATHS)
+    logger.info(
+        "Instrumenting FastAPI with OpenTelemetry (excluded_urls=%s)",
+        excluded_urls,
+    )
+    FastAPIInstrumentor.instrument_app(app, excluded_urls=excluded_urls)
 
     # Register RQ metrics if Redis URL is provided
     if redis_url and enable_prometheus:

@@ -57,7 +57,11 @@ class DoclingServeSettings(BaseSettings):
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
+    allow_custom_vlm_config: bool = False
+    allow_custom_picture_description_config: bool = False
+    allow_custom_code_formula_config: bool = False
     show_version_info: bool = True
+    enable_management_endpoints: bool = False
 
     api_key: str = ""
 
@@ -88,6 +92,14 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_results_prefix: str = "docling:results"
     eng_rq_sub_channel: str = "docling:updates"
     eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
+    eng_rq_failure_ttl: int = 3_600 * 4  # 4 hours default
+    eng_rq_redis_max_connections: int = 50  # Connection pool size
+    eng_rq_redis_socket_timeout: Optional[float] = None  # Socket timeout in seconds
+    eng_rq_redis_socket_connect_timeout: Optional[float] = (
+        None  # Socket connect timeout in seconds
+    )
+    zombie_reaper_interval: float = 300.0
+    zombie_reaper_max_age: float = 3600.0
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None

@@ -1,12 +1,16 @@
+import asyncio
+import datetime
 import json
 import logging
 from functools import lru_cache
-from typing import Any
+from typing import Any, Union
 
 import redis.asyncio as redis
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
 
 from docling_jobkit.datamodel.task import Task
-from docling_jobkit.datamodel.task_meta import TaskStatus
+from docling_jobkit.datamodel.task_meta import TaskProcessingMeta, TaskStatus
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     TaskNotFoundError,
@@ -18,59 +22,161 @@ from docling_serve.storage import get_scratch
 _log = logging.getLogger(__name__)
 
 
+class _RQJobGone:
+    """Sentinel: the RQ job has been deleted / TTL-expired."""
+
+
+_RQ_JOB_GONE = _RQJobGone()
+
+
 class RedisTaskStatusMixin:
     tasks: dict[str, Task]
     _task_result_keys: dict[str, str]
     config: Any
+    _redis_conn: Any
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.redis_prefix = "docling:tasks:"
+
         self._redis_pool = redis.ConnectionPool.from_url(
             self.config.redis_url,
-            max_connections=10,
-            socket_timeout=2.0,
+            max_connections=docling_serve_settings.eng_rq_redis_max_connections,
+            socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
+            decode_responses=False,
         )
+        _log.info(
+            f"Redis connection pool initialized with max_connections="
+            f"{docling_serve_settings.eng_rq_redis_max_connections}, "
+            f"socket_timeout={docling_serve_settings.eng_rq_redis_socket_timeout}, "
+            f"socket_connect_timeout={docling_serve_settings.eng_rq_redis_socket_connect_timeout}"
+        )
+
+    async def close_redis_pool(self) -> None:
+        """Close the Redis connection pool and release all connections."""
+        try:
+            await self._redis_pool.aclose()
+            _log.info("Redis connection pool closed successfully")
+        except Exception as e:
+            _log.error(f"Error closing Redis connection pool: {e}")
+
+    def get_redis_pool_stats(self) -> dict[str, Any]:
+        """Get current Redis connection pool statistics for monitoring."""
+        try:
+            # Access internal pool state for monitoring
+            pool = self._redis_pool
+            return {
+                "max_connections": docling_serve_settings.eng_rq_redis_max_connections,
+                "pool_class": pool.__class__.__name__,
+            }
+        except Exception as e:
+            _log.warning(f"Could not retrieve Redis pool stats: {e}")
+            return {}
 
     async def task_status(self, task_id: str, wait: float = 0.0) -> Task:
         """
-        Get task status by checking Redis first, then falling back to RQ verification.
+        Get task status with zombie task reconciliation.
 
-        When Redis shows 'pending' but RQ shows 'success', we update Redis
-        and return the RQ status for cross-instance consistency.
+        Resolution order:
+        1. Redis (terminal-state gate): if Redis already holds a completed state,
+           return it immediately without consulting RQ. Prevents stale STARTED
+           in RQ from overwriting a watchdog-published FAILURE.
+        2. RQ: authoritative source for non-terminal states. Returns a Task only
+           when the job is non-PENDING; returns None for PENDING, _RQJobGone on
+           NoSuchJobError.
+        3. Redis (fallback): reached only when RQ had no useful answer (PENDING
+           or job expired). Handles job-gone reconciliation and stale-status
+           cross-checks. Same Redis key as step 1, different role.
+        When the RQ job is definitively gone (NoSuchJobError), reconciles:
+        - Terminal status in Redis -> return it, clean up tracking
+        - Non-terminal status in Redis -> mark FAILURE (orphaned task)
+        - Not in Redis at all -> raise TaskNotFoundError
         """
         _log.info(f"Task {task_id} status check")
 
-        # Always check RQ directly first - this is the most reliable source
-        rq_task = await self._get_task_from_rq_direct(task_id)
-        if rq_task:
-            _log.info(f"Task {task_id} in RQ: {rq_task.task_status}")
+        # Before consulting RQ (which can report stale STARTED for up to 4 hours
+        # after a worker kill), check Redis for a terminal state written by
+        # _on_task_status_changed() or a previous poll. A terminal state in Redis
+        # is authoritative: written either by the watchdog (after heartbeat expiry
+        # + grace period) or by the normal success/failure path, neither of which
+        # can be a false positive for a still-running job.
+        task_from_redis = await self._get_task_from_redis(task_id)
+        if task_from_redis is not None and task_from_redis.is_completed():
+            _log.info(
+                f"Task {task_id} terminal in Redis ({task_from_redis.task_status}), "
+                f"skipping RQ check"
+            )
+            try:
+                job_exists = await asyncio.to_thread(
+                    Job.exists, task_id, self._redis_conn
+                )
+            except Exception as e:
+                _log.warning(
+                    f"Task {task_id} terminal in Redis, but RQ existence check "
+                    f"failed: {e}"
+                )
+                job_exists = True
+            if job_exists:
+                self.tasks[task_id] = task_from_redis
+            else:
+                _log.info(
+                    f"Task {task_id} terminal in Redis and RQ job is gone — "
+                    f"cleaning up tracking"
+                )
+                self.tasks.pop(task_id, None)
+                self._task_result_keys.pop(task_id, None)
+            return task_from_redis
 
-            # Update memory registry
-            self.tasks[task_id] = rq_task
+        rq_result = await self._get_task_from_rq_direct(task_id)
 
-            # Store/update in Redis for other instances
-            await self._store_task_in_redis(rq_task)
-            return rq_task
+        if isinstance(rq_result, Task):
+            _log.info(f"Task {task_id} in RQ: {rq_result.task_status}")
+            self.tasks[task_id] = rq_result
+            await self._store_task_in_redis(rq_result)
+            return rq_result
 
-        # If not in RQ, check Redis (maybe it's cached from another instance)
+        job_is_gone = isinstance(rq_result, _RQJobGone)
+
         task = await self._get_task_from_redis(task_id)
         if task:
             _log.info(f"Task {task_id} in Redis: {task.task_status}")
 
-            # CRITICAL FIX: Check if Redis status might be stale
-            # STARTED tasks might have completed since they were cached
+            if job_is_gone:
+                if task.is_completed():
+                    _log.info(
+                        f"Task {task_id} completed ({task.task_status}) "
+                        f"and RQ job expired — cleaning up tracking"
+                    )
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    return task
+                else:
+                    _log.warning(
+                        f"Task {task_id} was {task.task_status} but RQ job is gone "
+                        f"— marking as FAILURE (orphaned)"
+                    )
+                    task.set_status(TaskStatus.FAILURE)
+                    task.error_message = (
+                        f"Task orphaned: RQ job expired while status was "
+                        f"{task.task_status}. Likely caused by worker restart or "
+                        f"Redis eviction."
+                    )
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    await self._store_task_in_redis(task)
+                    return task
+
             if task.task_status in [TaskStatus.PENDING, TaskStatus.STARTED]:
                 _log.debug(f"Task {task_id} verifying stale status")
-
-                # Try to get fresh status from RQ
                 fresh_rq_task = await self._get_task_from_rq_direct(task_id)
-                if fresh_rq_task and fresh_rq_task.task_status != task.task_status:
+                if (
+                    isinstance(fresh_rq_task, Task)
+                    and fresh_rq_task.task_status != task.task_status
+                ):
                     _log.info(
                         f"Task {task_id} status updated: {fresh_rq_task.task_status}"
                     )
-
-                    # Update memory and Redis with fresh status
                     self.tasks[task_id] = fresh_rq_task
                     await self._store_task_in_redis(fresh_rq_task)
                     return fresh_rq_task
@@ -79,12 +185,14 @@ class RedisTaskStatusMixin:
 
             return task
 
-        # Fall back to parent implementation
+        if job_is_gone:
+            _log.warning(f"Task {task_id} not in RQ or Redis — truly gone")
+            self.tasks.pop(task_id, None)
+            raise TaskNotFoundError(task_id)
+
         try:
             parent_task = await super().task_status(task_id, wait)  # type: ignore[misc]
             _log.debug(f"Task {task_id} from parent: {parent_task.task_status}")
-
-            # Store in Redis for other instances to find
             await self._store_task_in_redis(parent_task)
             return parent_task
         except TaskNotFoundError:
@@ -99,25 +207,46 @@ class RedisTaskStatusMixin:
                     return None
 
                 data: dict[str, Any] = json.loads(task_data)
-                meta = data.get("processing_meta") or {}
+                meta = data["processing_meta"]
                 meta.setdefault("num_docs", 0)
                 meta.setdefault("num_processed", 0)
                 meta.setdefault("num_succeeded", 0)
                 meta.setdefault("num_failed", 0)
 
-                return Task(
-                    task_id=data["task_id"],
-                    task_type=data["task_type"],
-                    task_status=TaskStatus(data["task_status"]),
-                    processing_meta=meta,
-                )
+                task_kwargs: dict[str, Any] = {
+                    "task_id": data["task_id"],
+                    "task_type": data["task_type"],
+                    "task_status": TaskStatus(data["task_status"]),
+                    "processing_meta": meta,
+                    "error_message": data["error_message"],
+                    "created_at": data["created_at"],
+                    "started_at": data["started_at"],
+                    "finished_at": data["finished_at"],
+                    "last_update_at": data["last_update_at"],
+                }
+                task = Task(**task_kwargs)
+                return task
         except Exception as e:
             _log.error(f"Redis get task {task_id}: {e}")
             return None
 
-    async def _get_task_from_rq_direct(self, task_id: str) -> Task | None:
+    async def _get_task_from_rq_direct(
+        self, task_id: str
+    ) -> Union[Task, _RQJobGone, None]:
         try:
             _log.debug(f"Checking RQ for task {task_id}")
+
+            # Do not consult RQ for tasks already in a terminal state. The temp-task
+            # swap below would replace self.tasks[task_id] with a PENDING task, making
+            # the base class's is_completed() guard ineffective and allowing a stale
+            # RQ STARTED status to overwrite a watchdog-published FAILURE.
+            original_task = self.tasks.get(task_id)
+            if original_task is not None and original_task.is_completed():
+                _log.debug(
+                    f"Task {task_id} already terminal ({original_task.task_status}), "
+                    f"skipping RQ direct check"
+                )
+                return original_task
 
             temp_task = Task(
                 task_id=task_id,
@@ -140,33 +269,18 @@ class RedisTaskStatusMixin:
                 updated_task = self.tasks.get(task_id)
                 if updated_task and updated_task.task_status != TaskStatus.PENDING:
                     _log.debug(f"RQ task {task_id}: {updated_task.task_status}")
-
-                    # Store result key if available
-                    if task_id in self._task_result_keys:
-                        try:
-                            async with redis.Redis(
-                                connection_pool=self._redis_pool
-                            ) as r:
-                                await r.set(
-                                    f"{self.redis_prefix}{task_id}:result_key",
-                                    self._task_result_keys[task_id],
-                                    ex=86400,
-                                )
-                                _log.debug(f"Stored result key for {task_id}")
-                        except Exception as e:
-                            _log.error(f"Store result key {task_id}: {e}")
-
                     return updated_task
                 return None
 
             finally:
-                # Restore original task state
                 if original_task:
                     self.tasks[task_id] = original_task
                 elif task_id in self.tasks and self.tasks[task_id] == temp_task:
-                    # Only remove if it's still our temp task
                     del self.tasks[task_id]
 
+        except NoSuchJobError:
+            _log.info(f"RQ job {task_id} no longer exists (TTL expired or deleted)")
+            return _RQ_JOB_GONE
         except Exception as e:
             _log.error(f"RQ check {task_id}: {e}")
             return None
@@ -190,7 +304,7 @@ class RedisTaskStatusMixin:
     async def _store_task_in_redis(self, task: Task) -> None:
         try:
             meta: Any = task.processing_meta
-            if hasattr(meta, "model_dump"):
+            if isinstance(meta, TaskProcessingMeta):
                 meta = meta.model_dump()
             elif not isinstance(meta, dict):
                 meta = {
@@ -202,43 +316,39 @@ class RedisTaskStatusMixin:
 
             data: dict[str, Any] = {
                 "task_id": task.task_id,
-                "task_type": (
-                    task.task_type.value
-                    if hasattr(task.task_type, "value")
-                    else str(task.task_type)
-                ),
+                "task_type": task.task_type.value,
                 "task_status": task.task_status.value,
                 "processing_meta": meta,
+                "error_message": task.error_message,
+                "created_at": task.created_at.isoformat(),
+                "started_at": (
+                    task.started_at.isoformat() if task.started_at is not None else None
+                ),
+                "finished_at": (
+                    task.finished_at.isoformat()
+                    if task.finished_at is not None
+                    else None
+                ),
+                "last_update_at": task.last_update_at.isoformat(),
             }
+
+            metadata_ttl = docling_serve_settings.eng_rq_results_ttl
             async with redis.Redis(connection_pool=self._redis_pool) as r:
                 await r.set(
                     f"{self.redis_prefix}{task.task_id}:metadata",
                     json.dumps(data),
-                    ex=86400,
+                    ex=metadata_ttl,
                 )
         except Exception as e:
             _log.error(f"Store task {task.task_id}: {e}")
+
+    async def _on_task_status_changed(self, task: Task) -> None:
+        await self._store_task_in_redis(task)
 
     async def enqueue(self, **kwargs):  # type: ignore[override]
         task = await super().enqueue(**kwargs)  # type: ignore[misc]
         await self._store_task_in_redis(task)
         return task
-
-    async def task_result(self, task_id: str):  # type: ignore[override]
-        result = await super().task_result(task_id)  # type: ignore[misc]
-        if result is not None:
-            return result
-
-        try:
-            async with redis.Redis(connection_pool=self._redis_pool) as r:
-                result_key = await r.get(f"{self.redis_prefix}{task_id}:result_key")
-                if result_key:
-                    self._task_result_keys[task_id] = result_key.decode("utf-8")
-                    return await super().task_result(task_id)  # type: ignore[misc]
-        except Exception as e:
-            _log.error(f"Redis result key {task_id}: {e}")
-
-        return None
 
     async def _update_task_from_rq(self, task_id: str) -> None:
         original_status = (
@@ -253,16 +363,41 @@ class RedisTaskStatusMixin:
                 _log.debug(f"Task {task_id} status: {original_status} -> {new_status}")
                 await self._store_task_in_redis(self.tasks[task_id])
 
-        if task_id in self._task_result_keys:
+    async def _reap_zombie_tasks(
+        self, interval: float = 300.0, max_age: float = 3600.0
+    ) -> None:
+        """
+        Periodically remove completed tasks from in-memory tracking.
+
+        Args:
+            interval: Seconds between sweeps (default 5 min)
+            max_age: Remove completed tasks older than this (default 1h)
+        """
+        while True:
+            await asyncio.sleep(interval)
             try:
-                async with redis.Redis(connection_pool=self._redis_pool) as r:
-                    await r.set(
-                        f"{self.redis_prefix}{task_id}:result_key",
-                        self._task_result_keys[task_id],
-                        ex=86400,
-                    )
+                now = datetime.datetime.now(datetime.timezone.utc)
+                cutoff = now - datetime.timedelta(seconds=max_age)
+                to_remove: list[str] = []
+
+                for task_id, task in list(self.tasks.items()):
+                    if (
+                        task.is_completed()
+                        and task.finished_at
+                        and task.finished_at < cutoff
+                    ):
+                        to_remove.append(task_id)
+
+                for task_id in to_remove:
+                    self.tasks.pop(task_id, None)
+                    self._task_result_keys.pop(task_id, None)
+                    _log.debug(f"Reaped zombie task {task_id}")
+
+                if to_remove:
+                    _log.info(f"Reaped {len(to_remove)} zombie tasks from tracking")
+
             except Exception as e:
-                _log.error(f"Store result key {task_id}: {e}")
+                _log.error(f"Zombie reaper error: {e}")
 
 
 @lru_cache
@@ -288,6 +423,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             options_cache_size=docling_serve_settings.options_cache_size,
             enable_remote_services=docling_serve_settings.enable_remote_services,
             allow_external_plugins=docling_serve_settings.allow_external_plugins,
+            allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
+            allow_custom_picture_description_config=docling_serve_settings.allow_custom_picture_description_config,
+            allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
             max_num_pages=docling_serve_settings.max_num_pages,
             max_file_size=docling_serve_settings.max_file_size,
             queue_max_size=docling_serve_settings.queue_max_size,
@@ -384,6 +522,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
                     kwargs={"task_data": task_data},
                     job_id=task_id,
                     timeout=14400,
+                    failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
                 )
 
                 await self.init_task_tracking(task)
@@ -399,6 +538,10 @@ def get_async_orchestrator() -> BaseOrchestrator:
             sub_channel=docling_serve_settings.eng_rq_sub_channel,
             scratch_dir=get_scratch(),
             results_ttl=docling_serve_settings.eng_rq_results_ttl,
+            failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
+            redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
+            redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
+            redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
         )
 
         return RedisAwareRQOrchestrator(config=rq_config)

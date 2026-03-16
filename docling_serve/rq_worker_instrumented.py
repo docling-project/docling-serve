@@ -90,7 +90,7 @@ class InstrumentedRQWorker(CustomRQWorker):
                 )
 
                 # Execute the actual job
-                result = super(CustomRQWorker, self).perform_job(job, queue)
+                result = super().perform_job(job, queue)
 
                 # Mark span as successful
                 span.set_status(Status(StatusCode.OK))

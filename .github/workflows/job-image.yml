@@ -21,6 +21,10 @@ on:
         type: boolean
         description: "If true, the images will be published."
         default: false
+      tag_latest:
+        type: boolean
+        description: "If true, the 'latest' tag will be applied to the image."
+        default: true
       environment:
         type: string
         description: "GH Action environment"
@@ -87,6 +91,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
+          flavor: |
+            latest=${{ inputs.tag_latest }}
 
       # # Local test
       # - name: Set metadata outputs for local testing ## comment out Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks and run act
@@ -209,6 +215,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.QUAY_REGISTRY }}/${{ inputs.quay_image_name }}
+          flavor: |
+            latest=${{ inputs.tag_latest }}
 
       - name: Build and push image to quay.io
         if: ${{ inputs.publish }}
