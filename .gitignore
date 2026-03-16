@@ -133,6 +133,7 @@ Temporary Items
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
+*.iml
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
@@ -449,3 +450,7 @@ cookies.txt
 
 # Examples
 /examples/splitted_pdf/*
+
+
+# Cursor workspace
+*.code-workspace
