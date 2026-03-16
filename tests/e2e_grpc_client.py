@@ -25,7 +25,7 @@ import grpc
 # struct.proto -> docling_document.proto -> docling_serve_types.proto -> docling_serve.proto
 # isort: off
 from google.protobuf import struct_pb2 as _struct_pb2  # noqa: F401
-from docling_serve.grpc.gen.ai.docling.core.v1 import (  # noqa: F401
+from docling_core.proto.gen.ai.docling.core.v1 import (  # noqa: F401
     docling_document_pb2 as _doc_pb2,
 )
 from docling_serve.grpc.gen.ai.docling.serve.v1 import (

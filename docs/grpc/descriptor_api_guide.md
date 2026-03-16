@@ -6,8 +6,8 @@ schema and for building compatibility checks.
 
 ## Project Context
 
-- Proto source: `proto/ai/docling/core/v1/docling_document.proto`
-- Generated code: `docling_serve/grpc/gen/ai/docling/core/v1/docling_document_pb2.py`
+- Proto source: in **docling-core**: `proto/ai/docling/core/v1/docling_document.proto`
+- Generated code: in **docling-core**: `docling_core/proto/gen/ai/docling/core/v1/docling_document_pb2.py`
 - Root message: `DoclingDocument` (highly nested structure)
 
 ## 1. Accessing Descriptors
@@ -15,7 +15,7 @@ schema and for building compatibility checks.
 Descriptors expose the runtime schema:
 
 ```python
-from docling_serve.grpc.gen.ai.docling.core.v1 import docling_document_pb2
+from docling_core.proto.gen.ai.docling.core.v1 import docling_document_pb2
 from google.protobuf import descriptor as desc_module
 
 msg_descriptor = docling_document_pb2.DoclingDocument.DESCRIPTOR
@@ -319,16 +319,16 @@ def extract_schema(msg_desc):
 
 Source proto definition:
 
-- `proto/ai/docling/core/v1/docling_document.proto`
+- In docling-core: `proto/ai/docling/core/v1/docling_document.proto`
 
 Generated Python bindings:
 
-- `docling_serve/grpc/gen/ai/docling/core/v1/docling_document_pb2.py`
+- In docling-core: `docling_core/proto/gen/ai/docling/core/v1/docling_document_pb2.py`
 
 Import path:
 
 ```python
-from docling_serve.grpc.gen.ai.docling.core.v1 import docling_document_pb2
+from docling_core.proto.gen.ai.docling.core.v1 import docling_document_pb2
 descriptor = docling_document_pb2.DoclingDocument.DESCRIPTOR
 ```
 

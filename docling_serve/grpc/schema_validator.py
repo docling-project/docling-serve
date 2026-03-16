@@ -50,6 +50,8 @@ _ONEOF_WRAPPER_MESSAGES: dict[str, set[str]] = {
         "CodeItem",
         "FormulaItem",
         "TextItem",
+        "FieldHeadingItem",
+        "FieldValueItem",
     },
 }
 
@@ -95,6 +97,8 @@ _BASE_FIELD_WRAPPERS: dict[str, str] = {
     "CodeItem": "base",
     "FormulaItem": "base",
     "TextItem": "base",
+    "FieldHeadingItem": "base",
+    "FieldValueItem": "base",
 }
 
 # Proto messages that should be treated as leaf nodes (no recursive descent).
@@ -509,7 +513,7 @@ def _normalize_proto_field(field: descriptor_mod.FieldDescriptor) -> str:
         base = _PROTO_TYPE_MAP.get(field.type, f"unknown:{field.type}")
 
     # Repeated (but not map)
-    if field.label == descriptor_mod.FieldDescriptor.LABEL_REPEATED and not (
+    if field.is_repeated and not (
         field.type == descriptor_mod.FieldDescriptor.TYPE_MESSAGE
         and field.message_type.GetOptions().map_entry
     ):
@@ -840,7 +844,7 @@ def validate_docling_document_schema() -> None:
     """
     from docling_core.types.doc.document import DoclingDocument
 
-    from .gen.ai.docling.core.v1 import docling_document_pb2 as pb2
+    from docling_core.proto.gen.ai.docling.core.v1 import docling_document_pb2 as pb2
 
     pydantic_fields = _collect_pydantic_fields(DoclingDocument)
     proto_fields = _collect_proto_fields(pb2.DoclingDocument.DESCRIPTOR)

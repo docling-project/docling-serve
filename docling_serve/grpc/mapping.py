@@ -39,7 +39,7 @@ from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.settings import docling_serve_settings
 
 from .docling_document_converter import docling_document_to_proto
-from .gen.ai.docling.core.v1 import docling_document_pb2
+from docling_core.proto.gen.ai.docling.core.v1 import docling_document_pb2
 from .gen.ai.docling.serve.v1 import docling_serve_types_pb2
 
 _log = logging.getLogger(__name__)

@@ -50,9 +50,9 @@ from docling_core.types.doc.labels import (
 )
 from docling_jobkit.datamodel.result import ExportDocumentResponse
 
-from docling_serve.grpc import docling_document_converter as converter
 from docling_serve.grpc.docling_document_converter import docling_document_to_proto
-from docling_serve.grpc.gen.ai.docling.core.v1 import docling_document_pb2 as pb2
+from docling_core.utils import conversion as converter
+from docling_core.proto.gen.ai.docling.core.v1 import docling_document_pb2 as pb2
 from docling_serve.grpc.mapping import export_document_to_proto
 
 pytestmark = pytest.mark.unit
