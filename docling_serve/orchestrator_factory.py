@@ -586,4 +586,99 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         return KfpOrchestrator(config=kfp_config)
 
+    elif docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        from docling_jobkit.convert.manager import (
+            DoclingConverterManager,
+            DoclingConverterManagerConfig,
+        )
+        from docling_jobkit.orchestrators.ray.config import (
+            RayOrchestratorConfig,
+        )
+        from docling_jobkit.orchestrators.ray.orchestrator import (
+            RayOrchestrator,
+        )
+
+        # Create converter manager config
+        cm_config = DoclingConverterManagerConfig(
+            artifacts_path=docling_serve_settings.artifacts_path,
+            options_cache_size=docling_serve_settings.options_cache_size,
+            enable_remote_services=docling_serve_settings.enable_remote_services,
+            allow_external_plugins=docling_serve_settings.allow_external_plugins,
+            allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
+            allow_custom_picture_description_config=docling_serve_settings.allow_custom_picture_description_config,
+            allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+            max_num_pages=docling_serve_settings.max_num_pages,
+            max_file_size=docling_serve_settings.max_file_size,
+            queue_max_size=docling_serve_settings.queue_max_size,
+            ocr_batch_size=docling_serve_settings.ocr_batch_size,
+            layout_batch_size=docling_serve_settings.layout_batch_size,
+            table_batch_size=docling_serve_settings.table_batch_size,
+            batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
+        )
+        cm = DoclingConverterManager(config=cm_config)
+
+        # Create Fair Ray orchestrator config
+        ray_config = RayOrchestratorConfig(
+            # Redis Configuration
+            redis_url=docling_serve_settings.eng_ray_redis_url,
+            redis_max_connections=docling_serve_settings.eng_ray_redis_max_connections,
+            redis_socket_timeout=docling_serve_settings.eng_ray_redis_socket_timeout,
+            redis_socket_connect_timeout=docling_serve_settings.eng_ray_redis_socket_connect_timeout,
+            # Result Storage
+            results_ttl=docling_serve_settings.eng_ray_results_ttl,
+            results_prefix=docling_serve_settings.eng_ray_results_prefix,
+            # Pub/Sub
+            sub_channel=docling_serve_settings.eng_ray_sub_channel,
+            # Fair Dispatcher
+            dispatcher_interval=docling_serve_settings.eng_ray_dispatcher_interval,
+            # Per-User Limits
+            max_concurrent_tasks=docling_serve_settings.eng_ray_max_concurrent_tasks,
+            max_queued_tasks=docling_serve_settings.eng_ray_max_queued_tasks,
+            enable_queue_limit_rejection=docling_serve_settings.eng_ray_enable_queue_limit_rejection,
+            max_documents=docling_serve_settings.eng_ray_max_documents,
+            enable_document_limits=docling_serve_settings.eng_ray_enable_document_limits,
+            # Ray Configuration
+            ray_address=(
+                None
+                if docling_serve_settings.eng_ray_ray_address in ["auto", "local"]
+                else docling_serve_settings.eng_ray_ray_address
+            ),
+            ray_namespace=docling_serve_settings.eng_ray_ray_namespace,
+            ray_runtime_env=docling_serve_settings.eng_ray_ray_runtime_env,
+            # Ray mTLS Configuration
+            enable_mtls=docling_serve_settings.eng_ray_enable_mtls,
+            ray_cluster_name=docling_serve_settings.eng_ray_ray_cluster_name,
+            # Ray Serve Autoscaling
+            min_actors=docling_serve_settings.eng_ray_min_actors,
+            max_actors=docling_serve_settings.eng_ray_max_actors,
+            target_requests_per_replica=docling_serve_settings.eng_ray_target_requests_per_replica,
+            upscale_delay_s=docling_serve_settings.eng_ray_upscale_delay_s,
+            downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
+            ray_num_cpus_per_actor=docling_serve_settings.eng_ray_ray_num_cpus_per_actor,
+            # Fault Tolerance & Retry
+            max_task_retries=docling_serve_settings.eng_ray_max_task_retries,
+            retry_delay=docling_serve_settings.eng_ray_retry_delay,
+            max_document_retries=docling_serve_settings.eng_ray_max_document_retries,
+            # Ray Actor Configuration
+            dispatcher_max_restarts=docling_serve_settings.eng_ray_dispatcher_max_restarts,
+            dispatcher_max_task_retries=docling_serve_settings.eng_ray_dispatcher_max_task_retries,
+            # Timeouts
+            task_timeout=docling_serve_settings.eng_ray_task_timeout,
+            document_timeout=docling_serve_settings.eng_ray_document_timeout,
+            redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
+            # Health Checks
+            enable_heartbeat=docling_serve_settings.eng_ray_enable_heartbeat,
+            # Resource Management & Memory Monitoring
+            ray_memory_limit_per_actor=docling_serve_settings.eng_ray_ray_memory_limit_per_actor,
+            ray_object_store_memory=docling_serve_settings.eng_ray_ray_object_store_memory,
+            enable_oom_protection=docling_serve_settings.eng_ray_enable_oom_protection,
+            memory_warning_threshold=docling_serve_settings.eng_ray_memory_warning_threshold,
+            # Scratch Directory
+            scratch_dir=docling_serve_settings.eng_ray_scratch_dir or get_scratch(),
+            # Logging
+            log_level=docling_serve_settings.eng_ray_log_level,
+        )
+
+        return RayOrchestrator(config=ray_config, converter_manager=cm)
+
     raise RuntimeError(f"Engine {docling_serve_settings.eng_kind} not recognized.")
