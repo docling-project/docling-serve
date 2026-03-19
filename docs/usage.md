@@ -47,7 +47,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `picture_description_custom_config` | PictureDescriptionVlmEngineOptions or dict or NoneType | Custom picture description configuration including model spec and engine options. |
 | `code_formula_custom_config` | CodeFormulaVlmOptions or dict or NoneType | Custom code/formula extraction configuration including model spec and engine options. |
 | `table_structure_custom_config` | Dict[str, Any] or NoneType | Custom configuration for table structure model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which table structure implementation to use. If not specified, uses the default kind with preset configuration. |
-| `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. |
+| `layout_model` | LayoutModelType or NoneType | The layout analysis model to use. Allowed values: `docling_layout_heron`, `docling_layout_heron_101`, `docling_layout_egret_medium`, `docling_layout_egret_large`, `docling_layout_egret_xlarge`, `docling_layout_v2`. Optional. When set, automatically expands into `layout_custom_config`. Ignored if `layout_custom_config` is explicitly provided. |
+| `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. Takes precedence over `layout_model`. |
 
 <h4>CodeFormulaVlmOptions</h4>
 
@@ -192,6 +193,7 @@ Simple payload example:
     "force_ocr": false,
     "ocr_engine": "easyocr",
     "ocr_lang": ["en"],
+    "layout_model": "docling_layout_heron",
     "pdf_backend": "dlparse_v2",
     "table_mode": "fast",
     "abort_on_error": false,

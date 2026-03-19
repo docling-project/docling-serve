@@ -69,6 +69,8 @@ class DoclingServeSettings(BaseSettings):
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
 
+    default_layout_model: Optional[str] = None
+
     # Threading pipeline
     queue_max_size: Optional[int] = None
     ocr_batch_size: Optional[int] = None

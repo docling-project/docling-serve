@@ -47,6 +47,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Allow users to specify a fully custom VLM pipeline configuration (`vlm_pipeline_custom_config`). When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_DESCRIPTION_CONFIG` | `false` | Allow users to specify a fully custom picture description configuration. When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_CODE_FORMULA_CONFIG` | `false` | Allow users to specify a fully custom code/formula configuration. When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_DEFAULT_LAYOUT_MODEL` | unset | Default layout analysis model for all requests. Allowed values: `docling_layout_heron`, `docling_layout_heron_101`, `docling_layout_egret_medium`, `docling_layout_egret_large`, `docling_layout_egret_xlarge`, `docling_layout_v2`. When unset, docling's built-in default (heron) is used. Can be overridden per-request via the `layout_model` option. |
 |  | `DOCLING_SERVE_SINGLE_USE_RESULTS` | `true` | If true, results can be accessed only once. If false, the results accumulate in the scratch directory. |
 |  | `DOCLING_SERVE_RESULT_REMOVAL_DELAY` | `300` | When `DOCLING_SERVE_SINGLE_USE_RESULTS` is active, this is the delay before results are removed from the task registry. |
 |  | `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` | `604800` (7 days) | The maximum time for processing a document. |

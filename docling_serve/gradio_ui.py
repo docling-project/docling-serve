@@ -15,6 +15,7 @@ import gradio as gr
 import httpx
 
 from docling.datamodel.base_models import FormatToExtensions
+from docling.datamodel.layout_model_specs import LayoutModelType
 from docling.datamodel.pipeline_options import (
     PdfBackend,
     ProcessingPipeline,
@@ -356,6 +357,7 @@ def process_url(
     force_ocr,
     ocr_engine,
     ocr_lang,
+    layout_model,
     pdf_backend,
     table_mode,
     abort_on_error,
@@ -366,26 +368,29 @@ def process_url(
     do_picture_description,
 ):
     target = {"kind": "zip" if return_as_file else "inbody"}
+    options = {
+        "to_formats": to_formats,
+        "image_export_mode": image_export_mode,
+        "pipeline": pipeline,
+        "ocr": ocr,
+        "force_ocr": force_ocr,
+        "ocr_engine": ocr_engine,
+        "ocr_lang": _to_list_of_strings(ocr_lang),
+        "pdf_backend": pdf_backend,
+        "table_mode": table_mode,
+        "abort_on_error": abort_on_error,
+        "do_code_enrichment": do_code_enrichment,
+        "do_formula_enrichment": do_formula_enrichment,
+        "do_picture_classification": do_picture_classification,
+        "do_picture_description": do_picture_description,
+    }
+    if layout_model:
+        options["layout_model"] = layout_model
     parameters = {
         "sources": [
             {"kind": "http", "url": source} for source in input_sources.split(",")
         ],
-        "options": {
-            "to_formats": to_formats,
-            "image_export_mode": image_export_mode,
-            "pipeline": pipeline,
-            "ocr": ocr,
-            "force_ocr": force_ocr,
-            "ocr_engine": ocr_engine,
-            "ocr_lang": _to_list_of_strings(ocr_lang),
-            "pdf_backend": pdf_backend,
-            "table_mode": table_mode,
-            "abort_on_error": abort_on_error,
-            "do_code_enrichment": do_code_enrichment,
-            "do_formula_enrichment": do_formula_enrichment,
-            "do_picture_classification": do_picture_classification,
-            "do_picture_description": do_picture_description,
-        },
+        "options": options,
         "target": target,
     }
     if (
@@ -438,6 +443,7 @@ def process_file(
     force_ocr,
     ocr_engine,
     ocr_lang,
+    layout_model,
     pdf_backend,
     table_mode,
     abort_on_error,
@@ -456,25 +462,28 @@ def process_file(
     ]
     target = {"kind": "zip" if return_as_file else "inbody"}
 
+    options = {
+        "to_formats": to_formats,
+        "image_export_mode": image_export_mode,
+        "pipeline": pipeline,
+        "ocr": ocr,
+        "force_ocr": force_ocr,
+        "ocr_engine": ocr_engine,
+        "ocr_lang": _to_list_of_strings(ocr_lang),
+        "pdf_backend": pdf_backend,
+        "table_mode": table_mode,
+        "abort_on_error": abort_on_error,
+        "return_as_file": return_as_file,
+        "do_code_enrichment": do_code_enrichment,
+        "do_formula_enrichment": do_formula_enrichment,
+        "do_picture_classification": do_picture_classification,
+        "do_picture_description": do_picture_description,
+    }
+    if layout_model:
+        options["layout_model"] = layout_model
     parameters = {
         "sources": files_data,
-        "options": {
-            "to_formats": to_formats,
-            "image_export_mode": image_export_mode,
-            "pipeline": pipeline,
-            "ocr": ocr,
-            "force_ocr": force_ocr,
-            "ocr_engine": ocr_engine,
-            "ocr_lang": _to_list_of_strings(ocr_lang),
-            "pdf_backend": pdf_backend,
-            "table_mode": table_mode,
-            "abort_on_error": abort_on_error,
-            "return_as_file": return_as_file,
-            "do_code_enrichment": do_code_enrichment,
-            "do_formula_enrichment": do_formula_enrichment,
-            "do_picture_classification": do_picture_classification,
-            "do_picture_description": do_picture_description,
-        },
+        "options": options,
         "target": target,
     }
 
@@ -717,6 +726,15 @@ with gr.Blocks(
                 )
             ocr_engine.change(change_ocr_lang, inputs=[ocr_engine], outputs=[ocr_lang])
         with gr.Row():
+            with gr.Column(scale=1):
+                layout_model = gr.Radio(
+                    [("Default", "")] + [
+                        (v.value, v.value) for v in LayoutModelType
+                    ],
+                    label="Layout Model",
+                    value="",
+                )
+        with gr.Row():
             with gr.Column(scale=4):
                 pdf_backend = gr.Radio(
                     [v.value for v in (PdfBackend.DOCLING_PARSE, PdfBackend.PYPDFIUM2)],
@@ -833,6 +851,7 @@ with gr.Blocks(
             force_ocr,
             ocr_engine,
             ocr_lang,
+            layout_model,
             pdf_backend,
             table_mode,
             abort_on_error,
@@ -921,6 +940,7 @@ with gr.Blocks(
             force_ocr,
             ocr_engine,
             ocr_lang,
+            layout_model,
             pdf_backend,
             table_mode,
             abort_on_error,
