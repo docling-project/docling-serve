@@ -148,3 +148,4 @@ ENV | Default | Description |
 | `DOCLING_SERVE_OTEL_ENABLE_OTLP_METRICS` | `false` | Enable OTLP metrics export. |
 | `DOCLING_SERVE_OTEL_SERVICE_NAME` | docling-serve | Service identification. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` |  | OTLP endpoint (for traces and optional metrics). |
+| `DOCLING_SERVE_METRICS_PORT` | `None` | Enable serving /metrics endpoint on a separate port. |
