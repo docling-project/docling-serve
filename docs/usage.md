@@ -145,6 +145,9 @@ On top of the source of file (see below), both endpoints support the same parame
 | `timeout` | float | Timeout for the API request. |
 | `concurrency` | int | Maximum number of concurrent requests to the API. |
 | `prompt` | str | Prompt used when calling the vision-language model. |
+| `classification_allow` | List[PictureClassificationLabel] or NoneType | Only describe pictures whose predicted class is in this allow-list. |
+| `classification_deny` | List[PictureClassificationLabel] or NoneType | Do not describe pictures whose predicted class is in this deny-list. |
+| `classification_min_confidence` | float | Minimum classification confidence required before a picture can be described. |
 
 <h4>PictureDescriptionLocal</h4>
 
@@ -153,6 +156,9 @@ On top of the source of file (see below), both endpoints support the same parame
 | `repo_id` | str | Repository id from the Hugging Face Hub. |
 | `prompt` | str | Prompt used when calling the vision-language model. |
 | `generation_config` | Dict[str, Any] | Config from https://huggingface.co/docs/transformers/en/main_classes/text_generation#transformers.GenerationConfig |
+| `classification_allow` | List[PictureClassificationLabel] or NoneType | Only describe pictures whose predicted class is in this allow-list. |
+| `classification_deny` | List[PictureClassificationLabel] or NoneType | Do not describe pictures whose predicted class is in this deny-list. |
+| `classification_min_confidence` | float | Minimum classification confidence required before a picture can be described. |
 
 <!-- end: parameters-docs -->
 
