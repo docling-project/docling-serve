@@ -87,6 +87,7 @@ dev = [
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
     "types-psutil>=7.2.2.20260130",
+    "types-pyyaml>=6.0.12.20250915",
 ]
 
 pypi = [
