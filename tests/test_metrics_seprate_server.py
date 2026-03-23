@@ -8,7 +8,7 @@ import pytest
 
 
 def _free_port():
-    """ Find a free TCP port"""
+    """Find a free TCP port"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
         return s.getsockname()[1]
@@ -44,7 +44,9 @@ class TestMetricServer:
         app = MagicMock()
 
         with patch("docling_serve.otel_instrumentation.FastAPIInstrumentor"):
-            with patch("docling_serve.otel_instrumentation.start_http_server") as mock_start:
+            with patch(
+                "docling_serve.otel_instrumentation.start_http_server"
+            ) as mock_start:
                 from docling_serve.otel_instrumentation import (
                     setup_otel_instrumentation,
                 )
@@ -75,7 +77,9 @@ class TestMetricServer:
                     setup_otel_instrumentation,
                 )
 
-                with pytest.raises(RuntimeError, match="Failed to start metrics server"):
+                with pytest.raises(
+                    RuntimeError, match="Failed to start metrics server"
+                ):
                     setup_otel_instrumentation(
                         app,
                         enable_metrics=True,
