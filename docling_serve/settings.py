@@ -165,6 +165,9 @@ class DoclingServeSettings(BaseSettings):
     otel_enable_otlp_metrics: bool = False
     otel_service_name: str = "docling-serve"
 
+    # Metrics
+    metrics_port: Optional[int] = None
+
     # === DoclingConverterManagerConfig Parameters ===
     # TODO: Don't overwrite the default of docling-jobkit. This requires first some restructure in jobkit.
 

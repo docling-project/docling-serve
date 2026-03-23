@@ -225,6 +225,7 @@ def create_app():  # noqa: C901
         enable_prometheus=docling_serve_settings.otel_enable_prometheus,
         enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
         redis_url=redis_url,
+        metrics_port=docling_serve_settings.metrics_port,
     )
 
     origins = docling_serve_settings.cors_origins
