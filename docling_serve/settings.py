@@ -117,6 +117,9 @@ class DoclingServeSettings(BaseSettings):
     otel_enable_otlp_metrics: bool = False
     otel_service_name: str = "docling-serve"
 
+    # Metrics
+    metrics_port: Optional[int] = None
+
     @field_validator("log_level", mode="before")
     @classmethod
     def validate_log_level(cls, v: Optional[str]) -> Optional[str]:
