@@ -1,3 +1,25 @@
+## [v1.15.0](https://github.com/docling-project/docling-serve/releases/tag/v1.15.0) - 2026-03-23
+
+### Feature
+
+* Update Docling to 2.81.0 ([#547](https://github.com/docling-project/docling-serve/issues/547)) ([`4fe4f4e`](https://github.com/docling-project/docling-serve/commit/4fe4f4ef8443862efa3661ee8645a5ee3b60f17b))
+* Add config options for presets and allow yaml config file ([#546](https://github.com/docling-project/docling-serve/issues/546)) ([`7b7a7d9`](https://github.com/docling-project/docling-serve/commit/7b7a7d9543c6db209514d2a02fe77c925c3dc27f))
+* Serve metrics on separate port ([#544](https://github.com/docling-project/docling-serve/issues/544)) ([`e2f23de`](https://github.com/docling-project/docling-serve/commit/e2f23de4eac481090c5319e5a47e6aa638f25ab5))
+* Ready endpoint for API pods ([#538](https://github.com/docling-project/docling-serve/issues/538)) ([`0276ef1`](https://github.com/docling-project/docling-serve/commit/0276ef1f5afc6e51fd5dc35154d6fb0b1f83af23))
+
+### Fix
+
+* Drop otel metrics for excluded endpoints ([#534](https://github.com/docling-project/docling-serve/issues/534)) ([`6bdb222`](https://github.com/docling-project/docling-serve/commit/6bdb222d7a95d93c3067bd75cdb1d13cebff7bd1))
+
+### Docling libraries included in this release:
+- docling 2.81.0
+- docling-core 2.70.2
+- docling-ibm-models 3.12.0
+- docling-jobkit 1.14.0
+- docling-mcp 1.3.4
+- docling-parse 5.6.0
+- docling-serve 1.15.0
+
 ## [v1.14.3](https://github.com/docling-project/docling-serve/releases/tag/v1.14.3) - 2026-03-05
 
 ### Fix
