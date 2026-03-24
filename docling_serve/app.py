@@ -13,6 +13,7 @@ from io import BytesIO
 from typing import Annotated
 
 import psutil
+import redis.asyncio
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -78,6 +79,7 @@ from docling_serve.datamodel.responses import (
     HealthCheckResponse,
     MessageKind,
     PresignedUrlConvertDocumentResponse,
+    ReadinessResponse,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -124,6 +126,11 @@ for handler in root_logger.handlers:  # Iterate through existing handlers
 
 _log = logging.getLogger(__name__)
 
+# Tracks whether warm_up_caches() has completed.  Meaningful only for the
+# LocalOrchestrator (which eagerly loads ML models); the RQ orchestrator's
+# implementation is a no-op so this event fires instantly in RQ deployments.
+_models_ready = asyncio.Event()
+
 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
@@ -134,9 +141,12 @@ async def lifespan(app: FastAPI):
     notifier = WebsocketNotifier(orchestrator)
     orchestrator.bind_notifier(notifier)
 
-    # Warm up processing cache
+    # Warm up processing cache (loads ML models for LocalOrchestrator;
+    # no-op for RQOrchestrator since models live in the worker pods).
     if docling_serve_settings.load_models_at_boot:
         await orchestrator.warm_up_caches()
+
+    _models_ready.set()
 
     # Start the background queue processor
     queue_task = asyncio.create_task(orchestrator.process_queue())
@@ -215,6 +225,7 @@ def create_app():  # noqa: C901
         enable_prometheus=docling_serve_settings.otel_enable_prometheus,
         enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
         redis_url=redis_url,
+        metrics_port=docling_serve_settings.metrics_port,
     )
 
     origins = docling_serve_settings.cors_origins
@@ -478,8 +489,46 @@ def create_app():  # noqa: C901
         response = RedirectResponse(url=logo_url)
         return response
 
+    async def _check_redis() -> bool:
+        orchestrator = get_async_orchestrator()
+        if not hasattr(orchestrator, "_redis_pool"):
+            return True
+        try:
+            conn = redis.asyncio.Redis(connection_pool=orchestrator._redis_pool)
+            await conn.ping()  # type: ignore[misc]
+            return True
+        except Exception:
+            _log.exception("Redis readiness check failed")
+            return False
+
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
+        return HealthCheckResponse()
+
+    @app.get("/ready", tags=["health"])
+    async def readiness() -> ReadinessResponse:
+        # Gate on model loading (LocalOrchestrator only; instant for RQ).
+        if not _models_ready.is_set():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Models not yet loaded",
+            )
+
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ:
+            if not await _check_redis():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Redis connection failed",
+                )
+
+        return ReadinessResponse()
+
+    @app.get("/readyz", tags=["health"], include_in_schema=False)
+    async def readyz() -> ReadinessResponse:
+        return await readiness()
+
+    @app.get("/livez", tags=["health"], include_in_schema=False)
+    def livez() -> HealthCheckResponse:
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench

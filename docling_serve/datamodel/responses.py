@@ -18,6 +18,10 @@ class HealthCheckResponse(BaseModel):
     status: str = "ok"
 
 
+class ReadinessResponse(BaseModel):
+    status: str = "ok"
+
+
 class ClearResponse(BaseModel):
     status: str = "ok"
 

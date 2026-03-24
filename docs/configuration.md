@@ -67,6 +67,85 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_API_KEY` | | If specified, all the API requests must contain the header `X-Api-Key` with this value. |
 |  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local`, `rq` and `kfp`. See below for more configurations of the engines. |
 
+### Configuration File Support
+
+Docling Serve supports loading configuration from YAML or JSON files. This is useful for complex configurations with nested structures.
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_CONFIG_FILE` | | Path to a YAML or JSON configuration file. Environment variables take precedence over config file values. See [examples/config.yaml](../examples/config.yaml) and [examples/config.json](../examples/config.json) for examples. |
+
+**Priority Order:** Environment variables > Config file > Defaults
+
+### DoclingConverterManager Configuration
+
+The following options control the behavior of the Docling converter, including preset management and engine restrictions.
+
+#### VLM Pipeline Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_VLM_PRESET` | `granite_docling` | Default VLM preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_VLM_PRESETS` | `null` (all allowed) | List of allowed VLM preset IDs. Accepts JSON array (`'["preset1", "preset2"]'`) or comma-separated string (`preset1,preset2`). When set, only these presets can be used. |
+| `DOCLING_SERVE_CUSTOM_VLM_PRESETS` | `{}` | Custom VLM presets defined by admin. Must be a JSON object mapping preset IDs to VlmConvertOptions. Example: `'{"my_preset": {"engine": "openai", "model": "gpt-4-vision"}}'` |
+| `DOCLING_SERVE_ALLOWED_VLM_ENGINES` | `null` (all allowed) | List of allowed VLM engine types. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Whether users can specify fully custom VLM engine configurations. |
+
+#### Picture Description Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_PICTURE_DESCRIPTION_PRESET` | `smolvlm` | Default picture description preset. |
+| `DOCLING_SERVE_ALLOWED_PICTURE_DESCRIPTION_PRESETS` | `null` (all allowed) | List of allowed picture description preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_PICTURE_DESCRIPTION_PRESETS` | `{}` | Custom picture description presets. Must be a JSON object. |
+| `DOCLING_SERVE_ALLOWED_PICTURE_DESCRIPTION_ENGINES` | `null` (all allowed) | List of allowed picture description engine types. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_DESCRIPTION_CONFIG` | `false` | Whether users can specify custom picture description configurations. |
+
+#### Code/Formula Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_CODE_FORMULA_PRESET` | `default` | Default code/formula preset. |
+| `DOCLING_SERVE_ALLOWED_CODE_FORMULA_PRESETS` | `null` (all allowed) | List of allowed code/formula preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_CODE_FORMULA_PRESETS` | `{}` | Custom code/formula presets. Must be a JSON object. |
+| `DOCLING_SERVE_ALLOWED_CODE_FORMULA_ENGINES` | `null` (all allowed) | List of allowed code/formula engine types. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_ALLOW_CUSTOM_CODE_FORMULA_CONFIG` | `false` | Whether users can specify custom code/formula configurations. |
+
+#### Table Structure Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_TABLE_STRUCTURE_KIND` | `docling_tableformer` | Default table structure kind used when user doesn't provide custom config. |
+| `DOCLING_SERVE_ALLOWED_TABLE_STRUCTURE_KINDS` | `null` (all allowed) | List of allowed table structure kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+
+#### Layout Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_LAYOUT_KIND` | `docling_layout_default` | Default layout kind used when user doesn't provide custom config. |
+| `DOCLING_SERVE_ALLOWED_LAYOUT_KINDS` | `null` (all allowed) | List of allowed layout kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+
+**Configuration Examples:**
+
+Using JSON arrays in environment variables:
+```bash
+export DOCLING_SERVE_ALLOWED_VLM_PRESETS='["granite_docling", "custom_preset"]'
+export DOCLING_SERVE_CUSTOM_VLM_PRESETS='{"my_preset": {"engine": "openai"}}'
+```
+
+Using comma-separated strings (for lists only):
+```bash
+export DOCLING_SERVE_ALLOWED_VLM_PRESETS="granite_docling,custom_preset"
+export DOCLING_SERVE_ALLOWED_LAYOUT_KINDS="docling_layout_default,layout_object_detection"
+```
+
+Using a configuration file (recommended for complex setups):
+```bash
+export DOCLING_SERVE_CONFIG_FILE=config.yaml
+```
+
+See [examples/config.yaml](../examples/config.yaml) for a complete configuration file example.
+
 ### Docling configuration
 
 Some Docling settings, mostly about performance, are exposed as environment variable which can be used also when running Docling Serve.
@@ -148,3 +227,4 @@ ENV | Default | Description |
 | `DOCLING_SERVE_OTEL_ENABLE_OTLP_METRICS` | `false` | Enable OTLP metrics export. |
 | `DOCLING_SERVE_OTEL_SERVICE_NAME` | docling-serve | Service identification. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` |  | OTLP endpoint (for traces and optional metrics). |
+| `DOCLING_SERVE_METRICS_PORT` | `None` | Enable serving /metrics endpoint on a separate port. |
