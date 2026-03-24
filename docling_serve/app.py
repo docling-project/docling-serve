@@ -207,6 +207,7 @@ def create_app():  # noqa: C901
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
         redoc_url=None if offline_docs_assets else "/docs",
+        root_path=uvicorn_settings.root_path or "",
         lifespan=lifespan,
         version=version,
     )
