@@ -148,6 +148,14 @@ override-dependencies = [
   "xgrammar>=0.1.24"
 ]
 
+[[tool.uv.dependency-metadata]]
+name = "flash-attn"
+version = "2.8.3"
+requires-dist = ["torch", "einops"]
+
+[tool.uv.extra-build-dependencies]
+flash-attn = ["torch"]
+
 [tool.uv.sources]
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
@@ -172,9 +180,6 @@ torchvision = [
 pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
-
-docling = { git = "https://github.com/docling-project/docling/", rev = "cau/pdfium-managed-lifecycle" }
-
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
