@@ -1,10 +1,16 @@
 import enum
+import json
 import sys
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
-from pydantic import AnyUrl, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import yaml
+from pydantic import AnyUrl, Field, field_validator, model_validator
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 from typing_extensions import Self
 
 
@@ -37,6 +43,45 @@ class AsyncEngine(str, enum.Enum):
     RQ = "rq"
 
 
+class YamlConfigSettingsSource(PydanticBaseSettingsSource):
+    """
+    A settings source that loads configuration from a YAML or JSON file.
+    The file path is specified via the DOCLING_SERVE_CONFIG_FILE environment variable.
+    """
+
+    def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
+        # Not used in this implementation
+        return None, "", False
+
+    def __call__(self) -> dict[str, Any]:
+        """Load configuration from YAML or JSON file if config_file is set."""
+        import os
+
+        # Check for config_file in environment variable
+        config_path_str = os.environ.get("DOCLING_SERVE_CONFIG_FILE")
+        if not config_path_str:
+            return {}
+
+        config_path = Path(config_path_str)
+        if not config_path.exists():
+            return {}
+
+        try:
+            with open(config_path) as f:
+                if config_path.suffix in [".yaml", ".yml"]:
+                    data = yaml.safe_load(f)
+                elif config_path.suffix == ".json":
+                    data = json.load(f)
+                else:
+                    return {}
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+
 class DoclingServeSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCLING_SERVE_",
@@ -44,6 +89,9 @@ class DoclingServeSettings(BaseSettings):
         env_parse_none_str="",
         extra="allow",
     )
+
+    # Config file support
+    config_file: Optional[Path] = None
 
     enable_ui: bool = False
     api_host: str = "localhost"
@@ -116,6 +164,113 @@ class DoclingServeSettings(BaseSettings):
     otel_enable_prometheus: bool = True
     otel_enable_otlp_metrics: bool = False
     otel_service_name: str = "docling-serve"
+
+    # Metrics
+    metrics_port: Optional[int] = None
+
+    # === DoclingConverterManagerConfig Parameters ===
+    # TODO: Don't overwrite the default of docling-jobkit. This requires first some restructure in jobkit.
+
+    # VLM Pipeline Control
+    default_vlm_preset: str = "granite_docling"
+    allowed_vlm_presets: Optional[list[str]] = None
+    custom_vlm_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_vlm_engines: Optional[list[str]] = None
+
+    # Picture Description Control
+    default_picture_description_preset: str = "smolvlm"
+    allowed_picture_description_presets: Optional[list[str]] = None
+    custom_picture_description_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_picture_description_engines: Optional[list[str]] = None
+
+    # Code/Formula Control
+    default_code_formula_preset: str = "default"
+    allowed_code_formula_presets: Optional[list[str]] = None
+    custom_code_formula_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_code_formula_engines: Optional[list[str]] = None
+
+    # Table Structure Control
+    default_table_structure_kind: str = "docling_tableformer"
+    allowed_table_structure_kinds: Optional[list[str]] = None
+
+    # Layout Control
+    default_layout_kind: str = "docling_layout_default"
+    allowed_layout_kinds: Optional[list[str]] = None
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """
+        Customize settings sources to include YAML/JSON config file support.
+        Priority order: init > env > dotenv > yaml_config > file_secret
+        """
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlConfigSettingsSource(settings_cls),
+            file_secret_settings,
+        )
+
+    @field_validator(
+        "custom_vlm_presets",
+        "custom_picture_description_presets",
+        "custom_code_formula_presets",
+        mode="before",
+    )
+    @classmethod
+    def parse_dict_from_json(cls, v: Any) -> dict[str, Any]:
+        """Parse dict parameters from JSON-serialized ENV variables."""
+        if v is None or v == "":
+            return {}
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+                return {}
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    @field_validator(
+        "allowed_vlm_presets",
+        "allowed_vlm_engines",
+        "allowed_picture_description_presets",
+        "allowed_picture_description_engines",
+        "allowed_code_formula_presets",
+        "allowed_code_formula_engines",
+        "allowed_table_structure_kinds",
+        "allowed_layout_kinds",
+        mode="before",
+    )
+    @classmethod
+    def parse_list_from_json_or_csv(cls, v: Any) -> Optional[list[str]]:
+        """Parse list parameters from JSON arrays or comma-separated strings."""
+        if v is None or v == "":
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Try JSON first
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(item) for item in parsed]
+            except json.JSONDecodeError:
+                pass
+            # Fall back to comma-separated
+            items = [item.strip() for item in v.split(",") if item.strip()]
+            return items if items else None
+        return None
 
     @field_validator("log_level", mode="before")
     @classmethod

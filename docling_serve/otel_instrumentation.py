@@ -15,7 +15,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
 from opentelemetry.trace import SpanKind
 from opentelemetry.util.types import Attributes
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, start_http_server
 from redis import Redis
 
 from docling_serve.rq_metrics_collector import RQCollector
@@ -68,6 +68,7 @@ def setup_otel_instrumentation(
     enable_prometheus: bool = True,
     enable_otlp_metrics: bool = False,
     redis_url: str | None = None,
+    metrics_port: int | None = None,
 ):
     """
     Set up OpenTelemetry instrumentation for FastAPI app.
@@ -80,6 +81,7 @@ def setup_otel_instrumentation(
         enable_prometheus: Enable Prometheus metrics export
         enable_otlp_metrics: Enable OTLP metrics export (for OTEL collector)
         redis_url: Redis URL for RQ metrics (if using RQ engine)
+        metrics_port: If set, start a separate HTTP server on this port for /metrics
     """
     resource = Resource(attributes={SERVICE_NAME: service_name})
 
@@ -114,6 +116,15 @@ def setup_otel_instrumentation(
                 metric_readers=metric_readers,
             )
             metrics.set_meter_provider(meter_provider)
+
+        if metrics_port:
+            try:
+                start_http_server(metrics_port)
+                logger.info(f"Serving metrics on port {metrics_port}")
+            except OSError as e:
+                raise RuntimeError(
+                    f"Failed to start metrics server on port {metrics_port}: {e}"
+                ) from e
 
     # Instrument FastAPI - use excluded_urls to suppress both traces AND metrics
     # for health/readiness/metrics endpoints. The custom sampler above only filters

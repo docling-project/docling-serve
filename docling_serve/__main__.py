@@ -419,9 +419,6 @@ def rq_worker() -> Any:
         options_cache_size=docling_serve_settings.options_cache_size,
         enable_remote_services=docling_serve_settings.enable_remote_services,
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
-        allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
-        allow_custom_picture_description_config=docling_serve_settings.allow_custom_picture_description_config,
-        allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
         max_num_pages=docling_serve_settings.max_num_pages,
         max_file_size=docling_serve_settings.max_file_size,
         queue_max_size=docling_serve_settings.queue_max_size,
@@ -429,6 +426,30 @@ def rq_worker() -> Any:
         layout_batch_size=docling_serve_settings.layout_batch_size,
         table_batch_size=docling_serve_settings.table_batch_size,
         batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
+        # VLM Pipeline Control
+        default_vlm_preset=docling_serve_settings.default_vlm_preset,
+        allowed_vlm_presets=docling_serve_settings.allowed_vlm_presets,
+        custom_vlm_presets=docling_serve_settings.custom_vlm_presets,
+        allowed_vlm_engines=docling_serve_settings.allowed_vlm_engines,
+        allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
+        # Picture Description Control
+        default_picture_description_preset=docling_serve_settings.default_picture_description_preset,
+        allowed_picture_description_presets=docling_serve_settings.allowed_picture_description_presets,
+        custom_picture_description_presets=docling_serve_settings.custom_picture_description_presets,
+        allowed_picture_description_engines=docling_serve_settings.allowed_picture_description_engines,
+        allow_custom_picture_description_config=docling_serve_settings.allow_custom_picture_description_config,
+        # Code/Formula Control
+        default_code_formula_preset=docling_serve_settings.default_code_formula_preset,
+        allowed_code_formula_presets=docling_serve_settings.allowed_code_formula_presets,
+        custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
+        allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
+        allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Table Structure Control
+        default_table_structure_kind=docling_serve_settings.default_table_structure_kind,
+        allowed_table_structure_kinds=docling_serve_settings.allowed_table_structure_kinds,
+        # Layout Control
+        default_layout_kind=docling_serve_settings.default_layout_kind,
+        allowed_layout_kinds=docling_serve_settings.allowed_layout_kinds,
     )
 
     # Create worker with instrumentation
