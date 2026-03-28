@@ -1,3 +1,18 @@
+## [v1.15.1](https://github.com/docling-project/docling-serve/releases/tag/v1.15.1) - 2026-03-26
+
+### Fix
+
+* Docling pypdfium and parser updates ([#553](https://github.com/docling-project/docling-serve/issues/553)) ([`34b9157`](https://github.com/docling-project/docling-serve/commit/34b915773253a00e0a480ac9048e19893912b4ba))
+
+### Docling libraries included in this release:
+- docling 2.82.0
+- docling-core 2.70.2
+- docling-ibm-models 3.12.0
+- docling-jobkit 1.14.0
+- docling-mcp 1.3.4
+- docling-parse 5.6.1
+- docling-serve 1.15.1
+
 ## [v1.15.0](https://github.com/docling-project/docling-serve/releases/tag/v1.15.0) - 2026-03-23
 
 ### Feature
