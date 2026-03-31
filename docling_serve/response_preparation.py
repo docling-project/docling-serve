@@ -1,5 +1,3 @@
-import asyncio
-import gc
 import logging
 
 from fastapi import BackgroundTasks, Response
@@ -70,15 +68,6 @@ async def prepare_response(
         raise ValueError("Unknown result type")
 
     if docling_serve_settings.single_use_results:
-
-        async def _remove_task_impl():
-            await asyncio.sleep(docling_serve_settings.result_removal_delay)
-            await orchestrator.delete_task(task_id=task_id)
-            gc.collect()
-
-        async def _remove_task():
-            asyncio.create_task(_remove_task_impl())  # noqa: RUF006
-
-        background_tasks.add_task(_remove_task)
+        background_tasks.add_task(orchestrator.on_result_fetched, task_id)
 
     return response

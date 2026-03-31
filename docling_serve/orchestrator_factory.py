@@ -416,6 +416,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             num_workers=docling_serve_settings.eng_loc_num_workers,
             shared_models=docling_serve_settings.eng_loc_share_models,
             scratch_dir=get_scratch(),
+            result_removal_delay=docling_serve_settings.result_removal_delay,
         )
 
         cm_config = DoclingConverterManagerConfig(
@@ -565,6 +566,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
             redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
             redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
+            result_removal_delay=docling_serve_settings.result_removal_delay,
         )
 
         return RedisAwareRQOrchestrator(config=rq_config)
@@ -627,6 +629,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Result Storage
             results_ttl=docling_serve_settings.eng_ray_results_ttl,
             results_prefix=docling_serve_settings.eng_ray_results_prefix,
+            result_removal_delay=docling_serve_settings.result_removal_delay,
             # Pub/Sub
             sub_channel=docling_serve_settings.eng_ray_sub_channel,
             # Fair Dispatcher

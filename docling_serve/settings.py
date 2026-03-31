@@ -101,7 +101,6 @@ class DoclingServeSettings(BaseSettings):
     static_path: Optional[Path] = None
     scratch_path: Optional[Path] = None
     single_use_results: bool = True
-    result_removal_delay: float = 300  # 5 minutes
     load_models_at_boot: bool = True
     options_cache_size: int = 2
     enable_remote_services: bool = False
@@ -133,6 +132,7 @@ class DoclingServeSettings(BaseSettings):
     cors_headers: list[str] = ["*"]
 
     eng_kind: AsyncEngine = AsyncEngine.LOCAL
+    result_removal_delay: int = 300  # seconds until result is removed after fetch
     # Local engine
     eng_loc_num_workers: int = 2
     eng_loc_share_models: bool = False
