@@ -332,7 +332,7 @@ def create_app():  # noqa: C901
     async def _enque_source(
         orchestrator: BaseOrchestrator,
         request: ConvertDocumentsRequest | GenericChunkDocumentsRequest,
-        user_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> Task:
         sources: list[TaskSource] = []
         for s in request.sources:
@@ -360,16 +360,16 @@ def create_app():  # noqa: C901
         else:
             raise RuntimeError("Uknown request type.")
 
-        # Prepare metadata with user_id BEFORE enqueueing
-        # This is critical because ray orchestrator reads user_id during enqueue()
+        # Prepare metadata with tenant_id BEFORE enqueueing
+        # This is critical because ray orchestrator reads tenant_id during enqueue()
         metadata = {}
-        if user_id:
-            metadata["user_id"] = user_id
+        if tenant_id:
+            metadata["tenant_id"] = tenant_id
             _log.info(
-                f"[USER_ID] Preparing to enqueue with user_id='{user_id}' in metadata"
+                f"[TENANT_ID] Preparing to enqueue with tenant_id='{tenant_id}' in metadata"
             )
         else:
-            _log.warning("[USER_ID] No user_id provided, will use default")
+            _log.warning("[TENANT_ID] No tenant_id provided, will use default")
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -383,7 +383,7 @@ def create_app():  # noqa: C901
         )
 
         _log.info(
-            f"[USER_ID] Task {task.task_id} created with user_id='{user_id or 'default'}'"
+            f"[TENANT_ID] Task {task.task_id} created with tenant_id='{tenant_id or 'default'}'"
         )
 
         return task
@@ -397,10 +397,10 @@ def create_app():  # noqa: C901
         chunking_export_options: ChunkingExportOptions | None,
         target: TargetRequest,
         callbacks: list[CallbackSpec] | None = None,
-        user_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> Task:
         _log.info(
-            f"[USER_ID] _enque_file called with user_id='{user_id}', "
+            f"[TENANT_ID] _enque_file called with tenant_id='{tenant_id}', "
             f"processing {len(files)} files"
         )
 
@@ -421,10 +421,10 @@ def create_app():  # noqa: C901
 
             file_sources.append(DocumentStream(name=name, stream=buf))
 
-        # Prepare metadata with user_id BEFORE enqueueing
+        # Prepare metadata with tenant_id BEFORE enqueueing
         metadata = {}
-        if user_id:
-            metadata["user_id"] = user_id
+        if tenant_id:
+            metadata["tenant_id"] = tenant_id
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -438,19 +438,19 @@ def create_app():  # noqa: C901
         )
 
         _log.info(
-            f"[USER_ID] File task {task.task_id} created with user_id='{user_id or 'default'}'"
+            f"[TENANT_ID] File task {task.task_id} created with tenant_id='{tenant_id or 'default'}'"
         )
 
         return task
 
-    def _get_user_id_from_header(user_id_header: str | None) -> str:
-        """Extract user_id from header or return default."""
-        user_id = user_id_header or "default"
+    def _get_tenant_id_from_header(tenant_id_header: str | None) -> str:
+        """Extract tenant_id from header or return default."""
+        tenant_id = tenant_id_header or "default"
         _log.info(
-            f"[USER_ID] Extracted user_id from header: '{user_id}' "
-            f"(header_value: '{user_id_header}')"
+            f"[TENANT_ID] Extracted tenant_id from header: '{tenant_id}' "
+            f"(header_value: '{tenant_id_header}')"
         )
-        return user_id
+        return tenant_id
 
     async def _wait_task_complete(orchestrator: BaseOrchestrator, task_id: str) -> bool:
         start_time = time.monotonic()
@@ -629,14 +629,14 @@ def create_app():  # noqa: C901
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         conversion_request: ConvertDocumentsRequest,
-        x_user_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_user_id_header)
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        user_id = _get_user_id_from_header(x_user_id)
-        _log.info(f"[USER_ID] process_url endpoint received user_id='{user_id}'")
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _log.info(f"[TENANT_ID] process_url endpoint received tenant_id='{tenant_id}'")
         task = await _enque_source(
-            orchestrator=orchestrator, request=conversion_request, user_id=user_id
+            orchestrator=orchestrator, request=conversion_request, tenant_id=tenant_id
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -683,12 +683,12 @@ def create_app():  # noqa: C901
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
         target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
-        x_user_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_user_id_header)
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        user_id = _get_user_id_from_header(x_user_id)
-        _log.info(f"[USER_ID] process_file endpoint received user_id='{user_id}'")
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             task_type=TaskType.CONVERT,
@@ -699,7 +699,7 @@ def create_app():  # noqa: C901
             chunking_export_options=None,
             target=target,
             callbacks=[],
-            user_id=user_id,
+            tenant_id=tenant_id,
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -736,14 +736,16 @@ def create_app():  # noqa: C901
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         conversion_request: ConvertDocumentsRequest,
-        x_user_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_user_id_header)
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        user_id = _get_user_id_from_header(x_user_id)
-        _log.info(f"[USER_ID] process_url_async endpoint received user_id='{user_id}'")
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _log.info(
+            f"[TENANT_ID] process_url_async endpoint received tenant_id='{tenant_id}'"
+        )
         task = await _enque_source(
-            orchestrator=orchestrator, request=conversion_request, user_id=user_id
+            orchestrator=orchestrator, request=conversion_request, tenant_id=tenant_id
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -772,12 +774,14 @@ def create_app():  # noqa: C901
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
         target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
-        x_user_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_user_id_header)
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        user_id = _get_user_id_from_header(x_user_id)
-        _log.info(f"[USER_ID] process_file_async endpoint received user_id='{user_id}'")
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _log.info(
+            f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
+        )
         target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
         task = await _enque_file(
             task_type=TaskType.CONVERT,
@@ -788,7 +792,7 @@ def create_app():  # noqa: C901
             chunking_export_options=None,
             target=target,
             callbacks=[],
-            user_id=user_id,
+            tenant_id=tenant_id,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -820,17 +824,17 @@ def create_app():  # noqa: C901
             auth: Annotated[AuthenticationResult, Depends(require_auth)],
             orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
             request: req_cls,
-            x_user_id: Annotated[
+            x_tenant_id: Annotated[
                 str | None,
-                Header(alias=docling_serve_settings.eng_ray_user_id_header),
+                Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            user_id = _get_user_id_from_header(x_user_id)
+            tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
-                f"[USER_ID] chunk_source_async ({path_name}) endpoint received user_id='{user_id}'"
+                f"[TENANT_ID] chunk_source_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             task = await _enque_source(
-                orchestrator=orchestrator, request=request, user_id=user_id
+                orchestrator=orchestrator, request=request, tenant_id=tenant_id
             )
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
@@ -883,14 +887,14 @@ def create_app():  # noqa: C901
                 TargetName,
                 Form(description="Specification for the type of output target."),
             ] = TargetName.INBODY,
-            x_user_id: Annotated[
+            x_tenant_id: Annotated[
                 str | None,
-                Header(alias=docling_serve_settings.eng_ray_user_id_header),
+                Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            user_id = _get_user_id_from_header(x_user_id)
+            tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
-                f"[USER_ID] chunk_file_async ({path_name}) endpoint received user_id='{user_id}'"
+                f"[TENANT_ID] chunk_file_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             task = await _enque_file(
@@ -904,7 +908,7 @@ def create_app():  # noqa: C901
                 ),
                 target=target,
                 callbacks=[],
-                user_id=user_id,
+                tenant_id=tenant_id,
             )
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
@@ -935,17 +939,17 @@ def create_app():  # noqa: C901
             auth: Annotated[AuthenticationResult, Depends(require_auth)],
             orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
             request: req_cls,
-            x_user_id: Annotated[
+            x_tenant_id: Annotated[
                 str | None,
-                Header(alias=docling_serve_settings.eng_ray_user_id_header),
+                Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            user_id = _get_user_id_from_header(x_user_id)
+            tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
-                f"[USER_ID] chunk_source ({path_name}) endpoint received user_id='{user_id}'"
+                f"[TENANT_ID] chunk_source ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             task = await _enque_source(
-                orchestrator=orchestrator, request=request, user_id=user_id
+                orchestrator=orchestrator, request=request, tenant_id=tenant_id
             )
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id
@@ -1016,14 +1020,14 @@ def create_app():  # noqa: C901
                 TargetName,
                 Form(description="Specification for the type of output target."),
             ] = TargetName.INBODY,
-            x_user_id: Annotated[
+            x_tenant_id: Annotated[
                 str | None,
-                Header(alias=docling_serve_settings.eng_ray_user_id_header),
+                Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            user_id = _get_user_id_from_header(x_user_id)
+            tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
-                f"[USER_ID] chunk_file ({path_name}) endpoint received user_id='{user_id}'"
+                f"[TENANT_ID] chunk_file ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
             task = await _enque_file(
@@ -1037,7 +1041,7 @@ def create_app():  # noqa: C901
                 ),
                 target=target,
                 callbacks=[],
-                user_id=user_id,
+                tenant_id=tenant_id,
             )
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id

@@ -229,8 +229,8 @@ class DoclingServeSettings(BaseSettings):
     # Logging
     eng_ray_log_level: str = "INFO"
 
-    # User ID Header
-    eng_ray_user_id_header: str = "X-User-Id"
+    # Tenant ID Header
+    eng_ray_tenant_id_header: str = "X-Tenant-Id"
 
     # OpenTelemetry settings
     otel_enable_metrics: bool = True

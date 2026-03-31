@@ -126,37 +126,37 @@ class RayCollector(Collector):
             user_tasks_pending = GaugeMetricFamily(
                 "ray_user_tasks_pending",
                 "Number of tasks waiting in user's queue (not yet dispatched to actors)",
-                labels=["user_id"],
+                labels=["tenant_id"],
             )
             user_tasks_dispatched = GaugeMetricFamily(
                 "ray_user_tasks_dispatched",
                 "Number of tasks dispatched to actors but not yet started processing (status=PENDING)",
-                labels=["user_id"],
+                labels=["tenant_id"],
             )
             user_tasks_running = GaugeMetricFamily(
                 "ray_user_tasks_running",
                 "Number of tasks actively being processed (status=STARTED)",
-                labels=["user_id"],
+                labels=["tenant_id"],
             )
             user_documents_active = GaugeMetricFamily(
                 "ray_user_documents_active",
                 "Number of documents currently being processed by user",
-                labels=["user_id"],
+                labels=["tenant_id"],
             )
             user_limit_max_concurrent = GaugeMetricFamily(
                 "ray_user_limit_max_concurrent_tasks",
-                "User's maximum concurrent tasks limit",
-                labels=["user_id"],
+                "Tenant's maximum concurrent tasks limit",
+                labels=["tenant_id"],
             )
             user_limit_max_queued = GaugeMetricFamily(
                 "ray_user_limit_max_queued_tasks",
-                "User's maximum queued tasks limit (0 means unlimited)",
-                labels=["user_id"],
+                "Tenant's maximum queued tasks limit (0 means unlimited)",
+                labels=["tenant_id"],
             )
             user_limit_max_documents = GaugeMetricFamily(
                 "ray_user_limit_max_documents",
-                "User's maximum documents limit (0 means unlimited)",
-                labels=["user_id"],
+                "Tenant's maximum documents limit (0 means unlimited)",
+                labels=["tenant_id"],
             )
 
             # Total metrics (no labels)
@@ -194,51 +194,51 @@ class RayCollector(Collector):
                 total_docs = 0
 
                 # Collect per-user metrics
-                for user_id in users:
+                for tenant_id in users:
                     try:
                         # Get queue size (pending tasks)
                         queue_size = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_user_queue_size,
-                            user_id,
+                            tenant_id,
                         )
-                        user_tasks_pending.add_metric([user_id], queue_size)
+                        user_tasks_pending.add_metric([tenant_id], queue_size)
                         total_pending += queue_size
 
                         # Get dispatched task count (sent to actors but not yet running)
                         dispatched_count = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_user_dispatched_task_count,
-                            user_id,
+                            tenant_id,
                         )
-                        user_tasks_dispatched.add_metric([user_id], dispatched_count)
+                        user_tasks_dispatched.add_metric([tenant_id], dispatched_count)
                         total_dispatched += dispatched_count
 
                         # Get running task count (actively being processed)
                         running_count = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_user_running_task_count,
-                            user_id,
+                            tenant_id,
                         )
-                        user_tasks_running.add_metric([user_id], running_count)
+                        user_tasks_running.add_metric([tenant_id], running_count)
                         total_running += running_count
 
                         # Get user limits (includes active documents)
                         limits = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_user_limits,
-                            user_id,
+                            tenant_id,
                         )
 
                         # Active documents
                         user_documents_active.add_metric(
-                            [user_id], limits.active_documents
+                            [tenant_id], limits.active_documents
                         )
                         total_docs += limits.active_documents
 
-                        # User limits
+                        # Tenant limits
                         user_limit_max_concurrent.add_metric(
-                            [user_id], limits.max_concurrent_tasks
+                            [tenant_id], limits.max_concurrent_tasks
                         )
 
                         # Handle None values for optional limits (use 0 to indicate unlimited)
@@ -247,18 +247,18 @@ class RayCollector(Collector):
                             if limits.max_queued_tasks is not None
                             else 0
                         )
-                        user_limit_max_queued.add_metric([user_id], max_queued)
+                        user_limit_max_queued.add_metric([tenant_id], max_queued)
 
                         max_docs = (
                             limits.max_documents
                             if limits.max_documents is not None
                             else 0
                         )
-                        user_limit_max_documents.add_metric([user_id], max_docs)
+                        user_limit_max_documents.add_metric([tenant_id], max_docs)
 
                     except Exception as e:
                         logger.error(
-                            f"Error collecting metrics for user {user_id}: {e}",
+                            f"Error collecting metrics for user {tenant_id}: {e}",
                             exc_info=True,
                         )
                         continue
