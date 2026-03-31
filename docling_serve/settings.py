@@ -184,13 +184,13 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_enable_document_limits: bool = False
 
     # Ray Configuration
-    eng_ray_ray_address: str = ""  # Required - must be set explicitly
-    eng_ray_ray_namespace: str = "docling"
-    eng_ray_ray_runtime_env: Optional[dict] = None
+    eng_ray_address: str = ""  # Required - must be set explicitly
+    eng_ray_namespace: str = "docling"
+    eng_ray_runtime_env: Optional[dict] = None
 
     # Ray mTLS Configuration
     eng_ray_enable_mtls: bool = False
-    eng_ray_ray_cluster_name: Optional[str] = None
+    eng_ray_cluster_name: Optional[str] = None
 
     # Ray Serve Autoscaling
     eng_ray_min_actors: int = 1
@@ -198,7 +198,7 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_target_requests_per_replica: int = 1
     eng_ray_upscale_delay_s: float = 30.0
     eng_ray_downscale_delay_s: float = 600.0
-    eng_ray_ray_num_cpus_per_actor: float = 1.0
+    eng_ray_num_cpus_per_actor: float = 1.0
 
     # Fault Tolerance & Retry
     eng_ray_max_task_retries: int = 3
@@ -218,8 +218,8 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_enable_heartbeat: bool = True
 
     # Resource Management & Memory Monitoring
-    eng_ray_ray_memory_limit_per_actor: Optional[str] = None
-    eng_ray_ray_object_store_memory: Optional[str] = None
+    eng_ray_memory_limit_per_actor: Optional[str] = None
+    eng_ray_object_store_memory: Optional[str] = None
     eng_ray_enable_oom_protection: bool = True
     eng_ray_memory_warning_threshold: float = 0.9
 
@@ -378,7 +378,7 @@ class DoclingServeSettings(BaseSettings):
                 raise ValueError(
                     "Fair Ray Redis URL is required when using the RAY engine."
                 )
-            if not self.eng_ray_ray_address:
+            if not self.eng_ray_address:
                 raise ValueError(
                     "Fair Ray address is required when using the RAY engine. "
                     "Use 'auto' or 'local' for local Ray, or provide a Ray cluster address."

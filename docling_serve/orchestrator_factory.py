@@ -640,21 +640,21 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Ray Configuration
             ray_address=(
                 None
-                if docling_serve_settings.eng_ray_ray_address in ["auto", "local"]
-                else docling_serve_settings.eng_ray_ray_address
+                if docling_serve_settings.eng_ray_address in ["auto", "local"]
+                else docling_serve_settings.eng_ray_address
             ),
-            ray_namespace=docling_serve_settings.eng_ray_ray_namespace,
-            ray_runtime_env=docling_serve_settings.eng_ray_ray_runtime_env,
+            ray_namespace=docling_serve_settings.eng_ray_namespace,
+            ray_runtime_env=docling_serve_settings.eng_ray_runtime_env,
             # Ray mTLS Configuration
             enable_mtls=docling_serve_settings.eng_ray_enable_mtls,
-            ray_cluster_name=docling_serve_settings.eng_ray_ray_cluster_name,
+            ray_cluster_name=docling_serve_settings.eng_ray_cluster_name,
             # Ray Serve Autoscaling
             min_actors=docling_serve_settings.eng_ray_min_actors,
             max_actors=docling_serve_settings.eng_ray_max_actors,
             target_requests_per_replica=docling_serve_settings.eng_ray_target_requests_per_replica,
             upscale_delay_s=docling_serve_settings.eng_ray_upscale_delay_s,
             downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
-            ray_num_cpus_per_actor=docling_serve_settings.eng_ray_ray_num_cpus_per_actor,
+            ray_num_cpus_per_actor=docling_serve_settings.eng_ray_num_cpus_per_actor,
             # Fault Tolerance & Retry
             max_task_retries=docling_serve_settings.eng_ray_max_task_retries,
             retry_delay=docling_serve_settings.eng_ray_retry_delay,
@@ -669,8 +669,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Health Checks
             enable_heartbeat=docling_serve_settings.eng_ray_enable_heartbeat,
             # Resource Management & Memory Monitoring
-            ray_memory_limit_per_actor=docling_serve_settings.eng_ray_ray_memory_limit_per_actor,
-            ray_object_store_memory=docling_serve_settings.eng_ray_ray_object_store_memory,
+            ray_memory_limit_per_actor=docling_serve_settings.eng_ray_memory_limit_per_actor,
+            ray_object_store_memory=docling_serve_settings.eng_ray_object_store_memory,
             enable_oom_protection=docling_serve_settings.eng_ray_enable_oom_protection,
             memory_warning_threshold=docling_serve_settings.eng_ray_memory_warning_threshold,
             # Scratch Directory
