@@ -55,6 +55,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_SYNC_POLL_INTERVAL` | `2` | Number of seconds to sleep between polling the task status in the sync endpoints. |
 |  | `DOCLING_SERVE_MAX_SYNC_WAIT` | `120` | Max number of seconds a synchronous endpoint is waiting for the task completion. |
 |  | `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` | `True` | If enabled, the models for the default options will be loaded at boot. |
+|  | `DOCLING_SERVE_PRELOAD_PIPELINES` | `null` (normalized to `["pdf"]`) | List of input-format pipelines to eagerly initialize at startup. Accepts JSON array (`'["pdf", "audio"]'`) or comma-separated string (`pdf,audio`). `"pdf"` is always included. Requires `LOAD_MODELS_AT_BOOT=true`. See [Pipeline Pre-loading](#pipeline-pre-loading) below. |
 |  | `DOCLING_SERVE_OPTIONS_CACHE_SIZE` | `2` | How many DocumentConveter objects (including their loaded models) to keep in the cache. |
 |  | `DOCLING_SERVE_QUEUE_MAX_SIZE` | | Size of the pages queue. Potentially so many pages opened at the same time. |
 |  | `DOCLING_SERVE_OCR_BATCH_SIZE` | | Batch size for the OCR stage. |
@@ -124,6 +125,36 @@ The following options control the behavior of the Docling converter, including p
 | ----|---------|-------------|
 | `DOCLING_SERVE_DEFAULT_LAYOUT_KIND` | `docling_layout_default` | Default layout kind used when user doesn't provide custom config. |
 | `DOCLING_SERVE_ALLOWED_LAYOUT_KINDS` | `null` (all allowed) | List of allowed layout kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+
+#### Pipeline Pre-loading
+
+The `DOCLING_SERVE_PRELOAD_PIPELINES` setting controls which ML pipelines are eagerly
+loaded at startup, keeping models resident in GPU/CPU memory and eliminating cold-start
+latency on the first request for each configured format.
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_PRELOAD_PIPELINES` | `null` (normalized to `["pdf"]`) | List of `InputFormat` names to pre-warm. Accepts JSON array or comma-separated string. `"pdf"` is always included automatically. Only takes effect when `DOCLING_SERVE_LOAD_MODELS_AT_BOOT=true`. |
+
+**Example** — pre-load both the PDF pipeline and the ASR/Whisper pipeline:
+```bash
+DOCLING_SERVE_PRELOAD_PIPELINES='["pdf", "audio"]'
+# or equivalently:
+DOCLING_SERVE_PRELOAD_PIPELINES=pdf,audio
+```
+
+**Topology behavior:**
+
+| Engine | `ENG_LOC_SHARE_MODELS` | Where pre-warming happens |
+|--------|------------------------|--------------------------|
+| Local | `true` | On the shared converter manager in `warm_up_caches()`. Workers reuse it. |
+| Local | `false` (default) | On the orchestrator's manager at boot (for config validation and readiness gating), then on each worker's own converter manager at startup. |
+| RQ | N/A | On each RQ worker's converter manager at process startup. |
+
+> [!NOTE]
+> `DOCLING_SERVE_PRELOAD_PIPELINES` covers format-level pipelines (e.g. `pdf`, `audio`, `image`).
+> Option-level variants such as VLM, picture description, and code/formula enrichment models are
+> selected per-request and are not covered by this setting.
 
 **Configuration Examples:**
 

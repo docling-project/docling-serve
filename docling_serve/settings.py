@@ -102,6 +102,7 @@ class DoclingServeSettings(BaseSettings):
     single_use_results: bool = True
     result_removal_delay: float = 300  # 5 minutes
     load_models_at_boot: bool = True
+    preload_pipelines: Optional[list[str]] = None
     options_cache_size: int = 2
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
@@ -250,6 +251,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_code_formula_engines",
         "allowed_table_structure_kinds",
         "allowed_layout_kinds",
+        "preload_pipelines",
         mode="before",
     )
     @classmethod
@@ -298,6 +300,15 @@ class DoclingServeSettings(BaseSettings):
         if self.eng_kind == AsyncEngine.RQ:
             if not self.eng_rq_redis_url:
                 raise ValueError("RQ Redis url is required when using the RQ engine.")
+
+        # Normalize preload_pipelines: default to ["pdf"], lowercase,
+        # and ensure "pdf" is always present.
+        if not self.preload_pipelines:
+            self.preload_pipelines = ["pdf"]
+        else:
+            self.preload_pipelines = [p.lower() for p in self.preload_pipelines]
+            if "pdf" not in self.preload_pipelines:
+                self.preload_pipelines.insert(0, "pdf")
 
         return self
 
