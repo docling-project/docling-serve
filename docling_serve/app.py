@@ -143,6 +143,9 @@ async def lifespan(app: FastAPI):
 
     # Warm up processing cache (loads ML models for LocalOrchestrator;
     # no-op for RQOrchestrator since models live in the worker pods).
+    # Additional pipelines configured via preload_pipelines are warmed
+    # by docling-jobkit's preload_additional_formats() in warm_up_caches()
+    # and in each worker's startup.
     if docling_serve_settings.load_models_at_boot:
         await orchestrator.warm_up_caches()
 

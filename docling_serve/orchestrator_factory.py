@@ -454,6 +454,12 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Layout Control
             default_layout_kind=docling_serve_settings.default_layout_kind,
             allowed_layout_kinds=docling_serve_settings.allowed_layout_kinds,
+            # Pipeline Pre-loading (only when load_models_at_boot is enabled)
+            preload_formats=(
+                list(docling_serve_settings.preload_pipelines or [])
+                if docling_serve_settings.load_models_at_boot
+                else []
+            ),
         )
         cm = DoclingConverterManager(config=cm_config)
 
