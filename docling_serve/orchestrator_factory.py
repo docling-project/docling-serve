@@ -494,6 +494,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
                 convert_options = kwargs.get("convert_options")
                 chunking_options = kwargs.get("chunking_options")
                 chunking_export_options = kwargs.get("chunking_export_options")
+                callbacks = kwargs.get("callbacks", [])
 
                 if options is not None and convert_options is None:
                     convert_options = options
@@ -527,6 +528,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
                     chunking_options=chunking_options,
                     chunking_export_options=chunking_export_options,
                     target=target,
+                    callbacks=callbacks,
                 )
 
                 self.tasks.update({task.task_id: task})
