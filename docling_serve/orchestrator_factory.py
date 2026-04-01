@@ -655,6 +655,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             min_actors=docling_serve_settings.eng_ray_min_actors,
             max_actors=docling_serve_settings.eng_ray_max_actors,
             target_requests_per_replica=docling_serve_settings.eng_ray_target_requests_per_replica,
+            max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_max_ongoing_requests_per_replica,
             upscale_delay_s=docling_serve_settings.eng_ray_upscale_delay_s,
             downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
             ray_num_cpus_per_actor=docling_serve_settings.eng_ray_num_cpus_per_actor,
