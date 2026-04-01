@@ -41,6 +41,7 @@ class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
     KFP = "kfp"
     RQ = "rq"
+    RAY = "ray"
 
 
 class YamlConfigSettingsSource(PydanticBaseSettingsSource):
@@ -157,6 +158,79 @@ class DoclingServeSettings(BaseSettings):
     eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
 
     eng_kfp_experimental: bool = False
+
+    # Fair Ray engine
+    # Redis Configuration
+    eng_ray_redis_url: str = ""
+    eng_ray_redis_max_connections: int = 50
+    eng_ray_redis_socket_timeout: Optional[float] = None
+    eng_ray_redis_socket_connect_timeout: Optional[float] = None
+
+    # Result Storage
+    eng_ray_results_ttl: int = 3_600 * 4  # 4 hours
+    eng_ray_results_prefix: str = "docling:ray:results"
+
+    # Pub/Sub
+    eng_ray_sub_channel: str = "docling:ray:updates"
+
+    # Fair Dispatcher
+    eng_ray_dispatcher_interval: float = 2.0
+
+    # Per-User Limits
+    eng_ray_max_concurrent_tasks: int = 5
+    eng_ray_max_queued_tasks: Optional[int] = None
+    eng_ray_enable_queue_limit_rejection: bool = False
+    eng_ray_max_documents: Optional[int] = None
+    eng_ray_enable_document_limits: bool = False
+
+    # Ray Configuration
+    eng_ray_address: str = ""  # Required - must be set explicitly
+    eng_ray_namespace: str = "docling"
+    eng_ray_runtime_env: Optional[dict] = None
+
+    # Ray mTLS Configuration
+    eng_ray_enable_mtls: bool = False
+    eng_ray_cluster_name: Optional[str] = None
+
+    # Ray Serve Autoscaling
+    eng_ray_min_actors: int = 1
+    eng_ray_max_actors: int = 10
+    eng_ray_target_requests_per_replica: int = 1
+    eng_ray_upscale_delay_s: float = 30.0
+    eng_ray_downscale_delay_s: float = 600.0
+    eng_ray_num_cpus_per_actor: float = 1.0
+
+    # Fault Tolerance & Retry
+    eng_ray_max_task_retries: int = 3
+    eng_ray_retry_delay: float = 5.0
+    eng_ray_max_document_retries: int = 2
+
+    # Ray Actor Configuration
+    eng_ray_dispatcher_max_restarts: int = -1
+    eng_ray_dispatcher_max_task_retries: int = 3
+
+    # Timeouts
+    eng_ray_task_timeout: Optional[float] = 3600.0
+    eng_ray_document_timeout: Optional[float] = 300.0
+    eng_ray_redis_operation_timeout: float = 30.0
+
+    # Health Checks
+    eng_ray_enable_heartbeat: bool = True
+
+    # Resource Management & Memory Monitoring
+    eng_ray_memory_limit_per_actor: Optional[str] = None
+    eng_ray_object_store_memory: Optional[str] = None
+    eng_ray_enable_oom_protection: bool = True
+    eng_ray_memory_warning_threshold: float = 0.9
+
+    # Scratch Directory
+    eng_ray_scratch_dir: Optional[Path] = None
+
+    # Logging
+    eng_ray_log_level: str = "INFO"
+
+    # Tenant ID Header
+    eng_ray_tenant_id_header: str = "X-Tenant-Id"
 
     # OpenTelemetry settings
     otel_enable_metrics: bool = True
@@ -298,6 +372,17 @@ class DoclingServeSettings(BaseSettings):
         if self.eng_kind == AsyncEngine.RQ:
             if not self.eng_rq_redis_url:
                 raise ValueError("RQ Redis url is required when using the RQ engine.")
+
+        if self.eng_kind == AsyncEngine.RAY:
+            if not self.eng_ray_redis_url:
+                raise ValueError(
+                    "Fair Ray Redis URL is required when using the RAY engine."
+                )
+            if not self.eng_ray_address:
+                raise ValueError(
+                    "Fair Ray address is required when using the RAY engine. "
+                    "Use 'auto' or 'local' for local Ray, or provide a Ray cluster address."
+                )
 
         return self
 
