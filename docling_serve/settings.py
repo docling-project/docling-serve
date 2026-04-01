@@ -142,13 +142,17 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_sub_channel: str = "docling:updates"
     eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
     eng_rq_failure_ttl: int = 3_600 * 4  # 4 hours default
-    eng_rq_redis_max_connections: int = 50  # Connection pool size
+    eng_rq_redis_max_connections: int = 50
     eng_rq_redis_socket_timeout: Optional[float] = None  # Socket timeout in seconds
     eng_rq_redis_socket_connect_timeout: Optional[float] = (
         None  # Socket connect timeout in seconds
     )
-    zombie_reaper_interval: float = 300.0
-    zombie_reaper_max_age: float = 3600.0
+    eng_rq_redis_gate_concurrency: Optional[int] = None
+    eng_rq_redis_gate_reserved_connections: int = 10
+    eng_rq_redis_gate_wait_timeout: float = 0.25
+    eng_rq_redis_gate_status_poll_wait_timeout: float = 5.0
+    eng_rq_zombie_reaper_interval: float = 300.0
+    eng_rq_zombie_reaper_max_age: float = 3600.0
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
@@ -165,6 +169,10 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_redis_max_connections: int = 50
     eng_ray_redis_socket_timeout: Optional[float] = None
     eng_ray_redis_socket_connect_timeout: Optional[float] = None
+    eng_ray_redis_gate_concurrency: Optional[int] = None
+    eng_ray_redis_gate_reserved_connections: int = 10
+    eng_ray_redis_gate_wait_timeout: float = 0.25
+    eng_ray_redis_gate_status_poll_wait_timeout: float = 5.0
 
     # Result Storage
     eng_ray_results_ttl: int = 3_600 * 4  # 4 hours

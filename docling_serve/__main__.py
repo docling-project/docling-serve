@@ -412,6 +412,10 @@ def rq_worker() -> Any:
         redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
         redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
         redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
+        redis_gate_concurrency=docling_serve_settings.eng_rq_redis_gate_concurrency,
+        redis_gate_reserved_connections=docling_serve_settings.eng_rq_redis_gate_reserved_connections,
+        redis_gate_wait_timeout=docling_serve_settings.eng_rq_redis_gate_wait_timeout,
+        redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_rq_redis_gate_status_poll_wait_timeout,
     )
 
     cm_config = DoclingConverterManagerConfig(
