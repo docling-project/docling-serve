@@ -184,7 +184,7 @@ class DoclingServeSettings(BaseSettings):
     # Fair Dispatcher
     eng_ray_dispatcher_interval: float = 2.0
 
-    # Per-User Limits
+    # Per-User Dispatcher Limits
     eng_ray_max_concurrent_tasks: int = 5
     eng_ray_max_queued_tasks: Optional[int] = None
     eng_ray_enable_queue_limit_rejection: bool = False
@@ -204,6 +204,9 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_min_actors: int = 1
     eng_ray_max_actors: int = 10
     eng_ray_target_requests_per_replica: int = 1
+    # Hard cap on concurrent in-flight requests per replica.
+    # None -> follow eng_ray_target_requests_per_replica.
+    eng_ray_max_ongoing_requests_per_replica: Optional[int] = None
     eng_ray_upscale_delay_s: float = 30.0
     eng_ray_downscale_delay_s: float = 600.0
     eng_ray_num_cpus_per_actor: float = 1.0

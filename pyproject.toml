@@ -128,6 +128,11 @@ rocm = [
   "pytorch-triton-rocm>=3.3.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
+[[tool.uv.dependency-metadata]]
+name = "flash-attn"
+version = "2.8.3"
+requires-dist = ["torch", "einops"]
+
 [tool.uv]
 package = true
 default-groups = ["dev", "pypi"]
