@@ -27,6 +27,7 @@ VARIABLE_WORDS: list[str] = [
     "granite_docling",
     "model_spec",
     "engine_options",
+    "ocr_lang",
 ]
 
 

@@ -102,11 +102,11 @@ async def debug_redis_state():  # noqa: C901
 
             for tenant_id in users:
                 # Use the same methods as the metrics collector
-                user_queued = await redis_manager.get_user_queue_size(tenant_id)
-                user_dispatched = await redis_manager.get_user_dispatched_task_count(
+                user_queued = await redis_manager.get_tenant_queue_size(tenant_id)
+                user_dispatched = await redis_manager.get_tenant_dispatched_task_count(
                     tenant_id
                 )
-                user_running = await redis_manager.get_user_running_task_count(
+                user_running = await redis_manager.get_tenant_running_task_count(
                     tenant_id
                 )
 
@@ -132,16 +132,16 @@ async def debug_redis_state():  # noqa: C901
             print(f"Tenant: {tenant_id}")
 
             # Get queue size
-            queue_size = await redis_manager.get_user_queue_size(tenant_id)
+            queue_size = await redis_manager.get_tenant_queue_size(tenant_id)
             print(f"  Queue (pending): {queue_size} tasks")
             total_pending += queue_size
 
             # Get active task count from Redis Set (source of truth)
-            active_count = await redis_manager.get_user_active_task_count(tenant_id)
+            active_count = await redis_manager.get_tenant_active_task_count(tenant_id)
             print(f"  Active (Redis Set): {active_count} tasks")
 
             # Get user limits (includes counter)
-            limits = await redis_manager.get_user_limits(tenant_id)
+            limits = await redis_manager.get_tenant_limits(tenant_id)
             print(f"  Active (Counter): {limits.active_tasks} tasks")
 
             # Check reconciliation
@@ -157,7 +157,7 @@ async def debug_redis_state():  # noqa: C901
             # Get active task IDs
             if active_count > 0:
                 print("\n  Active Tasks:")
-                active_task_ids = await redis_manager.get_user_active_task_ids(
+                active_task_ids = await redis_manager.get_tenant_active_task_ids(
                     tenant_id
                 )
                 for task_id in active_task_ids[:10]:  # Show first 10
@@ -220,7 +220,7 @@ async def debug_redis_state():  # noqa: C901
         print("-" * 50)
         orphaned_found = False
         for tenant_id in users:
-            active_task_ids = await redis_manager.get_user_active_task_ids(tenant_id)
+            active_task_ids = await redis_manager.get_tenant_active_task_ids(tenant_id)
             for task_id in active_task_ids:
                 processing_state = await redis_manager.get_task_processing_state(
                     task_id

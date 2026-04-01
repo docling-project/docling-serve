@@ -27,7 +27,7 @@ def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> 
 
     Args:
         redis_manager: Original RedisStateManager (used for config only)
-        coro_func: Async function to call (e.g., redis_manager.get_all_users_with_tasks)
+        coro_func: Async function to call (e.g., redis_manager.get_all_tenants_with_tasks)
         *args: Arguments to pass to coro_func
         **kwargs: Keyword arguments to pass to coro_func
 
@@ -89,7 +89,7 @@ class RayCollector(Collector):
     """Ray orchestrator metrics collector for Prometheus.
 
     Collects metrics about task queues, resource usage, and limits
-    for the Ray orchestrator with per-user granularity.
+    for the Ray orchestrator with per-tenant granularity.
     """
 
     def __init__(self, redis_manager):
@@ -110,51 +110,51 @@ class RayCollector(Collector):
         """Collect Ray metrics from Redis.
 
         Yields Prometheus metric families for:
-        - Per-user pending tasks
-        - Per-user running tasks
-        - Per-user active documents
-        - Per-user limits (concurrent tasks, queued tasks, documents)
+        - Per-tenant pending tasks
+        - Per-tenant running tasks
+        - Per-tenant active documents
+        - Per-tenant limits (concurrent tasks, queued tasks, documents)
         - Total pending tasks
         - Total running tasks
         - Total active documents
-        - Number of users with tasks
+        - Number of tenants with tasks
         """
         logger.debug("Collecting Ray metrics...")
 
         with self.summary.time():
             # Define metric families
-            user_tasks_pending = GaugeMetricFamily(
-                "ray_user_tasks_pending",
-                "Number of tasks waiting in user's queue (not yet dispatched to actors)",
+            tenant_tasks_pending = GaugeMetricFamily(
+                "ray_tenant_tasks_pending",
+                "Number of tasks waiting in tenant's queue (not yet dispatched to actors)",
                 labels=["tenant_id"],
             )
-            user_tasks_dispatched = GaugeMetricFamily(
-                "ray_user_tasks_dispatched",
+            tenant_tasks_dispatched = GaugeMetricFamily(
+                "ray_tenant_tasks_dispatched",
                 "Number of tasks dispatched to actors but not yet started processing (status=PENDING)",
                 labels=["tenant_id"],
             )
-            user_tasks_running = GaugeMetricFamily(
-                "ray_user_tasks_running",
+            tenant_tasks_running = GaugeMetricFamily(
+                "ray_tenant_tasks_running",
                 "Number of tasks actively being processed (status=STARTED)",
                 labels=["tenant_id"],
             )
-            user_documents_active = GaugeMetricFamily(
-                "ray_user_documents_active",
-                "Number of documents currently being processed by user",
+            tenant_documents_active = GaugeMetricFamily(
+                "ray_tenant_documents_active",
+                "Number of documents currently being processed by tenant",
                 labels=["tenant_id"],
             )
-            user_limit_max_concurrent = GaugeMetricFamily(
-                "ray_user_limit_max_concurrent_tasks",
+            tenant_limit_max_concurrent = GaugeMetricFamily(
+                "ray_tenant_limit_max_concurrent_tasks",
                 "Tenant's maximum concurrent tasks limit",
                 labels=["tenant_id"],
             )
-            user_limit_max_queued = GaugeMetricFamily(
-                "ray_user_limit_max_queued_tasks",
+            tenant_limit_max_queued = GaugeMetricFamily(
+                "ray_tenant_limit_max_queued_tasks",
                 "Tenant's maximum queued tasks limit (0 means unlimited)",
                 labels=["tenant_id"],
             )
-            user_limit_max_documents = GaugeMetricFamily(
-                "ray_user_limit_max_documents",
+            tenant_limit_max_documents = GaugeMetricFamily(
+                "ray_tenant_limit_max_documents",
                 "Tenant's maximum documents limit (0 means unlimited)",
                 labels=["tenant_id"],
             )
@@ -162,29 +162,30 @@ class RayCollector(Collector):
             # Total metrics (no labels)
             total_tasks_pending = GaugeMetricFamily(
                 "ray_total_tasks_pending",
-                "Total number of pending tasks across all users (in queue, not yet dispatched to actors)",
+                "Total number of pending tasks across all tenants (in queue, not yet dispatched to actors)",
             )
             total_tasks_dispatched = GaugeMetricFamily(
                 "ray_total_tasks_dispatched",
-                "Total number of dispatched tasks across all users (sent to actors but not yet started, status=PENDING)",
+                "Total number of dispatched tasks across all tenants (sent to actors but not yet started, status=PENDING)",
             )
             total_tasks_running = GaugeMetricFamily(
                 "ray_total_tasks_running",
-                "Total number of running tasks across all users (actively being processed, status=STARTED)",
+                "Total number of running tasks across all tenants (actively being processed, status=STARTED)",
             )
             total_documents_active = GaugeMetricFamily(
                 "ray_total_documents_active",
-                "Total number of active documents across all users",
+                "Total number of active documents across all tenants",
             )
-            users_with_tasks = GaugeMetricFamily(
-                "ray_users_with_tasks",
-                "Number of users with tasks in the system",
+            tenants_with_tasks = GaugeMetricFamily(
+                "ray_tenants_with_tasks",
+                "Number of tenants with tasks in the system",
             )
 
             try:
                 # Get all users with tasks (queued OR active) using a fresh connection
-                users = run_async_with_new_connection(
-                    self.redis_manager, self.redis_manager.get_all_users_with_any_tasks
+                tenants = run_async_with_new_connection(
+                    self.redis_manager,
+                    self.redis_manager.get_all_tenants_with_any_tasks,
                 )
 
                 # Accumulators for totals
@@ -194,50 +195,52 @@ class RayCollector(Collector):
                 total_docs = 0
 
                 # Collect per-user metrics
-                for tenant_id in users:
+                for tenant_id in tenants:
                     try:
                         # Get queue size (pending tasks)
                         queue_size = run_async_with_new_connection(
                             self.redis_manager,
-                            self.redis_manager.get_user_queue_size,
+                            self.redis_manager.get_tenant_queue_size,
                             tenant_id,
                         )
-                        user_tasks_pending.add_metric([tenant_id], queue_size)
+                        tenant_tasks_pending.add_metric([tenant_id], queue_size)
                         total_pending += queue_size
 
                         # Get dispatched task count (sent to actors but not yet running)
                         dispatched_count = run_async_with_new_connection(
                             self.redis_manager,
-                            self.redis_manager.get_user_dispatched_task_count,
+                            self.redis_manager.get_tenant_dispatched_task_count,
                             tenant_id,
                         )
-                        user_tasks_dispatched.add_metric([tenant_id], dispatched_count)
+                        tenant_tasks_dispatched.add_metric(
+                            [tenant_id], dispatched_count
+                        )
                         total_dispatched += dispatched_count
 
                         # Get running task count (actively being processed)
                         running_count = run_async_with_new_connection(
                             self.redis_manager,
-                            self.redis_manager.get_user_running_task_count,
+                            self.redis_manager.get_tenant_running_task_count,
                             tenant_id,
                         )
-                        user_tasks_running.add_metric([tenant_id], running_count)
+                        tenant_tasks_running.add_metric([tenant_id], running_count)
                         total_running += running_count
 
                         # Get user limits (includes active documents)
                         limits = run_async_with_new_connection(
                             self.redis_manager,
-                            self.redis_manager.get_user_limits,
+                            self.redis_manager.get_tenant_limits,
                             tenant_id,
                         )
 
                         # Active documents
-                        user_documents_active.add_metric(
+                        tenant_documents_active.add_metric(
                             [tenant_id], limits.active_documents
                         )
                         total_docs += limits.active_documents
 
                         # Tenant limits
-                        user_limit_max_concurrent.add_metric(
+                        tenant_limit_max_concurrent.add_metric(
                             [tenant_id], limits.max_concurrent_tasks
                         )
 
@@ -247,14 +250,14 @@ class RayCollector(Collector):
                             if limits.max_queued_tasks is not None
                             else 0
                         )
-                        user_limit_max_queued.add_metric([tenant_id], max_queued)
+                        tenant_limit_max_queued.add_metric([tenant_id], max_queued)
 
                         max_docs = (
                             limits.max_documents
                             if limits.max_documents is not None
                             else 0
                         )
-                        user_limit_max_documents.add_metric([tenant_id], max_docs)
+                        tenant_limit_max_documents.add_metric([tenant_id], max_docs)
 
                     except Exception as e:
                         logger.error(
@@ -268,24 +271,24 @@ class RayCollector(Collector):
                 total_tasks_dispatched.add_metric([], total_dispatched)
                 total_tasks_running.add_metric([], total_running)
                 total_documents_active.add_metric([], total_docs)
-                users_with_tasks.add_metric([], len(users))
+                tenants_with_tasks.add_metric([], len(tenants))
 
             except Exception as e:
                 logger.error(f"Error collecting Fair Ray metrics: {e}", exc_info=True)
                 # Return empty metrics on error
 
             # Yield all metrics
-            yield user_tasks_pending
-            yield user_tasks_dispatched
-            yield user_tasks_running
-            yield user_documents_active
-            yield user_limit_max_concurrent
-            yield user_limit_max_queued
-            yield user_limit_max_documents
+            yield tenant_tasks_pending
+            yield tenant_tasks_dispatched
+            yield tenant_tasks_running
+            yield tenant_documents_active
+            yield tenant_limit_max_concurrent
+            yield tenant_limit_max_queued
+            yield tenant_limit_max_documents
             yield total_tasks_pending
             yield total_tasks_dispatched
             yield total_tasks_running
             yield total_documents_active
-            yield users_with_tasks
+            yield tenants_with_tasks
 
         logger.debug("Fair Ray metrics collection finished")
