@@ -13,7 +13,6 @@ from io import BytesIO
 from typing import Annotated
 
 import psutil
-import redis.asyncio
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -22,6 +21,7 @@ from fastapi import (
     Header,
     HTTPException,
     Query,
+    Request,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -59,8 +59,10 @@ from docling_jobkit.datamodel.task_targets import (
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
+    RedisBackpressureError,
     TaskNotFoundError,
 )
+from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
@@ -154,13 +156,8 @@ async def lifespan(app: FastAPI):
     queue_task = asyncio.create_task(orchestrator.process_queue())
 
     reaper_task = None
-    if hasattr(orchestrator, "_reap_zombie_tasks"):
-        reaper_task = asyncio.create_task(
-            orchestrator._reap_zombie_tasks(
-                interval=docling_serve_settings.zombie_reaper_interval,
-                max_age=docling_serve_settings.zombie_reaper_max_age,
-            )
-        )
+    if isinstance(orchestrator, RQOrchestrator):
+        reaper_task = asyncio.create_task(orchestrator._reap_zombie_tasks())
 
     yield
 
@@ -212,6 +209,17 @@ def create_app():  # noqa: C901
         lifespan=lifespan,
         version=version,
     )
+
+    @app.exception_handler(RedisBackpressureError)
+    async def redis_backpressure_error_handler(
+        request: Request, exc: RedisBackpressureError
+    ) -> JSONResponse:
+        del request, exc
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "Server is busy, please try again shortly."},
+            headers={"Retry-After": "1"},
+        )
 
     # Setup OpenTelemetry instrumentation
     redis_url = (
@@ -545,18 +553,6 @@ def create_app():  # noqa: C901
         response = RedirectResponse(url=logo_url)
         return response
 
-    async def _check_redis() -> bool:
-        orchestrator = get_async_orchestrator()
-        if not hasattr(orchestrator, "_redis_pool"):
-            return True
-        try:
-            conn = redis.asyncio.Redis(connection_pool=orchestrator._redis_pool)
-            await conn.ping()  # type: ignore[misc]
-            return True
-        except Exception:
-            _log.exception("Redis readiness check failed")
-            return False
-
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
         return HealthCheckResponse()
@@ -570,12 +566,14 @@ def create_app():  # noqa: C901
                 detail="Models not yet loaded",
             )
 
-        if docling_serve_settings.eng_kind == AsyncEngine.RQ:
-            if not await _check_redis():
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Redis connection failed",
-                )
+        orchestrator = get_async_orchestrator()
+        try:
+            await orchestrator.check_connection()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc) or "Readiness check failed",
+            ) from exc
 
         return ReadinessResponse()
 
@@ -1118,8 +1116,16 @@ def create_app():  # noqa: C901
         await websocket.accept()
 
         try:
-            # Get task status from Redis or RQ directly instead of checking in-memory registry
             task = await orchestrator.task_status(task_id=task_id)
+        except RedisBackpressureError:
+            await websocket.send_text(
+                WebsocketMessage(
+                    message=MessageKind.ERROR,
+                    error="Server is busy, please try again shortly.",
+                ).model_dump_json()
+            )
+            await websocket.close()
+            return
         except TaskNotFoundError:
             await websocket.send_text(
                 WebsocketMessage(
@@ -1168,6 +1174,17 @@ def create_app():  # noqa: C901
                 msg = await websocket.receive_text()
                 _log.debug(f"Received message: {msg}")
 
+        except RedisBackpressureError:
+            try:
+                await websocket.send_text(
+                    WebsocketMessage(
+                        message=MessageKind.ERROR,
+                        error="Server is busy, please try again shortly.",
+                    ).model_dump_json()
+                )
+                await websocket.close()
+            except Exception:
+                pass
         except WebSocketDisconnect:
             _log.info(f"WebSocket disconnected for job {task_id}")
 
