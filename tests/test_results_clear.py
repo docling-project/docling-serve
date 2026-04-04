@@ -89,9 +89,6 @@ async def convert_file(client: AsyncClient, auth_headers: dict):
 async def test_clear_results(client: AsyncClient, auth_headers: dict):
     """Test removal of task."""
 
-    # Set long delay deletion
-    docling_serve_settings.result_removal_delay = 100
-
     # Convert and wait for completion
     task = await convert_file(client, auth_headers=auth_headers)
 
@@ -130,28 +127,34 @@ async def test_clear_results(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_delay_remove(client: AsyncClient, auth_headers: dict):
-    """Test automatic removal of task with delay."""
-
-    # Set short delay deletion
-    docling_serve_settings.result_removal_delay = 5
-
-    # Convert and wait for completion
-    task = await convert_file(client, auth_headers=auth_headers)
-
-    # Get result once
-    result_response = await client.get(
-        f"/v1/result/{task['task_id']}", headers=auth_headers
+    """Test automatic removal of task with delay (orchestrator-owned result_removal_delay)."""
+    from docling_serve.orchestrator_factory import (
+        get_async_orchestrator,
     )
-    assert result_response.status_code == 200, "Response should be 200 OK"
-    print("Result ok.")
-    result = result_response.json()
-    assert result["document"]["json_content"]["schema_name"] == "DoclingDocument"
 
-    print("Sleeping to wait the automatic task deletion.")
-    await asyncio.sleep(10)
+    orchestrator = get_async_orchestrator()
+    original_delay = orchestrator.config.result_removal_delay
+    orchestrator.config.result_removal_delay = 5  # 5 seconds for fast test
 
-    # Get deleted result
-    result_response = await client.get(
-        f"/v1/result/{task['task_id']}", headers=auth_headers
-    )
-    assert result_response.status_code == 404, "Response should be removed"
+    try:
+        # Convert and wait for completion
+        task = await convert_file(client, auth_headers=auth_headers)
+
+        # Fetch result — triggers on_result_fetched() which schedules deletion
+        result_response = await client.get(
+            f"/v1/result/{task['task_id']}", headers=auth_headers
+        )
+        assert result_response.status_code == 200, "Response should be 200 OK"
+        result = result_response.json()
+        assert result["document"]["json_content"]["schema_name"] == "DoclingDocument"
+
+        print("Sleeping to wait for automatic task deletion (result_removal_delay=5s).")
+        await asyncio.sleep(10)
+
+        # Result should now be gone
+        result_response = await client.get(
+            f"/v1/result/{task['task_id']}", headers=auth_headers
+        )
+        assert result_response.status_code == 404, "Result should have been removed"
+    finally:
+        orchestrator.config.result_removal_delay = original_delay

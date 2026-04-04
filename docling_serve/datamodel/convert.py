@@ -4,7 +4,7 @@ from typing import Annotated
 from pydantic import Field
 
 from docling.datamodel.pipeline_options import (
-    EasyOcrOptions,
+    OcrAutoOptions,
 )
 from docling.models.factories import get_ocr_factory
 from docling_jobkit.datamodel.convert import ConvertDocumentsOptions
@@ -26,9 +26,9 @@ class ConvertDocumentsRequestOptions(ConvertDocumentsOptions):
                 f"Allowed values: {', '.join([v.value for v in ocr_engines_enum])}. "
                 "Optional, defaults to easyocr."
             ),
-            examples=[EasyOcrOptions.kind],
+            examples=[OcrAutoOptions.kind],
         ),
-    ] = ocr_engines_enum(EasyOcrOptions.kind)  # type: ignore
+    ] = ocr_engines_enum(OcrAutoOptions.kind)  # type: ignore
 
     document_timeout: Annotated[
         float,

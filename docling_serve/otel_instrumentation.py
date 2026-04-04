@@ -18,6 +18,7 @@ from opentelemetry.util.types import Attributes
 from prometheus_client import REGISTRY, start_http_server
 from redis import Redis
 
+from docling_serve.ray_metrics_collector import RayCollector
 from docling_serve.rq_metrics_collector import RQCollector
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,7 @@ def setup_otel_instrumentation(
     enable_otlp_metrics: bool = False,
     redis_url: str | None = None,
     metrics_port: int | None = None,
+    ray_redis_manager=None,
 ):
     """
     Set up OpenTelemetry instrumentation for FastAPI app.
@@ -82,6 +84,7 @@ def setup_otel_instrumentation(
         enable_otlp_metrics: Enable OTLP metrics export (for OTEL collector)
         redis_url: Redis URL for RQ metrics (if using RQ engine)
         metrics_port: If set, start a separate HTTP server on this port for /metrics
+        ray_redis_manager: RedisStateManager instance for Ray metrics (if using Ray engine)
     """
     resource = Resource(attributes={SERVICE_NAME: service_name})
 
@@ -142,6 +145,11 @@ def setup_otel_instrumentation(
         logger.info(f"Registering RQ metrics collector for Redis at {redis_url}")
         connection = Redis.from_url(redis_url)
         REGISTRY.register(RQCollector(connection))
+
+    # Register Ray metrics if RedisStateManager is provided
+    if ray_redis_manager and enable_prometheus:
+        logger.info("Registering Ray metrics collector")
+        REGISTRY.register(RayCollector(ray_redis_manager))
 
 
 def get_metrics_endpoint_content():
