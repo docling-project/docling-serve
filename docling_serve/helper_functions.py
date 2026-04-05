@@ -41,6 +41,24 @@ def is_pydantic_model(type_):
     return False
 
 
+def is_json_field(type_):
+    """Return True for dict fields (including Optional[dict]) that
+    must be accepted as JSON strings from multipart form data."""
+    try:
+        origin = get_origin(type_)
+        if origin is dict:
+            return True
+        if origin is Union:
+            for arg in get_args(type_):
+                if arg is type(None):
+                    continue
+                if get_origin(arg) is dict:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
 # Adapted from
 # https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
 def FormDepends(
@@ -64,7 +82,7 @@ def FormDepends(
             )
         )
 
-        # Flatten nested Pydantic models by accepting them as JSON strings
+        # Flatten nested Pydantic models and dict/list fields by accepting them as JSON strings
         if is_pydantic_model(annotation):
             annotation = str
             default = Form(
@@ -78,6 +96,15 @@ def FormDepends(
                     json.dumps(ex.model_dump(mode="json"))
                     for ex in model_field.examples
                 ],
+            )
+        elif is_json_field(annotation):
+            annotation = str
+            default = Form(
+                None if model_field.default is None else json.dumps(model_field.default),
+                description=description,
+                examples=None
+                if not model_field.examples
+                else [json.dumps(ex) for ex in model_field.examples],
             )
 
         new_parameters.append(
@@ -98,11 +125,16 @@ def FormDepends(
             newdata[field_name] = value
             annotation = model_field.annotation
 
-            # Parse nested models from JSON string
+            # Parse nested models and dict/list fields from JSON string
             if value is not None and is_pydantic_model(annotation):
                 try:
                     validator = TypeAdapter(annotation)
                     newdata[field_name] = validator.validate_json(value)
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON for field '{field_name}': {e}")
+            elif value is not None and is_json_field(annotation):
+                try:
+                    newdata[field_name] = json.loads(value)
                 except Exception as e:
                     raise ValueError(f"Invalid JSON for field '{field_name}': {e}")
 
