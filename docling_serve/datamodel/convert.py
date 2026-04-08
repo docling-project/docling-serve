@@ -1,7 +1,7 @@
 # Define the input options for the API
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import Field, field_serializer
 
 from docling.datamodel.pipeline_options import (
     OcrAutoOptions,
@@ -38,3 +38,12 @@ class ConvertDocumentsRequestOptions(ConvertDocumentsOptions):
             le=docling_serve_settings.max_document_timeout,
         ),
     ] = docling_serve_settings.max_document_timeout
+
+    @field_serializer("page_range", when_used="json")
+    def serialize_page_range(
+        self,
+        page_range: tuple[int, int] | None,
+    ) -> list[int] | None:
+        if page_range is None:
+            return None
+        return [page_range[0], page_range[1]]

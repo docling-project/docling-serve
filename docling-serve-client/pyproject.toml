@@ -1,0 +1,139 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docling-serve-client"
+version = "0.0.1"
+description = "Client SDK for interacting with docling-serve"
+license = {text = "MIT"}
+authors = [
+    {name="Christoph Auer", email="cau@zurich.ibm.com"},
+]
+maintainers = [
+    {name="Michele Dolfi", email="dol@zurich.ibm.com"},
+    {name="Panos Vagenas", email="pva@zurich.ibm.com"},
+    {name="Christoph Auer", email="cau@zurich.ibm.com"},
+    {name="Peter Staar", email="taa@zurich.ibm.com"},
+]
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Typing :: Typed",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "docling-serve>=1.15.1,<2.0.0",
+    "docling[remote-serving]>=2.76",
+    "docling-core>=2.45.0",
+    "docling-jobkit>=1.16.0,<2.0.0",
+    "httpx~=0.28",
+    "pydantic~=2.10",
+    "websockets>=14.0,<17.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy~=1.11",
+    "pre-commit-uv~=4.1",
+    "pytest~=8.3",
+    "pytest-asyncio~=0.24",
+    "ruff>=0.9.6",
+]
+
+[tool.uv]
+package = true
+default-groups = ["dev"]
+
+[tool.setuptools.packages.find]
+include = ["docling.service_client*"]
+namespaces = true
+
+[project.urls]
+Homepage = "https://github.com/docling-project/docling-serve"
+Repository = "https://github.com/docling-project/docling-serve"
+Issues = "https://github.com/docling-project/docling-serve/issues"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+respect-gitignore = true
+
+[tool.ruff.format]
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+select = [
+    "C",
+    "C9",
+    "E",
+    "F",
+    "I",
+    "PIE",
+    "Q",
+    "RUF",
+    "S307",
+    "W",
+    "ASYNC",
+    "UP",
+]
+ignore = [
+    "E501",
+    "F811",
+    "PL",
+    "RUF012",
+    "UP007",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+"tests/*.py" = ["ASYNC"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.isort.sections]
+"docling" = ["docling", "docling_core", "docling_jobkit"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "docling",
+  "first-party",
+  "local-folder",
+]
+
+[tool.mypy]
+pretty = true
+no_implicit_optional = true
+plugins = "pydantic.mypy"
+python_version = "3.10"
+
+[[tool.mypy.overrides]]
+module = [
+    "websockets.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+minversion = "8.2"
+testpaths = [
+    "tests",
+]
+addopts = "-rA --color=yes --tb=short --maxfail=5"
+markers = [
+    "asyncio",
+]
