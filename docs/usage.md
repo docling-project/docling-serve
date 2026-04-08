@@ -48,6 +48,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `vlm_pipeline_custom_config` | VlmConvertOptions or dict or NoneType | Custom VLM configuration including model spec and engine options. Only available if admin allows it. Must include '`model_spec`' and '`engine_options`'. |
 | `picture_description_custom_config` | PictureDescriptionVlmEngineOptions or dict or NoneType | Custom picture description configuration including model spec and engine options. |
 | `code_formula_custom_config` | CodeFormulaVlmOptions or dict or NoneType | Custom code/formula extraction configuration including model spec and engine options. |
+| `table_structure_preset` | str or NoneType | Preset ID for table structure detection. |
 | `table_structure_custom_config` | Dict[str, Any] or NoneType | Custom configuration for table structure model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which table structure implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_preset` | str or NoneType | Preset ID for layout detection. |
