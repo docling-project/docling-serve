@@ -100,7 +100,9 @@ def FormDepends(
         elif is_json_field(annotation):
             annotation = str
             default = Form(
-                None if model_field.default is None else json.dumps(model_field.default),
+                None
+                if model_field.default is None
+                else json.dumps(model_field.default),
                 description=description,
                 examples=None
                 if not model_field.examples
