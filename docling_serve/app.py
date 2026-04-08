@@ -98,6 +98,13 @@ from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
 
+# Pre-import OCR backends that use cysignals (signal handlers must be registered
+# in the main thread; worker threads would raise "signal only works in main thread").
+try:
+    import tesserocr  # noqa: F401
+except (ImportError, Exception):
+    pass
+
 
 # Set up custom logging as we'll be intermixes with FastAPI/Uvicorn's logging
 class ColoredLogFormatter(logging.Formatter):
