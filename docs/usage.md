@@ -16,7 +16,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
-| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
+| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `kserve_v2_ocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
 | `ocr_custom_config` | Dict[str, Any] or NoneType | Custom configuration for OCR engine. Use this to specify engine-specific options beyond `ocr_lang`. Each OCR engine kind has its own configuration schema. |
@@ -48,6 +48,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `vlm_pipeline_custom_config` | VlmConvertOptions or dict or NoneType | Custom VLM configuration including model spec and engine options. Only available if admin allows it. Must include '`model_spec`' and '`engine_options`'. |
 | `picture_description_custom_config` | PictureDescriptionVlmEngineOptions or dict or NoneType | Custom picture description configuration including model spec and engine options. |
 | `code_formula_custom_config` | CodeFormulaVlmOptions or dict or NoneType | Custom code/formula extraction configuration including model spec and engine options. |
+| `table_structure_preset` | str or NoneType | Preset ID for table structure detection. |
 | `table_structure_custom_config` | Dict[str, Any] or NoneType | Custom configuration for table structure model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which table structure implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_preset` | str or NoneType | Preset ID for layout detection. |

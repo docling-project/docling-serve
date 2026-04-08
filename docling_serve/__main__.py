@@ -448,12 +448,32 @@ def rq_worker() -> Any:
         custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
         allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
         allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Picture Classification Control
+        default_picture_classification_preset=docling_serve_settings.default_picture_classification_preset,
+        allowed_picture_classification_presets=docling_serve_settings.allowed_picture_classification_presets,
+        custom_picture_classification_presets=docling_serve_settings.custom_picture_classification_presets,
+        allow_custom_picture_classification_config=docling_serve_settings.allow_custom_picture_classification_config,
         # Table Structure Control
         default_table_structure_kind=docling_serve_settings.default_table_structure_kind,
         allowed_table_structure_kinds=docling_serve_settings.allowed_table_structure_kinds,
+        default_table_structure_preset=docling_serve_settings.default_table_structure_preset,
+        allowed_table_structure_presets=docling_serve_settings.allowed_table_structure_presets,
+        custom_table_structure_presets=docling_serve_settings.custom_table_structure_presets,
+        allow_custom_table_structure_config=docling_serve_settings.allow_custom_table_structure_config,
         # Layout Control
         default_layout_kind=docling_serve_settings.default_layout_kind,
         allowed_layout_kinds=docling_serve_settings.allowed_layout_kinds,
+        default_layout_preset=docling_serve_settings.default_layout_preset,
+        allowed_layout_presets=docling_serve_settings.allowed_layout_presets,
+        custom_layout_presets=docling_serve_settings.custom_layout_presets,
+        allow_custom_layout_config=docling_serve_settings.allow_custom_layout_config,
+        # OCR Control
+        default_ocr_preset=docling_serve_settings.default_ocr_preset,
+        default_ocr_kind=docling_serve_settings.default_ocr_kind,
+        allowed_ocr_presets=docling_serve_settings.allowed_ocr_presets,
+        custom_ocr_presets=docling_serve_settings.custom_ocr_presets,
+        allowed_ocr_kinds=docling_serve_settings.allowed_ocr_kinds,
+        allow_custom_ocr_config=docling_serve_settings.allow_custom_ocr_config,
     )
 
     # Create worker with instrumentation

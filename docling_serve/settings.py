@@ -108,6 +108,10 @@ class DoclingServeSettings(BaseSettings):
     allow_custom_vlm_config: bool = False
     allow_custom_picture_description_config: bool = False
     allow_custom_code_formula_config: bool = False
+    allow_custom_table_structure_config: bool = False
+    allow_custom_layout_config: bool = False
+    allow_custom_picture_classification_config: bool = False
+    allow_custom_ocr_config: bool = False
     show_version_info: bool = True
     enable_management_endpoints: bool = False
 
@@ -274,13 +278,31 @@ class DoclingServeSettings(BaseSettings):
     custom_code_formula_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_code_formula_engines: Optional[list[str]] = None
 
+    # Picture Classification Control
+    default_picture_classification_preset: str = "document_figure_classifier_v2"
+    allowed_picture_classification_presets: Optional[list[str]] = None
+    custom_picture_classification_presets: dict[str, Any] = Field(default_factory=dict)
+
     # Table Structure Control
     default_table_structure_kind: str = "docling_tableformer"
     allowed_table_structure_kinds: Optional[list[str]] = None
+    default_table_structure_preset: str = "tableformer_v1_accurate"
+    allowed_table_structure_presets: Optional[list[str]] = None
+    custom_table_structure_presets: dict[str, Any] = Field(default_factory=dict)
 
     # Layout Control
     default_layout_kind: str = "docling_layout_default"
     allowed_layout_kinds: Optional[list[str]] = None
+    default_layout_preset: str = "docling_layout_default"
+    allowed_layout_presets: Optional[list[str]] = None
+    custom_layout_presets: dict[str, Any] = Field(default_factory=dict)
+
+    # OCR Control
+    default_ocr_preset: str = "auto"
+    default_ocr_kind: str = "auto"
+    allowed_ocr_presets: Optional[list[str]] = None
+    custom_ocr_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_ocr_kinds: Optional[list[str]] = None
 
     @classmethod
     def settings_customise_sources(
@@ -307,6 +329,10 @@ class DoclingServeSettings(BaseSettings):
         "custom_vlm_presets",
         "custom_picture_description_presets",
         "custom_code_formula_presets",
+        "custom_picture_classification_presets",
+        "custom_table_structure_presets",
+        "custom_layout_presets",
+        "custom_ocr_presets",
         mode="before",
     )
     @classmethod
@@ -333,8 +359,13 @@ class DoclingServeSettings(BaseSettings):
         "allowed_picture_description_engines",
         "allowed_code_formula_presets",
         "allowed_code_formula_engines",
+        "allowed_picture_classification_presets",
         "allowed_table_structure_kinds",
+        "allowed_table_structure_presets",
         "allowed_layout_kinds",
+        "allowed_layout_presets",
+        "allowed_ocr_presets",
+        "allowed_ocr_kinds",
         mode="before",
     )
     @classmethod
