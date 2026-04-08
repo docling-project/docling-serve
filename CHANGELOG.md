@@ -1,3 +1,29 @@
+## [v1.16.0](https://github.com/docling-project/docling-serve/releases/tag/v1.16.0) - 2026-04-08
+
+### Feature
+
+* Experimental client SDK ([#571](https://github.com/docling-project/docling-serve/issues/571)) ([`c02d9f1`](https://github.com/docling-project/docling-serve/commit/c02d9f1c46fc20d6f1ba9279667e62cdeebc3ef4))
+* Add table structure preset configuration and extend manager settings ([#569](https://github.com/docling-project/docling-serve/issues/569)) ([`38c12ef`](https://github.com/docling-project/docling-serve/commit/38c12ef52ba6ff559465f8af80716ab58967718a))
+* Expose max_ongoing_requests per ray-serve replica ([#562](https://github.com/docling-project/docling-serve/issues/562)) ([`e2e86bf`](https://github.com/docling-project/docling-serve/commit/e2e86bf3f4ee5111af4605f6f391649be53ea321))
+* Redis connection gating on API server ([#561](https://github.com/docling-project/docling-serve/issues/561)) ([`e17f5c7`](https://github.com/docling-project/docling-serve/commit/e17f5c7a8f6bd680eec6c52dacecc2464c72b8be))
+* New ray orchestrator ([#557](https://github.com/docling-project/docling-serve/issues/557)) ([`453db67`](https://github.com/docling-project/docling-serve/commit/453db676ee859f7dce4e1ff8b6b14ee66efdf83e))
+* Add callbacks (#3) ([#555](https://github.com/docling-project/docling-serve/issues/555)) ([`ded6ca2`](https://github.com/docling-project/docling-serve/commit/ded6ca2ceb06aa12d45f637ff26acb783398ee6c))
+
+### Fix
+
+* Support dict fields in FormDepends for multipart form data ([#566](https://github.com/docling-project/docling-serve/issues/566)) ([`6a64f95`](https://github.com/docling-project/docling-serve/commit/6a64f9524115085c148f029cd75732e5e30de393))
+* Pre-import tesserocr in main thread to avoid cysignals thread error ([#564](https://github.com/docling-project/docling-serve/issues/564)) ([`3f31fa0`](https://github.com/docling-project/docling-serve/commit/3f31fa0a42695d729f476b05606a1fa894b3d385))
+* Single-use result deletion via orchestrator lifecycle hooks ([#560](https://github.com/docling-project/docling-serve/issues/560)) ([`92f7f75`](https://github.com/docling-project/docling-serve/commit/92f7f75561b3221ad8525d9852f3dc540d4a5293))
+
+### Docling libraries included in this release:
+- docling 2.85.0
+- docling-core 2.72.0
+- docling-ibm-models 3.13.0
+- docling-jobkit 1.16.0
+- docling-mcp 1.3.4
+- docling-parse 5.8.0
+- docling-serve 1.16.0
+
 ## [v1.15.1](https://github.com/docling-project/docling-serve/releases/tag/v1.15.1) - 2026-03-26
 
 ### Fix
