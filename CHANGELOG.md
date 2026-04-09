@@ -1,3 +1,18 @@
+## [v1.16.1](https://github.com/docling-project/docling-serve/releases/tag/v1.16.1) - 2026-04-09
+
+### Fix
+
+* Downgrade torch for linux arm64 compatibility ([#572](https://github.com/docling-project/docling-serve/issues/572)) ([`590394e`](https://github.com/docling-project/docling-serve/commit/590394efde6a7cae05fb16959f002059bfb2091f))
+
+### Docling libraries included in this release:
+- docling 2.85.0
+- docling-core 2.72.0
+- docling-ibm-models 3.13.0
+- docling-jobkit 1.16.0
+- docling-mcp 1.3.4
+- docling-parse 5.8.0
+- docling-serve 1.16.1
+
 ## [v1.16.0](https://github.com/docling-project/docling-serve/releases/tag/v1.16.0) - 2026-04-08
 
 ### Feature
