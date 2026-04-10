@@ -13,12 +13,13 @@ from opentelemetry.trace import SpanKind, Status, StatusCode
 from rq import get_current_job
 
 from docling.datamodel.base_models import DocumentStream
+from docling.datamodel.service.sources import FileSource, HttpSource
+from docling.datamodel.service.tasks import TaskType
 from docling_jobkit.convert.chunking import process_chunk_results
 from docling_jobkit.convert.manager import DoclingConverterManager
 from docling_jobkit.convert.results import process_export_results
-from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
 from docling_jobkit.datamodel.task import Task
-from docling_jobkit.datamodel.task_meta import TaskStatus, TaskType
+from docling_jobkit.datamodel.task_meta import TaskStatus
 from docling_jobkit.orchestrators.rq.orchestrator import (
     RQOrchestratorConfig,
     _TaskUpdate,
