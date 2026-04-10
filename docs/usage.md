@@ -7,7 +7,7 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 On top of the source of file (see below), both endpoints support the same parameters.
 
 <!-- begin: parameters-docs -->
-<h4>ConvertDocumentsRequestOptions</h4>
+<h4>ConvertDocumentsOptions</h4>
 
 | Field Name | Type | Description |
 |------------|------|-------------|
@@ -16,7 +16,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
-| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `kserve_v2_ocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
+| `ocr_engine` | str | DEPRECATED: Use ocr_preset instead. The OCR engine to use. String.  |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
 | `ocr_custom_config` | Dict[str, Any] or NoneType | Custom configuration for OCR engine. Use this to specify engine-specific options beyond `ocr_lang`. Each OCR engine kind has its own configuration schema. |
@@ -25,7 +25,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
 | `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
-| `document_timeout` | float | The timeout for processing each document, in seconds. |
+| `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
 | `include_images` | bool | If enabled, images will be extracted from the document. Boolean. Optional, defaults to true. |
