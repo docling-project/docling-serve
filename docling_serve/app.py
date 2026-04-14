@@ -228,14 +228,6 @@ def create_app():  # noqa: C901
         version=version,
     )
 
-    dispatcher_unavailable_error_type: type[Exception] | None = None
-    if docling_serve_settings.eng_kind == AsyncEngine.RAY:
-        from docling_jobkit.orchestrators.ray.orchestrator import (
-            DispatcherUnavailableError,
-        )
-
-        dispatcher_unavailable_error_type = DispatcherUnavailableError
-
     @app.exception_handler(RedisBackpressureError)
     async def redis_backpressure_error_handler(
         request: Request, exc: RedisBackpressureError
@@ -247,9 +239,12 @@ def create_app():  # noqa: C901
             headers={"Retry-After": "1"},
         )
 
-    if dispatcher_unavailable_error_type is not None:
+    if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        from docling_jobkit.orchestrators.ray.orchestrator import (
+            DispatcherUnavailableError,
+        )
 
-        @app.exception_handler(dispatcher_unavailable_error_type)
+        @app.exception_handler(DispatcherUnavailableError)
         async def dispatcher_unavailable_error_handler(
             request: Request, exc: Exception
         ) -> JSONResponse:
