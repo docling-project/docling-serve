@@ -180,7 +180,7 @@ pytorch-triton-rocm = [
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/ray-dispatcher-improvements" }
 # docling = { git = "https://github.com/docling-project/docling/", rev = "main" }
 
-# docling-jobkit = { path = "../docling-jobkit", editable = true }
+docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
