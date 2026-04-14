@@ -2,15 +2,14 @@ import logging
 
 from fastapi import WebSocket
 
-from docling_jobkit.datamodel.task_meta import TaskStatus
-from docling_jobkit.orchestrators.base_notifier import BaseNotifier
-from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator
-
-from docling_serve.datamodel.responses import (
+from docling.datamodel.service.responses import (
     MessageKind,
     TaskStatusResponse,
     WebsocketMessage,
 )
+from docling_jobkit.datamodel.task_meta import TaskStatus
+from docling_jobkit.orchestrators.base_notifier import BaseNotifier
+from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator
 
 _log = logging.getLogger(__name__)
 

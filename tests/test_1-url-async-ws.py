@@ -1,4 +1,5 @@
 import base64
+import json
 from pathlib import Path
 
 import httpx
@@ -84,6 +85,17 @@ async def test_convert_url(async_client: httpx.AsyncClient):
     with connect(uri) as websocket:
         for message in websocket:
             print(message)
+            payload = json.loads(message)
+            if payload["message"] == "error":
+                pytest.fail(payload["error"] or "Websocket returned an error message")
+            if payload["message"] == "update" and payload["task"]["task_status"] in (
+                "success",
+                "failure",
+            ):
+                task = payload["task"]
+                break
+
+    assert task["task_status"] == "success", task.get("error_message")
 
     result_resp = await async_client.get(f"{base_url}/result/{task['task_id']}")
     assert result_resp.status_code == 200, "Response should be 200 OK"

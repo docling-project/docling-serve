@@ -2,6 +2,11 @@ import logging
 
 from fastapi import BackgroundTasks, Response
 
+from docling.datamodel.service.responses import (
+    ChunkDocumentResponse,
+    ConvertDocumentResponse,
+    PresignedUrlConvertDocumentResponse,
+)
 from docling_jobkit.datamodel.result import (
     ChunkedDocumentResult,
     DoclingTaskResult,
@@ -13,11 +18,6 @@ from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
 
-from docling_serve.datamodel.responses import (
-    ChunkDocumentResponse,
-    ConvertDocumentResponse,
-    PresignedUrlConvertDocumentResponse,
-)
 from docling_serve.settings import docling_serve_settings
 
 _log = logging.getLogger(__name__)
