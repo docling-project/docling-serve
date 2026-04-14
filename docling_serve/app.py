@@ -228,6 +228,14 @@ def create_app():  # noqa: C901
         version=version,
     )
 
+    dispatcher_unavailable_error_type: type[Exception] | None = None
+    if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        from docling_jobkit.orchestrators.ray.orchestrator import (
+            DispatcherUnavailableError,
+        )
+
+        dispatcher_unavailable_error_type = DispatcherUnavailableError
+
     @app.exception_handler(RedisBackpressureError)
     async def redis_backpressure_error_handler(
         request: Request, exc: RedisBackpressureError
@@ -239,6 +247,19 @@ def create_app():  # noqa: C901
             headers={"Retry-After": "1"},
         )
 
+    if dispatcher_unavailable_error_type is not None:
+
+        @app.exception_handler(dispatcher_unavailable_error_type)
+        async def dispatcher_unavailable_error_handler(
+            request: Request, exc: Exception
+        ) -> JSONResponse:
+            del request
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"detail": str(exc) or "Ray dispatcher is unavailable."},
+                headers={"Retry-After": "1"},
+            )
+
     # Setup OpenTelemetry instrumentation
     redis_url = (
         docling_serve_settings.eng_rq_redis_url
@@ -249,9 +270,11 @@ def create_app():  # noqa: C901
     # Get Ray redis_manager if using Ray engine
     ray_redis_manager = None
     if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        from docling_jobkit.orchestrators.ray.orchestrator import RayOrchestrator
+
         orchestrator = get_async_orchestrator()
-        if hasattr(orchestrator, "redis_manager"):
-            ray_redis_manager = orchestrator.redis_manager
+        assert isinstance(orchestrator, RayOrchestrator)
+        ray_redis_manager = orchestrator.redis_manager
 
     setup_otel_instrumentation(
         app,
