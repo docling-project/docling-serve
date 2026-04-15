@@ -646,7 +646,16 @@ def create_app():  # noqa: C901
         return await readiness()
 
     @app.get("/livez", tags=["health"], include_in_schema=False)
-    def livez() -> HealthCheckResponse:
+    async def livez() -> HealthCheckResponse:
+        if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+            from docling_jobkit.orchestrators.ray.orchestrator import RayOrchestrator
+
+            orch = get_async_orchestrator()
+            if isinstance(orch, RayOrchestrator) and not orch.is_liveness_healthy():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Ray runtime has been unhealthy past the liveness deadline",
+                )
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench

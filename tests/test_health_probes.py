@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -10,6 +11,7 @@ from docling_serve.datamodel.responses import (
     HealthCheckResponse,
     ReadinessResponse,
 )
+from docling_serve.settings import AsyncEngine, docling_serve_settings
 
 
 @pytest.fixture(scope="session")
@@ -19,9 +21,14 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session")
 async def app():
-    app = create_app()
-    async with LifespanManager(app) as manager:
-        yield manager.app
+    original_load_models_at_boot = docling_serve_settings.load_models_at_boot
+    docling_serve_settings.load_models_at_boot = False
+    try:
+        app = create_app()
+        async with LifespanManager(app) as manager:
+            yield manager.app
+    finally:
+        docling_serve_settings.load_models_at_boot = original_load_models_at_boot
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -62,6 +69,31 @@ async def test_livez_alias(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_livez_returns_503_when_ray_orchestrator_is_past_liveness_deadline(
+    client: AsyncClient,
+):
+    original_engine = docling_serve_settings.eng_kind
+    docling_serve_settings.eng_kind = AsyncEngine.RAY
+    try:
+        orchestrator = MagicMock()
+        orchestrator.is_liveness_healthy.return_value = False
+
+        with patch(
+            "docling_serve.app.get_async_orchestrator", return_value=orchestrator
+        ):
+            with patch(
+                "docling_jobkit.orchestrators.ray.orchestrator.RayOrchestrator",
+                MagicMock,
+            ):
+                response = await client.get("/livez")
+    finally:
+        docling_serve_settings.eng_kind = original_engine
+
+    assert response.status_code == 503
+    assert "liveness deadline" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

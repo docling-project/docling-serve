@@ -269,6 +269,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             task_timeout=docling_serve_settings.eng_ray_task_timeout,
             document_timeout=docling_serve_settings.eng_ray_document_timeout,
             redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
+            dispatcher_rpc_timeout=docling_serve_settings.eng_ray_dispatcher_rpc_timeout,
+            liveness_fail_after=docling_serve_settings.eng_ray_liveness_fail_after,
             # Health Checks
             enable_heartbeat=docling_serve_settings.eng_ray_enable_heartbeat,
             # Resource Management & Memory Monitoring
