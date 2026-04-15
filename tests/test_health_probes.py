@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -61,6 +61,28 @@ async def test_readyz_alias(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_readyz_for_ray_skips_deep_connection_check(client: AsyncClient):
+    original_engine = docling_serve_settings.eng_kind
+    docling_serve_settings.eng_kind = AsyncEngine.RAY
+    try:
+        orchestrator = MagicMock()
+        orchestrator.check_connection = AsyncMock(
+            side_effect=AssertionError("Ray readiness should stay shallow")
+        )
+
+        with patch(
+            "docling_serve.app.get_async_orchestrator", return_value=orchestrator
+        ):
+            response = await client.get("/readyz")
+    finally:
+        docling_serve_settings.eng_kind = original_engine
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    orchestrator.check_connection.assert_not_called()
 
 
 @pytest.mark.asyncio

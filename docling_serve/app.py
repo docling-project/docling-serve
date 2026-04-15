@@ -631,6 +631,12 @@ def create_app():  # noqa: C901
             )
 
         orchestrator = get_async_orchestrator()
+        if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+            # Ray readiness stays shallow so rollout/startup probes do not depend
+            # on deep dispatcher RPC health. Prolonged Ray unhealthiness is
+            # handled by /livez via RayOrchestrator.is_liveness_healthy().
+            return ReadinessResponse()
+
         try:
             await orchestrator.check_connection()
         except Exception as exc:
