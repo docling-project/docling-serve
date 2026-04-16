@@ -167,7 +167,7 @@ async def debug_redis_state():  # noqa: C901
                     status = metadata.get("status", "unknown")
 
                     # Get processing state
-                    processing_state = await redis_manager.get_task_processing_state(
+                    processing_state = await redis_manager.get_task_dispatch_state_hash(
                         task_id
                     )
                     if processing_state:
@@ -222,7 +222,7 @@ async def debug_redis_state():  # noqa: C901
         for tenant_id in users:
             active_task_ids = await redis_manager.get_tenant_active_task_ids(tenant_id)
             for task_id in active_task_ids:
-                processing_state = await redis_manager.get_task_processing_state(
+                processing_state = await redis_manager.get_task_dispatch_state_hash(
                     task_id
                 )
                 if not processing_state:
