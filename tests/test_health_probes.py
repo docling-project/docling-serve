@@ -64,13 +64,13 @@ async def test_readyz_alias(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_readyz_for_ray_skips_deep_connection_check(client: AsyncClient):
+async def test_readyz_for_ray_runs_deep_connection_check(client: AsyncClient):
     original_engine = docling_serve_settings.eng_kind
     docling_serve_settings.eng_kind = AsyncEngine.RAY
     try:
         orchestrator = MagicMock()
         orchestrator.check_connection = AsyncMock(
-            side_effect=AssertionError("Ray readiness should stay shallow")
+            side_effect=RuntimeError("Ray dispatcher unavailable")
         )
 
         with patch(
@@ -80,9 +80,9 @@ async def test_readyz_for_ray_skips_deep_connection_check(client: AsyncClient):
     finally:
         docling_serve_settings.eng_kind = original_engine
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    orchestrator.check_connection.assert_not_called()
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Ray dispatcher unavailable"
+    orchestrator.check_connection.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -94,28 +94,22 @@ async def test_livez_alias(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_livez_returns_503_when_ray_orchestrator_is_past_liveness_deadline(
+async def test_livez_for_ray_does_not_check_orchestrator_health(
     client: AsyncClient,
 ):
     original_engine = docling_serve_settings.eng_kind
     docling_serve_settings.eng_kind = AsyncEngine.RAY
     try:
-        orchestrator = MagicMock()
-        orchestrator.is_liveness_healthy.return_value = False
-
         with patch(
-            "docling_serve.app.get_async_orchestrator", return_value=orchestrator
+            "docling_serve.app.get_async_orchestrator",
+            side_effect=AssertionError("/livez should not touch the Ray orchestrator"),
         ):
-            with patch(
-                "docling_jobkit.orchestrators.ray.orchestrator.RayOrchestrator",
-                MagicMock,
-            ):
-                response = await client.get("/livez")
+            response = await client.get("/livez")
     finally:
         docling_serve_settings.eng_kind = original_engine
 
-    assert response.status_code == 503
-    assert "liveness deadline" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
 
 
 @pytest.mark.asyncio

@@ -164,6 +164,106 @@ The plan is aligned with Ray docs:
 - Detached actors are intentionally long-lived shared resources and must not be cleaned up by normal API shutdown.
 - The dispatcher should continue receiving fresh Serve handles from the orchestrator via `refresh_runtime(...)`; do not make this hardening change depend on Serve DeveloperAPI handle lookup by name.
 
+## Post-Validation Findings
+
+Chaos validation exposed two remaining defects that must be fixed before this hardening can be considered complete.
+
+### Finding 1. Dispatcher-unavailable failures can still bypass HTTP `503`
+
+Observed behavior:
+- async submission sometimes returned HTTP `500` instead of the intended HTTP `503`
+- the failing stack passed through `ensure_dispatcher_ready()` and `_bind_dispatcher()`
+- Ray then entered its own init / reconnect path and raised lower-level exceptions including `SystemExit: 15`
+
+Why this is a problem:
+- the API contract for invalid Ray dispatcher state is `503 Service Unavailable` with `Retry-After: 1`
+- returning `500` means the hardening is not reliably containing dispatcher-unavailable conditions at the API boundary
+
+Required fix:
+- normalize all request-path dispatcher-binding / Ray-init failures into `DispatcherUnavailableError`
+- this includes lower-level Ray exceptions that occur while binding the named dispatcher, including process-exit style failures raised from Ray internals
+- no enqueue path may leak these failures as HTTP `500`
+
+Acceptance criteria:
+- when the Ray head or dispatcher is unavailable, async Ray submission returns HTTP `503`
+- sync Ray submission that internally enqueues also returns HTTP `503`
+- the response includes `Retry-After: 1`
+- the same invalid-state scenario does not emit an unhandled ASGI traceback for the request
+
+### Finding 2. API startup is still coupled to Ray availability through OTEL setup
+
+Observed behavior:
+- after Ray head disruption, the API process could become slow to restart or fail startup entirely
+- `create_app()` eagerly called `get_async_orchestrator()` only to obtain the Ray Redis manager for OpenTelemetry setup
+- that constructed `RayOrchestrator`, which immediately called `ray.init()`
+- when the Ray head was unavailable, API startup failed before the app could serve requests
+
+Why this is a problem:
+- observability setup must not make API availability depend on Ray head availability
+- this defeats the goal of graceful degradation: the API process should still start and return controlled `503` responses rather than crash-looping or hanging during boot
+
+Required fix:
+- remove the startup-time Ray dependency from OTEL wiring in `create_app()`
+- `create_app()` must not require `get_async_orchestrator()` for metrics / instrumentation setup
+- API process startup must succeed even while the Ray head is unavailable
+
+Acceptance criteria:
+- with the Ray head unavailable, the API process still starts successfully
+- `/livez` remains healthy for the running process
+- request paths that need Ray fail with controlled HTTP `503`, not startup failure
+- OTEL / metrics wiring does not call `ray.init()` during ASGI app creation
+
+### Finding 3. Killing the dispatcher actor can orphan an in-flight task in `started`
+
+Observed behavior:
+- killing the named detached `RayTaskDispatcher` actor during an active task did not permanently break admission
+- the local supervisor detected dispatcher unhealthiness, rebound the named actor, and the replacement dispatcher became healthy again
+- however, the in-flight task remained stuck in durable metadata as `status=started`
+- the task kept its `task:{id}:processing` state, remained in the tenant active set, and never produced a result
+
+Why this is a problem:
+- dispatcher recovery currently restores control-plane health for new work, but does not restore ownership of already in-flight task completion
+- the actual terminal success/failure writeback and `complete_task_atomic()` cleanup are currently performed by a fire-and-forget coroutine owned by the dispatcher actor
+- when that actor dies, the coroutine dies with it
+- reconciliation does not recover the task because the surviving `processing` key causes the current policy to treat the task as still live
+
+Required fix:
+- do not rely on dispatcher-actor-local background coroutine state as the only owner of terminal task completion
+- make in-flight task completion durable across dispatcher actor death, or make stale `processing` state detectable so reconciliation can fail and release the task
+- a surviving `processing` key must not be treated as sufficient evidence that a task is still making progress unless it is backed by a real execution heartbeat
+
+Acceptance criteria:
+- killing `RayTaskDispatcher` during an active task does not leave the task indefinitely stuck in `started`
+- after dispatcher recovery, the affected task reaches a terminal state (`success` or `failure`) within a bounded recovery window
+- tenant active-task capacity is released for the affected task
+- if execution is no longer actually progressing, reconciliation can fail the task even when stale `processing` state remains
+- a replacement dispatcher actor alone is not considered sufficient recovery unless in-flight task ownership is also restored or reconciled
+
+### Finding 4. API pod restart can cause prolonged external `502` outage and loss of status visibility
+
+Observed behavior:
+- deleting the `docling-serve` API pod while a task was active terminated the old process with `SIGTERM`
+- the old pod logged request / shutdown noise including `SystemExit: 15`, cancelled lifespan waits, and cancelled Ray client futures
+- the replacement API pod eventually started and reconnected to Ray / Serve
+- however, the public API stayed behind Cloudflare `502 Bad gateway` responses for an extended period
+- the chaos harness timed out on `recovery_timeout_after=120.7s` because no successful status poll returned during that window
+
+Why this is a problem:
+- durable Redis-backed task status is not sufficient if clients cannot reach any healthy API instance to read it
+- from the client perspective, task continuity is lost when the status endpoint disappears behind prolonged external `502`s
+- this means API restart hardening is incomplete at the externally observable service boundary even if internal task state survives
+
+Required fix:
+- API pod replacement must not produce a prolonged external `502` window for status polling
+- replacement pod startup and readiness must be fast enough that the public route continues to expose task status within a bounded recovery window
+- normal pod termination during rolling replacement must not rely on request paths that emit unhandled tracebacks as part of expected shutdown
+
+Acceptance criteria:
+- restarting or deleting the active `docling-serve` pod during an in-flight task does not cause a prolonged external `502` outage
+- `/v1/status/poll/{task_id}` becomes reachable again within a bounded recovery window well below the current `120s+` failure mode
+- once the replacement pod is serving, the client can observe the task converge to a terminal state rather than timing out at the gateway layer
+- pod replacement does not require manual intervention to restore externally visible status polling
+
 ## Appendix: Implemented State
 
 This appendix records the implementation choices actually taken in `docling-jobkit` and `docling-serve`.

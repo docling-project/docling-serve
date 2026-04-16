@@ -631,12 +631,6 @@ def create_app():  # noqa: C901
             )
 
         orchestrator = get_async_orchestrator()
-        if docling_serve_settings.eng_kind == AsyncEngine.RAY:
-            # Ray readiness stays shallow so rollout/startup probes do not depend
-            # on deep dispatcher RPC health. Prolonged Ray unhealthiness is
-            # handled by /livez via RayOrchestrator.is_liveness_healthy().
-            return ReadinessResponse()
-
         try:
             await orchestrator.check_connection()
         except Exception as exc:
@@ -653,15 +647,6 @@ def create_app():  # noqa: C901
 
     @app.get("/livez", tags=["health"], include_in_schema=False)
     async def livez() -> HealthCheckResponse:
-        if docling_serve_settings.eng_kind == AsyncEngine.RAY:
-            from docling_jobkit.orchestrators.ray.orchestrator import RayOrchestrator
-
-            orch = get_async_orchestrator()
-            if isinstance(orch, RayOrchestrator) and not orch.is_liveness_healthy():
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Ray runtime has been unhealthy past the liveness deadline",
-                )
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench
