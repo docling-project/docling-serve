@@ -103,3 +103,7 @@ PDF-dependent tests use `tests/2206.01062v1.pdf`. If the file is absent, those t
 ## Schema Validation
 
 At startup, the gRPC server validates that the `DoclingDocument` protobuf definition matches the Pydantic schema from docling-core. Incompatible type mismatches cause startup failure; new fields in either schema produce warnings. See [schema_validation.md](schema_validation.md) for details. For a reference on the protobuf descriptor API used by the validator, see [descriptor_api_guide.md](descriptor_api_guide.md).
+
+## Keeping In Sync With Upstream
+
+While the gRPC PRs are open against `docling-core` and `docling-serve`, both branches need to be re-merged with `main` regularly and the proto/mapping layer needs to be checked for drift. The full procedure — including how to use the schema validator and the test suites to surface upstream changes mechanically — is in [upstream_sync_procedure.md](upstream_sync_procedure.md).

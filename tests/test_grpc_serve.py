@@ -251,7 +251,7 @@ async def test_convert_source_multiple_formats(grpc_stub):
                 do_ocr=False,
                 force_ocr=False,
                 to_formats=[
-                    docling_serve_types_pb2.OUTPUT_FORMAT_MD,
+                    docling_serve_types_pb2.OUTPUT_FORMAT_MARKDOWN,
                     docling_serve_types_pb2.OUTPUT_FORMAT_TEXT,
                     docling_serve_types_pb2.OUTPUT_FORMAT_HTML,
                     docling_serve_types_pb2.OUTPUT_FORMAT_DOCTAGS,

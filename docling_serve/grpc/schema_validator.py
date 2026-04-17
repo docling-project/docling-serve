@@ -20,11 +20,7 @@ _log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Allowed coercions (spec §6)
 # ---------------------------------------------------------------------------
-ALLOWED_COERCIONS: dict[str, tuple[str, str]] = {
-    "**.binary_hash": ("int", "string"),
-    "pages": ("map<int,*>", "map<string,*>"),
-    "**.label": ("enum", "string"),
-}
+ALLOWED_COERCIONS: dict[str, tuple[str, str]] = {}
 
 # Proto messages that are oneof wrappers around Pydantic-side types.
 # Key = proto message name, Value = set of Pydantic message names it wraps.
@@ -90,11 +86,17 @@ _FIELD_NAME_ALIASES: dict[str, str] = {
 # "base" sub-message (TextItemBase) that holds the common fields.  Pydantic
 # uses class inheritance instead.  We flatten through the "base" field so
 # paths align: proto "texts.title.base.text" → compared as "texts.text".
+#
+# CodeItem deliberately does NOT use the wrapper. In Pydantic, CodeItem is
+# the only text variant that overrides `meta` (FloatingItem.meta:
+# Optional[FloatingMeta] vs NodeItem.meta: Optional[BaseMeta]). Wrapping
+# TextItemBase would surface two `meta` slots on the wire (base.meta and
+# the override). The proto inlines the base fields instead.  See
+# proto/ai/docling/core/v1/docling_document.proto CodeItem for rationale.
 _BASE_FIELD_WRAPPERS: dict[str, str] = {
     "TitleItem": "base",
     "SectionHeaderItem": "base",
     "ListItem": "base",
-    "CodeItem": "base",
     "FormulaItem": "base",
     "TextItem": "base",
     "FieldHeadingItem": "base",
@@ -115,15 +117,18 @@ _PROTO_LEAF_MESSAGES: set[str] = {
     "StringIntPair",
 }
 
-# Proto-only paths that exist because of structural divergences.
-# Each entry documents a proto path prefix whose sub-fields have no
-# Pydantic counterpart — because the converter builds them from different
-# Pydantic structures.
+# Proto paths that exist as named fields on the proto side but are
+# computed/derived on the Pydantic side. Each entry documents a path
+# prefix whose sub-fields therefore won't appear in `model_fields` even
+# though the value IS part of the canonical wire shape.
 #
 # "*.data.grid" / "*.chart_data.grid":
-#   Proto uses `repeated TableRow grid` as a row-major accessor.
-#   Pydantic's TableData has no `grid` field — the converter builds
-#   grid rows from `table_cells`.  All grid sub-paths are proto-only.
+#   Pydantic's TableData.grid is a `@computed_field` (not a stored field),
+#   derived from `table_cells` + cell row/col offsets. Because it's a
+#   `@computed_field`, it IS emitted in Pydantic's JSON dump, so the proto
+#   surfaces it as an explicit `repeated TableRow grid` field for parity
+#   with the JSON wire shape. It does NOT appear in `model_fields`, hence
+#   this allowlist entry — but it is not a divergence.
 _PROTO_ONLY_PREFIXES: set[str] = {
     "tables.data.grid",
     "pictures.meta.tabular_chart.chart_data.grid",
@@ -132,6 +137,20 @@ _PROTO_ONLY_PREFIXES: set[str] = {
     "chart_data.grid",
 }
 
+# Pydantic-only discriminator fields that are absorbed into a proto oneof
+# tag. Pydantic's discriminated unions (Annotated[Union[...], discriminator=X])
+# require a per-variant string field carrying the variant name. Proto
+# encodes the same information in the parent `oneof` tag, making the
+# per-variant string field redundant on the wire.
+#
+# Format: { ProtoMessageName: { field_name, ... } }
+_PYDANTIC_ONLY_DISCRIMINATORS: dict[str, set[str]] = {
+    # TrackSource is wrapped by SourceType (oneof source { TrackSource track = 1 }).
+    # The Pydantic side has `kind: Literal["track"]` for the discriminator.
+    "TrackSource": {"kind"},
+}
+
+
 # Proto-only field name suffixes for enum fallback fields.
 # When a proto enum field (e.g., coord_origin, code_language) encounters
 # an unknown value, the raw string is stored in a companion *_raw field.
@@ -139,6 +158,15 @@ _PROTO_ONLY_PREFIXES: set[str] = {
 _RAW_FALLBACK_SUFFIXES: set[str] = {
     "coord_origin_raw",
     "code_language_raw",
+    "label_raw",
+    # CodeMetaField.language_raw is the forward-compat fallback for the
+    # CodeLanguageLabel enum on PictureMeta.code (no "code_" prefix because
+    # the field already lives inside the Code* message).
+    "language_raw",
+    # Formatting.script_raw is the forward-compat fallback for the Script
+    # enum (Pydantic Script today: BASELINE, SUB, SUPER — but added for
+    # policy uniformity with the other small enums).
+    "script_raw",
 }
 
 _WRAPPER_MEMBER_NAMES: set[str] = {
@@ -804,6 +832,13 @@ def _compare_fields(
                 missing_pydantic.append(f"{context}{path}")
                 continue
         if pr_type is None and py_type is not None:
+            # Suppress Pydantic discriminator fields absorbed by a parent
+            # proto oneof tag.  `context` looks like "TrackSource." for
+            # oneof wrapper member walks; we strip the trailing dot.
+            ctx_msg = context.rstrip(".") if context.endswith(".") else context
+            discriminators = _PYDANTIC_ONLY_DISCRIMINATORS.get(ctx_msg, set())
+            if path in discriminators:
+                continue
             alias = _resolve_alias(path, proto_fields)
             if alias is not None:
                 pr_type = proto_fields.get(alias)

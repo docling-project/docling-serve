@@ -69,8 +69,13 @@ def test_fails_on_type_mismatch():
 
 
 def test_allowlist_suppresses_known_coercions(caplog):
-    """Known coercions (binary_hash, pages, label) must not fail."""
+    """Explicitly allowlisted coercions must not fail."""
     with (
+        patch.dict(
+            "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
+            {"**.binary_hash": ("int", "string")},
+            clear=True,
+        ),
         patch(
             "docling_serve.grpc.schema_validator._collect_pydantic_fields",
             return_value={"origin.binary_hash": "int"},
@@ -179,16 +184,31 @@ class TestStructuralEquivalences:
 
 class TestCoercionAllowlist:
     def test_binary_hash(self):
-        assert _is_coercion_allowed("origin.binary_hash", "int", "string")
-        assert _is_coercion_allowed("foo.bar.binary_hash", "int", "string")
+        with patch.dict(
+            "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
+            {"**.binary_hash": ("int", "string")},
+            clear=True,
+        ):
+            assert _is_coercion_allowed("origin.binary_hash", "int", "string")
+            assert _is_coercion_allowed("foo.bar.binary_hash", "int", "string")
 
     def test_pages_map_key(self):
-        assert _is_coercion_allowed(
-            "pages", "map<int,message:PageItem>", "map<string,message:PageItem>"
-        )
+        with patch.dict(
+            "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
+            {"pages": ("map<int,*>", "map<string,*>")},
+            clear=True,
+        ):
+            assert _is_coercion_allowed(
+                "pages", "map<int,message:PageItem>", "map<string,message:PageItem>"
+            )
 
     def test_label(self):
-        assert _is_coercion_allowed("foo.label", "enum:FooLabel", "string")
+        with patch.dict(
+            "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
+            {"**.label": ("enum", "string")},
+            clear=True,
+        ):
+            assert _is_coercion_allowed("foo.label", "enum:FooLabel", "string")
 
     def test_not_allowed(self):
         assert not _is_coercion_allowed("foo.bar", "int", "string")

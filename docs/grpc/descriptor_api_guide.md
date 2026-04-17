@@ -146,7 +146,7 @@ Map fields (dictionaries):
 field.label == FieldDescriptor.LABEL_REPEATED and field.message_type.GetOptions().map_entry
 ```
 
-Example: `map<string, PageItem> pages`
+Example: `map<int32, PageItem> pages`
 
 ```python
 pages_field = msg_descriptor.fields_by_name["pages"]

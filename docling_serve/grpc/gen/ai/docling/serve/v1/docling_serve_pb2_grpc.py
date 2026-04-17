@@ -5,7 +5,7 @@ import warnings
 
 from ai.docling.serve.v1 import docling_serve_pb2 as ai_dot_docling_dot_serve_dot_v1_dot_docling__serve__pb2
 
-GRPC_GENERATED_VERSION = '1.78.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 

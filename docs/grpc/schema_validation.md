@@ -120,22 +120,12 @@ Normalize Pydantic types into canonical forms before comparison:
 
 ## 6) Known / Allowed Coercions (Allowlist)
 
-These must be explicitly configured. Otherwise they are **FAIL**:
+The allowlist is intentionally empty in the current contract:
 
-1) **binary_hash**
-- Pydantic: `int`
-- Proto: `string`
-- **Allowed** (int -> string serialization)
+- `ALLOWED_COERCIONS = {}`
 
-2) **pages map key**
-- Pydantic: `Dict[int, PageItem]`
-- Proto: `map<string, PageItem>`
-- **Allowed** (int -> string key coercion)
-
-3) **label fields stored as strings in proto**
-- Pydantic: `DocItemLabel` enum (on `TableItem`, `PictureItem`, `KeyValueItem`, `FormItem`)
-- Proto: `string`
-- **Allowed** — matched by wildcard pattern `**.label`
+Any newly introduced coercion must be explicitly justified and documented
+before being added.
 
 ### Structural Equivalences (not coercions)
 
@@ -256,6 +246,7 @@ exist only in proto and have no Pydantic counterpart by design.
 |--------|-------------------|---------|
 | `coord_origin_raw` | `CoordOrigin` | Forward-compat for unknown coordinate origins |
 | `code_language_raw` | `CodeLanguageLabel` | Forward-compat for unknown code languages |
+| `label_raw` | `DocItemLabel` | Forward-compat for unknown document labels |
 
 ### 13.5) Base Field Wrappers (`_BASE_FIELD_WRAPPERS`)
 

@@ -76,6 +76,9 @@ def _map_input_format(value: int) -> Optional[InputFormat]:
         "INPUT_FORMAT_XLSX": InputFormat.XLSX,
         "INPUT_FORMAT_XML_JATS": InputFormat.XML_JATS,
         "INPUT_FORMAT_XML_USPTO": InputFormat.XML_USPTO,
+        "INPUT_FORMAT_LATEX": InputFormat.LATEX,
+        "INPUT_FORMAT_VTT": InputFormat.VTT,
+        "INPUT_FORMAT_XML_XBRL": InputFormat.XML_XBRL,
     }
     return mapping.get(name)
 
@@ -89,8 +92,10 @@ def _map_output_format(value: int) -> Optional[OutputFormat]:
         "OUTPUT_FORMAT_HTML": OutputFormat.HTML,
         "OUTPUT_FORMAT_HTML_SPLIT_PAGE": OutputFormat.HTML_SPLIT_PAGE,
         "OUTPUT_FORMAT_JSON": OutputFormat.JSON,
-        "OUTPUT_FORMAT_MD": OutputFormat.MARKDOWN,
+        "OUTPUT_FORMAT_MARKDOWN": OutputFormat.MARKDOWN,
         "OUTPUT_FORMAT_TEXT": OutputFormat.TEXT,
+        "OUTPUT_FORMAT_YAML": OutputFormat.YAML,
+        "OUTPUT_FORMAT_VTT": OutputFormat.VTT,
     }
     return mapping.get(name)
 
@@ -116,8 +121,8 @@ def _map_ocr_engine(value: int) -> Optional[str]:
         "OCR_ENGINE_EASYOCR": "easyocr",
         "OCR_ENGINE_OCRMAC": "ocrmac",
         "OCR_ENGINE_RAPIDOCR": "rapidocr",
-        "OCR_ENGINE_TESSEROCR": "tesseract",
-        "OCR_ENGINE_TESSERACT": "tesseract_cli",
+        "OCR_ENGINE_TESSEROCR": "tesserocr",
+        "OCR_ENGINE_TESSERACT": "tesseract",
     }
     return mapping.get(name)
 
@@ -128,6 +133,7 @@ def _map_pdf_backend(value: int) -> Optional[PdfBackend]:
         return None
     mapping = {
         "PDF_BACKEND_PYPDFIUM2": PdfBackend.PYPDFIUM2,
+        "PDF_BACKEND_DOCLING_PARSE": PdfBackend.DOCLING_PARSE,
         "PDF_BACKEND_DLPARSE_V1": PdfBackend.DLPARSE_V1,
         "PDF_BACKEND_DLPARSE_V2": PdfBackend.DLPARSE_V2,
         "PDF_BACKEND_DLPARSE_V4": PdfBackend.DLPARSE_V4,
@@ -152,6 +158,7 @@ def _map_pipeline(value: int) -> Optional[ProcessingPipeline]:
         return None
     mapping = {
         "PROCESSING_PIPELINE_ASR": ProcessingPipeline.ASR,
+        "PROCESSING_PIPELINE_LEGACY": ProcessingPipeline.LEGACY,
         "PROCESSING_PIPELINE_STANDARD": ProcessingPipeline.STANDARD,
         "PROCESSING_PIPELINE_VLM": ProcessingPipeline.VLM,
     }
@@ -169,6 +176,16 @@ def _map_vlm_model_type(value: int) -> Optional[VlmModelType]:
         "VLM_MODEL_TYPE_GRANITE_VISION_VLLM": VlmModelType.GRANITE_VISION_VLLM,
         "VLM_MODEL_TYPE_GRANITE_VISION_OLLAMA": VlmModelType.GRANITE_VISION_OLLAMA,
         "VLM_MODEL_TYPE_GOT_OCR_2": VlmModelType.GOT_OCR_2,
+        "VLM_MODEL_TYPE_GRANITEDOCLING": VlmModelType.GRANITEDOCLING,
+        "VLM_MODEL_TYPE_GRANITEDOCLING_VLLM": VlmModelType.GRANITEDOCLING_VLLM,
+        "VLM_MODEL_TYPE_DEEPSEEKOCR_OLLAMA": VlmModelType.DEEPSEEKOCR_OLLAMA,
+        "VLM_MODEL_TYPE_NANONETS_OCR2": VlmModelType.NANONETS_OCR2,
+        "VLM_MODEL_TYPE_NANONETS_OCR2_VLLM": VlmModelType.NANONETS_OCR2_VLLM,
+        "VLM_MODEL_TYPE_NANONETS_OCR2_LMSTUDIO": VlmModelType.NANONETS_OCR2_LMSTUDIO,
+        "VLM_MODEL_TYPE_GLMOCR": VlmModelType.GLMOCR,
+        "VLM_MODEL_TYPE_GLMOCR_VLLM": VlmModelType.GLMOCR_VLLM,
+        "VLM_MODEL_TYPE_LIGHTONOCR": VlmModelType.LIGHTONOCR,
+        "VLM_MODEL_TYPE_LIGHTONOCR_VLLM": VlmModelType.LIGHTONOCR_VLLM,
     }
     return mapping.get(name)
 
@@ -205,9 +222,8 @@ def _map_transformers_model_type(value: int) -> Optional[TransformersModelType]:
         return None
     mapping = {
         "TRANSFORMERS_MODEL_TYPE_AUTOMODEL": TransformersModelType.AUTOMODEL,
-        "TRANSFORMERS_MODEL_TYPE_AUTOMODEL_VISION2SEQ": TransformersModelType.AUTOMODEL_VISION2SEQ,
-        "TRANSFORMERS_MODEL_TYPE_AUTOMODEL_CAUSALLM": TransformersModelType.AUTOMODEL_CAUSALLM,
         "TRANSFORMERS_MODEL_TYPE_AUTOMODEL_IMAGETEXTTOTEXT": TransformersModelType.AUTOMODEL_IMAGETEXTTOTEXT,
+        "TRANSFORMERS_MODEL_TYPE_AUTOMODEL_CAUSALLM": TransformersModelType.AUTOMODEL_CAUSALLM,
     }
     return mapping.get(name)
 
@@ -440,6 +456,74 @@ def to_convert_options(
                 "url": proto_options.vlm_pipeline_model_api,
                 "response_format": ResponseFormat.DOCTAGS,
             }
+
+    if proto_options.HasField("do_chart_extraction"):
+        data["do_chart_extraction"] = proto_options.do_chart_extraction
+
+    if proto_options.HasField("vlm_pipeline_preset"):
+        data["vlm_pipeline_preset"] = proto_options.vlm_pipeline_preset
+
+    if proto_options.HasField("picture_description_preset"):
+        data["picture_description_preset"] = proto_options.picture_description_preset
+
+    if proto_options.HasField("code_formula_preset"):
+        data["code_formula_preset"] = proto_options.code_formula_preset
+
+    if proto_options.HasField("vlm_pipeline_custom_config"):
+        data["vlm_pipeline_custom_config"] = json_format.MessageToDict(
+            proto_options.vlm_pipeline_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("picture_description_custom_config"):
+        data["picture_description_custom_config"] = json_format.MessageToDict(
+            proto_options.picture_description_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("code_formula_custom_config"):
+        data["code_formula_custom_config"] = json_format.MessageToDict(
+            proto_options.code_formula_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("table_structure_custom_config"):
+        data["table_structure_custom_config"] = json_format.MessageToDict(
+            proto_options.table_structure_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("layout_custom_config"):
+        data["layout_custom_config"] = json_format.MessageToDict(
+            proto_options.layout_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("ocr_preset"):
+        data["ocr_preset"] = proto_options.ocr_preset
+
+    if proto_options.HasField("ocr_custom_config"):
+        data["ocr_custom_config"] = json_format.MessageToDict(
+            proto_options.ocr_custom_config,
+            preserving_proto_field_name=True,
+        )
+
+    if proto_options.HasField("table_structure_preset"):
+        data["table_structure_preset"] = proto_options.table_structure_preset
+
+    if proto_options.HasField("layout_preset"):
+        data["layout_preset"] = proto_options.layout_preset
+
+    if proto_options.HasField("picture_classification_preset"):
+        data["picture_classification_preset"] = (
+            proto_options.picture_classification_preset
+        )
+
+    if proto_options.HasField("picture_classification_custom_config"):
+        data["picture_classification_custom_config"] = json_format.MessageToDict(
+            proto_options.picture_classification_custom_config,
+            preserving_proto_field_name=True,
+        )
 
     return ConvertDocumentsRequestOptions.model_validate(data)
 

@@ -91,7 +91,7 @@ def test_docling_document_to_proto_basic_fields():
     assert proto.version == doc.version
     assert proto.name == "test"
     assert proto.origin.mimetype == "application/pdf"
-    assert proto.origin.binary_hash == "123456"
+    assert proto.origin.binary_hash == 123456
     assert proto.origin.filename == "test.pdf"
 
 
@@ -103,10 +103,10 @@ def test_docling_document_to_proto_pages_map_keys():
     }
 
     proto = docling_document_to_proto(doc)
-    assert "1" in proto.pages
-    assert "2" in proto.pages
-    assert proto.pages["1"].page_no == 1
-    assert proto.pages["2"].size.width == 300.0
+    assert 1 in proto.pages
+    assert 2 in proto.pages
+    assert proto.pages[1].page_no == 1
+    assert proto.pages[2].size.width == 300.0
 
 
 def test_docling_document_to_proto_text_items():
@@ -153,7 +153,6 @@ def test_docling_document_to_proto_text_items():
     assert proto.texts[0].title.base.text == "Title"
     assert proto.texts[0].title.base.source[0].track.start_time == 1.0
     assert proto.texts[0].title.base.source[0].track.identifier == "seg-1"
-    assert proto.texts[0].title.base.source[0].track.kind == "track"
     assert proto.texts[0].title.base.comments[0].ref == "#/comments/0"
     assert proto.texts[0].title.base.comments[0].range.start == 2
     assert proto.texts[0].title.base.comments[0].range.end == 5
@@ -219,7 +218,7 @@ def test_docling_document_to_proto_picture_item():
 
     proto = docling_document_to_proto(doc)
     assert len(proto.pictures) == 1
-    assert proto.pictures[0].label == DocItemLabel.PICTURE.value
+    assert proto.pictures[0].label == pb2.DOC_ITEM_LABEL_PICTURE
 
 
 def test_annotation_unknown_type_raises():
@@ -405,8 +404,8 @@ def test_docling_document_to_proto_image_ref_and_page_image():
     doc.pages = {1: page}
 
     proto = docling_document_to_proto(doc)
-    assert proto.pages["1"].image.mimetype == "image/png"
-    assert proto.pages["1"].image.size.width == 10.0
+    assert proto.pages[1].image.mimetype == "image/png"
+    assert proto.pages[1].image.size.width == 10.0
 
 
 def test_docling_document_to_proto_rich_table_cell_and_provenance():
@@ -1127,12 +1126,12 @@ class TestRoundTrip:
         assert proto.name == "test"
         assert proto.schema_name == "DoclingDocument"
         assert proto.origin.filename == "test.pdf"
-        assert proto.origin.binary_hash == "123456"
+        assert proto.origin.binary_hash == 123456
 
         # Pages
         assert len(proto.pages) == 2
-        assert proto.pages["2"].image.dpi == 150
-        assert proto.pages["2"].image.mimetype == "image/png"
+        assert proto.pages[2].image.dpi == 150
+        assert proto.pages[2].image.mimetype == "image/png"
 
         # Furniture
         assert proto.furniture.name == "_furniture_"

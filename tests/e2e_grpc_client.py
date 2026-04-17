@@ -265,7 +265,7 @@ class GrpcE2ETests:
             self._skip("Markdown export", "no test PDF")
             return
 
-        opts = types_pb2.ConvertDocumentOptions(to_formats=[types_pb2.OUTPUT_FORMAT_MD])
+        opts = types_pb2.ConvertDocumentOptions(to_formats=[types_pb2.OUTPUT_FORMAT_MARKDOWN])
         req = pb2.ConvertSourceRequest(request=self._make_file_request(options=opts))
         resp = self.stub.ConvertSource(req)
 
