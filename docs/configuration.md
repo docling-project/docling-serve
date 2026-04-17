@@ -117,6 +117,9 @@ The following options control the behavior of the Docling converter, including p
 | ----|---------|-------------|
 | `DOCLING_SERVE_DEFAULT_TABLE_STRUCTURE_KIND` | `docling_tableformer` | Default table structure kind used when user doesn't provide custom config. |
 | `DOCLING_SERVE_ALLOWED_TABLE_STRUCTURE_KINDS` | `null` (all allowed) | List of allowed table structure kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+| `DOCLING_SERVE_DEFAULT_TABLE_STRUCTURE_PRESET` | `tableformer_v1_accurate` | Default table structure preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_TABLE_STRUCTURE_PRESETS` | `null` (all allowed) | List of allowed table structure preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_TABLE_STRUCTURE_PRESETS` | `{}` | Custom table structure presets. Must be a JSON object mapping preset IDs to table structure options with 'kind' field. |
 
 #### Layout Control
 
@@ -124,6 +127,9 @@ The following options control the behavior of the Docling converter, including p
 | ----|---------|-------------|
 | `DOCLING_SERVE_DEFAULT_LAYOUT_KIND` | `docling_layout_default` | Default layout kind used when user doesn't provide custom config. |
 | `DOCLING_SERVE_ALLOWED_LAYOUT_KINDS` | `null` (all allowed) | List of allowed layout kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+| `DOCLING_SERVE_DEFAULT_LAYOUT_PRESET` | `docling_layout_default` | Default layout preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_LAYOUT_PRESETS` | `null` (all allowed) | List of allowed layout preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_LAYOUT_PRESETS` | `{}` | Custom layout presets. Must be a JSON object mapping preset IDs to layout options with 'kind' field. |
 
 **Configuration Examples:**
 

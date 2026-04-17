@@ -2,15 +2,14 @@ import logging
 
 from fastapi import WebSocket
 
-from docling_jobkit.datamodel.task_meta import TaskStatus
-from docling_jobkit.orchestrators.base_notifier import BaseNotifier
-from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator
-
-from docling_serve.datamodel.responses import (
+from docling.datamodel.service.responses import (
     MessageKind,
     TaskStatusResponse,
     WebsocketMessage,
 )
+from docling_jobkit.datamodel.task_meta import TaskStatus
+from docling_jobkit.orchestrators.base_notifier import BaseNotifier
+from docling_jobkit.orchestrators.base_orchestrator import BaseOrchestrator
 
 _log = logging.getLogger(__name__)
 
@@ -47,16 +46,25 @@ class WebsocketNotifier(BaseNotifier):
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
             )
-            for websocket in list(self.task_subscribers.get(task_id, set())):
-                await websocket.send_text(
-                    WebsocketMessage(
-                        message=MessageKind.UPDATE, task=msg
-                    ).model_dump_json()
-                )
+        except Exception as e:
+            _log.error(f"Error fetching status for task {task_id}: {e}")
+            return
+
+        payload = WebsocketMessage(
+            message=MessageKind.UPDATE, task=msg
+        ).model_dump_json()
+        for websocket in list(self.task_subscribers.get(task_id, set())):
+            try:
+                await websocket.send_text(payload)
                 if task.is_completed():
                     await websocket.close()
-        except Exception as e:
-            _log.error(f"Error notifying subscribers for task {task_id}: {e}")
+            except Exception as e:
+                _log.warning(
+                    f"Failed to notify subscriber for task {task_id}, discarding: {e}"
+                )
+                subs = self.task_subscribers.get(task_id)
+                if subs:
+                    subs.discard(websocket)
 
     async def notify_queue_positions(self):
         """Notify all subscribers of pending tasks about queue position updates."""

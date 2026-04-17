@@ -7,16 +7,16 @@ The API provides two endpoints: one for urls, one for files. This is necessary t
 On top of the source of file (see below), both endpoints support the same parameters.
 
 <!-- begin: parameters-docs -->
-<h4>ConvertDocumentsRequestOptions</h4>
+<h4>ConvertDocumentsOptions</h4>
 
 | Field Name | Type | Description |
 |------------|------|-------------|
 | `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `mets_gbs`, `json_docling`, `audio`, `vtt`, `latex`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`. Optional, defaults to Markdown. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
-| `ocr_engine` | `ocr_engines_enum` | The OCR engine to use. String. Allowed values: `auto`, `easyocr`, `ocrmac`, `rapidocr`, `tesserocr`, `tesseract`. Optional, defaults to `easyocr`. |
+| `ocr_engine` | str | DEPRECATED: Use ocr_preset instead. The OCR engine to use. String.  |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
 | `ocr_custom_config` | Dict[str, Any] or NoneType | Custom configuration for OCR engine. Use this to specify engine-specific options beyond `ocr_lang`. Each OCR engine kind has its own configuration schema. |
@@ -25,7 +25,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
 | `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
-| `document_timeout` | float | The timeout for processing each document, in seconds. |
+| `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
 | `include_images` | bool | If enabled, images will be extracted from the document. Boolean. Optional, defaults to true. |
@@ -48,6 +48,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `vlm_pipeline_custom_config` | VlmConvertOptions or dict or NoneType | Custom VLM configuration including model spec and engine options. Only available if admin allows it. Must include '`model_spec`' and '`engine_options`'. |
 | `picture_description_custom_config` | PictureDescriptionVlmEngineOptions or dict or NoneType | Custom picture description configuration including model spec and engine options. |
 | `code_formula_custom_config` | CodeFormulaVlmOptions or dict or NoneType | Custom code/formula extraction configuration including model spec and engine options. |
+| `table_structure_preset` | str or NoneType | Preset ID for table structure detection. |
 | `table_structure_custom_config` | Dict[str, Any] or NoneType | Custom configuration for table structure model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which table structure implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_custom_config` | Dict[str, Any] or NoneType | Custom configuration for layout model. Use this to specify a non-default kind with its options. The 'kind' field in the config dict determines which layout implementation to use. If not specified, uses the default kind with preset configuration. |
 | `layout_preset` | str or NoneType | Preset ID for layout detection. |
