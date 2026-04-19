@@ -259,6 +259,16 @@ class DoclingServeSettings(BaseSettings):
     # Metrics
     metrics_port: Optional[int] = None
 
+    # Resource upload post-processing
+    resource_upload_enabled: bool = False
+    resource_upload_url: Optional[str] = None
+    resource_download_url_template: Optional[str] = None
+    resource_upload_file_field_name: str = "aaa"
+    resource_upload_form_data: dict[str, str] = Field(default_factory=dict)
+    resource_upload_timeout_seconds: int = 60
+    resource_local_base_dir: Optional[Path] = None
+    resource_strip_base64_data_urls: bool = True
+
     # === DoclingConverterManagerConfig Parameters ===
     # TODO: Don't overwrite the default of docling-jobkit. This requires first some restructure in jobkit.
 
