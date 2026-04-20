@@ -10,7 +10,7 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Optional
 
 import psutil
 from fastapi import (
@@ -84,11 +84,14 @@ from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
     RedisBackpressureError,
+    SystemCapacity,
     TaskNotFoundError,
 )
+from docling_jobkit.orchestrators.ray.orchestrator import QueueLimitExceededError
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
+from docling_serve.capacity import get_cached_capacity
 from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.otel_instrumentation import (
@@ -237,6 +240,21 @@ def create_app():  # noqa: C901
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "Server is busy, please try again shortly."},
             headers={"Retry-After": "1"},
+        )
+
+    @app.exception_handler(QueueLimitExceededError)
+    async def queue_limit_exceeded_handler(
+        request: Request, exc: QueueLimitExceededError
+    ) -> JSONResponse:
+        del request
+        capacity = await get_cached_capacity(get_async_orchestrator())
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": str(exc),
+                "capacity": capacity.model_dump() if capacity else None,
+            },
+            headers={"Retry-After": "5"},
         )
 
     # Setup OpenTelemetry instrumentation
@@ -397,6 +415,13 @@ def create_app():  # noqa: C901
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
 
+        if docling_serve_settings.admission_max_queue_size is not None:
+            size = await orchestrator.queue_size()
+            if size >= docling_serve_settings.admission_max_queue_size:
+                raise QueueLimitExceededError(
+                    f"Queue full ({size}/{docling_serve_settings.admission_max_queue_size})"
+                )
+
         task = await orchestrator.enqueue(
             task_type=task_type,
             sources=sources,
@@ -451,6 +476,13 @@ def create_app():  # noqa: C901
         metadata = {}
         if tenant_id:
             metadata["tenant_id"] = tenant_id
+
+        if docling_serve_settings.admission_max_queue_size is not None:
+            size = await orchestrator.queue_size()
+            if size >= docling_serve_settings.admission_max_queue_size:
+                raise QueueLimitExceededError(
+                    f"Queue full ({size}/{docling_serve_settings.admission_max_queue_size})"
+                )
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -635,6 +667,14 @@ def create_app():  # noqa: C901
     @app.get("/api", include_in_schema=False)
     def api_check() -> HealthCheckResponse:
         return HealthCheckResponse()
+
+    # Capacity endpoint
+    @app.get("/v1/capacity", tags=["system"])
+    async def get_capacity(
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+    ) -> Optional[SystemCapacity]:
+        """Get system-level capacity snapshot for back pressure signalling."""
+        return await get_cached_capacity(orchestrator)
 
     # Docling versions
     @app.get("/version", tags=["health"])
