@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from pathlib import Path
 from urllib.parse import unquote, unquote_plus
 
@@ -28,6 +29,69 @@ from docling_serve.settings import docling_serve_settings
 
 _log = logging.getLogger(__name__)
 
+_CJK_CHAR_RE = r"\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+_CJK_PUNCT_RE = r"，。！？；：、】【（）《》“”‘’、"
+_CJK_CHAR_CLASS = f"[{_CJK_CHAR_RE}]"
+_CJK_OR_PUNCT_CLASS = f"[{_CJK_CHAR_RE}{_CJK_PUNCT_RE}]"
+
+
+def _merge_broken_cjk_lines(text: str) -> str:
+    lines = text.splitlines()
+    if len(lines) <= 1:
+        return text
+
+    merged: list[str] = []
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not merged:
+            merged.append(line)
+            continue
+        if not line:
+            merged.append(line)
+            continue
+
+        prev = merged[-1]
+        if not prev:
+            merged.append(line)
+            continue
+
+        is_new_block = bool(
+            re.match(r"^(#{1,6}\s|[-*+]\s|\d+[.)、]\s*|[（(]?[一二三四五六七八九十]+[）)]\s*)", line)
+        )
+        prev_ends_sentence = bool(re.search(r"[。！？!?；;：:]$", prev))
+        line_is_short_cjk = bool(re.fullmatch(rf"{_CJK_OR_PUNCT_CLASS}{{1,6}}", line))
+        prev_ends_with_cjk = bool(re.search(rf"{_CJK_OR_PUNCT_CLASS}$", prev))
+        line_starts_with_cjk = bool(re.match(rf"^{_CJK_OR_PUNCT_CLASS}", line))
+
+        if not is_new_block and not prev_ends_sentence and (
+            line_is_short_cjk or (prev_ends_with_cjk and line_starts_with_cjk)
+        ):
+            merged[-1] = prev + line
+        else:
+            merged.append(line)
+
+    return "\n".join(merged)
+
+
+def _normalize_cjk_spacing(text: str) -> str:
+    text = _merge_broken_cjk_lines(text)
+    text = re.sub(rf"(?<={_CJK_CHAR_CLASS})[ \t]+(?={_CJK_CHAR_CLASS})", "", text)
+    text = re.sub(rf"(?<={_CJK_OR_PUNCT_CLASS})[ \t]+(?=[{_CJK_PUNCT_RE}])", "", text)
+    text = re.sub(rf"(?<=[{_CJK_PUNCT_RE}])[ \t]+(?={_CJK_OR_PUNCT_CLASS})", "", text)
+    text = re.sub(rf"([（《“‘【])\s+(?={_CJK_OR_PUNCT_CLASS})", r"\1", text)
+    text = re.sub(rf"(?<={_CJK_OR_PUNCT_CLASS})\s+([）》”’】])", r"\1", text)
+    return text
+
+
+def _normalize_export_json_payload(payload: object):
+    if isinstance(payload, dict):
+        return {k: _normalize_export_json_payload(v) for k, v in payload.items()}
+    if isinstance(payload, list):
+        return [_normalize_export_json_payload(v) for v in payload]
+    if isinstance(payload, str):
+        return _normalize_cjk_spacing(payload)
+    return payload
+
 
 def _publish_text_file(filename: str, suffix: str, content: str):
     base_dir = Path(docling_serve_settings.resource_local_base_dir or ".")
@@ -42,7 +106,8 @@ def _publish_text_file(filename: str, suffix: str, content: str):
         except Exception:
             pass
     out_path = base_dir / f"{Path(decoded_filename).stem}{suffix}"
-    out_path.write_text(content, encoding="utf-8")
+    normalized_content = _normalize_cjk_spacing(content)
+    out_path.write_text(normalized_content, encoding="utf-8")
     return upload_file_and_collect(out_path)
 
 
@@ -79,6 +144,7 @@ async def prepare_response(
             filename = Path(decoded_filename).stem + ".json"
             json_path = base_dir / filename
             json_payload = rewritten_document.json_content.model_dump(mode="json")
+            json_payload = _normalize_export_json_payload(json_payload)
 
             # 修正 JSON 内部的 name 和 origin.filename
             if "name" in json_payload and json_payload["name"]:
