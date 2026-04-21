@@ -8,6 +8,11 @@ in `.gitlab-ci.yml`.
 Once this runner is in service, remove the `.uv_bootstrap` hidden job and the
 `extends: .uv_bootstrap` lines from the pipeline.
 
+> **Note on the temporary bootstrap**: The pipeline currently installs `uv` via
+> `curl -LsSf https://astral.sh/uv/install.sh | sh`. Using `pip3` or
+> `python3 -m pip` was found to be unreliable on the base AL2023 runner because
+> `pip` is not installed by default on that host.
+
 ---
 
 ## Prerequisites
@@ -26,8 +31,11 @@ Once this runner is in service, remove the `.uv_bootstrap` hidden job and the
 AL2023 ships Python 3.9 by default. Install 3.12 (or 3.11) from the standard repos:
 
 ```bash
-sudo dnf install -y python3.12 python3.12-pip python3.12-devel
+sudo dnf install -y python3.12 python3.12-devel
 ```
+
+> **Note**: `python3.12-pip` may not exist as a separate package on AL2023.
+> Use `ensurepip` or the uv installer (step 2) instead.
 
 Verify:
 
@@ -40,26 +48,25 @@ pip3.12 --version
 
 ## 2. Install `uv`
 
-Install via `pip` — this is more reliable in FIPS environments than the
-`curl | sh` installer, which may fail due to FIPS-restricted TLS cipher
-suites or shell execution policies.
+Use the official uv installer — this is the most reliable method since `pip`
+is not installed by default on minimal AL2023 instances:
 
 ```bash
-sudo python3.12 -m pip install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env   # or re-login to pick up PATH
 ```
 
-If `sudo pip3.12` installs to `/usr/local/bin`, verify and add it to the
-system-wide `PATH` if needed:
+Verify:
 
 ```bash
-which uv        # should be /usr/local/bin/uv or /usr/bin/uv
 uv --version
 ```
 
-If `uv` lands in a user-local path instead, install system-wide explicitly:
+To ensure `uv` is available in non-interactive shells (such as GitLab Runner
+job scripts), add it to the `gitlab-runner` user's `~/.bashrc`:
 
 ```bash
-sudo python3.12 -m pip install --prefix /usr/local uv
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ---
