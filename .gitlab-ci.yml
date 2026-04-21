@@ -39,9 +39,19 @@ variables:
   HOST_PORT: "5001"
   CONTAINER_PORT: "5001"
 
+# ─── UV BOOTSTRAP (shell runner — remove once runner has uv pre-installed) ─────
+# See docs/gitlab-runner-setup.md for instructions on building a custom runner
+# (Option 1) that has uv and Python pre-installed, eliminating this overhead.
+
+.uv_bootstrap:
+  before_script:
+    - pip3 install --quiet uv
+    - export PATH="$HOME/.local/bin:$PATH"
+
 # ─── BUILD ────────────────────────────────────────────────────────────────────
 
 lint:
+  extends: .uv_bootstrap
   stage: build
   script:
     - uv run ruff check .
@@ -52,6 +62,7 @@ lint:
     - when: always
 
 build-wheel:
+  extends: .uv_bootstrap
   stage: build
   script:
     - uv build
@@ -131,6 +142,7 @@ build-sbom-image:
 # ─── TEST ─────────────────────────────────────────────────────────────────────
 
 unit-tests:
+  extends: .uv_bootstrap
   stage: test
   needs:
     - job: build-wheel
