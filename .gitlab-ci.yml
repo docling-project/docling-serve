@@ -1,0 +1,549 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# GitLab CI/CD Pipeline — docling-serve
+#
+# Stages:
+#   build   → lint, build wheel, build container image, build SBOM image
+#   test    → unit tests, dependency scanning (SAST), Semgrep SAST
+#   scan    → container scanning
+#   sbom    → merge SBOMs (CycloneDX), convert to XLSX
+#   package → collect all security artifacts with timestamps
+#   deploy  → dev (auto on main), staging (manual), production (manual)
+#
+# Runner requirements:
+#   - Shell executor with Docker CLI available on the host
+#   - Update the `tags:` values below to match your runner labels
+#   - AWS CLI and jq must be pre-installed on the runner for deploy jobs
+# ──────────────────────────────────────────────────────────────────────────────
+
+include:
+  - template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+
+stages:
+  - build
+  - test
+  - scan
+  - sbom
+  - package
+  - deploy
+
+variables:
+  # Exclude dev dependencies from dependency scanning / SBOM
+  DS_INCLUDE_DEV_DEPENDENCIES: "false"
+  # Use the new unified dependency-scanning analyzer (disables Gemnasium)
+  DS_ENFORCE_NEW_ANALYZER: "true"
+  # Enable Docker BuildKit for parallel multi-stage builds and layer caching
+  DOCKER_BUILDKIT: "1"
+  # Default ports — override per-environment in deploy job variables
+  HOST_PORT: "5001"
+  CONTAINER_PORT: "5001"
+
+# ─── BUILD ────────────────────────────────────────────────────────────────────
+
+lint:
+  stage: build
+  script:
+    - uv run ruff check .
+    - uv run ruff format --check .
+  tags:
+    - shell
+  rules:
+    - when: always
+
+build-wheel:
+  stage: build
+  script:
+    - uv build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  tags:
+    - shell
+  rules:
+    - when: always
+
+build-image:
+  stage: build
+  cache: {}
+  script:
+    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    - echo "$DOCLING_SERVE_VERSION" > docling_serve_version.txt
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - |
+      echo "Building image for branch: $CI_COMMIT_REF_NAME..."
+      docker build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        --cache-from "$CI_REGISTRY_IMAGE:latest" \
+        -f Containerfile \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        .
+      docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+      echo "Image pushed to GitLab container registry."
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
+        echo "Tagging as latest (main branch)..."
+        docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" "$CI_REGISTRY_IMAGE:latest"
+        docker push "$CI_REGISTRY_IMAGE:latest"
+      else
+        echo "Not on main — skipping latest tag."
+      fi
+  artifacts:
+    paths:
+      - docling_serve_version.txt
+    expire_in: 1 week
+  tags:
+    - shell
+  rules:
+    - when: always
+
+build-sbom-image:
+  stage: build
+  cache: {}
+  needs:
+    - job: build-image
+      optional: true
+  script:
+    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    - |
+      echo "Building SBOM extraction image for version $DOCLING_SERVE_VERSION..."
+      docker build -f Containerfile.sbom -t "docling-serve-sbom:$DOCLING_SERVE_VERSION" .
+      echo "SBOM image built."
+    - |
+      echo "Extracting SBOMs from image..."
+      SBOM_CONTAINER_ID=$(docker create "docling-serve-sbom:$DOCLING_SERVE_VERSION")
+      docker cp "$SBOM_CONTAINER_ID":/sbom/build-sbom.json   ./build-sbom.json
+      docker cp "$SBOM_CONTAINER_ID":/sbom/runtime-sbom.json ./runtime-sbom.json
+      docker rm "$SBOM_CONTAINER_ID"
+      echo "SBOMs extracted."
+  artifacts:
+    paths:
+      - build-sbom.json
+      - runtime-sbom.json
+    expire_in: 1 week
+  tags:
+    - shell
+  rules:
+    - when: always
+
+# ─── TEST ─────────────────────────────────────────────────────────────────────
+
+unit-tests:
+  stage: test
+  needs:
+    - job: build-wheel
+      artifacts: true
+  variables:
+    DOCLING_SERVE_ENABLE_UI: "false"
+  script:
+    - uv run pytest tests/ -x -q --tb=short
+  tags:
+    - shell
+  rules:
+    - when: always
+
+# Override the GitLab dependency-scanning template job to enforce it always runs
+dependency-scanning:
+  stage: test
+  rules:
+    - when: always
+
+# Override the Semgrep SAST template job to persist the report artifact
+semgrep-sast:
+  stage: test
+  artifacts:
+    paths:
+      - gl-sast-report.json
+    reports:
+      sast: gl-sast-report.json
+    expire_in: 1 week
+  rules:
+    - when: always
+
+# ─── SCAN ─────────────────────────────────────────────────────────────────────
+
+# Override container scanning: move to 'scan' stage (after image is built and
+# pushed), set the image to scan, and preserve SBOM artifacts for merging.
+container_scanning:
+  stage: scan
+  variables:
+    CS_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+    SECURE_LOG_LEVEL: debug
+    CI_GITLAB_FIPS_MODE: "false"
+  needs:
+    - job: build-image
+      artifacts: true
+  dependencies:
+    - dependency_scanning
+  artifacts:
+    paths:
+      - gl-container-scanning-report.json
+      - gl-sbom*.cdx.json
+    reports:
+      container_scanning: gl-container-scanning-report.json
+    expire_in: 1 week
+  rules:
+    - when: always
+
+# ─── SBOM ─────────────────────────────────────────────────────────────────────
+
+merge-sbom:
+  stage: sbom
+  needs:
+    - job: build-image
+      artifacts: true
+    - job: build-sbom-image
+      artifacts: true
+    - job: container_scanning
+      artifacts: true
+  script:
+    - DOCLING_SERVE_VERSION=$(cat docling_serve_version.txt)
+    - echo "Downloading CycloneDX CLI v0.29.1..."
+    - curl -fsSL -o ./cyclonedx https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.29.1/cyclonedx-linux-x64
+    - chmod +x ./cyclonedx
+    - |
+      # Locate the container-scan SBOM (GitLab may produce gl-sbom-report.cdx.json
+      # or a variant; pick the first match)
+      CONTAINER_SBOM=$(ls gl-sbom*.cdx.json 2>/dev/null | head -1)
+      if [ -z "$CONTAINER_SBOM" ]; then
+        echo "WARNING: No container SBOM found — merging without it."
+        CONTAINER_SBOM=""
+      else
+        echo "Using container SBOM: $CONTAINER_SBOM"
+      fi
+    - |
+      echo "Merging build SBOM..."
+      if [ -n "$CONTAINER_SBOM" ]; then
+        ./cyclonedx merge \
+          --input-files "$CONTAINER_SBOM" build-sbom.json \
+          --output-file build-sbom-merged.cdx.json \
+          --output-format json \
+          --output-version v1_6 \
+          --hierarchical \
+          --group "Anautics" \
+          --name "Docling Serve" \
+          --version "$DOCLING_SERVE_VERSION"
+      else
+        ./cyclonedx merge \
+          --input-files build-sbom.json \
+          --output-file build-sbom-merged.cdx.json \
+          --output-format json \
+          --output-version v1_6 \
+          --hierarchical \
+          --group "Anautics" \
+          --name "Docling Serve" \
+          --version "$DOCLING_SERVE_VERSION"
+      fi
+    - |
+      echo "Merging runtime SBOM..."
+      if [ -n "$CONTAINER_SBOM" ]; then
+        ./cyclonedx merge \
+          --input-files "$CONTAINER_SBOM" runtime-sbom.json \
+          --output-file runtime-sbom-merged.cdx.json \
+          --output-format json \
+          --output-version v1_6 \
+          --hierarchical \
+          --group "Anautics" \
+          --name "Docling Serve" \
+          --version "$DOCLING_SERVE_VERSION"
+      else
+        ./cyclonedx merge \
+          --input-files runtime-sbom.json \
+          --output-file runtime-sbom-merged.cdx.json \
+          --output-format json \
+          --output-version v1_6 \
+          --hierarchical \
+          --group "Anautics" \
+          --name "Docling Serve" \
+          --version "$DOCLING_SERVE_VERSION"
+      fi
+    - echo "SBOM merge complete."
+  artifacts:
+    paths:
+      - build-sbom-merged.cdx.json
+      - runtime-sbom-merged.cdx.json
+    expire_in: 1 week
+  tags:
+    - shell
+  rules:
+    - when: always
+
+convert-sbom:
+  stage: sbom
+  needs:
+    - job: merge-sbom
+      artifacts: true
+  script:
+    - echo "Installing Python dependencies for SBOM conversion..."
+    - pip3 install --quiet pandas openpyxl
+    - echo "Converting build SBOM to XLSX..."
+    - python3 scripts/convert_cdx16_sbom_json2xlsx.py -i build-sbom-merged.cdx.json -o build-sbom.xlsx
+    - echo "Converting runtime SBOM to XLSX..."
+    - python3 scripts/convert_cdx16_sbom_json2xlsx.py -i runtime-sbom-merged.cdx.json -o runtime-sbom.xlsx
+    - echo "SBOM conversion complete."
+  artifacts:
+    paths:
+      - build-sbom.xlsx
+      - runtime-sbom.xlsx
+    expire_in: 1 week
+  tags:
+    - shell
+  rules:
+    - when: always
+
+# ─── PACKAGE ──────────────────────────────────────────────────────────────────
+
+package-documents:
+  stage: package
+  needs:
+    - job: build-image
+      artifacts: true
+    - job: semgrep-sast
+      artifacts: true
+    - job: container_scanning
+      artifacts: true
+    - job: merge-sbom
+      artifacts: true
+    - job: convert-sbom
+      artifacts: true
+  script:
+    - echo "Assembling security artifact package..."
+    - mkdir -p "ci-documents-${CI_PIPELINE_ID}"
+    - DATE=$(date +%m-%d-%Y)
+    - DOCLING_SERVE_VERSION=$(cat docling_serve_version.txt)
+    - cp gl-sast-report.json "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-gl-sast-report.json"
+    - |
+      # Container SBOM filename may vary; copy whichever match exists
+      CONTAINER_SBOM=$(ls gl-sbom*.cdx.json 2>/dev/null | head -1)
+      if [ -n "$CONTAINER_SBOM" ]; then
+        cp "$CONTAINER_SBOM" "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-gl-container-sbom.json"
+      fi
+    - cp gl-container-scanning-report.json "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-gl-container-scanning-report.json"
+    - cp build-sbom-merged.cdx.json "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-build-sbom-${DOCLING_SERVE_VERSION}.cdx.json"
+    - cp build-sbom.xlsx "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-build-sbom-${DOCLING_SERVE_VERSION}.xlsx"
+    - cp runtime-sbom-merged.cdx.json "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-runtime-sbom-${DOCLING_SERVE_VERSION}.cdx.json"
+    - cp runtime-sbom.xlsx "ci-documents-${CI_PIPELINE_ID}/${DATE}_docling-serve-runtime-sbom-${DOCLING_SERVE_VERSION}.xlsx"
+    - |
+      echo ""
+      echo "Documents assembled in ci-documents-${CI_PIPELINE_ID}/:"
+      ls -1 "ci-documents-${CI_PIPELINE_ID}/"
+      echo ""
+      echo "NOTE: For a complete vulnerability report, export from the GitLab"
+      echo "Security Dashboard as CSV and name it:"
+      echo "  ${DATE}_docling-serve-vulnerabilities-${DOCLING_SERVE_VERSION}.csv"
+  artifacts:
+    paths:
+      - ci-documents-*
+    expire_in: 90 days
+  tags:
+    - shell
+  rules:
+    - when: always
+
+# ─── DEPLOY ───────────────────────────────────────────────────────────────────
+#
+# Prerequisites (set as GitLab CI/CD protected variables):
+#   DEV_ACCOUNT_ID, DEV_INSTANCE_IDS, DEV_DOMAIN, DEV_ENV
+#   STAGING_ACCOUNT_ID, STAGING_INSTANCE_IDS, STAGING_DOMAIN, STAGING_ENV
+#   PRODUCTION_ACCOUNT_ID, PRODUCTION_INSTANCE_IDS, PRODUCTION_DOMAIN, PRODUCTION_ENV
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (runner's base credentials)
+#
+# The runner host must have: aws, jq, docker, base64
+
+.deploy_template:
+  stage: deploy
+  variables:
+    AWS_REGION: "us-gov-west-1"
+  before_script:
+    - aws --version || (echo "FATAL: aws CLI not found on runner" && exit 1)
+    - jq  --version || (echo "FATAL: jq not found on runner"      && exit 1)
+  script:
+    # ── GUARDRAILS ────────────────────────────────────────────────────────────
+    - 'test -n "$EC2_IDS"        || (echo "FATAL: EC2_IDS is not set"        && exit 1)'
+    - 'test -n "$AWS_ACCOUNT_ID" || (echo "FATAL: AWS_ACCOUNT_ID is not set" && exit 1)'
+    - 'test -n "$DEPLOY_DOMAIN"  || (echo "FATAL: DEPLOY_DOMAIN is not set"  && exit 1)'
+    - 'test -n "$ENV_FILE"       || (echo "FATAL: ENV_FILE is not set"       && exit 1)'
+
+    # ── ASSUME ROLE ───────────────────────────────────────────────────────────
+    - echo "Assuming role in account $AWS_ACCOUNT_ID..."
+    - |
+      ASSUMED_ROLE_JSON=$(aws sts assume-role \
+        --role-arn "arn:aws-us-gov:iam::$AWS_ACCOUNT_ID:role/ansible-ssm-target-role" \
+        --role-session-name "GitLabCI-Deploy-$(date +%s)" \
+        --region "$AWS_REGION")
+    - TEMP_ACCESS_KEY=$(echo "$ASSUMED_ROLE_JSON"    | jq -r .Credentials.AccessKeyId)
+    - TEMP_SECRET_KEY=$(echo "$ASSUMED_ROLE_JSON"    | jq -r .Credentials.SecretAccessKey)
+    - TEMP_SESSION_TOKEN=$(echo "$ASSUMED_ROLE_JSON" | jq -r .Credentials.SessionToken)
+    - '[ -n "$TEMP_ACCESS_KEY" ] || (echo "FATAL: Failed to extract STS credentials" && exit 1)'
+    - echo "Temporary credentials obtained."
+
+    # ── TEMP AWS PROFILE ──────────────────────────────────────────────────────
+    - mkdir -p ~/.aws && umask 077
+    - |
+      cat > ~/.aws/credentials <<EOF
+      [ssm-temp]
+      aws_access_key_id     = ${TEMP_ACCESS_KEY}
+      aws_secret_access_key = ${TEMP_SECRET_KEY}
+      aws_session_token     = ${TEMP_SESSION_TOKEN}
+      EOF
+    - |
+      cat > ~/.aws/config <<EOF
+      [profile ssm-temp]
+      region = ${AWS_REGION}
+      output = json
+      EOF
+    - aws sts get-caller-identity --profile ssm-temp --region "$AWS_REGION" >/dev/null
+    - echo "Temporary profile verified."
+
+    # ── SSM CONNECTIVITY CHECK ────────────────────────────────────────────────
+    - |
+      echo "Verifying SSM connectivity for instances: $EC2_IDS..."
+      for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
+        STATUS=$(aws ssm describe-instance-information \
+          --profile ssm-temp --region "$AWS_REGION" \
+          --query "InstanceInformationList[?InstanceId=='$INSTANCE_ID'].PingStatus | [0]" \
+          --output text)
+        [ "$STATUS" = "Online" ] \
+          || (echo "FATAL: $INSTANCE_ID is not Online in SSM (status: $STATUS)" && exit 1)
+        echo "SSM Online: $INSTANCE_ID"
+      done
+
+    # ── BUILD DEPLOYMENT SCRIPT ───────────────────────────────────────────────
+    - ENV_FILE_B64=$(base64 -w 0 < "$ENV_FILE")
+    - |
+      cat > deploy.sh <<'DEPLOY_EOF'
+      #!/bin/bash
+      set -euo pipefail
+
+      DOCKER_REGISTRY="{{docker_registry}}"
+      IMAGE_VERSION="{{image_version}}"
+      DOCKER_USER="{{docker_user}}"
+      DOCKER_TOKEN="{{docker_token}}"
+
+      IMAGE="$DOCKER_REGISTRY:$IMAGE_VERSION"
+
+      echo "Logging into Docker registry..."
+      echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USER" --password-stdin "$DOCKER_REGISTRY"
+
+      echo "Pulling image: $IMAGE..."
+      docker pull "$IMAGE"
+
+      echo "Stopping and removing existing container..."
+      docker stop docling-serve 2>/dev/null || true
+      docker rm   docling-serve 2>/dev/null || true
+
+      echo "Writing environment file..."
+      echo "{{env_file_b64}}" | base64 -d > /docling-serve.env
+      chmod 600 /docling-serve.env
+
+      echo "Starting container..."
+      docker run \
+        --name docling-serve \
+        --restart always \
+        --env-file /docling-serve.env \
+        --publish {{host_port}}:{{container_port}} \
+        --detach "$IMAGE"
+
+      echo "Removing stale images to prevent disk exhaustion..."
+      docker images --format "{{.Repository}}:{{.Tag}}" \
+        | grep "^$DOCKER_REGISTRY" \
+        | grep -v "^$IMAGE$" \
+        | xargs -r docker rmi --force || true
+      docker image prune -f
+
+      echo "Deployment complete at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+      DEPLOY_EOF
+
+    - sed -i "s|{{docker_registry}}|$CI_REGISTRY_IMAGE|g"  deploy.sh
+    - sed -i "s|{{image_version}}|$CI_COMMIT_REF_SLUG|g"   deploy.sh
+    - sed -i "s|{{docker_user}}|$CI_REGISTRY_USER|g"       deploy.sh
+    - sed -i "s|{{docker_token}}|$CI_REGISTRY_PASSWORD|g"  deploy.sh
+    - sed -i "s|{{host_port}}|$HOST_PORT|g"                deploy.sh
+    - sed -i "s|{{container_port}}|$CONTAINER_PORT|g"      deploy.sh
+    - sed -i "s|{{env_file_b64}}|$ENV_FILE_B64|g"          deploy.sh
+    - chmod +x deploy.sh
+
+    # ── SEND VIA SSM ──────────────────────────────────────────────────────────
+    - |
+      DEPLOY_COMMANDS=$(jq -Rs . < deploy.sh)
+      echo "{\"commands\":[$DEPLOY_COMMANDS]}" > deploy-params.json
+
+      COMMAND_ID=$(aws ssm send-command \
+        --profile ssm-temp \
+        --region "$AWS_REGION" \
+        --instance-ids $EC2_IDS \
+        --document-name "AWS-RunShellScript" \
+        --comment "docling-serve deploy via GitLab CI (pipeline $CI_PIPELINE_ID)" \
+        --parameters file://deploy-params.json \
+        --query "Command.CommandId" \
+        --output text)
+
+      echo "SSM Command ID: $COMMAND_ID"
+
+    - |
+      WAIT_EXIT=0
+      for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
+        aws ssm wait command-executed \
+          --profile ssm-temp \
+          --region "$AWS_REGION" \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID" || WAIT_EXIT=$?
+      done
+
+    - |
+      for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
+        echo "===== SSM output for $INSTANCE_ID ====="
+        aws ssm get-command-invocation \
+          --profile ssm-temp \
+          --region "$AWS_REGION" \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID" \
+          --query '{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}' \
+          --output text
+        echo "========================================="
+      done
+      [ $WAIT_EXIT -eq 0 ] || (echo "FATAL: Deployment failed (SSM wait exit: $WAIT_EXIT)" && exit 1)
+
+  tags:
+    - shell
+
+deploy-dev:
+  extends: .deploy_template
+  needs:
+    - job: package-documents
+  variables:
+    EC2_IDS:        "$DEV_INSTANCE_IDS"
+    AWS_ACCOUNT_ID: "$DEV_ACCOUNT_ID"
+    DEPLOY_DOMAIN:  "$DEV_DOMAIN"
+    ENV_FILE:       "$DEV_ENV"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: on_success
+
+deploy-staging:
+  extends: .deploy_template
+  needs:
+    - job: package-documents
+  variables:
+    EC2_IDS:        "$STAGING_INSTANCE_IDS"
+    AWS_ACCOUNT_ID: "$STAGING_ACCOUNT_ID"
+    DEPLOY_DOMAIN:  "$STAGING_DOMAIN"
+    ENV_FILE:       "$STAGING_ENV"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+
+deploy-production:
+  extends: .deploy_template
+  needs:
+    - job: package-documents
+  variables:
+    EC2_IDS:        "$PRODUCTION_INSTANCE_IDS"
+    AWS_ACCOUNT_ID: "$PRODUCTION_ACCOUNT_ID"
+    DEPLOY_DOMAIN:  "$PRODUCTION_DOMAIN"
+    ENV_FILE:       "$PRODUCTION_ENV"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
