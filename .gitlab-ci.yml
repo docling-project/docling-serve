@@ -47,7 +47,7 @@ lint:
     - uv run ruff check .
     - uv run ruff format --check .
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -60,7 +60,7 @@ build-wheel:
       - dist/
     expire_in: 1 week
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -95,7 +95,7 @@ build-image:
       - docling_serve_version.txt
     expire_in: 1 week
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -124,7 +124,7 @@ build-sbom-image:
       - runtime-sbom.json
     expire_in: 1 week
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -140,7 +140,7 @@ unit-tests:
   script:
     - uv run pytest tests/ -x -q --tb=short
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -269,7 +269,7 @@ merge-sbom:
       - runtime-sbom-merged.cdx.json
     expire_in: 1 week
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -292,7 +292,7 @@ convert-sbom:
       - runtime-sbom.xlsx
     expire_in: 1 week
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -341,7 +341,7 @@ package-documents:
       - ci-documents-*
     expire_in: 90 days
   tags:
-    - shell
+    - al2023-fips-shell
   rules:
     - when: always
 
@@ -510,7 +510,7 @@ package-documents:
       [ $WAIT_EXIT -eq 0 ] || (echo "FATAL: Deployment failed (SSM wait exit: $WAIT_EXIT)" && exit 1)
 
   tags:
-    - shell
+    - al2023-fips-shell
 
 deploy-dev:
   extends: .deploy_template
