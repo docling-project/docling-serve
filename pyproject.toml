@@ -178,7 +178,7 @@ pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/ray-dispatcher-improvements" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/ray-scaledown-settings" }
 
 # docling = { git = "https://github.com/docling-project/docling/", rev = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
