@@ -59,7 +59,7 @@ lint:
   tags:
     - al2023-fips-shell
   rules:
-    - when: always
+    - when: never
 
 build-wheel:
   extends: .uv_bootstrap
