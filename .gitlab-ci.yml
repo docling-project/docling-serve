@@ -145,7 +145,7 @@ unit-tests:
     - when: always
 
 # Override the GitLab dependency-scanning template job to enforce it always runs
-dependency-scanning:
+dependency_scanning:
   stage: test
   rules:
     - when: always
@@ -177,6 +177,7 @@ container_scanning:
       artifacts: true
     - job: dependency_scanning
       artifacts: true
+      optional: true
   dependencies:
     - dependency_scanning
   artifacts:
