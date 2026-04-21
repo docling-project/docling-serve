@@ -359,8 +359,8 @@ package-documents:
   variables:
     AWS_REGION: "us-gov-west-1"
   before_script:
-    - aws --version || (echo "FATAL: aws CLI not found on runner" && exit 1)
-    - jq  --version || (echo "FATAL: jq not found on runner"      && exit 1)
+    - 'aws --version || (echo "FATAL: aws CLI not found on runner" && exit 1)'
+    - 'jq  --version || (echo "FATAL: jq not found on runner"      && exit 1)'
   script:
     # ── GUARDRAILS ────────────────────────────────────────────────────────────
     - 'test -n "$EC2_IDS"        || (echo "FATAL: EC2_IDS is not set"        && exit 1)'
