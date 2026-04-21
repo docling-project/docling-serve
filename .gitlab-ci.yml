@@ -45,7 +45,7 @@ variables:
 
 .uv_bootstrap:
   before_script:
-    - pip3 install --quiet uv
+    - python3 -m pip install --quiet uv
     - export PATH="$HOME/.local/bin:$PATH"
 
 # ─── BUILD ────────────────────────────────────────────────────────────────────

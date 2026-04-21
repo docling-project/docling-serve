@@ -45,7 +45,7 @@ Install via `pip` — this is more reliable in FIPS environments than the
 suites or shell execution policies.
 
 ```bash
-sudo pip3.12 install uv
+sudo python3.12 -m pip install uv
 ```
 
 If `sudo pip3.12` installs to `/usr/local/bin`, verify and add it to the
@@ -59,7 +59,7 @@ uv --version
 If `uv` lands in a user-local path instead, install system-wide explicitly:
 
 ```bash
-sudo pip3.12 install --prefix /usr/local uv
+sudo python3.12 -m pip install --prefix /usr/local uv
 ```
 
 ---
