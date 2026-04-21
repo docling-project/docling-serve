@@ -175,6 +175,8 @@ container_scanning:
   needs:
     - job: build-image
       artifacts: true
+    - job: dependency_scanning
+      artifacts: true
   dependencies:
     - dependency_scanning
   artifacts:
