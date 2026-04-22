@@ -28,6 +28,21 @@ RUN mkdir -p out/release
 WORKDIR /opt/app-root/src/mimalloc/out/release
 RUN cmake ../.. && make
 
+# Build a tiny LD_PRELOAD shim that suppresses the OpenSSL 1.x FIPS abort so
+# that torch's bundled libssl.so.1.1 does not crash the model-download step
+# when building on a FIPS-enabled host kernel.  The shim overrides the two
+# OpenSSL 1.x symbols that ultimately call abort() on a FIPS self-test failure:
+#   OPENSSL_die  – called by OpenSSLDie() in all 1.x code paths
+#   ERR_put_error – no-op override to silence cascading error spam
+# The shim is only loaded during the single RUN layer that downloads models; it
+# is NOT present in the final image ENV, so runtime behaviour is unaffected.
+RUN printf '#include <stdio.h>\n\
+void OPENSSL_die(const char *msg, const char *file, int line) {\n\
+    fprintf(stderr, "OPENSSL_die suppressed (FIPS build-time shim): %%s\\n", msg);\n\
+}\n\
+' > /tmp/no_fips_die.c && \
+    gcc -shared -fPIC -o /usr/local/lib/libno_fips_die.so /tmp/no_fips_die.c
+
 
 FROM ${BASE_IMAGE} AS docling-base
 
@@ -47,6 +62,7 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     rm -rf /var/cache/dnf
 
 COPY --from=mimalloc /opt/app-root/src/mimalloc/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
+COPY --from=mimalloc /usr/local/lib/libno_fips_die.so /usr/local/lib/libno_fips_die.so
 RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
@@ -87,7 +103,9 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
 ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 RUN echo "Downloading models..." && \
+    LD_PRELOAD=/usr/local/lib/libno_fips_die.so \
     OPENSSL_CONF=/dev/null \
+    OPENSSL_FIPS=0 \
     HF_HUB_DOWNLOAD_TIMEOUT="90" \
     HF_HUB_ETAG_TIMEOUT="90" \
     docling-tools models download -o "${DOCLING_SERVE_ARTIFACTS_PATH}" ${MODELS_LIST} && \
