@@ -87,6 +87,7 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
 ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 RUN echo "Downloading models..." && \
+    OPENSSL_CONF=/dev/null \
     HF_HUB_DOWNLOAD_TIMEOUT="90" \
     HF_HUB_ETAG_TIMEOUT="90" \
     docling-tools models download -o "${DOCLING_SERVE_ARTIFACTS_PATH}" ${MODELS_LIST} && \
