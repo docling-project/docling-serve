@@ -58,12 +58,8 @@ variables:
 
 .buildx_fips_bypass:
   before_script:
-    - |
-      mkdir -p "${HOME}/.config/buildkit"
-      cat > "${HOME}/.config/buildkit/buildkitd.toml" <<'BKEOF'
-      [worker.oci]
-        allowInsecureEntitlements = ["security.insecure"]
-      BKEOF
+    - mkdir -p "${HOME}/.config/buildkit"
+    - printf 'insecure-entitlements = ["security.insecure"]\n' > "${HOME}/.config/buildkit/buildkitd.toml"
     - |
       docker buildx create \
         --name fips-bypass \
