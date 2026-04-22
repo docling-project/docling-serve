@@ -103,7 +103,7 @@ build-image:
   stage: build
   cache: {}
   script:
-    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | grep -oP '(?<=")[^"]+(?=")')
     - echo "$DOCLING_SERVE_VERSION" > docling_serve_version.txt
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - |
@@ -144,7 +144,7 @@ build-sbom-image:
     - job: build-image
       optional: true
   script:
-    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | grep -oP '(?<=")[^"]+(?=")')
     - |
       echo "Building SBOM extraction image for version $DOCLING_SERVE_VERSION..."
       docker buildx build \
