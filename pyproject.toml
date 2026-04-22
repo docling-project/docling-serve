@@ -182,6 +182,11 @@ pytorch-triton-rocm = [
 
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
+# flash-attn's setup.py imports torch at build time but doesn't declare it as
+# a build dependency.  Tell uv to inject torch into the build-isolation env.
+[tool.uv.extra-build-dependencies]
+flash-attn = ["torch"]
+
 [[tool.uv.index]]
 name = "pytorch-pypi"
 url = "https://pypi.org/simple"
