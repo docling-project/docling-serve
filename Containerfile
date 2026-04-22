@@ -89,8 +89,9 @@ ARG MODELS_LIST="layout tableformer picture_classifier rapidocr easyocr"
 
 # Mount-bind a file containing "0" over /proc/sys/crypto/fips_enabled so that
 # PyTorch's bundled OpenSSL 1.x sees FIPS as disabled and skips its self-test.
-# --security=insecure grants CAP_SYS_ADMIN (enabled in CI via the buildx
-# builder's allowInsecureEntitlements config — see .gitlab-ci.yml).
+# --security=insecure grants CAP_SYS_ADMIN; must run as root (USER 0) for
+# mount(2) to succeed even with that capability.
+USER 0
 RUN --security=insecure \
     bash -c 'set -e; \
         echo "Downloading models..."; \
@@ -101,6 +102,7 @@ RUN --security=insecure \
         docling-tools models download -o "$DOCLING_SERVE_ARTIFACTS_PATH" $MODELS_LIST' && \
     chown -R 1001:0 ${DOCLING_SERVE_ARTIFACTS_PATH} && \
     chmod -R g=u ${DOCLING_SERVE_ARTIFACTS_PATH}
+USER 1001
 
 COPY --chown=1001:0 ./docling_serve ./docling_serve
 
