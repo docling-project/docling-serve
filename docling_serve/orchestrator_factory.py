@@ -260,6 +260,13 @@ def get_async_orchestrator() -> BaseOrchestrator:
             graceful_shutdown_wait_loop_s=docling_serve_settings.eng_ray_graceful_shutdown_wait_loop_s,
             graceful_shutdown_timeout_s=docling_serve_settings.eng_ray_graceful_shutdown_timeout_s,
             ray_num_cpus_per_actor=docling_serve_settings.eng_ray_num_cpus_per_actor,
+            enable_pdf_page_chunk_fanout=docling_serve_settings.eng_ray_enable_pdf_page_chunk_fanout,
+            max_page_chunk_size=docling_serve_settings.eng_ray_max_page_chunk_size,
+            max_page_chunk_parallelism=docling_serve_settings.eng_ray_max_page_chunk_parallelism,
+            coordinator_target_requests_per_replica=docling_serve_settings.eng_ray_coordinator_target_requests_per_replica,
+            coordinator_max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_coordinator_max_ongoing_requests_per_replica,
+            coordinator_num_cpus=docling_serve_settings.eng_ray_coordinator_num_cpus,
+            coordinator_memory_limit=docling_serve_settings.eng_ray_coordinator_memory_limit,
             # Fault Tolerance & Retry
             max_task_retries=docling_serve_settings.eng_ray_max_task_retries,
             retry_delay=docling_serve_settings.eng_ray_retry_delay,

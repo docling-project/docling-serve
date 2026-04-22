@@ -217,6 +217,13 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_graceful_shutdown_wait_loop_s: Optional[float] = None
     eng_ray_graceful_shutdown_timeout_s: Optional[float] = None
     eng_ray_num_cpus_per_actor: float = 1.0
+    eng_ray_enable_pdf_page_chunk_fanout: bool = False
+    eng_ray_max_page_chunk_size: int = 10
+    eng_ray_max_page_chunk_parallelism: Optional[int] = None
+    eng_ray_coordinator_target_requests_per_replica: Optional[int] = None
+    eng_ray_coordinator_max_ongoing_requests_per_replica: int = 8
+    eng_ray_coordinator_num_cpus: float = 0.5
+    eng_ray_coordinator_memory_limit: Optional[str] = None
 
     # Fault Tolerance & Retry
     eng_ray_max_task_retries: int = 3
