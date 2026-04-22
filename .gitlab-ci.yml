@@ -48,6 +48,33 @@ variables:
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - export PATH="$HOME/.local/bin:$PATH"
 
+# ─── BUILDX FIPS BYPASS ───────────────────────────────────────────────────────
+# Creates a docker buildx builder (docker-container driver) configured to allow
+# the security.insecure entitlement.  This is required so that the
+# `RUN --security=insecure` step in the Containerfile can mount-bind a file
+# containing "0" over /proc/sys/crypto/fips_enabled, causing PyTorch's bundled
+# OpenSSL 1.x to skip its FIPS self-test on FIPS-enabled runner hosts.
+# The builder is cleaned up in after_script to avoid stale containers.
+
+.buildx_fips_bypass:
+  before_script:
+    - |
+      mkdir -p "${HOME}/.config/buildkit"
+      cat > "${HOME}/.config/buildkit/buildkitd.toml" <<'BKEOF'
+      [worker.oci]
+        allowInsecureEntitlements = ["security.insecure"]
+      BKEOF
+    - |
+      docker buildx create \
+        --name fips-bypass \
+        --config "${HOME}/.config/buildkit/buildkitd.toml" \
+        --driver docker-container \
+        --use 2>/dev/null \
+      || docker buildx use fips-bypass
+    - docker buildx inspect --bootstrap
+  after_script:
+    - docker buildx rm fips-bypass 2>/dev/null || true
+
 # ─── BUILD ────────────────────────────────────────────────────────────────────
 
 lint:
@@ -76,6 +103,7 @@ build-wheel:
     - when: always
 
 build-image:
+  extends: .buildx_fips_bypass
   stage: build
   cache: {}
   script:
@@ -84,12 +112,14 @@ build-image:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - |
       echo "Building image for branch: $CI_COMMIT_REF_NAME..."
-      docker build \
+      docker buildx build \
+        --allow security.insecure \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
         --cache-from "$CI_REGISTRY_IMAGE:latest" \
         -f Containerfile \
         -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        --load \
         .
       docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
       echo "Image pushed to GitLab container registry."
@@ -111,6 +141,7 @@ build-image:
     - when: always
 
 build-sbom-image:
+  extends: .buildx_fips_bypass
   stage: build
   cache: {}
   needs:
@@ -120,7 +151,12 @@ build-sbom-image:
     - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
     - |
       echo "Building SBOM extraction image for version $DOCLING_SERVE_VERSION..."
-      docker build -f Containerfile.sbom -t "docling-serve-sbom:$DOCLING_SERVE_VERSION" .
+      docker buildx build \
+        --allow security.insecure \
+        -f Containerfile.sbom \
+        -t "docling-serve-sbom:$DOCLING_SERVE_VERSION" \
+        --load \
+        .
       echo "SBOM image built."
     - |
       echo "Extracting SBOMs from image..."
