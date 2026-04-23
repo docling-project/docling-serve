@@ -321,17 +321,16 @@ merge-sbom:
     - when: always
 
 convert-sbom:
+  extends: .uv_bootstrap
   stage: sbom
   needs:
     - job: merge-sbom
       artifacts: true
   script:
-    - echo "Installing Python dependencies for SBOM conversion..."
-    - pip3 install --quiet pandas openpyxl
     - echo "Converting build SBOM to XLSX..."
-    - python3 scripts/convert_cdx16_sbom_json2xlsx.py -i build-sbom-merged.cdx.json -o build-sbom.xlsx
+    - uv run --with pandas --with openpyxl python scripts/convert_cdx16_sbom_json2xlsx.py -i build-sbom-merged.cdx.json -o build-sbom.xlsx
     - echo "Converting runtime SBOM to XLSX..."
-    - python3 scripts/convert_cdx16_sbom_json2xlsx.py -i runtime-sbom-merged.cdx.json -o runtime-sbom.xlsx
+    - uv run --with pandas --with openpyxl python scripts/convert_cdx16_sbom_json2xlsx.py -i runtime-sbom-merged.cdx.json -o runtime-sbom.xlsx
     - echo "SBOM conversion complete."
   artifacts:
     paths:
