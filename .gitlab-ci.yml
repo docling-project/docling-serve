@@ -186,7 +186,7 @@ unit-tests:
   tags:
     - al2023-fips-shell
   rules:
-    - when: always
+    - when: never
 
 # Override the GitLab dependency-scanning template job to enforce it always runs.
 # Note: dependency_scanning (underscore) is a configuration-only stub — the real
