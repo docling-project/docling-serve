@@ -188,8 +188,11 @@ unit-tests:
   rules:
     - when: always
 
-# Override the GitLab dependency-scanning template job to enforce it always runs
-dependency_scanning:
+# Override the GitLab dependency-scanning template job to enforce it always runs.
+# Note: dependency_scanning (underscore) is a configuration-only stub — the real
+# unified analyzer job introduced by DS_ENFORCE_NEW_ANALYZER is dependency-scanning
+# (hyphen). Override that job instead.
+dependency-scanning:
   stage: test
   rules:
     - when: always
@@ -219,11 +222,11 @@ container_scanning:
   needs:
     - job: build-image
       artifacts: true
-    - job: dependency_scanning
+    - job: dependency-scanning
       artifacts: true
       optional: true
   dependencies:
-    - dependency_scanning
+    - dependency-scanning
   artifacts:
     paths:
       - gl-container-scanning-report.json
