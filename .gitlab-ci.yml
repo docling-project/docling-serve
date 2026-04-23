@@ -272,21 +272,13 @@ merge-sbom:
           --input-files "$CONTAINER_SBOM" build-sbom.json \
           --output-file build-sbom-merged.cdx.json \
           --output-format json \
-          --output-version v1_6 \
-          --hierarchical \
-          --group "Anautics" \
-          --name "Docling Serve" \
-          --version "$DOCLING_SERVE_VERSION"
+          --output-version v1_6
       else
         ./cyclonedx merge \
           --input-files build-sbom.json \
           --output-file build-sbom-merged.cdx.json \
           --output-format json \
-          --output-version v1_6 \
-          --hierarchical \
-          --group "Anautics" \
-          --name "Docling Serve" \
-          --version "$DOCLING_SERVE_VERSION"
+          --output-version v1_6
       fi
     - |
       echo "Merging runtime SBOM..."
@@ -295,21 +287,13 @@ merge-sbom:
           --input-files "$CONTAINER_SBOM" runtime-sbom.json \
           --output-file runtime-sbom-merged.cdx.json \
           --output-format json \
-          --output-version v1_6 \
-          --hierarchical \
-          --group "Anautics" \
-          --name "Docling Serve" \
-          --version "$DOCLING_SERVE_VERSION"
+          --output-version v1_6
       else
         ./cyclonedx merge \
           --input-files runtime-sbom.json \
           --output-file runtime-sbom-merged.cdx.json \
           --output-format json \
-          --output-version v1_6 \
-          --hierarchical \
-          --group "Anautics" \
-          --name "Docling Serve" \
-          --version "$DOCLING_SERVE_VERSION"
+          --output-version v1_6
       fi
     - echo "SBOM merge complete."
   artifacts:
