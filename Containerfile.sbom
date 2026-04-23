@@ -34,9 +34,11 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
 
 COPY pyproject.toml uv.lock ./
 
-# Install all project dependencies (dev group + all extras) via frozen lockfile
+# Install all project dependencies (dev group + all extras) via frozen lockfile.
+# flash-attn requires the CUDA toolkit (nvcc) to compile from source and cannot
+# be installed in a build-time environment that only has the CUDA runtime.
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
-    uv sync --frozen --all-extras
+    uv sync --frozen --all-extras --no-install-package flash-attn
 
 # Install cyclonedx-bom AFTER uv sync so uv does not remove it as extraneous
 RUN pip install --no-cache-dir cyclonedx-bom
