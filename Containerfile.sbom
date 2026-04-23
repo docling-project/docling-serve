@@ -27,10 +27,6 @@ FROM ${BASE_IMAGE} AS build-sbom
 
 USER 0
 
-# Install cyclonedx-bom at the system level so it does NOT appear as a project
-# dependency in the generated SBOM
-RUN pip install --no-cache-dir cyclonedx-bom
-
 WORKDIR /opt/app-root/src
 
 # Mirror the production environment path so the venv lands at /opt/app-root
@@ -41,6 +37,9 @@ COPY pyproject.toml uv.lock ./
 # Install all project dependencies (dev group + all extras) via frozen lockfile
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     uv sync --frozen --all-extras
+
+# Install cyclonedx-bom AFTER uv sync so uv does not remove it as extraneous
+RUN pip install --no-cache-dir cyclonedx-bom
 
 # Generate SBOM by scanning the project venv Python interpreter
 RUN mkdir -p /out && \
@@ -54,8 +53,6 @@ FROM ${BASE_IMAGE} AS runtime-sbom
 
 USER 0
 
-RUN pip install --no-cache-dir cyclonedx-bom
-
 WORKDIR /opt/app-root/src
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/app-root
@@ -67,6 +64,9 @@ COPY pyproject.toml uv.lock ./
 # flash-attn is excluded because it requires CUDA build infrastructure
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     uv sync --frozen --no-dev --all-extras --no-extra flash-attn
+
+# Install cyclonedx-bom AFTER uv sync so uv does not remove it as extraneous
+RUN pip install --no-cache-dir cyclonedx-bom
 
 RUN mkdir -p /out && \
     cyclonedx-py environment \
