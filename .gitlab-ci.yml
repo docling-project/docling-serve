@@ -253,6 +253,8 @@ merge-sbom:
     - echo "Downloading CycloneDX CLI v0.29.1..."
     - curl -fsSL -o ./cyclonedx https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.29.1/cyclonedx-linux-x64
     - chmod +x ./cyclonedx
+    # AL2023 FIPS runners lack libicu; run .NET in invariant globalization mode
+    - export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
     - |
       # Locate the container-scan SBOM (GitLab may produce gl-sbom-report.cdx.json
       # or a variant; pick the first match)
