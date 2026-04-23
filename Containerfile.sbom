@@ -46,7 +46,7 @@ RUN mkdir -p /out && \
     cyclonedx-py environment \
       /opt/app-root/bin/python \
       --output-format JSON \
-      --outfile /out/build-sbom.json
+      -o /out/build-sbom.json
 
 # ── Stage 2: Runtime SBOM (mirrors production Containerfile exactly) ─────────
 FROM ${BASE_IMAGE} AS runtime-sbom
@@ -72,7 +72,7 @@ RUN mkdir -p /out && \
     cyclonedx-py environment \
       /opt/app-root/bin/python \
       --output-format JSON \
-      --outfile /out/runtime-sbom.json
+      -o /out/runtime-sbom.json
 
 # ── Stage 3: Expose SBOMs for extraction ─────────────────────────────────────
 FROM ${BASE_IMAGE} AS sbom-output
