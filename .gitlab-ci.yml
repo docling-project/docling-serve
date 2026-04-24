@@ -446,7 +446,7 @@ package-documents:
       done
 
     # ── BUILD DEPLOYMENT SCRIPT ───────────────────────────────────────────────
-    - echo "ENV_FILE path: $ENV_FILE"
+    - 'echo "ENV_FILE path: $ENV_FILE"'
     - echo "ENV_FILE preview (first 5 lines, values masked):"
     - head -n 5 "$ENV_FILE" | sed 's/=.*/=***MASKED***/' || true
     - ENV_FILE_B64=$(base64 -w 0 < "$ENV_FILE")
