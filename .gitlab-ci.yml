@@ -446,6 +446,9 @@ package-documents:
       done
 
     # ── BUILD DEPLOYMENT SCRIPT ───────────────────────────────────────────────
+    - echo "ENV_FILE path: $ENV_FILE"
+    - echo "ENV_FILE preview (first 5 lines, values masked):"
+    - head -n 5 "$ENV_FILE" | sed 's/=.*/=***MASKED***/' || true
     - ENV_FILE_B64=$(base64 -w 0 < "$ENV_FILE")
     - |
       cat > deploy.sh <<'DEPLOY_EOF'
@@ -499,6 +502,9 @@ package-documents:
     - sed -i "s|{{container_port}}|$CONTAINER_PORT|g"      deploy.sh
     - sed -i "s|{{env_file_b64}}|$ENV_FILE_B64|g"          deploy.sh
     - chmod +x deploy.sh
+    - echo "===== Rendered deploy.sh ====="
+    - cat deploy.sh
+    - echo "=============================="
 
     # ── SEND VIA SSM ──────────────────────────────────────────────────────────
     - |
