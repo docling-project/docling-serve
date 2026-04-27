@@ -36,7 +36,7 @@ variables:
   # Enable Docker BuildKit for parallel multi-stage builds and layer caching
   DOCKER_BUILDKIT: "1"
   # Default ports — override per-environment in deploy job variables
-  HOST_PORT: "5001"
+  HOST_PORT: "8000"
   CONTAINER_PORT: "5001"
 
 # ─── UV BOOTSTRAP (shell runner — remove once runner has uv pre-installed) ─────
