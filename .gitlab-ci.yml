@@ -57,19 +57,20 @@ variables:
 # The builder is cleaned up in after_script to avoid stale containers.
 
 .buildx_fips_bypass:
+  variables:
+    BUILDX_BUILDER: "fips-bypass-${CI_JOB_ID}"
   before_script:
     - mkdir -p "${HOME}/.config/buildkit"
     - printf 'insecure-entitlements = ["security.insecure"]\n' > "${HOME}/.config/buildkit/buildkitd.toml"
     - |
       docker buildx create \
-        --name fips-bypass \
+        --name "$BUILDX_BUILDER" \
         --config "${HOME}/.config/buildkit/buildkitd.toml" \
         --driver docker-container \
-        --use 2>/dev/null \
-      || docker buildx use fips-bypass
+        --use
     - docker buildx inspect --bootstrap
   after_script:
-    - docker buildx rm fips-bypass 2>/dev/null || true
+    - docker buildx rm "$BUILDX_BUILDER" 2>/dev/null || true
 
 # ─── BUILD ────────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,10 @@ build-image:
   extends: .buildx_fips_bypass
   stage: build
   cache: {}
+  variables:
+    # Isolate Docker credentials to this job's working directory to avoid
+    # concurrent jobs on the same runner corrupting ~/.docker/config.json
+    DOCKER_CONFIG: "${CI_PROJECT_DIR}/.docker"
   script:
     - DOCLING_SERVE_VERSION=$(grep '^version' pyproject.toml | head -1 | grep -oP '(?<=")[^"]+(?=")')
     - echo "$DOCLING_SERVE_VERSION" > docling_serve_version.txt
@@ -414,30 +419,19 @@ package-documents:
     - '[ -n "$TEMP_ACCESS_KEY" ] || (echo "FATAL: Failed to extract STS credentials" && exit 1)'
     - echo "Temporary credentials obtained."
 
-    # ── TEMP AWS PROFILE ──────────────────────────────────────────────────────
-    - mkdir -p ~/.aws && umask 077
-    - |
-      cat > ~/.aws/credentials <<EOF
-      [ssm-temp]
-      aws_access_key_id     = ${TEMP_ACCESS_KEY}
-      aws_secret_access_key = ${TEMP_SECRET_KEY}
-      aws_session_token     = ${TEMP_SESSION_TOKEN}
-      EOF
-    - |
-      cat > ~/.aws/config <<EOF
-      [profile ssm-temp]
-      region = ${AWS_REGION}
-      output = json
-      EOF
-    - aws sts get-caller-identity --profile ssm-temp --region "$AWS_REGION" >/dev/null
-    - echo "Temporary profile verified."
+    # ── EXPORT TEMP CREDENTIALS AS ENV VARS (avoids shared ~/.aws/ file collisions) ──
+    - export AWS_ACCESS_KEY_ID="$TEMP_ACCESS_KEY"
+    - export AWS_SECRET_ACCESS_KEY="$TEMP_SECRET_KEY"
+    - export AWS_SESSION_TOKEN="$TEMP_SESSION_TOKEN"
+    - aws sts get-caller-identity --region "$AWS_REGION" >/dev/null
+    - echo "Temporary credentials verified."
 
     # ── SSM CONNECTIVITY CHECK ────────────────────────────────────────────────
     - |
       echo "Verifying SSM connectivity for instances: $EC2_IDS..."
       for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
         STATUS=$(aws ssm describe-instance-information \
-          --profile ssm-temp --region "$AWS_REGION" \
+          --region "$AWS_REGION" \
           --query "InstanceInformationList[?InstanceId=='$INSTANCE_ID'].PingStatus | [0]" \
           --output text)
         [ "$STATUS" = "Online" ] \
@@ -512,7 +506,6 @@ package-documents:
       echo "{\"commands\":[$DEPLOY_COMMANDS]}" > deploy-params.json
 
       COMMAND_ID=$(aws ssm send-command \
-        --profile ssm-temp \
         --region "$AWS_REGION" \
         --instance-ids $EC2_IDS \
         --document-name "AWS-RunShellScript" \
@@ -527,7 +520,6 @@ package-documents:
       WAIT_EXIT=0
       for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
         aws ssm wait command-executed \
-          --profile ssm-temp \
           --region "$AWS_REGION" \
           --command-id "$COMMAND_ID" \
           --instance-id "$INSTANCE_ID" || WAIT_EXIT=$?
@@ -537,7 +529,6 @@ package-documents:
       for INSTANCE_ID in $(echo $EC2_IDS | tr ' ' '\n'); do
         echo "===== SSM output for $INSTANCE_ID ====="
         aws ssm get-command-invocation \
-          --profile ssm-temp \
           --region "$AWS_REGION" \
           --command-id "$COMMAND_ID" \
           --instance-id "$INSTANCE_ID" \
