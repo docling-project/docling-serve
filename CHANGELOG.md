@@ -1,3 +1,24 @@
+## [v1.17.0](https://github.com/docling-project/docling-serve/releases/tag/v1.17.0) - 2026-04-24
+
+### Feature
+
+* Docling v2.91.0 upgrade and other deps ([#589](https://github.com/docling-project/docling-serve/issues/589)) ([`babb6ea`](https://github.com/docling-project/docling-serve/commit/babb6ea404209906be128d0f748566d04cb4608f))
+* **ray:** Add control for graceful shutdown timeout of actors and improved dispatcher ([#584](https://github.com/docling-project/docling-serve/issues/584)) ([`2a1e8c2`](https://github.com/docling-project/docling-serve/commit/2a1e8c2a5a0a65b9efc4f47df535a01a4f2a9a5b))
+* Move client SDK to docling ([#575](https://github.com/docling-project/docling-serve/issues/575)) ([`683eeca`](https://github.com/docling-project/docling-serve/commit/683eecae3e2d503e05d3c106fd169164db1cbe5d))
+
+### Fix
+
+* Ray dispatcher improvements ([#579](https://github.com/docling-project/docling-serve/issues/579)) ([`7991c05`](https://github.com/docling-project/docling-serve/commit/7991c05698c1ee5de2edd6f8a3906366c16e2160))
+
+### Docling libraries included in this release:
+- docling 2.91.0
+- docling-core 2.74.1
+- docling-ibm-models 3.13.2
+- docling-jobkit 1.18.0
+- docling-mcp 1.3.4
+- docling-parse 5.10.0
+- docling-serve 1.17.0
+
 ## [v1.16.1](https://github.com/docling-project/docling-serve/releases/tag/v1.16.1) - 2026-04-09
 
 ### Fix
