@@ -51,3 +51,23 @@ def test_default_values():
 
     assert settings.allowed_vlm_presets is None
     assert settings.custom_vlm_presets == {}
+
+
+def test_ocr_engine_alias_sets_defaults(monkeypatch):
+    """Deprecated DOCLING_SERVE_OCR_ENGINE should set OCR defaults."""
+    monkeypatch.setenv("DOCLING_SERVE_OCR_ENGINE", "suryaocr")
+
+    settings = DoclingServeSettings()
+    assert settings.default_ocr_kind == "suryaocr"
+    assert settings.default_ocr_preset == "suryaocr"
+
+
+def test_ocr_engine_alias_does_not_override_explicit_defaults(monkeypatch):
+    """Explicit OCR defaults should win over deprecated alias."""
+    monkeypatch.setenv("DOCLING_SERVE_OCR_ENGINE", "suryaocr")
+    monkeypatch.setenv("DOCLING_SERVE_DEFAULT_OCR_KIND", "easyocr")
+    monkeypatch.setenv("DOCLING_SERVE_DEFAULT_OCR_PRESET", "rapidocr")
+
+    settings = DoclingServeSettings()
+    assert settings.default_ocr_kind == "easyocr"
+    assert settings.default_ocr_preset == "rapidocr"
