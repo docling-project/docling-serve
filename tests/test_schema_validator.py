@@ -73,16 +73,16 @@ def test_allowlist_suppresses_known_coercions(caplog):
     with (
         patch.dict(
             "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
-            {"**.binary_hash": ("int", "string")},
+            {"name": ("int", "string")},
             clear=True,
         ),
         patch(
             "docling_serve.grpc.schema_validator._collect_pydantic_fields",
-            return_value={"origin.binary_hash": "int"},
+            return_value={"name": "int"},
         ),
         patch(
             "docling_serve.grpc.schema_validator._collect_proto_fields",
-            return_value={"origin.binary_hash": "string"},
+            return_value={"name": "string"},
         ),
         patch.dict(
             "docling_serve.grpc.schema_validator._ONEOF_WRAPPER_MESSAGES",
@@ -93,7 +93,7 @@ def test_allowlist_suppresses_known_coercions(caplog):
     ):
         validate_docling_document_schema()
     assert "Allowed coercions" in caplog.text
-    assert "binary_hash" in caplog.text
+    assert "name: int ↔ string" in caplog.text
 
 
 def test_cardinality_mismatch_fails():
@@ -183,32 +183,42 @@ class TestStructuralEquivalences:
 
 
 class TestCoercionAllowlist:
-    def test_binary_hash(self):
+    def test_exact_path_match(self):
         with patch.dict(
             "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
-            {"**.binary_hash": ("int", "string")},
+            {"origin.hash": ("int", "string")},
             clear=True,
         ):
-            assert _is_coercion_allowed("origin.binary_hash", "int", "string")
-            assert _is_coercion_allowed("foo.bar.binary_hash", "int", "string")
+            assert _is_coercion_allowed("origin.hash", "int", "string")
+            assert not _is_coercion_allowed("foo.origin.hash", "int", "string")
 
-    def test_pages_map_key(self):
+    def test_suffix_wildcard_match(self):
         with patch.dict(
             "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
-            {"pages": ("map<int,*>", "map<string,*>")},
+            {"**.hash": ("int", "string")},
+            clear=True,
+        ):
+            assert _is_coercion_allowed("origin.hash", "int", "string")
+            assert _is_coercion_allowed("foo.bar.hash", "int", "string")
+            assert not _is_coercion_allowed("foo.bar.hash_value", "int", "string")
+
+    def test_map_key_pattern(self):
+        with patch.dict(
+            "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
+            {"items": ("map<int,*>", "map<string,*>")},
             clear=True,
         ):
             assert _is_coercion_allowed(
-                "pages", "map<int,message:PageItem>", "map<string,message:PageItem>"
+                "items", "map<int,message:Foo>", "map<string,message:Foo>"
             )
 
-    def test_label(self):
+    def test_enum_pattern(self):
         with patch.dict(
             "docling_serve.grpc.schema_validator.ALLOWED_COERCIONS",
-            {"**.label": ("enum", "string")},
+            {"**.state": ("enum", "string")},
             clear=True,
         ):
-            assert _is_coercion_allowed("foo.label", "enum:FooLabel", "string")
+            assert _is_coercion_allowed("foo.state", "enum:State", "string")
 
     def test_not_allowed(self):
         assert not _is_coercion_allowed("foo.bar", "int", "string")
