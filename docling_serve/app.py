@@ -3,6 +3,7 @@ import copy
 import gc
 import hashlib
 import importlib.metadata
+import importlib.util
 import logging
 import os
 import shutil
@@ -153,6 +154,25 @@ _log = logging.getLogger(__name__)
 _models_ready = asyncio.Event()
 
 
+def _ensure_ray_jobkit_compatibility() -> None:
+    if importlib.util.find_spec("docling_jobkit.convert.materialization") is not None:
+        return
+
+    try:
+        jobkit_version = importlib.metadata.version("docling-jobkit")
+    except importlib.metadata.PackageNotFoundError:
+        jobkit_version = "unknown"
+
+    raise RuntimeError(
+        "Installed docling-jobkit build is incompatible with the Ray page-slicing "
+        "deployment path: missing module "
+        "'docling_jobkit.convert.materialization' "
+        f"(installed docling-jobkit version: {jobkit_version}). "
+        "Rebuild docling-jobkit from a commit that includes "
+        "'docling_jobkit/convert/materialization.py'."
+    )
+
+
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -240,6 +260,8 @@ def create_app():  # noqa: C901
         )
 
     if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        _ensure_ray_jobkit_compatibility()
+
         from docling_jobkit.orchestrators.ray.orchestrator import (
             DispatcherUnavailableError,
         )
@@ -265,6 +287,8 @@ def create_app():  # noqa: C901
     # Get Ray redis_manager if using Ray engine
     ray_redis_manager = None
     if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+        _ensure_ray_jobkit_compatibility()
+
         from docling_jobkit.orchestrators.ray.orchestrator import RayOrchestrator
 
         orchestrator = get_async_orchestrator()
