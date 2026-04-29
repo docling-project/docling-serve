@@ -213,6 +213,9 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_max_ongoing_requests_per_replica: Optional[int] = None
     eng_ray_upscale_delay_s: float = 30.0
     eng_ray_downscale_delay_s: float = 600.0
+    # None -> use Ray Serve defaults.
+    eng_ray_graceful_shutdown_wait_loop_s: Optional[float] = None
+    eng_ray_graceful_shutdown_timeout_s: Optional[float] = None
     eng_ray_num_cpus_per_actor: float = 1.0
 
     # Fault Tolerance & Retry
@@ -228,6 +231,8 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_task_timeout: Optional[float] = 3600.0
     eng_ray_document_timeout: Optional[float] = 300.0
     eng_ray_redis_operation_timeout: float = 30.0
+    eng_ray_dispatcher_rpc_timeout: float = 5.0
+    eng_ray_liveness_fail_after: float = 90.0
 
     # Health Checks
     eng_ray_enable_heartbeat: bool = True

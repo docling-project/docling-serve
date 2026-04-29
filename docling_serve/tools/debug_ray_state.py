@@ -14,6 +14,35 @@ import os
 import sys
 
 
+async def _get_tenant_activity_breakdown(redis_manager, tenant_id: str) -> dict:
+    active_task_ids = await redis_manager.get_tenant_active_task_ids(tenant_id)
+    dispatched_count = 0
+    running_count = 0
+
+    for task_id in active_task_ids:
+        metadata = await redis_manager.get_task_metadata(task_id)
+        status = str(metadata.get("status", "")).upper()
+        if status == "STARTED":
+            running_count += 1
+            continue
+        if status == "PENDING":
+            dispatched_count += 1
+            continue
+
+        dispatch_state = await redis_manager.get_task_dispatch_hash(task_id)
+        if dispatch_state.get("processing_started_at"):
+            running_count += 1
+        else:
+            dispatched_count += 1
+
+    return {
+        "active_task_ids": active_task_ids,
+        "active_count": len(active_task_ids),
+        "dispatched_count": dispatched_count,
+        "running_count": running_count,
+    }
+
+
 async def debug_redis_state():  # noqa: C901
     """Check Redis state for Ray orchestrator."""
     # Add parent directory to path for imports
@@ -74,11 +103,11 @@ async def debug_redis_state():  # noqa: C901
                 print("  Status: ❌ STALE (dispatcher may have crashed)")
         print()
 
-        # Get all users with tasks (queued OR active)
-        print("Users with Tasks:")
+        # Get all tenants with tasks (queued OR active)
+        print("Tenants with Tasks:")
         print("-" * 50)
-        users = await redis_manager.get_all_users_with_any_tasks()
-        print(f"Found {len(users)} users: {users}")
+        users = await redis_manager.get_all_tenants_with_any_tasks()
+        print(f"Found {len(users)} tenants: {users}")
         print()
 
         if not users:
@@ -90,10 +119,10 @@ async def debug_redis_state():  # noqa: C901
             print()
         else:
             # Show breakdown of queued vs active
-            queued_users = await redis_manager.get_all_users_with_tasks()
-            active_users = await redis_manager.get_all_users_with_active_tasks()
-            print(f"  Users with queued tasks: {len(queued_users)}")
-            print(f"  Users with active tasks: {len(active_users)}")
+            queued_users = await redis_manager.get_all_tenants_with_tasks()
+            active_users = await redis_manager.get_all_tenants_with_active_tasks()
+            print(f"  Tenants with queued tasks: {len(queued_users)}")
+            print(f"  Tenants with active tasks: {len(active_users)}")
 
             # Count tasks by state across all users using the same methods as metrics
             total_queued = 0
@@ -101,18 +130,15 @@ async def debug_redis_state():  # noqa: C901
             total_running = 0
 
             for tenant_id in users:
-                # Use the same methods as the metrics collector
+                # Match the current orchestrator model: queue size plus active-set state.
                 user_queued = await redis_manager.get_tenant_queue_size(tenant_id)
-                user_dispatched = await redis_manager.get_tenant_dispatched_task_count(
-                    tenant_id
-                )
-                user_running = await redis_manager.get_tenant_running_task_count(
-                    tenant_id
+                activity = await _get_tenant_activity_breakdown(
+                    redis_manager, tenant_id
                 )
 
                 total_queued += user_queued
-                total_dispatched += user_dispatched
-                total_running += user_running
+                total_dispatched += activity["dispatched_count"]
+                total_running += activity["running_count"]
 
             print(f"  Tasks in queue (not dispatched): {total_queued}")
             print(
@@ -137,8 +163,11 @@ async def debug_redis_state():  # noqa: C901
             total_pending += queue_size
 
             # Get active task count from Redis Set (source of truth)
-            active_count = await redis_manager.get_tenant_active_task_count(tenant_id)
+            activity = await _get_tenant_activity_breakdown(redis_manager, tenant_id)
+            active_count = activity["active_count"]
             print(f"  Active (Redis Set): {active_count} tasks")
+            print(f"  Active dispatched: {activity['dispatched_count']} tasks")
+            print(f"  Active running: {activity['running_count']} tasks")
 
             # Get user limits (includes counter)
             limits = await redis_manager.get_tenant_limits(tenant_id)
@@ -167,7 +196,7 @@ async def debug_redis_state():  # noqa: C901
                     status = metadata.get("status", "unknown")
 
                     # Get processing state
-                    processing_state = await redis_manager.get_task_processing_state(
+                    processing_state = await redis_manager.get_task_dispatch_hash(
                         task_id
                     )
                     if processing_state:
@@ -222,9 +251,7 @@ async def debug_redis_state():  # noqa: C901
         for tenant_id in users:
             active_task_ids = await redis_manager.get_tenant_active_task_ids(tenant_id)
             for task_id in active_task_ids:
-                processing_state = await redis_manager.get_task_processing_state(
-                    task_id
-                )
+                processing_state = await redis_manager.get_task_dispatch_hash(task_id)
                 if not processing_state:
                     if not orphaned_found:
                         print("⚠️  Orphaned tasks detected:")

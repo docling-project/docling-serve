@@ -257,6 +257,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_max_ongoing_requests_per_replica,
             upscale_delay_s=docling_serve_settings.eng_ray_upscale_delay_s,
             downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
+            graceful_shutdown_wait_loop_s=docling_serve_settings.eng_ray_graceful_shutdown_wait_loop_s,
+            graceful_shutdown_timeout_s=docling_serve_settings.eng_ray_graceful_shutdown_timeout_s,
             ray_num_cpus_per_actor=docling_serve_settings.eng_ray_num_cpus_per_actor,
             # Fault Tolerance & Retry
             max_task_retries=docling_serve_settings.eng_ray_max_task_retries,
@@ -269,6 +271,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             task_timeout=docling_serve_settings.eng_ray_task_timeout,
             document_timeout=docling_serve_settings.eng_ray_document_timeout,
             redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
+            dispatcher_rpc_timeout=docling_serve_settings.eng_ray_dispatcher_rpc_timeout,
+            liveness_fail_after=docling_serve_settings.eng_ray_liveness_fail_after,
             # Health Checks
             enable_heartbeat=docling_serve_settings.eng_ray_enable_heartbeat,
             # Resource Management & Memory Monitoring

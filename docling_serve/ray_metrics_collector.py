@@ -85,6 +85,47 @@ def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> 
         raise
 
 
+def get_tenant_activity_breakdown(redis_manager, tenant_id: str) -> tuple[int, int]:
+    """Classify active tenant tasks into dispatched vs running.
+
+    The current RedisStateManager no longer exposes direct per-tenant dispatched
+    and running counters, so derive them from active task metadata.
+    """
+    active_task_ids = run_async_with_new_connection(
+        redis_manager,
+        redis_manager.get_tenant_active_task_ids,
+        tenant_id,
+    )
+    dispatched_count = 0
+    running_count = 0
+
+    for task_id in active_task_ids:
+        metadata = run_async_with_new_connection(
+            redis_manager,
+            redis_manager.get_task_metadata,
+            task_id,
+        )
+        status = str(metadata.get("status", "")).upper()
+        if status == "STARTED":
+            running_count += 1
+            continue
+        if status == "PENDING":
+            dispatched_count += 1
+            continue
+
+        dispatch_state = run_async_with_new_connection(
+            redis_manager,
+            redis_manager.get_task_dispatch_hash,
+            task_id,
+        )
+        if dispatch_state.get("processing_started_at"):
+            running_count += 1
+        else:
+            dispatched_count += 1
+
+    return dispatched_count, running_count
+
+
 class RayCollector(Collector):
     """Ray orchestrator metrics collector for Prometheus.
 
@@ -207,10 +248,8 @@ class RayCollector(Collector):
                         total_pending += queue_size
 
                         # Get dispatched task count (sent to actors but not yet running)
-                        dispatched_count = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_dispatched_task_count,
-                            tenant_id,
+                        dispatched_count, running_count = get_tenant_activity_breakdown(
+                            self.redis_manager, tenant_id
                         )
                         tenant_tasks_dispatched.add_metric(
                             [tenant_id], dispatched_count
@@ -218,11 +257,6 @@ class RayCollector(Collector):
                         total_dispatched += dispatched_count
 
                         # Get running task count (actively being processed)
-                        running_count = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_running_task_count,
-                            tenant_id,
-                        )
                         tenant_tasks_running.add_metric([tenant_id], running_count)
                         total_running += running_count
 
