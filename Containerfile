@@ -3,6 +3,7 @@ ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.8.19
 
 ARG UV_SYNC_EXTRA_ARGS=""
+ARG DOCLING_EXTRA_PLUGINS=""
 
 ARG MIMALLOC_VERSION=v3.2.8
 
@@ -74,6 +75,7 @@ ENV \
     DOCLING_SERVE_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling/models
 
 ARG UV_SYNC_EXTRA_ARGS
+ARG DOCLING_EXTRA_PLUGINS
 
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
@@ -100,6 +102,15 @@ RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     umask 002 && uv sync --frozen --no-dev --all-extras ${UV_SYNC_EXTRA_ARGS}
+
+RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \
+    if [ -n "${DOCLING_EXTRA_PLUGINS}" ]; then \
+      echo "Installing external docling plugins: ${DOCLING_EXTRA_PLUGINS}" && \
+      uv pip install --python /opt/app-root/bin/python ${DOCLING_EXTRA_PLUGINS}; \
+    else \
+      echo "No external docling plugins configured."; \
+    fi
 
 ENV LD_PRELOAD=/usr/local/lib/libmimalloc.so
 EXPOSE 5001

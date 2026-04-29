@@ -303,6 +303,9 @@ class DoclingServeSettings(BaseSettings):
     custom_layout_presets: dict[str, Any] = Field(default_factory=dict)
 
     # OCR Control
+    # Deprecated alias for backward compatibility. If set, it overrides
+    # default_ocr_kind/default_ocr_preset when they are left on "auto".
+    ocr_engine: Optional[str] = None
     default_ocr_preset: str = "auto"
     default_ocr_kind: str = "auto"
     allowed_ocr_presets: Optional[list[str]] = None
@@ -405,6 +408,12 @@ class DoclingServeSettings(BaseSettings):
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
+        if self.ocr_engine:
+            if self.default_ocr_kind == "auto":
+                self.default_ocr_kind = self.ocr_engine
+            if self.default_ocr_preset == "auto":
+                self.default_ocr_preset = self.ocr_engine
+
         # Validate KFP engine settings
         if self.eng_kind == AsyncEngine.KFP:
             if self.eng_kfp_endpoint is None:

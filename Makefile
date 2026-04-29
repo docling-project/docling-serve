@@ -18,9 +18,17 @@ endif
 
 # Container runtime - can be overridden: make CONTAINER_RUNTIME=podman cmd
 CONTAINER_RUNTIME ?= docker
+SURYA_EXTRA_PLUGINS ?= docling-surya transformers==4.57.1
+IMAGE_ORG_GHCR ?= ghcr.io/docling-project
+IMAGE_ORG_QUAY ?= quay.io/docling-project
 
 TAG=$(shell git rev-parse HEAD)
 BRANCH_TAG=$(shell git rev-parse --abbrev-ref HEAD)
+
+define tag_branch_aliases
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag $(IMAGE_ORG_GHCR)/$(1):$(TAG) $(IMAGE_ORG_GHCR)/$(1):$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag $(IMAGE_ORG_GHCR)/$(1):$(TAG) $(IMAGE_ORG_QUAY)/$(1):$(BRANCH_TAG)
+endef
 
 action-lint-file:
 	$(CMD_PREFIX) touch .action-lint
@@ -31,51 +39,62 @@ md-lint-file:
 .PHONY: docling-serve-image
 docling-serve-image: Containerfile ## Build docling-serve container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load -f Containerfile -t ghcr.io/docling-project/docling-serve:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve:$(TAG) ghcr.io/docling-project/docling-serve:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve:$(TAG) quay.io/docling-project/docling-serve:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load -f Containerfile -t $(IMAGE_ORG_GHCR)/docling-serve:$(TAG) .
+	$(call tag_branch_aliases,docling-serve)
 
 .PHONY: docling-serve-cpu-image
 docling-serve-cpu-image: Containerfile ## Build docling-serve "cpu only" container image
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve CPU]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn" -f Containerfile -t ghcr.io/docling-project/docling-serve-cpu:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) ghcr.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cpu:$(TAG) quay.io/docling-project/docling-serve-cpu:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn" -f Containerfile -t $(IMAGE_ORG_GHCR)/docling-serve-cpu:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cpu)
+
+.PHONY: docling-serve-surya-image
+docling-serve-surya-image: Containerfile ## Build docling-serve container image with Surya OCR plugin
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve + Surya]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "DOCLING_EXTRA_PLUGINS=$(SURYA_EXTRA_PLUGINS)" -f Containerfile -t $(IMAGE_ORG_GHCR)/docling-serve-surya:$(TAG) .
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag $(IMAGE_ORG_GHCR)/docling-serve-surya:$(TAG) $(IMAGE_ORG_GHCR)/docling-serve-surya:$(BRANCH_TAG)
 
 .PHONY: docling-serve-cu124-image
 docling-serve-cu124-image: Containerfile ## Build docling-serve container image with CUDA 12.4 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.4]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu124:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) ghcr.io/docling-project/docling-serve-cu124:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu124:$(TAG) quay.io/docling-project/docling-serve-cu124:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu124:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu124)
 
 .PHONY: docling-serve-cu126-image
 docling-serve-cu126-image: Containerfile ## Build docling-serve container image with CUDA 12.6 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.6]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu126:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu126:$(TAG) ghcr.io/docling-project/docling-serve-cu126:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu126:$(TAG) quay.io/docling-project/docling-serve-cu126:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu126:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu126)
 
 .PHONY: docling-serve-cu128-image
 docling-serve-cu128-image: Containerfile ## Build docling-serve container image with CUDA 12.8 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 12.8]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu128:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) ghcr.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu128:$(TAG) quay.io/docling-project/docling-serve-cu128:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu128:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu128)
+
+.PHONY: docling-serve-cu128-surya-image
+docling-serve-cu128-surya-image: Containerfile ## Build docling-serve CUDA 12.8 image with Surya OCR plugin
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve Cuda 12.8 + Surya]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128 --no-extra flash-attn" --build-arg "DOCLING_EXTRA_PLUGINS=$(SURYA_EXTRA_PLUGINS)" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu128-surya:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu128-surya)
 
 .PHONY: docling-serve-cu130-image
 docling-serve-cu130-image: Containerfile ## Build docling-serve container image with CUDA 13.0 support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with Cuda 13.0]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-cu130:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu130:$(TAG) ghcr.io/docling-project/docling-serve-cu130:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-cu130:$(TAG) quay.io/docling-project/docling-serve-cu130:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu130:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu130)
+
+.PHONY: docling-serve-cu130-surya-image
+docling-serve-cu130-surya-image: Containerfile ## Build docling-serve CUDA 13.0 image with Surya OCR plugin
+	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve Cuda 13.0 + Surya]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130 --no-extra flash-attn" --build-arg "DOCLING_EXTRA_PLUGINS=$(SURYA_EXTRA_PLUGINS)" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-cu130-surya:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-cu130-surya)
 
 .PHONY: docling-serve-rocm-image
 docling-serve-rocm-image: Containerfile ## Build docling-serve container image with ROCm support
 	$(ECHO_PREFIX) printf "  %-12s Containerfile\n" "[docling-serve with ROCm 6.3]"
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-rocm:$(TAG) .
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) ghcr.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
-	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm:$(TAG) quay.io/docling-project/docling-serve-rocm:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn" -f Containerfile --platform linux/amd64 -t $(IMAGE_ORG_GHCR)/docling-serve-rocm:$(TAG) .
+	$(call tag_branch_aliases,docling-serve-rocm)
 
 .PHONY: action-lint
 action-lint: .action-lint ##      Lint GitHub Action workflows
