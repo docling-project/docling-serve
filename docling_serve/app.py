@@ -256,11 +256,15 @@ def create_app():  # noqa: C901
             )
 
     # Setup OpenTelemetry instrumentation
-    redis_url = (
-        docling_serve_settings.eng_rq_redis_url
-        if docling_serve_settings.eng_kind == AsyncEngine.RQ
-        else None
-    )
+    # Reuse the RQ orchestrator's existing Redis client so the metrics
+    # collector follows the same Sentinel/auth/SSL routing.
+    rq_redis_connection = None
+    if docling_serve_settings.eng_kind == AsyncEngine.RQ:
+        from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
+
+        orchestrator = get_async_orchestrator()
+        assert isinstance(orchestrator, RQOrchestrator)
+        rq_redis_connection = orchestrator._redis_conn
 
     # Get Ray redis_manager if using Ray engine
     ray_redis_manager = None
@@ -278,7 +282,7 @@ def create_app():  # noqa: C901
         enable_traces=docling_serve_settings.otel_enable_traces,
         enable_prometheus=docling_serve_settings.otel_enable_prometheus,
         enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
-        redis_url=redis_url,
+        rq_redis_connection=rq_redis_connection,
         metrics_port=docling_serve_settings.metrics_port,
         ray_redis_manager=ray_redis_manager,
     )

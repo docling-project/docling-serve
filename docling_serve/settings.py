@@ -157,6 +157,18 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_gate_status_poll_wait_timeout: float = 5.0
     eng_rq_zombie_reaper_interval: float = 300.0
     eng_rq_zombie_reaper_max_age: float = 3600.0
+    # RQ Redis Sentinel. When `eng_rq_redis_sentinel_hosts` and
+    # `eng_rq_redis_sentinel_service_name` are both set, all RQ Redis clients
+    # route through Sentinel and `eng_rq_redis_url` is ignored. Hosts are
+    # `host[:port]` strings; default Sentinel port is 26379.
+    eng_rq_redis_sentinel_hosts: Optional[list[str]] = None
+    eng_rq_redis_sentinel_service_name: Optional[str] = None
+    eng_rq_redis_sentinel_db: int = 0
+    eng_rq_redis_sentinel_username: Optional[str] = None
+    eng_rq_redis_sentinel_password: Optional[str] = None
+    eng_rq_redis_sentinel_auth_username: Optional[str] = None
+    eng_rq_redis_sentinel_auth_password: Optional[str] = None
+    eng_rq_redis_sentinel_ssl: bool = False
     # KFP engine
     eng_kfp_endpoint: Optional[AnyUrl] = None
     eng_kfp_token: Optional[str] = None
@@ -417,8 +429,19 @@ class DoclingServeSettings(BaseSettings):
                 )
 
         if self.eng_kind == AsyncEngine.RQ:
-            if not self.eng_rq_redis_url:
-                raise ValueError("RQ Redis url is required when using the RQ engine.")
+            sentinel_hosts = self.eng_rq_redis_sentinel_hosts
+            sentinel_service = self.eng_rq_redis_sentinel_service_name
+            if bool(sentinel_hosts) ^ bool(sentinel_service):
+                raise ValueError(
+                    "DOCLING_SERVE_ENG_RQ_REDIS_SENTINEL_HOSTS and "
+                    "DOCLING_SERVE_ENG_RQ_REDIS_SENTINEL_SERVICE_NAME must be set together."
+                )
+            if not (sentinel_hosts and sentinel_service) and not self.eng_rq_redis_url:
+                raise ValueError(
+                    "When using the RQ engine, set either DOCLING_SERVE_ENG_RQ_REDIS_URL "
+                    "or both DOCLING_SERVE_ENG_RQ_REDIS_SENTINEL_HOSTS and "
+                    "DOCLING_SERVE_ENG_RQ_REDIS_SENTINEL_SERVICE_NAME."
+                )
 
         if self.eng_kind == AsyncEngine.RAY:
             if not self.eng_ray_redis_url:
