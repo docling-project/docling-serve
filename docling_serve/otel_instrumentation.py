@@ -68,7 +68,7 @@ def setup_otel_instrumentation(
     enable_traces: bool = True,
     enable_prometheus: bool = True,
     enable_otlp_metrics: bool = False,
-    redis_url: str | None = None,
+    rq_redis_connection: Redis | None = None,
     metrics_port: int | None = None,
     ray_redis_manager=None,
 ):
@@ -82,7 +82,9 @@ def setup_otel_instrumentation(
         enable_traces: Enable OTEL traces
         enable_prometheus: Enable Prometheus metrics export
         enable_otlp_metrics: Enable OTLP metrics export (for OTEL collector)
-        redis_url: Redis URL for RQ metrics (if using RQ engine)
+        rq_redis_connection: Redis client for RQ metrics (if using RQ engine).
+            Pass the orchestrator's existing client so Sentinel/SSL/auth
+            settings are honoured without duplicating connection logic.
         metrics_port: If set, start a separate HTTP server on this port for /metrics
         ray_redis_manager: RedisStateManager instance for Ray metrics (if using Ray engine)
     """
@@ -140,11 +142,10 @@ def setup_otel_instrumentation(
     )
     FastAPIInstrumentor.instrument_app(app, excluded_urls=excluded_urls)
 
-    # Register RQ metrics if Redis URL is provided
-    if redis_url and enable_prometheus:
-        logger.info(f"Registering RQ metrics collector for Redis at {redis_url}")
-        connection = Redis.from_url(redis_url)
-        REGISTRY.register(RQCollector(connection))
+    # Register RQ metrics if a Redis client is provided
+    if rq_redis_connection is not None and enable_prometheus:
+        logger.info("Registering RQ metrics collector")
+        REGISTRY.register(RQCollector(rq_redis_connection))
 
     # Register Ray metrics if RedisStateManager is provided
     if ray_redis_manager and enable_prometheus:

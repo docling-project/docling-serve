@@ -4,15 +4,10 @@ import logging
 from prometheus_client import Summary
 from prometheus_client.core import CounterMetricFamily, GaugeMetricFamily
 from prometheus_client.registry import Collector
-from redis import Redis
 from rq import Queue, Worker
 from rq.job import JobStatus
 
 logger = logging.getLogger(__name__)
-
-
-def get_redis_connection(url: str):
-    return Redis.from_url(url)
 
 
 def get_workers_stats(connection):

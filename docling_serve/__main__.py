@@ -416,6 +416,14 @@ def rq_worker() -> Any:
         redis_gate_reserved_connections=docling_serve_settings.eng_rq_redis_gate_reserved_connections,
         redis_gate_wait_timeout=docling_serve_settings.eng_rq_redis_gate_wait_timeout,
         redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_rq_redis_gate_status_poll_wait_timeout,
+        redis_sentinel_hosts=docling_serve_settings.eng_rq_redis_sentinel_hosts,
+        redis_sentinel_service_name=docling_serve_settings.eng_rq_redis_sentinel_service_name,
+        redis_sentinel_db=docling_serve_settings.eng_rq_redis_sentinel_db,
+        redis_sentinel_username=docling_serve_settings.eng_rq_redis_sentinel_username,
+        redis_sentinel_password=docling_serve_settings.eng_rq_redis_sentinel_password,
+        redis_sentinel_auth_username=docling_serve_settings.eng_rq_redis_sentinel_auth_username,
+        redis_sentinel_auth_password=docling_serve_settings.eng_rq_redis_sentinel_auth_password,
+        redis_sentinel_ssl=docling_serve_settings.eng_rq_redis_sentinel_ssl,
     )
 
     cm_config = DoclingConverterManagerConfig(

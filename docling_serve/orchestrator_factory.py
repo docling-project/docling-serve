@@ -114,6 +114,14 @@ def get_async_orchestrator() -> BaseOrchestrator:
             zombie_reaper_interval=docling_serve_settings.eng_rq_zombie_reaper_interval,
             zombie_reaper_max_age=docling_serve_settings.eng_rq_zombie_reaper_max_age,
             result_removal_delay=docling_serve_settings.result_removal_delay,
+            redis_sentinel_hosts=docling_serve_settings.eng_rq_redis_sentinel_hosts,
+            redis_sentinel_service_name=docling_serve_settings.eng_rq_redis_sentinel_service_name,
+            redis_sentinel_db=docling_serve_settings.eng_rq_redis_sentinel_db,
+            redis_sentinel_username=docling_serve_settings.eng_rq_redis_sentinel_username,
+            redis_sentinel_password=docling_serve_settings.eng_rq_redis_sentinel_password,
+            redis_sentinel_auth_username=docling_serve_settings.eng_rq_redis_sentinel_auth_username,
+            redis_sentinel_auth_password=docling_serve_settings.eng_rq_redis_sentinel_auth_password,
+            redis_sentinel_ssl=docling_serve_settings.eng_rq_redis_sentinel_ssl,
         )
 
         orchestrator = RQOrchestrator(config=rq_config)
