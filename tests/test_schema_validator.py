@@ -1,4 +1,7 @@
-"""Tests for the gRPC schema validator."""
+"""Tests for the gRPC schema validator.
+
+Covers allowlist matching used by startup validation against core protobuf.
+"""
 
 import logging
 from unittest.mock import patch
