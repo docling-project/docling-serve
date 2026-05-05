@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "1.17.0"  # DO NOT EDIT, updated automatically
+version = "1.16.1"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -33,9 +33,9 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling[remote-serving]>=2.88.0,<3.0.0",
+    "docling>=2.88.0,<3.0.0",
     "docling-core>=2.45.0",
-    "docling-jobkit[kfp,rq,ray,vlm]>=1.18.0,<2.0.0",
+    "docling-jobkit[kfp,rq,ray,vlm]>=1.17.0,<2.0.0",
     "fastapi[standard]<0.130.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -52,6 +52,9 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.57b0,<0.58",
     "opentelemetry-exporter-prometheus>=0.57b0",
     "prometheus-client>=0.21.0",
+    "grpcio>=1.78.0",
+    "grpcio-reflection>=1.78.0",
+    "protobuf>=4.29.6",
 ]
 
 [project.optional-dependencies]
@@ -86,6 +89,8 @@ dev = [
     "pytest-check~=2.4",
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
+    "grpcio-tools>=1.78.0",
+    "docling-jobkit>=1.10.1",
     "types-psutil>=7.2.2.20260130",
     "types-pyyaml>=6.0.12.20250915",
 ]
@@ -150,8 +155,7 @@ conflicts = [
 environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
 override-dependencies = [
   "urllib3~=2.0",
-  "xgrammar>=0.1.24",
-  "grpcio>=1.75.1",
+  "xgrammar>=0.1.24"
 ]
 
 [tool.uv.sources]
@@ -178,9 +182,11 @@ torchvision = [
 pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
+docling-core = { path = "../docling-core", editable = true }
 
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
 # docling = { git = "https://github.com/docling-project/docling/", rev = "main" }
+
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
@@ -224,6 +230,7 @@ namespaces = true
 
 [project.scripts]
 docling-serve = "docling_serve.__main__:main"
+docling-serve-grpc = "docling_serve.grpc.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/docling-project/docling-serve"
@@ -236,6 +243,7 @@ Changelog = "https://github.com/docling-project/docling-serve/blob/main/CHANGELO
 target-version = "py310"
 line-length = 88
 respect-gitignore = true
+extend-exclude = ["*.sh"]
 
 # extend-exclude = [
 #     "tests",
@@ -332,6 +340,9 @@ testpaths = [
 addopts = "-rA --color=yes --tb=short --maxfail=5"
 markers = [
 "asyncio",
+"ocr",
+"unit",
+"integration",
 ]
 
 [tool.semantic_release]

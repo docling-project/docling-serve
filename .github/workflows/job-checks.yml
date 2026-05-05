@@ -58,6 +58,40 @@ jobs:
       - name: Create the server
         run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
 
+  grpc-unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras --no-extra flash-attn
+      - name: Run gRPC unit tests
+        run: uv run pytest -m unit -k grpc -v
+
+  grpc-integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras --no-extra flash-attn
+      - name: Run gRPC integration tests (excluding OCR)
+        run: uv run pytest -m "integration and not ocr" -k grpc -v
+
   # markdown-lint:
   #   runs-on: ubuntu-latest
   #   steps:

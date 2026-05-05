@@ -37,6 +37,21 @@ The server is available at
 - API documentation <http://127.0.0.1:5001/docs>
 - UI playground <http://127.0.0.1:5001/ui>
 
+### REST and gRPC
+
+Docling Serve can expose a **REST** API (JSON over HTTP, default port **5001**) or a **gRPC** API (Protocol Buffers over HTTP/2, default port **50051**). The two servers are separate processes; use two containers if you need both. gRPC support is **experimental**; see [gRPC documentation](./docs/grpc/README.md).
+
+REST uses JSON and supports `multipart/form-data` file uploads and the web UI when enabled. gRPC uses protobuf messages; file bytes are sent as **base64** in the `FileSource` message (see the [gRPC docs](./docs/grpc/README.md#file-upload-via-filesource)).
+
+Example running **only** the gRPC server in Docker with a local models directory mounted (same layout as in [Handling models](./docs/models.md)):
+
+```bash
+docker run -p 50051:50051 \
+  -v "$(pwd)/models:/opt/app-root/src/models" \
+  -e DOCLING_SERVE_ARTIFACTS_PATH="/opt/app-root/src/models" \
+  quay.io/docling-project/docling-serve -- docling-serve-grpc run --host 0.0.0.0 --port 50051
+```
+
 ![API documentation](img/fastapi-ui.png)
 
 Try it out with a simple conversion:

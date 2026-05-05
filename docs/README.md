@@ -9,3 +9,4 @@ This documentation pages explore the webserver configurations, runtime options, 
 - [MCP](./mcp.md)
 - [Development](./development.md)
 - [`v1` migration](./v1_migration.md)
+- [gRPC (experimental)](./grpc/README.md)

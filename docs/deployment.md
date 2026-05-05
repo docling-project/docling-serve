@@ -193,6 +193,8 @@ Docs:
 
 ## OpenShift
 
+For persisting model weights (for example EasyOCR or other add-on models), use a PVC and the same mount layout as in [Handling models](./models.md) (Kubernetes or cluster section). You can set `DOCLING_SERVE_ARTIFACTS_PATH` to the mount path for **REST** or **gRPC**. If you run the **gRPC** server, you can alternatively pass `--artifacts-path` to `docling-serve-grpc run` to the same directory. For **REST** with multiple workers, prefer the environment variable so every replica sees the path.
+
 ### Simple deployment
 
 Manifest example: [docling-serve-simple.yaml](./deploy-examples/docling-serve-simple.yaml)
