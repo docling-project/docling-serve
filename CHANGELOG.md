@@ -1,3 +1,23 @@
+## [v1.18.0](https://github.com/docling-project/docling-serve/releases/tag/v1.18.0) - 2026-05-07
+
+### Feature
+
+* Update docling dependencies ([#599](https://github.com/docling-project/docling-serve/issues/599)) ([`c1a3e31`](https://github.com/docling-project/docling-serve/commit/c1a3e3159d1f8225883368ae4ad2f33fa6f99b90))
+
+### Fix
+
+* Fail server launch if the config file is bogus ([#598](https://github.com/docling-project/docling-serve/issues/598)) ([`c5a4332`](https://github.com/docling-project/docling-serve/commit/c5a43320e6d24afea4acdccb23aeb2ffb3196710))
+
+### Docling libraries included in this release:
+- docling 2.93.0
+- docling-core 2.74.1
+- docling-ibm-models 3.13.2
+- docling-jobkit 1.18.1
+- docling-mcp 1.3.4
+- docling-parse 5.10.1
+- docling-serve 1.18.0
+- docling-slim 2.93.0
+
 ## [v1.17.0](https://github.com/docling-project/docling-serve/releases/tag/v1.17.0) - 2026-04-24
 
 ### Feature
