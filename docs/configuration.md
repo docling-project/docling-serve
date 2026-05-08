@@ -44,6 +44,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_ENABLE_REMOTE_SERVICES` | `false` | Allow pipeline components making remote connections. For example, this is needed when using a vision-language model via APIs. |
 |  | `DOCLING_SERVE_ALLOW_EXTERNAL_PLUGINS` | `false` | Allow the selection of third-party plugins. |
+|  | `DOCLING_SERVE_OCR_ENGINE` | unset | Deprecated compatibility alias. When set, it is used as fallback for both `DOCLING_SERVE_DEFAULT_OCR_KIND` and `DOCLING_SERVE_DEFAULT_OCR_PRESET` if those are still `auto`. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Allow users to specify a fully custom VLM pipeline configuration (`vlm_pipeline_custom_config`). When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_DESCRIPTION_CONFIG` | `false` | Allow users to specify a fully custom picture description configuration. When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_CODE_FORMULA_CONFIG` | `false` | Allow users to specify a fully custom code/formula configuration. When `false`, only presets are accepted. |
@@ -130,6 +131,17 @@ The following options control the behavior of the Docling converter, including p
 | `DOCLING_SERVE_DEFAULT_LAYOUT_PRESET` | `docling_layout_default` | Default layout preset to use when user specifies "default". |
 | `DOCLING_SERVE_ALLOWED_LAYOUT_PRESETS` | `null` (all allowed) | List of allowed layout preset IDs. Accepts JSON array or comma-separated string. |
 | `DOCLING_SERVE_CUSTOM_LAYOUT_PRESETS` | `{}` | Custom layout presets. Must be a JSON object mapping preset IDs to layout options with 'kind' field. |
+
+#### OCR Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_OCR_KIND` | `auto` | Default OCR kind used when request doesn't set OCR explicitly. |
+| `DOCLING_SERVE_DEFAULT_OCR_PRESET` | `auto` | Default OCR preset used when request doesn't set OCR explicitly. |
+| `DOCLING_SERVE_ALLOWED_OCR_KINDS` | `null` (all allowed) | List of allowed OCR kinds. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_ALLOWED_OCR_PRESETS` | `null` (all allowed) | List of allowed OCR preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_OCR_PRESETS` | `{}` | Custom OCR presets. Must be a JSON object. |
+| `DOCLING_SERVE_ALLOW_CUSTOM_OCR_CONFIG` | `false` | Whether users can specify custom OCR configuration payloads. |
 
 **Configuration Examples:**
 

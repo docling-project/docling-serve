@@ -21,6 +21,7 @@ from docling.datamodel.pipeline_options import (
     TableFormerMode,
     TableStructureOptions,
 )
+from docling.models.factories import get_ocr_factory
 
 from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
@@ -236,6 +237,26 @@ def change_ocr_lang(ocr_engine):
         return gr.update(visible=True, value="fr-FR,de-DE,es-ES,en-US")
 
     return gr.update(visible=False, value="")
+
+
+def _build_ocr_engines_list() -> list[tuple[str, str]]:
+    # Load OCR kinds from the runtime factory so external plugins are available in UI.
+    try:
+        factory = get_ocr_factory(
+            allow_external_plugins=docling_serve_settings.allow_external_plugins
+        )
+        kinds = sorted(str(kind) for kind in factory.registered_kind)
+    except Exception:
+        kinds = ["auto", "easyocr", "tesseract", "rapidocr"]
+
+    if "auto" in kinds:
+        kinds = ["auto"] + [k for k in kinds if k != "auto"]
+
+    labels = []
+    for kind in kinds:
+        label = "Auto" if kind == "auto" else kind.replace("_", " ").title()
+        labels.append((label, kind))
+    return labels
 
 
 def wait_task_finish(auth: str, task_id: str, return_as_file: bool):
@@ -695,15 +716,7 @@ with gr.Blocks(
                 ocr = gr.Checkbox(label="Enable OCR", value=True)
                 force_ocr = gr.Checkbox(label="Force OCR", value=False)
             with gr.Column(scale=1):
-                engines_list = [
-                    ("Auto", "auto"),
-                    ("EasyOCR", "easyocr"),
-                    ("Tesseract", "tesseract"),
-                    ("RapidOCR", "rapidocr"),
-                ]
-                if sys.platform == "darwin":
-                    engines_list.append(("OCRMac", "ocrmac"))
-
+                engines_list = _build_ocr_engines_list()
                 ocr_engine = gr.Radio(
                     engines_list,
                     label="OCR Engine",
