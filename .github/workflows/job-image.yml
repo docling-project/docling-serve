@@ -101,11 +101,15 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          # Registry cache: GHCR has no 10GB quota, unlike type=gha which
-          # was evicting blobs mid-run and forcing full rebuilds. Only main
-          # writes the cache (publish=true); PR dry-runs read from it.
-          cache-from: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache
-          cache-to: ${{ inputs.publish && format('type=registry,ref={0}/{1}-buildcache,mode=max', env.GHCR_REGISTRY, inputs.ghcr_image_name) || '' }}
+          # Registry cache: GHCR has no 10 GB quota (unlike type=gha which
+          # was evicting blobs mid-run). Main writes :main; PR dry-runs read
+          # :main + :pr and write :pr (so PRs benefit from each other and
+          # from main, but cannot poison main's cache). ignore-error=true so
+          # fork PRs (read-only GITHUB_TOKEN) silently skip the export.
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:main
+            ${{ !inputs.publish && format('type=registry,ref={0}/{1}-buildcache:pr', env.GHCR_REGISTRY, inputs.ghcr_image_name) || '' }}
+          cache-to: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:${{ inputs.publish && 'main' || 'pr' }},mode=max,ignore-error=true
           file: Containerfile
           build-args: ${{ inputs.build_args }}
           pull: true
@@ -125,7 +129,9 @@ jobs:
             org.opencontainers.image.title=docling-serve
             org.opencontainers.image.test=true
           platforms: linux/amd64 # 'load' requires a single platform
-          cache-from: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:main
+            ${{ !inputs.publish && format('type=registry,ref={0}/{1}-buildcache:pr', env.GHCR_REGISTRY, inputs.ghcr_image_name) || '' }}
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
