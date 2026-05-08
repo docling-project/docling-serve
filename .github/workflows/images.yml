@@ -12,45 +12,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: set
+        run: echo "matrix=$(jq -c . .github/image-matrix.json)" >> "$GITHUB_OUTPUT"
+
   build_and_publish_images:
     name: Build and push ${{ matrix.spec.name }} container image to GHCR and QUAY
+    needs: prepare
     strategy:
       matrix:
-        spec:
-          - name: docling-project/docling-serve
-            build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-extra flash-attn
-            platforms: linux/amd64, linux/arm64
-            tag_latest: true
-          - name: docling-project/docling-serve-cpu
-            build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cpu --no-extra flash-attn
-            platforms: linux/amd64, linux/arm64
-            tag_latest: true
-          # - name: docling-project/docling-serve-cu124
-          #   build_args: |
-          #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu124
-          #   platforms: linux/amd64
-          #   tag_latest: false
-          # - name: docling-project/docling-serve-cu126
-          #   build_args: |
-          #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu126
-          #   platforms: linux/amd64
-          #   tag_latest: false
-          - name: docling-project/docling-serve-cu128
-            build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu128
-            platforms: linux/amd64, linux/arm64
-            tag_latest: false
-          - name: docling-project/docling-serve-cu130
-            build_args: |
-              UV_SYNC_EXTRA_ARGS=--no-group pypi --group cu130
-            platforms: linux/amd64, linux/arm64
-            tag_latest: false
-          # - name: docling-project/docling-serve-rocm
-          #   build_args: |
-          #     UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm --no-extra flash-attn
-          #   platforms: linux/amd64
+        spec: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     permissions:
       packages: write
       contents: read
