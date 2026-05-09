@@ -76,7 +76,7 @@ The following container images are available for running **Docling Serve** with 
 >
 > ```bash
 > # ✅ Recommended: Explicit version
-> docker pull quay.io/docling-project/docling-serve-cu130:1.12.0
+> docker pull quay.io/docling-project/docling-serve-cu130:v1.18.0
 >
 > # ❌ Not available for CUDA images
 > docker pull quay.io/docling-project/docling-serve-cu130:latest
