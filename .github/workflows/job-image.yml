@@ -60,7 +60,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Log in to the GHCR container image registry
-        if: ${{ inputs.publish }}
+        # Always log in: dry-runs need read access to the registry buildcache
+        # populated by main, and the GITHUB_TOKEN has read-only on fork PRs
+        # which is sufficient.
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
@@ -78,48 +80,45 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      - name: Extract metadata (tags, labels) for docling-serve ghcr image
-        id: ghcr_meta
+      - name: Extract metadata for image
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
+          # GHCR is always listed; Quay is added only when publishing.
+          # An empty line is tolerated by metadata-action.
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
+            ${{ inputs.publish && format('{0}/{1}', env.QUAY_REGISTRY, inputs.quay_image_name) || '' }}
           flavor: |
             latest=${{ inputs.tag_latest }}
 
-      # # Local test
-      # - name: Set metadata outputs for local testing ## comment out Free up space, Log in to cr, Cache Docker, Extract metadata, and quay blocks and run act
-      #   id: ghcr_meta
-      #   run: |
-      #     echo "tags=ghcr.io/docling-project/docling-serve:pr-123" >> $GITHUB_OUTPUT
-      #     echo "labels=org.opencontainers.image.source=https://github.com/docling-project/docling-serve" >> $GITHUB_OUTPUT
-
-      - name: Build and push image to ghcr.io
-        id: ghcr_push
+      - name: Build and push image
+        id: image_push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ inputs.publish }} # set 'false' for local test
-          tags: ${{ steps.ghcr_meta.outputs.tags }}
-          labels: ${{ steps.ghcr_meta.outputs.labels }}
+          push: ${{ inputs.publish }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Registry cache: GHCR has no 10 GB quota (unlike type=gha which
+          # was evicting blobs mid-run). Main writes :main; PR dry-runs read
+          # :main + :pr and write :pr (so PRs benefit from each other and
+          # from main, but cannot poison main's cache). ignore-error=true so
+          # fork PRs (read-only GITHUB_TOKEN) silently skip the export.
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:main
+            ${{ !inputs.publish && format('type=registry,ref={0}/{1}-buildcache:pr', env.GHCR_REGISTRY, inputs.ghcr_image_name) || '' }}
+          cache-to: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:${{ inputs.publish && 'main' || 'pr' }},mode=max,ignore-error=true
           file: Containerfile
           build-args: ${{ inputs.build_args }}
           pull: true
       ##
-      ## This stage runs after the build, so it leverages all build cache
-      ## 
+      ## This stage runs after the build, so it leverages all build cache.
+      ## Read-only against the same scope: no cache-to to avoid a second writer.
+      ##
       - name: Export built image for testing
-        id: ghcr_export_built_image
+        id: image_export_test
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -129,14 +128,15 @@ jobs:
           labels: |
             org.opencontainers.image.title=docling-serve
             org.opencontainers.image.test=true
-          platforms: linux/amd64 # when 'load' is true, we can't use a list ${{ inputs.platforms }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: linux/amd64 # 'load' requires a single platform
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}-buildcache:main
+            ${{ !inputs.publish && format('type=registry,ref={0}/{1}-buildcache:pr', env.GHCR_REGISTRY, inputs.ghcr_image_name) || '' }}
           file: Containerfile
           build-args: ${{ inputs.build_args }}
 
       - name: Test image
-        if: steps.ghcr_export_built_image.outcome == 'success'
+        if: steps.image_export_test.outcome == 'success'
         run: |
           set -e
 
@@ -201,38 +201,21 @@ jobs:
           echo "Cleaning up test image..."
           docker rmi "$IMAGE_TAG"
 
-      - name: Generate artifact attestation
+      - name: Generate artifact attestation for GHCR
         if: ${{ inputs.publish }}
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
-          subject-digest: ${{ steps.ghcr_push.outputs.digest }}
+          subject-digest: ${{ steps.image_push.outputs.digest }}
           push-to-registry: true
 
-      - name: Extract metadata (tags, labels) for docling-serve quay image
+      - name: Generate artifact attestation for Quay
         if: ${{ inputs.publish }}
-        id: quay_meta
-        uses: docker/metadata-action@v5
+        uses: actions/attest-build-provenance@v1
         with:
-          images: ${{ env.QUAY_REGISTRY }}/${{ inputs.quay_image_name }}
-          flavor: |
-            latest=${{ inputs.tag_latest }}
-
-      - name: Build and push image to quay.io
-        if: ${{ inputs.publish }}
-        # id: push-serve-cpu-quay
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: ${{ inputs.publish }}
-          tags: ${{ steps.quay_meta.outputs.tags }}
-          labels: ${{ steps.quay_meta.outputs.labels }}
-          platforms: ${{ inputs.platforms}}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          file: Containerfile
-          build-args: ${{ inputs.build_args }}
-          pull: true
+          subject-name: ${{ env.QUAY_REGISTRY }}/${{ inputs.quay_image_name }}
+          subject-digest: ${{ steps.image_push.outputs.digest }}
+          push-to-registry: true
 
       - name: Remove local Docker images
         run: |
