@@ -263,6 +263,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             enable_pdf_page_slice_fanout=docling_serve_settings.eng_ray_enable_pdf_page_slice_fanout,
             max_page_slice_size=docling_serve_settings.eng_ray_max_page_slice_size,
             max_page_slice_parallelism=docling_serve_settings.eng_ray_max_page_slice_parallelism,
+            coordinator_min_actors=docling_serve_settings.eng_ray_coordinator_min_actors,
+            coordinator_max_actors=docling_serve_settings.eng_ray_coordinator_max_actors,
             coordinator_target_requests_per_replica=docling_serve_settings.eng_ray_coordinator_target_requests_per_replica,
             coordinator_max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_coordinator_max_ongoing_requests_per_replica,
             coordinator_num_cpus=docling_serve_settings.eng_ray_coordinator_num_cpus,

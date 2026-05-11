@@ -232,6 +232,8 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_enable_pdf_page_slice_fanout: bool = False
     eng_ray_max_page_slice_size: int = 32
     eng_ray_max_page_slice_parallelism: Optional[int] = None
+    eng_ray_coordinator_min_actors: Optional[int] = None
+    eng_ray_coordinator_max_actors: Optional[int] = None
     eng_ray_coordinator_target_requests_per_replica: Optional[int] = None
     eng_ray_coordinator_max_ongoing_requests_per_replica: int = 8
     eng_ray_coordinator_num_cpus: float = 0.5
