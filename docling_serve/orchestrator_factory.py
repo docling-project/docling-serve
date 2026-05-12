@@ -234,6 +234,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             sub_channel=docling_serve_settings.eng_ray_sub_channel,
             # Fair Dispatcher
             dispatcher_interval=docling_serve_settings.eng_ray_dispatcher_interval,
+            supervisor_poll_interval=docling_serve_settings.eng_ray_supervisor_poll_interval,
             # Per-User Limits
             max_concurrent_tasks=docling_serve_settings.eng_ray_max_concurrent_tasks,
             max_queued_tasks=docling_serve_settings.eng_ray_max_queued_tasks,
