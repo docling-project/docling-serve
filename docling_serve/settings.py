@@ -126,6 +126,7 @@ class DoclingServeSettings(BaseSettings):
     allow_custom_ocr_config: bool = False
     show_version_info: bool = True
     enable_management_endpoints: bool = False
+    debug_error_details: bool = False
 
     api_key: str = ""
 

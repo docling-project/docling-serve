@@ -66,7 +66,9 @@ async def test_readyz_alias(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_readyz_for_ray_runs_deep_connection_check(client: AsyncClient):
     original_engine = docling_serve_settings.eng_kind
+    original_debug = docling_serve_settings.debug_error_details
     docling_serve_settings.eng_kind = AsyncEngine.RAY
+    docling_serve_settings.debug_error_details = False
     try:
         orchestrator = MagicMock()
         orchestrator.check_connection = AsyncMock(
@@ -79,10 +81,35 @@ async def test_readyz_for_ray_runs_deep_connection_check(client: AsyncClient):
             response = await client.get("/readyz")
     finally:
         docling_serve_settings.eng_kind = original_engine
+        docling_serve_settings.debug_error_details = original_debug
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Readiness check failed"
+    orchestrator.check_connection.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_readyz_exposes_raw_error_in_debug_mode(client: AsyncClient):
+    original_engine = docling_serve_settings.eng_kind
+    original_debug = docling_serve_settings.debug_error_details
+    docling_serve_settings.eng_kind = AsyncEngine.RAY
+    docling_serve_settings.debug_error_details = True
+    try:
+        orchestrator = MagicMock()
+        orchestrator.check_connection = AsyncMock(
+            side_effect=RuntimeError("Ray dispatcher unavailable")
+        )
+
+        with patch(
+            "docling_serve.app.get_async_orchestrator", return_value=orchestrator
+        ):
+            response = await client.get("/readyz")
+    finally:
+        docling_serve_settings.eng_kind = original_engine
+        docling_serve_settings.debug_error_details = original_debug
 
     assert response.status_code == 503
     assert response.json()["detail"] == "Ray dispatcher unavailable"
-    orchestrator.check_connection.assert_awaited_once()
 
 
 @pytest.mark.asyncio
