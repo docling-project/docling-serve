@@ -16,6 +16,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
+| `ocr_skip_text_layer_pages` | bool | If enabled, skip OCR on pages with enough native text cells. Boolean. Optional, defaults to false. |
 | `ocr_engine` | str | DEPRECATED: Use ocr_preset instead. The OCR engine to use. String.  |
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
@@ -202,6 +203,7 @@ Simple payload example:
     "image_export_mode": "placeholder",
     "do_ocr": true,
     "force_ocr": false,
+    "ocr_skip_text_layer_pages": false,
     "ocr_engine": "easyocr",
     "ocr_lang": ["en"],
     "pdf_backend": "dlparse_v2",
@@ -239,6 +241,7 @@ curl -X 'POST' \
     "image_export_mode": "placeholder",
     "do_ocr": true,
     "force_ocr": false,
+    "ocr_skip_text_layer_pages": false,
     "ocr_engine": "easyocr",
     "ocr_lang": [
       "fr",
@@ -368,6 +371,7 @@ parameters = {
 "image_export_mode": "placeholder",
 "do_ocr": True,
 "force_ocr": False,
+"ocr_skip_text_layer_pages": False,
 "ocr_engine": "easyocr",
 "ocr_lang": ["en"],
 "pdf_backend": "dlparse_v2",
