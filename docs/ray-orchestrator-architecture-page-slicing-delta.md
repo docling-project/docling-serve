@@ -36,9 +36,9 @@ flowchart TB
         DISP["RayTaskDispatcher\n(unchanged)"]:::existed
 
         subgraph RS_NEW["Ray Serve — new two-deployment plane"]
-            COORD["FanoutCoordinatorDeployment\n● owns parent task lifecycle\n● Redis handle · heartbeat\n● source materialization\n● fan-out / collect\nnum_cpus=0.5 · max_ongoing_requests=N\nno DoclingConverterManager"]:::new
-            WORK["PageWorkerDeployment\n● warm DoclingConverterManager\n● max_ongoing_requests=1\n● no Redis responsibility\n● converts one slice or one task"]:::new
-            COORD -- "process_worker_request(WorkerRequest)\nRay Serve handle call" --> WORK
+            COORD["DoclingProcessorCoordinatorDeployment\n● owns parent task lifecycle\n● Redis handle · heartbeat\n● source materialization\n● fan-out / collect\nnum_cpus=0.5 · max_ongoing_requests=N\nno DoclingConverterManager"]:::new
+            WORK["DoclingProcessorConverterDeployment\n● warm DoclingConverterManager\n● max_ongoing_requests=1\n● no Redis responsibility\n● converts one slice or one task"]:::new
+            COORD -- "process_converter_request(ConverterRequest)\nRay Serve handle call" --> WORK
         end
     end
 
@@ -55,14 +55,14 @@ flowchart TB
 
 | Responsibility | Before (`main`) | After (branch) |
 |---|---|---|
-| `process_task(task)` entry point | `DocumentProcessorDeployment` | `FanoutCoordinatorDeployment` ● |
-| Redis STARTED + execution lease + heartbeat | `DocumentProcessorDeployment` | `FanoutCoordinatorDeployment` ● |
-| `finalize_task_*_atomic` + PUBLISH | `DocumentProcessorDeployment` | `FanoutCoordinatorDeployment` ● |
-| `DoclingConverterManager` (warm models) | `DocumentProcessorDeployment` | `PageWorkerDeployment` ● |
+| `process_task(task)` entry point | `DocumentProcessorDeployment` | `DoclingProcessorCoordinatorDeployment` ● |
+| Redis STARTED + execution lease + heartbeat | `DocumentProcessorDeployment` | `DoclingProcessorCoordinatorDeployment` ● |
+| `finalize_task_*_atomic` + PUBLISH | `DocumentProcessorDeployment` | `DoclingProcessorCoordinatorDeployment` ● |
+| `DoclingConverterManager` (warm models) | `DocumentProcessorDeployment` | `DoclingProcessorConverterDeployment` ● |
 | Source download / decode | `DocumentProcessorDeployment` | Coordinator (PDF fan-out path) ● |
-| Per-slice page-range conversion | — did not exist — | `PageWorkerDeployment` ● |
+| Per-slice page-range conversion | — did not exist — | `DoclingProcessorConverterDeployment` ● |
 
-`DocumentProcessorDeployment` is kept as a backward-compat alias pointing to `PageWorkerDeployment`.
+The split is explicit: the coordinator and converter are separate deployments with distinct responsibilities.
 
 ---
 
@@ -80,13 +80,13 @@ flowchart LR
     classDef existed fill:#444,color:#fff,stroke:#222
 
     DISP(["Dispatcher"]):::existed
-    COORD["FanoutCoordinator\nnew hop"]:::new
-    WORK["PageWorker\nconverts as before"]:::new
+    COORD["Coordinator\nnew hop"]:::new
+    WORK["Converter\nconverts as before"]:::new
     REDIS[("Redis\nfinalize · PUBLISH")]:::existed
 
     DISP -- "process_task(task)" --> COORD
     COORD -- "PassthroughTaskRequest" --> WORK
-    WORK -- "WorkerTaskResult" --> COORD
+    WORK -- "ConverterTaskResult" --> COORD
     COORD -- "finalize_task_*_atomic\n+ PUBLISH" --> REDIS
 ```
 
@@ -102,10 +102,10 @@ flowchart LR
     classDef existed fill:#444,color:#fff,stroke:#222
 
     DISP(["Dispatcher"]):::existed
-    COORD["FanoutCoordinator"]:::new
+    COORD["Coordinator"]:::new
     MAT["materialize_and_preflight()\npreflight · page_count"]:::new
     PLASMA[("Ray plasma store\nray.put → ObjectRef")]:::new
-    WORK["PageWorker\nray.get → convert full doc"]:::new
+    WORK["Converter\nray.get → convert full doc"]:::new
     REDIS[("Redis\nfinalize · PUBLISH")]:::existed
 
     DISP -- "process_task(task)" --> COORD
@@ -113,13 +113,13 @@ flowchart LR
     MAT -- "ray.put(bytes)" --> PLASMA
     COORD -- "MaterializedConvertRequest\n(artifact_ref, filename, task)" --> WORK
     WORK -. "ray.get(artifact_ref)" .-> PLASMA
-    WORK -- "WorkerTaskResult" --> COORD
+    WORK -- "ConverterTaskResult" --> COORD
     COORD -- "finalize + PUBLISH\ndel artifact_ref" --> REDIS
 ```
 
 ### 2c. Fan-out path (effective pages > `max_page_slice_size`)
 
-Applies when `enable_pdf_page_slice_fanout=true` and the effective page count exceeds `max_page_slice_size`. The coordinator holds the `ObjectRef` for the full parent task duration while N parallel `SliceConvertRequest` calls run on worker replicas. After all slices are collected, the coordinator assembles the final document and finalizes the parent.
+Applies when `enable_pdf_page_slice_fanout=true` and the effective page count exceeds `max_page_slice_size`. The coordinator holds the `ObjectRef` for the full parent task duration while N parallel `SliceConvertRequest` calls run on converter replicas. After all slices are collected, the coordinator assembles the final document and finalizes the parent.
 
 ```mermaid
 flowchart TB
@@ -131,10 +131,10 @@ flowchart TB
     REDIS[("Redis\nfinalize · PUBLISH")]:::existed
     PLASMA[("Ray plasma store\nshared ObjectRef")]:::new
 
-    COORD["FanoutCoordinator\n① mark STARTED · write lease · start heartbeat\n② materialize_and_preflight()\n③ build SlicePlan\n④ ray.put(bytes) → ObjectRef"]:::new
-    W1["PageWorker replica\nslice pages [1, S]"]:::new
-    W2["PageWorker replica\nslice pages [S+1, 2S]"]:::new
-    WN["PageWorker replica\n… slice N"]:::new
+    COORD["Coordinator\n① mark STARTED · write lease · start heartbeat\n② materialize_and_preflight()\n③ build SlicePlan\n④ ray.put(bytes) → ObjectRef"]:::new
+    W1["Converter replica\nslice pages [1, S]"]:::new
+    W2["Converter replica\nslice pages [S+1, 2S]"]:::new
+    WN["Converter replica\n… slice N"]:::new
     ASSEM["Coordinator\n⑥ _assemble_slice_results()\n    sort by slice_index\n    DoclingDocument.concatenate()\n⑦ process_exportable_results()\n⑧ finalize + PUBLISH\n    cancel heartbeat · del ObjectRef"]:::assem
 
     DISP -- "process_task(task)" --> COORD
@@ -151,7 +151,7 @@ flowchart TB
     ASSEM --> REDIS
 ```
 
-Fan-out concurrency is either **unbounded** (`asyncio.gather` over all slices at once) or **bounded** by `max_page_slice_parallelism` using an `asyncio.wait` sliding-window refill loop.
+Fan-out concurrency is always **bounded** by `max_page_slice_parallelism` using an `asyncio.wait` sliding-window refill loop. When `max_page_slice_parallelism` is unset, it defaults to `max_concurrent_tasks`.
 
 ---
 
@@ -161,7 +161,7 @@ On `main`, `DocumentProcessorDeployment` owns the full task lifecycle in sequenc
 
 The branch splits that into two actors:
 
-### Coordinator and worker — lifecycle after the split
+### Coordinator and converter — lifecycle after the split
 
 ```mermaid
 flowchart TB
@@ -170,14 +170,14 @@ flowchart TB
 
     DISP(["Dispatcher"])
 
-    subgraph COORD_BOX["FanoutCoordinatorDeployment  (new — no model weights)"]
+    subgraph COORD_BOX["DoclingProcessorCoordinatorDeployment  (new — no model weights)"]
         C1["mark STARTED\nwrite execution lease\nstart heartbeat asyncio.Task"]:::new
         CPATH{"fan-out\neligible?\n(PDF, single-source,\nfanout enabled)"}:::new
         C_MAT["materialize_and_preflight()\nray.put(bytes) → ObjectRef\nbuild SlicePlan"]:::new
-        C_WAIT["asyncio.gather / bounded wait\nover N SliceConvertRequests"]:::new
+        C_WAIT["bounded wait\nover N SliceConvertRequests"]:::new
         C_ASSEM["_assemble_slice_results()\nDoclingDocument.concatenate()"]:::assem
         C_EXPORT["process_exportable_results()\n→ DoclingTaskResult"]:::assem
-        C_PASS["PassthroughTaskRequest\n→ unwrap WorkerTaskResult"]:::new
+        C_PASS["PassthroughTaskRequest\n→ unwrap ConverterTaskResult"]:::new
         C_FIN["finalize_task_*_atomic()\nPUBLISH\ncancel heartbeat\ndel ObjectRef"]:::new
 
         C1 --> CPATH
@@ -185,16 +185,16 @@ flowchart TB
         CPATH -- "No" --> C_PASS --> C_EXPORT
     end
 
-    subgraph WORK_BOX["PageWorkerDeployment  (new — holds warm DoclingConverterManager)"]
+    subgraph WORK_BOX["DoclingProcessorConverterDeployment  (new — holds warm DoclingConverterManager)"]
         W_SLICE["ray.get(artifact_ref)\ncm.convert_documents(page_range=child_range)\n→ ExportableDocument"]:::new
-        W_PASS["cm.convert_documents(task.sources)\n→ WorkerTaskResult"]:::new
+        W_PASS["cm.convert_documents(task.sources)\n→ ConverterTaskResult"]:::new
     end
 
     DISP --> C1
     C_WAIT -- "SliceConvertRequest ×N\n(artifact_ref, page_range, slice_index)" --> W_SLICE
     W_SLICE -- "ExportableDocument" --> C_ASSEM
     C_PASS -- "PassthroughTaskRequest" --> W_PASS
-    W_PASS -- "WorkerTaskResult" --> C_PASS
+    W_PASS -- "ConverterTaskResult" --> C_PASS
 ```
 
 The coordinator holds its Serve slot for the **full parent task duration**, including while child slices are running. Because coordinator replicas carry no GPU or heavy model weights, the idle cost while awaiting child slices is a cheap coordinator slot, not a GPU slot.
@@ -220,10 +220,10 @@ flowchart LR
         CN["…"]:::new
     end
 
-    subgraph POOL_W["Worker replica pool\n(separate Ray Serve deployment)"]
-        W1["Worker replica 1\nconverting slice"]:::new
-        W2["Worker replica 2\nconverting slice"]:::new
-        WN["Worker replica N"]:::new
+    subgraph POOL_W["Converter replica pool\n(separate Ray Serve deployment)"]
+        W1["Converter replica 1\nconverting slice"]:::new
+        W2["Converter replica 2\nconverting slice"]:::new
+        WN["Converter replica N"]:::new
     end
 
     C1 -- "SliceConvertRequest" --> W1
@@ -232,12 +232,12 @@ flowchart LR
 ```
 
 **Why deadlocks cannot occur:**
-- Coordinator replicas and worker replicas are in **separate Ray Serve deployment pools**. Ray routes by deployment; a coordinator slot waiting on workers is never occupying a worker slot.
-- Multiple coordinators can all be waiting simultaneously — each is async I/O blocked, not holding a thread or a worker slot.
-- `max_ongoing_requests=1` on the worker is preserved for thread safety. It limits each worker replica to one slice at a time, but does not interact with coordinator occupancy.
-- If all worker replicas are busy, new `SliceConvertRequest` calls queue in Ray Serve's internal backlog for the worker deployment. Coordinators wait async. No slots deadlock.
+- Coordinator replicas and converter replicas are in **separate Ray Serve deployment pools**. Ray routes by deployment; a coordinator slot waiting on converters is never occupying a converter slot.
+- Multiple coordinators can all be waiting simultaneously — each is async I/O blocked, not holding a thread or a converter slot.
+- `max_ongoing_requests=1` on the converter is preserved for thread safety. It limits each converter replica to one slice at a time, but does not interact with coordinator occupancy.
+- If all converter replicas are busy, new `SliceConvertRequest` calls queue in Ray Serve's internal backlog for the converter deployment. Coordinators wait async. No slots deadlock.
 
-The only saturation risk is **pool exhaustion**: if `max_page_slice_parallelism` is unset and a very large PDF creates more in-flight slice requests than there are worker replicas, the excess queue in the worker backlog. Coordinators keep waiting; workers keep processing. No deadlock, but latency for other tasks increases until slices drain.
+The only saturation risk is **pool exhaustion**: if `max_page_slice_parallelism` is unset and a very large PDF creates more in-flight slice requests than there are converter replicas, the excess queues in the converter backlog. Coordinators keep waiting; converters keep processing. No deadlock, but latency for other tasks increases until slices drain.
 
 ---
 
@@ -262,9 +262,9 @@ flowchart TD
     PLASMA[("plasma ObjectRef\nheld for full parent duration")]:::res
     REDIS[("Redis active_tasks\nheld for full parent duration")]:::res
 
-    W1["Worker slot: slice 1\nray.get + convert\nreleased on completion"]:::worker
-    W2["Worker slot: slice 2\nray.get + convert\nreleased on completion"]:::worker
-    WN["Worker slot: slice N\nreleased on completion"]:::worker
+    W1["Converter slot: slice 1\nray.get + convert\nreleased on completion"]:::worker
+    W2["Converter slot: slice 2\nray.get + convert\nreleased on completion"]:::worker
+    WN["Converter slot: slice N\nreleased on completion"]:::worker
 
     C2 --> PLASMA
     C3 --> W1 & W2 & WN
@@ -276,10 +276,10 @@ flowchart TD
 | **Coordinator replica slot** | task dispatch | `finalize_task_*_atomic` completes | 1 | 1 slot counts against `coordinator_max_ongoing_requests_per_replica`; coordinator carries no GPU/model weight, so slot cost is cheap |
 | **Ray plasma ObjectRef** | `ray.put()` after preflight | `del artifact_ref` in coordinator `finally` | 1 | Plasma memory held for full parent lifetime; released even on failure or coordinator crash |
 | **Redis `active_tasks`** | dispatcher admission | `finalize_task_*_atomic` | 1 (the parent) | Counts against tenant `max_concurrent_tasks`; child slices do **not** increment this counter |
-| **Worker replica slot** | slice dispatch | slice `ExportableDocument` returned | Up to `max_page_slice_parallelism` (or all slices if unset) | Each worker slot is at `max_ongoing_requests=1`; held only for the duration of one slice, then released |
+| **Converter replica slot** | slice dispatch | slice `ExportableDocument` returned | Up to `max_page_slice_parallelism` (or all slices if unset) | Each converter slot is at `max_ongoing_requests=1`; held only for the duration of one slice, then released |
 | **Execution heartbeat** | lease write | coordinator `finally` cancels asyncio task | 1 per parent | Async loop; negligible cost beyond Redis traffic |
 
-**Key change from baseline** (see base architecture §3 notes for the baseline): on this branch the GPU-capable worker slot is held only for the duration of one slice, not the full parent conversion. The coordinator slot is held for the full duration but is cheap — 0.5 CPU, no model weights. Worker replicas that finish a slice are immediately available for slices from other parents.
+**Key change from baseline** (see base architecture §3 notes for the baseline): on this branch the GPU-capable converter slot is held only for the duration of one slice, not the full parent conversion. The coordinator slot is held for the full duration but is cheap — 0.5 CPU, no model weights. Converter replicas that finish a slice are immediately available for slices from other parents.
 
 ---
 
@@ -299,14 +299,14 @@ flowchart TB
         MS -- "ray.put(content_bytes)" --> OBJ
     end
 
-    subgraph REQ["Coordinator → Worker: WorkerRequest  (new)"]
+    subgraph REQ["Coordinator → Converter: ConverterRequest  (new)"]
         PT["PassthroughTaskRequest\n  kind='passthrough_task'\n  task: Task"]:::new
         MC["MaterializedConvertRequest\n  kind='materialized_convert'\n  artifact_ref: ObjectRef\n  filename: str\n  task: Task  (sources=[])"]:::new
         SC["SliceConvertRequest\n  kind='slice_convert'\n  artifact_ref: ObjectRef\n  filename: str\n  options: ConvertDocumentsOptions\n  page_range: tuple[int,int]\n  slice_index: int"]:::new
     end
 
-    subgraph OUT["Worker → Coordinator: result boundary  (new)"]
-        WT["WorkerTaskResult\n  task_result: DoclingTaskResult\n  (passthrough + materialized paths)"]:::new
+    subgraph OUT["Converter → Coordinator: result boundary  (new)"]
+        WT["ConverterTaskResult\n  task_result: DoclingTaskResult\n  (passthrough + materialized paths)"]:::new
         ED["ExportableDocument\n  file: PurePath\n  document_hash: str | None\n  status: ConversionStatus\n  errors: list[ErrorItem]\n  timings: dict[str, ProfilingItem]\n  document: DoclingDocument | None\n  page_range: tuple[int,int] | None  ← slice\n  slice_index: int | None            ← slice\n  (slice path only)"]:::new
     end
 
@@ -338,7 +338,7 @@ flowchart LR
     end
 
     subgraph AFTER["After (branch)"]
-        ED2["ExportableDocument\nplain Pydantic · serializable\n  file: PurePath  (no handle)\n  document: DoclingDocument | None\n  status · errors · timings\n  page_range | None  ← slice-aware\n  slice_index | None ← slice-aware\nCrossed coordinator→worker boundary\nAlso used for assembled result"]:::new
+        ED2["ExportableDocument\nplain Pydantic · serializable\n  file: PurePath  (no handle)\n  document: DoclingDocument | None\n  status · errors · timings\n  page_range | None  ← slice-aware\n  slice_index | None ← slice-aware\nCrossed coordinator→converter boundary\nAlso used for assembled result"]:::new
     end
 
     BEFORE -- "replaced by" --> AFTER
@@ -384,13 +384,13 @@ coordinator_num_cpus: Optional[float] = None      # defaults to 0.5
 coordinator_memory_limit: Optional[str] = None    # defaults to ray_memory_limit_per_actor
 ```
 
-Existing autoscaling knobs (`min_actors`, `max_actors`, `upscale_delay_s`, `downscale_delay_s`, `graceful_shutdown_*`) are **shared** between coordinator and worker — both deployments use the same scaling bounds.
+Existing autoscaling knobs (`min_actors`, `max_actors`, `upscale_delay_s`, `downscale_delay_s`, `graceful_shutdown_*`) are **shared** between coordinator and converter — both deployments use the same scaling bounds.
 
 ### Deployment wiring (`create_deployment`)
 
 Before: `deploy_processor()` produced a single `DocumentProcessorDeployment` handle.
 
-After: `create_deployment()` produces a coordinator–worker pair wired via Ray Serve's `.bind()` DAG, with the worker handle injected into the coordinator constructor. The dispatcher still calls `process_task(task)` on the same handle — the deployment split is invisible to the dispatcher.
+After: `create_deployment()` produces a coordinator–converter pair wired via Ray Serve's `.bind()` DAG, with the converter handle injected into the coordinator constructor. The dispatcher still calls `process_task(task)` on the same handle — the deployment split is invisible to the dispatcher.
 
 ---
 
@@ -448,10 +448,10 @@ Task-level `TaskStatus` remains binary (`SUCCESS` / `FAILURE`). Partial page cov
 
 | Component | File |
 |---|---|
-| Coordinator deployment | `docling_jobkit/orchestrators/ray/serve_deployment.py` — `FanoutCoordinatorDeployment` |
-| Worker deployment | `docling_jobkit/orchestrators/ray/serve_deployment.py` — `PageWorkerDeployment` |
+| Coordinator deployment | `docling_jobkit/orchestrators/ray/serve_deployment.py` — `DoclingProcessorCoordinatorDeployment` |
+| Converter deployment | `docling_jobkit/orchestrators/ray/serve_deployment.py` — `DoclingProcessorConverterDeployment` |
 | Source materialization + preflight | `docling_jobkit/convert/materialization.py` |
-| Slice / worker request models | `docling_jobkit/orchestrators/ray/models.py` — `SliceSpec`, `SlicePlan`, `WorkerRequest`, … |
+| Slice / converter request models | `docling_jobkit/orchestrators/ray/models.py` — `SliceSpec`, `SlicePlan`, `ConverterRequest`, … |
 | Exportable document type | `docling_jobkit/datamodel/exportable_document.py` |
 | New export pipeline entry point | `docling_jobkit/convert/results.py` — `process_exportable_results()` |
 | Fan-out config knobs | `docling_jobkit/orchestrators/ray/config.py` |
