@@ -75,3 +75,23 @@ def test_new_ray_settings_override_deprecated_aliases():
 
     assert settings.eng_ray_converter_actor_num_cpus == 4.0
     assert settings.eng_ray_converter_actor_memory_request == "10Gi"
+
+
+def test_prefixed_env_var_converter_num_cpus(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_NUM_CPUS", "4")
+    settings = DoclingServeSettings()
+    assert settings.eng_ray_converter_actor_num_cpus == 4.0
+
+
+def test_prefixed_env_var_converter_memory_request(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_MEMORY_REQUEST", "6Gi")
+    settings = DoclingServeSettings()
+    assert settings.eng_ray_converter_actor_memory_request == "6Gi"
+
+
+def test_prefixed_env_var_deprecated_aliases(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_NUM_CPUS_PER_ACTOR", "3")
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_MEMORY_LIMIT_PER_ACTOR", "8Gi")
+    settings = DoclingServeSettings()
+    assert settings.eng_ray_converter_actor_num_cpus == 3.0
+    assert settings.eng_ray_converter_actor_memory_request == "8Gi"
