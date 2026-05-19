@@ -98,6 +98,7 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
 class DoclingServeSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCLING_SERVE_",
+        env_prefix_target="all",
         env_file=".env",
         env_parse_none_str="",
         extra="allow",
