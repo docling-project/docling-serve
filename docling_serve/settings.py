@@ -237,6 +237,8 @@ class DoclingServeSettings(BaseSettings):
     )
     eng_ray_enable_pdf_page_slice_fanout: bool = False
     eng_ray_max_page_slice_size: int = 32
+    # Unset means "default to eng_ray_max_concurrent_tasks" at runtime.
+    # Explicit values override that default but fan-out should never be unbounded.
     eng_ray_max_page_slice_parallelism: Optional[int] = None
     eng_ray_coordinator_min_actors: Optional[int] = None
     eng_ray_coordinator_max_actors: Optional[int] = None

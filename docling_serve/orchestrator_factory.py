@@ -153,6 +153,12 @@ def get_async_orchestrator() -> BaseOrchestrator:
             RayOrchestrator,
         )
 
+        max_page_slice_parallelism = (
+            docling_serve_settings.eng_ray_max_page_slice_parallelism
+            if docling_serve_settings.eng_ray_max_page_slice_parallelism is not None
+            else docling_serve_settings.eng_ray_max_concurrent_tasks
+        )
+
         # Create converter manager config
         cm_config = DoclingConverterManagerConfig(
             artifacts_path=docling_serve_settings.artifacts_path,
@@ -262,7 +268,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             converter_actor_num_cpus=docling_serve_settings.eng_ray_converter_actor_num_cpus,
             enable_pdf_page_slice_fanout=docling_serve_settings.eng_ray_enable_pdf_page_slice_fanout,
             max_page_slice_size=docling_serve_settings.eng_ray_max_page_slice_size,
-            max_page_slice_parallelism=docling_serve_settings.eng_ray_max_page_slice_parallelism,
+            max_page_slice_parallelism=max_page_slice_parallelism,
             coordinator_min_actors=docling_serve_settings.eng_ray_coordinator_min_actors,
             coordinator_max_actors=docling_serve_settings.eng_ray_coordinator_max_actors,
             coordinator_target_requests_per_replica=docling_serve_settings.eng_ray_coordinator_target_requests_per_replica,

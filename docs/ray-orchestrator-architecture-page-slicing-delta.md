@@ -151,7 +151,7 @@ flowchart TB
     ASSEM --> REDIS
 ```
 
-Fan-out concurrency is either **unbounded** (`asyncio.gather` over all slices at once) or **bounded** by `max_page_slice_parallelism` using an `asyncio.wait` sliding-window refill loop.
+Fan-out concurrency is always **bounded** by `max_page_slice_parallelism` using an `asyncio.wait` sliding-window refill loop. When `max_page_slice_parallelism` is unset, it defaults to `max_concurrent_tasks`.
 
 ---
 
@@ -174,7 +174,7 @@ flowchart TB
         C1["mark STARTED\nwrite execution lease\nstart heartbeat asyncio.Task"]:::new
         CPATH{"fan-out\neligible?\n(PDF, single-source,\nfanout enabled)"}:::new
         C_MAT["materialize_and_preflight()\nray.put(bytes) → ObjectRef\nbuild SlicePlan"]:::new
-        C_WAIT["asyncio.gather / bounded wait\nover N SliceConvertRequests"]:::new
+        C_WAIT["bounded wait\nover N SliceConvertRequests"]:::new
         C_ASSEM["_assemble_slice_results()\nDoclingDocument.concatenate()"]:::assem
         C_EXPORT["process_exportable_results()\n→ DoclingTaskResult"]:::assem
         C_PASS["PassthroughTaskRequest\n→ unwrap ConverterTaskResult"]:::new
