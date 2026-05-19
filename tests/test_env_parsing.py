@@ -51,3 +51,27 @@ def test_default_values():
 
     assert settings.allowed_vlm_presets is None
     assert settings.custom_vlm_presets == {}
+
+
+def test_deprecated_ray_setting_aliases(caplog):
+    settings = DoclingServeSettings(
+        eng_ray_num_cpus_per_actor=3.0,
+        eng_ray_memory_limit_per_actor="8Gi",
+    )
+
+    assert settings.eng_ray_converter_actor_num_cpus == 3.0
+    assert settings.eng_ray_converter_actor_memory_request == "8Gi"
+    assert "eng_ray_num_cpus_per_actor is deprecated" in caplog.text
+    assert "eng_ray_memory_limit_per_actor is deprecated" in caplog.text
+
+
+def test_new_ray_settings_override_deprecated_aliases():
+    settings = DoclingServeSettings(
+        eng_ray_converter_actor_num_cpus=4.0,
+        eng_ray_num_cpus_per_actor=2.0,
+        eng_ray_converter_actor_memory_request="10Gi",
+        eng_ray_memory_limit_per_actor="8Gi",
+    )
+
+    assert settings.eng_ray_converter_actor_num_cpus == 4.0
+    assert settings.eng_ray_converter_actor_memory_request == "10Gi"
