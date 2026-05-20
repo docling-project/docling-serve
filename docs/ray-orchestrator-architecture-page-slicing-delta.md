@@ -36,7 +36,7 @@ flowchart TB
         DISP["RayTaskDispatcher\n(unchanged)"]:::existed
 
         subgraph RS_NEW["Ray Serve — new two-deployment plane"]
-            COORD["DoclingProcessorCoordinatorDeployment\n● owns parent task lifecycle\n● Redis handle · heartbeat\n● source materialization\n● fan-out / collect\nnum_cpus=0.5 · max_ongoing_requests=N\nno DoclingConverterManager"]:::new
+            COORD["DoclingProcessorCoordinatorDeployment\n● owns parent task lifecycle\n● Redis handle · heartbeat\n● source materialization\n● fan-out / collect\nnum_cpus=0.25 · max_ongoing_requests=8 default\nno DoclingConverterManager"]:::new
             WORK["DoclingProcessorConverterDeployment\n● warm DoclingConverterManager\n● max_ongoing_requests=1\n● no Redis responsibility\n● converts one slice or one task"]:::new
             COORD -- "process_converter_request(ConverterRequest)\nRay Serve handle call" --> WORK
         end
@@ -279,7 +279,7 @@ flowchart TD
 | **Converter replica slot** | slice dispatch | slice `ExportableDocument` returned | Up to `max_page_slice_parallelism` (or all slices if unset) | Each converter slot is at `max_ongoing_requests=1`; held only for the duration of one slice, then released |
 | **Execution heartbeat** | lease write | coordinator `finally` cancels asyncio task | 1 per parent | Async loop; negligible cost beyond Redis traffic |
 
-**Key change from baseline** (see base architecture §3 notes for the baseline): on this branch the GPU-capable converter slot is held only for the duration of one slice, not the full parent conversion. The coordinator slot is held for the full duration but is cheap — 0.5 CPU, no model weights. Converter replicas that finish a slice are immediately available for slices from other parents.
+**Key change from baseline** (see base architecture §3 notes for the baseline): on this branch the GPU-capable converter slot is held only for the duration of one slice, not the full parent conversion. The coordinator slot is held for the full duration but is cheap — 0.25 CPU by default in `docling-serve`, no model weights. Converter replicas that finish a slice are immediately available for slices from other parents.
 
 ---
 
@@ -380,11 +380,26 @@ max_page_slice_parallelism: Optional[int] = None  # concurrent in-flight slices 
 # Coordinator-specific resource overrides (normalized at startup if None)
 coordinator_target_requests_per_replica: Optional[int] = None
 coordinator_max_ongoing_requests_per_replica: Optional[int] = None
-coordinator_num_cpus: Optional[float] = None      # defaults to 0.5
-coordinator_memory_limit: Optional[str] = None    # defaults to ray_memory_limit_per_actor
+coordinator_actor_num_cpus: float = 0.25
+coordinator_actor_memory_request: Optional[str] = None
+converter_actor_memory_request: Optional[str] = None
 ```
 
 Existing autoscaling knobs (`min_actors`, `max_actors`, `upscale_delay_s`, `downscale_delay_s`, `graceful_shutdown_*`) are **shared** between coordinator and converter — both deployments use the same scaling bounds.
+
+`RayOrchestratorConfig` normalizes `max_page_slice_parallelism` to `max_concurrent_tasks` when unset, and if `coordinator_actor_memory_request` is unset it inherits `converter_actor_memory_request`.
+
+### `docling-serve` runtime defaults and guards
+
+`docling-serve` wires the feature with service-level defaults that differ from the bare `RayOrchestratorConfig` defaults:
+
+```python
+eng_ray_max_page_slice_size: int = 32
+eng_ray_coordinator_max_ongoing_requests_per_replica: int = 8
+eng_ray_coordinator_actor_num_cpus: float = 0.25
+```
+
+At startup, `docling_serve.app` also verifies that the installed `docling-jobkit` build contains `docling_jobkit.convert.materialization`; if not, Ray mode raises an actionable compatibility error before the app starts serving requests.
 
 ### Deployment wiring (`create_deployment`)
 
