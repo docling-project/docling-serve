@@ -153,6 +153,12 @@ def get_async_orchestrator() -> BaseOrchestrator:
             RayOrchestrator,
         )
 
+        max_page_slice_parallelism = (
+            docling_serve_settings.eng_ray_max_page_slice_parallelism
+            if docling_serve_settings.eng_ray_max_page_slice_parallelism is not None
+            else docling_serve_settings.eng_ray_max_concurrent_tasks
+        )
+
         # Create converter manager config
         cm_config = DoclingConverterManagerConfig(
             artifacts_path=docling_serve_settings.artifacts_path,
@@ -259,7 +265,16 @@ def get_async_orchestrator() -> BaseOrchestrator:
             downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
             graceful_shutdown_wait_loop_s=docling_serve_settings.eng_ray_graceful_shutdown_wait_loop_s,
             graceful_shutdown_timeout_s=docling_serve_settings.eng_ray_graceful_shutdown_timeout_s,
-            ray_num_cpus_per_actor=docling_serve_settings.eng_ray_num_cpus_per_actor,
+            converter_actor_num_cpus=docling_serve_settings.eng_ray_converter_actor_num_cpus,
+            enable_pdf_page_slice_fanout=docling_serve_settings.eng_ray_enable_pdf_page_slice_fanout,
+            max_page_slice_size=docling_serve_settings.eng_ray_max_page_slice_size,
+            max_page_slice_parallelism=max_page_slice_parallelism,
+            coordinator_min_actors=docling_serve_settings.eng_ray_coordinator_min_actors,
+            coordinator_max_actors=docling_serve_settings.eng_ray_coordinator_max_actors,
+            coordinator_target_requests_per_replica=docling_serve_settings.eng_ray_coordinator_target_requests_per_replica,
+            coordinator_max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_coordinator_max_ongoing_requests_per_replica,
+            coordinator_actor_num_cpus=docling_serve_settings.eng_ray_coordinator_actor_num_cpus,
+            coordinator_actor_memory_request=docling_serve_settings.eng_ray_coordinator_actor_memory_request,
             # Fault Tolerance & Retry
             max_task_retries=docling_serve_settings.eng_ray_max_task_retries,
             retry_delay=docling_serve_settings.eng_ray_retry_delay,
@@ -276,7 +291,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Health Checks
             enable_heartbeat=docling_serve_settings.eng_ray_enable_heartbeat,
             # Resource Management & Memory Monitoring
-            ray_memory_limit_per_actor=docling_serve_settings.eng_ray_memory_limit_per_actor,
+            converter_actor_memory_request=docling_serve_settings.eng_ray_converter_actor_memory_request,
+            dispatcher_num_cpus=docling_serve_settings.eng_ray_dispatcher_num_cpus,
+            dispatcher_memory_request=docling_serve_settings.eng_ray_dispatcher_memory_request,
             ray_object_store_memory=docling_serve_settings.eng_ray_object_store_memory,
             enable_oom_protection=docling_serve_settings.eng_ray_enable_oom_protection,
             memory_warning_threshold=docling_serve_settings.eng_ray_memory_warning_threshold,
