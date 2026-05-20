@@ -38,48 +38,25 @@ from fastapi.staticfiles import StaticFiles
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
-from docling.datamodel.service.callbacks import (
+from docling_core.types.doc import ImageRefMode
+from docling_jobkit.datamodel.callback import (
     CallbackSpec,
     ProgressCallbackRequest,
     ProgressCallbackResponse,
 )
-from docling.datamodel.service.chunking import (
+from docling_jobkit.datamodel.chunking import (
     BaseChunkerOptions,
+    ChunkingExportOptions,
     HierarchicalChunkerOptions,
     HybridChunkerOptions,
 )
-from docling.datamodel.service.options import (
-    ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
-)
-from docling.datamodel.service.requests import (
-    ConvertDocumentsRequest,
-    FileSourceRequest,
-    GenericChunkDocumentsRequest,
-    HttpSourceRequest,
-    S3SourceRequest,
-    TargetName,
-    TargetRequest,
-    make_request_model,
-)
-from docling.datamodel.service.responses import (
-    ChunkDocumentResponse,
-    ClearResponse,
-    ConvertDocumentResponse,
-    HealthCheckResponse,
-    MessageKind,
-    PresignedUrlConvertDocumentResponse,
-    ReadinessResponse,
-    TaskStatusResponse,
-    WebsocketMessage,
-)
-from docling.datamodel.service.sources import FileSource, HttpSource, S3Coordinates
-from docling.datamodel.service.targets import (
+from docling_jobkit.datamodel.http_inputs import FileSource, HttpSource
+from docling_jobkit.datamodel.s3_coords import S3Coordinates
+from docling_jobkit.datamodel.task import Task, TaskSource, TaskType
+from docling_jobkit.datamodel.task_targets import (
     InBodyTarget,
     ZipTarget,
 )
-from docling.datamodel.service.tasks import TaskType
-from docling_jobkit.datamodel.chunking import ChunkingExportOptions
-from docling_jobkit.datamodel.task import Task, TaskSource
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -89,23 +66,44 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
+from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
+from docling_serve.datamodel.requests import (
+    ConvertDocumentsRequest,
+    FileSourceRequest,
+    GenericChunkDocumentsRequest,
+    HttpSourceRequest,
+    S3SourceRequest,
+    TargetName,
+    TargetRequest,
+    make_request_model,
+)
+from docling_serve.datamodel.responses import (
+    ChunkDocumentResponse,
+    ClearResponse,
+    ConvertDocumentPublishedResponse,
+    ConvertDocumentResponse,
+    HealthCheckResponse,
+    MessageKind,
+    PresignedUrlConvertDocumentResponse,
+    ReadinessResponse,
+    TaskStatusResponse,
+    WebsocketMessage,
+)
 from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.otel_instrumentation import (
     get_metrics_endpoint_content,
     setup_otel_instrumentation,
 )
-from docling_serve.policy import (
-    build_service_policy,
-    normalize_convert_options,
-    normalize_convert_request,
-    validate_chunk_request,
-    validate_convert_options,
-    validate_convert_request,
-)
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
+
+
+def _apply_default_image_export_mode(options: ConvertDocumentsRequestOptions):
+    if docling_serve_settings.resource_upload_enabled and options.image_export_mode == ImageRefMode.EMBEDDED:
+        options.image_export_mode = ImageRefMode.REFERENCED
+    return options
 from docling_serve.websocket_notifier import WebsocketNotifier
 
 # Pre-import OCR backends that use cysignals (signal handlers must be registered
@@ -219,7 +217,6 @@ def create_app():  # noqa: C901
         _log.info("Found static assets.")
 
     require_auth = APIKeyAuth(docling_serve_settings.api_key)
-    service_policy = build_service_policy(docling_serve_settings)
     app = FastAPI(
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
@@ -393,10 +390,10 @@ def create_app():  # noqa: C901
         task_type: TaskType
         if isinstance(request, ConvertDocumentsRequest):
             task_type = TaskType.CONVERT
-            convert_options = request.options
+            convert_options = _apply_default_image_export_mode(request.options)
         elif isinstance(request, GenericChunkDocumentsRequest):
             task_type = TaskType.CHUNK
-            convert_options = request.convert_options
+            convert_options = _apply_default_image_export_mode(request.convert_options)
             chunking_options = request.chunking_options
             chunking_export_options.include_converted_doc = (
                 request.include_converted_doc
@@ -506,34 +503,6 @@ def create_app():  # noqa: C901
             elapsed_time = time.monotonic() - start_time
             if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
-
-    def _prepare_convert_request(
-        request: ConvertDocumentsRequest,
-    ) -> ConvertDocumentsRequest:
-        normalized_request = normalize_convert_request(request, service_policy)
-        validate_convert_request(normalized_request, service_policy)
-        return normalized_request
-
-    def _prepare_chunk_request(
-        request: GenericChunkDocumentsRequest,
-    ) -> GenericChunkDocumentsRequest:
-        normalized_request = request.model_copy(
-            update={
-                "convert_options": normalize_convert_options(
-                    request.convert_options, service_policy
-                )
-            },
-            deep=True,
-        )
-        validate_chunk_request(normalized_request, service_policy)
-        return normalized_request
-
-    def _prepare_convert_options(
-        options: ConvertDocumentsRequestOptions,
-    ) -> ConvertDocumentsRequestOptions:
-        normalized_options = normalize_convert_options(options, service_policy)
-        validate_convert_options(normalized_options, service_policy)
-        return normalized_options
 
     ##########################################
     # Downgrade openapi 3.1 to 3.0.x helpers #
@@ -678,7 +647,7 @@ def create_app():  # noqa: C901
     @app.post(
         "/v1/convert/source",
         tags=["convert"],
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | ConvertDocumentPublishedResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -695,7 +664,6 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        conversion_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_url endpoint received tenant_id='{tenant_id}'")
         task = await _enque_source(
@@ -730,7 +698,7 @@ def create_app():  # noqa: C901
     @app.post(
         "/v1/convert/file",
         tags=["convert"],
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse | ConvertDocumentPublishedResponse | PresignedUrlConvertDocumentResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -750,7 +718,6 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        options = _prepare_convert_options(options)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
@@ -758,7 +725,7 @@ def create_app():  # noqa: C901
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
             files=files,
-            convert_options=options,
+            convert_options=_apply_default_image_export_mode(options),
             chunking_options=None,
             chunking_export_options=None,
             target=target,
@@ -804,7 +771,6 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        conversion_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_url_async endpoint received tenant_id='{tenant_id}'"
@@ -843,7 +809,6 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        options = _prepare_convert_options(options)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
@@ -853,7 +818,7 @@ def create_app():  # noqa: C901
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
             files=files,
-            convert_options=options,
+            convert_options=_apply_default_image_export_mode(options),
             chunking_options=None,
             chunking_export_options=None,
             target=target,
@@ -895,7 +860,6 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            request = _prepare_chunk_request(request)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_source_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
@@ -959,7 +923,6 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            convert_options = _prepare_convert_options(convert_options)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_file_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
@@ -1012,7 +975,6 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            request = _prepare_chunk_request(request)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_source ({path_name}) endpoint received tenant_id='{tenant_id}'"
@@ -1094,7 +1056,6 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
-            convert_options = _prepare_convert_options(convert_options)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_file ({path_name}) endpoint received tenant_id='{tenant_id}'"
