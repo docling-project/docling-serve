@@ -1,3 +1,24 @@
+## [v1.19.0](https://github.com/docling-project/docling-serve/releases/tag/v1.19.0) - 2026-05-20
+
+### Feature
+
+* Control error detail of public API responses ([#609](https://github.com/docling-project/docling-serve/issues/609)) ([`55dab06`](https://github.com/docling-project/docling-serve/commit/55dab0694f0d83be1cd60295f8fbd415639cb904))
+* Support for server side page slicing and concurrency for long PDFs ([#585](https://github.com/docling-project/docling-serve/issues/585)) ([`df28b48`](https://github.com/docling-project/docling-serve/commit/df28b484dd157e788074f3fc465a3e47cfc551ba))
+
+### Documentation
+
+* **security:** Add GitHub Private Vulnerability Reporting ([#601](https://github.com/docling-project/docling-serve/issues/601)) ([`3bddacc`](https://github.com/docling-project/docling-serve/commit/3bddacc81422c5bcccb9d5a4ded7e9ac7d558bce))
+
+### Docling libraries included in this release:
+- docling 2.94.0
+- docling-core 2.77.0
+- docling-ibm-models 3.13.2
+- docling-jobkit 1.19.1
+- docling-mcp 2.0.1
+- docling-parse 5.11.0
+- docling-serve 1.19.0
+- docling-slim 2.94.0
+
 ## [v1.18.0](https://github.com/docling-project/docling-serve/releases/tag/v1.18.0) - 2026-05-07
 
 ### Feature
