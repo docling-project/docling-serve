@@ -51,6 +51,15 @@ def test_default_values():
 
     assert settings.allowed_vlm_presets is None
     assert settings.custom_vlm_presets == {}
+    assert settings.debug_error_details is False
+
+
+def test_debug_error_details_from_env(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_DEBUG_ERROR_DETAILS", "true")
+
+    settings = DoclingServeSettings()
+
+    assert settings.debug_error_details is True
 
 
 def test_deprecated_ray_setting_aliases(caplog):

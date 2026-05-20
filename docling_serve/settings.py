@@ -127,6 +127,7 @@ class DoclingServeSettings(BaseSettings):
     allow_custom_ocr_config: bool = False
     show_version_info: bool = True
     enable_management_endpoints: bool = False
+    debug_error_details: bool = False
 
     api_key: str = ""
 
@@ -199,7 +200,8 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_sub_channel: str = "docling:ray:updates"
 
     # Fair Dispatcher
-    eng_ray_dispatcher_interval: float = 2.0
+    eng_ray_dispatcher_interval: float = 30.0
+    eng_ray_supervisor_poll_interval: float = 5.0
 
     # Per-User Dispatcher Limits
     eng_ray_max_concurrent_tasks: int = 5

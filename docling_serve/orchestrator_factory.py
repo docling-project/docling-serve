@@ -102,6 +102,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             results_prefix=docling_serve_settings.eng_rq_results_prefix,
             sub_channel=docling_serve_settings.eng_rq_sub_channel,
             scratch_dir=get_scratch(),
+            debug_error_details=docling_serve_settings.debug_error_details,
             results_ttl=docling_serve_settings.eng_rq_results_ttl,
             failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
             redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
@@ -239,6 +240,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             sub_channel=docling_serve_settings.eng_ray_sub_channel,
             # Fair Dispatcher
             dispatcher_interval=docling_serve_settings.eng_ray_dispatcher_interval,
+            supervisor_poll_interval=docling_serve_settings.eng_ray_supervisor_poll_interval,
             # Per-User Limits
             max_concurrent_tasks=docling_serve_settings.eng_ray_max_concurrent_tasks,
             max_queued_tasks=docling_serve_settings.eng_ray_max_queued_tasks,
@@ -301,6 +303,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             scratch_dir=docling_serve_settings.eng_ray_scratch_dir or get_scratch(),
             # Logging
             log_level=docling_serve_settings.eng_ray_log_level,
+            debug_error_details=docling_serve_settings.debug_error_details,
         )
 
         return RayOrchestrator(config=ray_config, converter_manager=cm)

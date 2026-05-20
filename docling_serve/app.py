@@ -103,6 +103,7 @@ from docling_serve.policy import (
     validate_convert_options,
     validate_convert_request,
 )
+from docling_serve.public_errors import build_public_http_detail
 from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
@@ -251,7 +252,13 @@ def create_app():  # noqa: C901
             del request
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"detail": str(exc) or "Ray dispatcher is unavailable."},
+                content={
+                    "detail": build_public_http_detail(
+                        exc=exc,
+                        debug_enabled=docling_serve_settings.debug_error_details,
+                        fallback_message="Ray dispatcher is unavailable.",
+                    )
+                },
                 headers={"Retry-After": "1"},
             )
 
@@ -636,7 +643,11 @@ def create_app():  # noqa: C901
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(exc) or "Readiness check failed",
+                detail=build_public_http_detail(
+                    exc=exc,
+                    debug_enabled=docling_serve_settings.debug_error_details,
+                    fallback_message="Readiness check failed",
+                ),
             ) from exc
 
         return ReadinessResponse()
@@ -1320,7 +1331,12 @@ def create_app():  # noqa: C901
             raise HTTPException(status_code=404, detail="Task not found.")
         except ProgressInvalid as err:
             raise HTTPException(
-                status_code=400, detail=f"Invalid progress payload: {err}"
+                status_code=400,
+                detail=build_public_http_detail(
+                    exc=err,
+                    debug_enabled=docling_serve_settings.debug_error_details,
+                    fallback_message="Invalid progress payload.",
+                ),
             )
 
     #### Clear requests
