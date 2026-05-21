@@ -1,3 +1,23 @@
+## [v1.20.0](https://github.com/docling-project/docling-serve/releases/tag/v1.20.0) - 2026-05-21
+
+### Feature
+
+* Expose docs metadata in callbacks ([#612](https://github.com/docling-project/docling-serve/issues/612)) ([`ca1cc9f`](https://github.com/docling-project/docling-serve/commit/ca1cc9f525ae405c260e02d26a8ff63128f81e66))
+
+### Documentation
+
+* Fix docker pull README.md example ([#603](https://github.com/docling-project/docling-serve/issues/603)) ([`75a35ec`](https://github.com/docling-project/docling-serve/commit/75a35ecd49e16a11ac59801bd3cccd73d2106fe3))
+
+### Docling libraries included in this release:
+- docling 2.95.0
+- docling-core 2.77.0
+- docling-ibm-models 3.13.2
+- docling-jobkit 1.20.0
+- docling-mcp 2.0.1
+- docling-parse 5.11.0
+- docling-serve 1.20.0
+- docling-slim 2.95.0
+
 ## [v1.19.0](https://github.com/docling-project/docling-serve/releases/tag/v1.19.0) - 2026-05-20
 
 ### Feature
