@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
 
 from fastapi import HTTPException, status
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
-    ConvertDocumentsRequest,
     ConvertSourcesRequest,
     S3SourceRequest,
 )
@@ -16,10 +14,6 @@ from docling.datamodel.service.targets import PresignedUrlTarget, S3Target
 from docling.models.factories import get_ocr_factory
 
 from docling_serve.settings import AsyncEngine, DoclingServeSettings
-
-TConvertRequest = TypeVar(
-    "TConvertRequest", ConvertSourcesRequest, ConvertDocumentsRequest
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,8 +61,8 @@ def normalize_convert_options(
 
 
 def normalize_convert_request(
-    request: TConvertRequest, policy: ServicePolicy
-) -> TConvertRequest:
+    request: ConvertSourcesRequest, policy: ServicePolicy
+) -> ConvertSourcesRequest:
     return request.model_copy(
         update={"options": normalize_convert_options(request.options, policy)},
         deep=True,
@@ -110,7 +104,7 @@ def validate_convert_options(
 
 
 def validate_convert_request(
-    request: ConvertSourcesRequest | ConvertDocumentsRequest, policy: ServicePolicy
+    request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
 
@@ -120,15 +114,14 @@ def validate_convert_request(
             detail="Callbacks are disabled by server policy.",
         )
 
-    if isinstance(request, ConvertSourcesRequest):
-        if len(request.sources) > policy.max_sources_per_request:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=(
-                    f"Too many sources: {len(request.sources)} exceeds the "
-                    f"maximum of {policy.max_sources_per_request}."
-                ),
-            )
+    if len(request.sources) > policy.max_sources_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"Too many sources: {len(request.sources)} exceeds the "
+                f"maximum of {policy.max_sources_per_request}."
+            ),
+        )
 
     if isinstance(request.target, PresignedUrlTarget):
         if not policy.artifact_storage_enabled:

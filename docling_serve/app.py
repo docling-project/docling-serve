@@ -52,7 +52,6 @@ from docling.datamodel.service.options import (
     ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
 )
 from docling.datamodel.service.requests import (
-    ConvertDocumentsRequest,
     ConvertSourcesRequest,
     FileSourceRequest,
     GenericChunkDocumentsRequest,
@@ -385,9 +384,7 @@ def create_app():  # noqa: C901
 
     async def _enque_source(
         orchestrator: BaseOrchestrator,
-        request: ConvertSourcesRequest
-        | ConvertDocumentsRequest
-        | GenericChunkDocumentsRequest,
+        request: ConvertSourcesRequest | GenericChunkDocumentsRequest,
         tenant_id: str | None = None,
     ) -> Task:
         sources: list[TaskSource] = []
@@ -403,7 +400,7 @@ def create_app():  # noqa: C901
         chunking_options: BaseChunkerOptions | None = None
         chunking_export_options = ChunkingExportOptions()
         task_type: TaskType
-        if isinstance(request, ConvertSourcesRequest | ConvertDocumentsRequest):
+        if isinstance(request, ConvertSourcesRequest):
             task_type = TaskType.CONVERT
             convert_options = request.options
         elif isinstance(request, GenericChunkDocumentsRequest):
