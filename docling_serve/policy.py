@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 from fastapi import HTTPException, status
 
@@ -8,12 +9,17 @@ from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
     ConvertDocumentsRequest,
+    ConvertSourcesRequest,
     S3SourceRequest,
 )
-from docling.datamodel.service.targets import S3Target
+from docling.datamodel.service.targets import PresignedUrlTarget, S3Target
 from docling.models.factories import get_ocr_factory
 
 from docling_serve.settings import AsyncEngine, DoclingServeSettings
+
+TConvertRequest = TypeVar(
+    "TConvertRequest", ConvertSourcesRequest, ConvertDocumentsRequest
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +30,8 @@ class ServicePolicy:
     s3_enabled: bool
     callbacks_enabled: bool
     custom_vlm_enabled: bool
+    artifact_storage_enabled: bool
+    max_sources_per_request: int
 
 
 def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
@@ -43,6 +51,8 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         s3_enabled=settings.eng_kind == AsyncEngine.KFP,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
+        artifact_storage_enabled=settings.artifact_storage_enabled,
+        max_sources_per_request=settings.max_sources_per_request,
     )
 
 
@@ -57,8 +67,8 @@ def normalize_convert_options(
 
 
 def normalize_convert_request(
-    request: ConvertDocumentsRequest, policy: ServicePolicy
-) -> ConvertDocumentsRequest:
+    request: TConvertRequest, policy: ServicePolicy
+) -> TConvertRequest:
     return request.model_copy(
         update={"options": normalize_convert_options(request.options, policy)},
         deep=True,
@@ -100,7 +110,7 @@ def validate_convert_options(
 
 
 def validate_convert_request(
-    request: ConvertDocumentsRequest, policy: ServicePolicy
+    request: ConvertSourcesRequest | ConvertDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
 
@@ -109,6 +119,26 @@ def validate_convert_request(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Callbacks are disabled by server policy.",
         )
+
+    if isinstance(request, ConvertSourcesRequest):
+        if len(request.sources) > policy.max_sources_per_request:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"Too many sources: {len(request.sources)} exceeds the "
+                    f"maximum of {policy.max_sources_per_request}."
+                ),
+            )
+
+    if isinstance(request.target, PresignedUrlTarget):
+        if not policy.artifact_storage_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Presigned URL target requires artifact storage to be configured "
+                    "and enabled on the server."
+                ),
+            )
 
     has_s3_source = any(
         isinstance(source, S3SourceRequest) for source in request.sources
@@ -143,6 +173,12 @@ def validate_chunk_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Callbacks are disabled by server policy.",
+        )
+
+    if isinstance(request.target, PresignedUrlTarget):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="presigned_url target is not supported for chunk endpoints.",
         )
 
     has_s3_source = any(

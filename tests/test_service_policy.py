@@ -4,10 +4,11 @@ from fastapi import HTTPException
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     ConvertDocumentsRequest,
+    ConvertSourcesRequest,
     HttpSourceRequest,
     S3SourceRequest,
 )
-from docling.datamodel.service.targets import InBodyTarget, S3Target
+from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, S3Target
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
@@ -84,3 +85,60 @@ def test_normalize_convert_request_preserves_sources_and_target():
     assert normalized.sources == request.sources
     assert normalized.target == request.target
     assert normalized.options.document_timeout == policy.max_document_timeout
+
+
+def test_normalize_convert_request_works_for_convert_sources_request():
+    policy = build_service_policy(DoclingServeSettings())
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(document_timeout=None),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=InBodyTarget(),
+    )
+
+    normalized = normalize_convert_request(request, policy)
+
+    assert isinstance(normalized, ConvertSourcesRequest)
+    assert normalized.sources == request.sources
+    assert normalized.options.document_timeout == policy.max_document_timeout
+
+
+def test_validate_convert_request_rejects_presigned_url_when_storage_disabled():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=False))
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 503
+    assert "artifact storage" in exc_info.value.detail.lower()
+
+
+def test_validate_convert_request_rejects_too_many_sources():
+    policy = build_service_policy(DoclingServeSettings(max_sources_per_request=2))
+    request = ConvertSourcesRequest(
+        sources=[
+            HttpSourceRequest(url="https://example.com/a.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/b.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/c.pdf", headers={}),
+        ],
+        target=InBodyTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "Too many sources" in exc_info.value.detail
+
+
+def test_validate_convert_request_allows_presigned_url_when_storage_enabled():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    validate_convert_request(request, policy)

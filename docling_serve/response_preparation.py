@@ -5,7 +5,9 @@ from fastapi import BackgroundTasks, Response
 from docling.datamodel.service.responses import (
     ChunkDocumentResponse,
     ConvertDocumentResponse,
+    PresignedArtifactResult,
     PresignedUrlConvertDocumentResponse,
+    PresignedUrlConvertResponse,
 )
 from docling_jobkit.datamodel.result import (
     ChunkedDocumentResult,
@@ -33,6 +35,7 @@ async def prepare_response(
         Response
         | ConvertDocumentResponse
         | PresignedUrlConvertDocumentResponse
+        | PresignedUrlConvertResponse
         | ChunkDocumentResponse
     )
     if isinstance(task_result.result, ExportResult):
@@ -53,6 +56,14 @@ async def prepare_response(
         )
     elif isinstance(task_result.result, RemoteTargetResult):
         response = PresignedUrlConvertDocumentResponse(
+            processing_time=task_result.processing_time,
+            num_converted=task_result.num_converted,
+            num_succeeded=task_result.num_succeeded,
+            num_failed=task_result.num_failed,
+        )
+    elif isinstance(task_result.result, PresignedArtifactResult):
+        response = PresignedUrlConvertResponse(
+            documents=task_result.result.documents,
             processing_time=task_result.processing_time,
             num_converted=task_result.num_converted,
             num_succeeded=task_result.num_succeeded,

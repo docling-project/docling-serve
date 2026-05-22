@@ -53,6 +53,7 @@ from docling.datamodel.service.options import (
 )
 from docling.datamodel.service.requests import (
     ConvertDocumentsRequest,
+    ConvertSourcesRequest,
     FileSourceRequest,
     GenericChunkDocumentsRequest,
     HttpSourceRequest,
@@ -68,6 +69,7 @@ from docling.datamodel.service.responses import (
     HealthCheckResponse,
     MessageKind,
     PresignedUrlConvertDocumentResponse,
+    PresignedUrlConvertResponse,
     ReadinessResponse,
     TaskStatusResponse,
     WebsocketMessage,
@@ -75,6 +77,7 @@ from docling.datamodel.service.responses import (
 from docling.datamodel.service.sources import FileSource, HttpSource, S3Coordinates
 from docling.datamodel.service.targets import (
     InBodyTarget,
+    PresignedUrlTarget,
     ZipTarget,
 )
 from docling.datamodel.service.tasks import TaskType
@@ -382,7 +385,9 @@ def create_app():  # noqa: C901
 
     async def _enque_source(
         orchestrator: BaseOrchestrator,
-        request: ConvertDocumentsRequest | GenericChunkDocumentsRequest,
+        request: ConvertSourcesRequest
+        | ConvertDocumentsRequest
+        | GenericChunkDocumentsRequest,
         tenant_id: str | None = None,
     ) -> Task:
         sources: list[TaskSource] = []
@@ -398,7 +403,7 @@ def create_app():  # noqa: C901
         chunking_options: BaseChunkerOptions | None = None
         chunking_export_options = ChunkingExportOptions()
         task_type: TaskType
-        if isinstance(request, ConvertDocumentsRequest):
+        if isinstance(request, ConvertSourcesRequest | ConvertDocumentsRequest):
             task_type = TaskType.CONVERT
             convert_options = request.options
         elif isinstance(request, GenericChunkDocumentsRequest):
@@ -515,8 +520,8 @@ def create_app():  # noqa: C901
                 return False
 
     def _prepare_convert_request(
-        request: ConvertDocumentsRequest,
-    ) -> ConvertDocumentsRequest:
+        request: ConvertSourcesRequest,
+    ) -> ConvertSourcesRequest:
         normalized_request = normalize_convert_request(request, service_policy)
         validate_convert_request(normalized_request, service_policy)
         return normalized_request
@@ -541,6 +546,34 @@ def create_app():  # noqa: C901
         normalized_options = normalize_convert_options(options, service_policy)
         validate_convert_options(normalized_options, service_policy)
         return normalized_options
+
+    def _check_file_upload(files: list[UploadFile], target_type: TargetName) -> None:
+        if len(files) > service_policy.max_sources_per_request:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"Too many files: {len(files)} exceeds the "
+                    f"maximum of {service_policy.max_sources_per_request}."
+                ),
+            )
+        if (
+            target_type == TargetName.PRESIGNED_URL
+            and not service_policy.artifact_storage_enabled
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Presigned URL target requires artifact storage to be configured "
+                    "and enabled on the server."
+                ),
+            )
+
+    def _resolve_file_target(target_type: TargetName) -> TargetRequest:
+        if target_type == TargetName.PRESIGNED_URL:
+            return PresignedUrlTarget()
+        if target_type == TargetName.ZIP:
+            return ZipTarget()
+        return InBodyTarget()
 
     ##########################################
     # Downgrade openapi 3.1 to 3.0.x helpers #
@@ -689,7 +722,9 @@ def create_app():  # noqa: C901
     @app.post(
         "/v1/convert/source",
         tags=["convert"],
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse
+        | PresignedUrlConvertDocumentResponse
+        | PresignedUrlConvertResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -701,7 +736,7 @@ def create_app():  # noqa: C901
         background_tasks: BackgroundTasks,
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        conversion_request: ConvertDocumentsRequest,
+        conversion_request: ConvertSourcesRequest,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
@@ -741,7 +776,9 @@ def create_app():  # noqa: C901
     @app.post(
         "/v1/convert/file",
         tags=["convert"],
-        response_model=ConvertDocumentResponse | PresignedUrlConvertDocumentResponse,
+        response_model=ConvertDocumentResponse
+        | PresignedUrlConvertDocumentResponse
+        | PresignedUrlConvertResponse,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -761,10 +798,11 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
+        _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
-        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+        target = _resolve_file_target(target_type)
         task = await _enque_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -810,7 +848,7 @@ def create_app():  # noqa: C901
     async def process_url_async(
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        conversion_request: ConvertDocumentsRequest,
+        conversion_request: ConvertSourcesRequest,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
@@ -854,12 +892,13 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
+        _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
         )
-        target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+        target = _resolve_file_target(target_type)
         task = await _enque_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -970,6 +1009,11 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
+            if target_type == TargetName.PRESIGNED_URL:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="presigned_url target is not supported for chunk endpoints.",
+                )
             convert_options = _prepare_convert_options(convert_options)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
@@ -1105,6 +1149,11 @@ def create_app():  # noqa: C901
                 Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
             ] = None,
         ):
+            if target_type == TargetName.PRESIGNED_URL:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="presigned_url target is not supported for chunk endpoints.",
+                )
             convert_options = _prepare_convert_options(convert_options)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
