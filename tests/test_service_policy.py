@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
+    BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     HttpSourceRequest,
     S3SourceRequest,
@@ -13,8 +14,10 @@ from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
     build_service_policy,
+    normalize_batch_convert_request,
     normalize_convert_options,
     normalize_convert_request,
+    validate_batch_convert_request,
     validate_convert_options,
     validate_convert_request,
 )
@@ -137,3 +140,75 @@ def test_validate_convert_request_allows_presigned_url_when_storage_enabled():
     )
 
     validate_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_rejects_s3_source_with_presigned_target():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            )
+        ],
+        target=PresignedUrlTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_batch_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "S3 sources require an S3 target" in exc_info.value.detail
+
+
+def test_validate_batch_convert_request_allows_s3_source_with_s3_target_without_kfp():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            )
+        ],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_allows_http_source_with_s3_target():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
+def test_normalize_batch_convert_request_sets_default_timeout():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        options=ConvertDocumentsOptions(document_timeout=None),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    normalized = normalize_batch_convert_request(request, policy)
+
+    assert isinstance(normalized, BatchConvertSourcesRequest)
+    assert normalized.options.document_timeout == policy.max_document_timeout

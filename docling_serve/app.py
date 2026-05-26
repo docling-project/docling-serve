@@ -52,10 +52,10 @@ from docling.datamodel.service.options import (
     ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
 )
 from docling.datamodel.service.requests import (
+    BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     FileSourceRequest,
     GenericChunkDocumentsRequest,
-    HttpSourceRequest,
     S3SourceRequest,
     TargetName,
     TargetRequest,
@@ -99,8 +99,10 @@ from docling_serve.otel_instrumentation import (
 )
 from docling_serve.policy import (
     build_service_policy,
+    normalize_batch_convert_request,
     normalize_convert_options,
     normalize_convert_request,
+    validate_batch_convert_request,
     validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
@@ -384,14 +386,18 @@ def create_app():  # noqa: C901
 
     async def _enque_source(
         orchestrator: BaseOrchestrator,
-        request: ConvertSourcesRequest | GenericChunkDocumentsRequest,
+        request: (
+            BatchConvertSourcesRequest
+            | ConvertSourcesRequest
+            | GenericChunkDocumentsRequest
+        ),
         tenant_id: str | None = None,
     ) -> Task:
         sources: list[TaskSource] = []
         for s in request.sources:
             if isinstance(s, FileSourceRequest):
                 sources.append(FileSource.model_validate(s))
-            elif isinstance(s, HttpSourceRequest):
+            elif isinstance(s, HttpSource):
                 sources.append(HttpSource.model_validate(s))
             elif isinstance(s, S3SourceRequest):
                 sources.append(S3Coordinates.model_validate(s))
@@ -400,7 +406,7 @@ def create_app():  # noqa: C901
         chunking_options: BaseChunkerOptions | None = None
         chunking_export_options = ChunkingExportOptions()
         task_type: TaskType
-        if isinstance(request, ConvertSourcesRequest):
+        if isinstance(request, BatchConvertSourcesRequest | ConvertSourcesRequest):
             task_type = TaskType.CONVERT
             convert_options = request.options
         elif isinstance(request, GenericChunkDocumentsRequest):
@@ -415,9 +421,9 @@ def create_app():  # noqa: C901
 
         # Prepare metadata with tenant_id BEFORE enqueueing
         # This is critical because ray orchestrator reads tenant_id during enqueue()
-        metadata = {}
+        task_metadata: dict[str, str] = {}
         if tenant_id:
-            metadata["tenant_id"] = tenant_id
+            task_metadata["tenant_id"] = tenant_id
             _log.info(
                 f"[TENANT_ID] Preparing to enqueue with tenant_id='{tenant_id}' in metadata"
             )
@@ -432,7 +438,7 @@ def create_app():  # noqa: C901
             chunking_export_options=chunking_export_options,
             target=request.target,
             callbacks=request.callbacks,
-            metadata=metadata,
+            metadata=task_metadata,
         )
 
         _log.info(
@@ -521,6 +527,13 @@ def create_app():  # noqa: C901
     ) -> ConvertSourcesRequest:
         normalized_request = normalize_convert_request(request, service_policy)
         validate_convert_request(normalized_request, service_policy)
+        return normalized_request
+
+    def _prepare_batch_convert_request(
+        request: BatchConvertSourcesRequest,
+    ) -> BatchConvertSourcesRequest:
+        normalized_request = normalize_batch_convert_request(request, service_policy)
+        validate_batch_convert_request(normalized_request, service_policy)
         return normalized_request
 
     def _prepare_chunk_request(
@@ -857,6 +870,41 @@ def create_app():  # noqa: C901
         )
         task = await _enque_source(
             orchestrator=orchestrator, request=conversion_request, tenant_id=tenant_id
+        )
+        task_queue_position = await orchestrator.get_queue_position(
+            task_id=task.task_id
+        )
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_type=task.task_type,
+            task_status=task.task_status,
+            task_position=task_queue_position,
+            task_meta=task.processing_meta,
+            error_message=getattr(task, "error_message", None),
+        )
+
+    @app.post(
+        "/v1/convert/source/batch",
+        tags=["convert"],
+        response_model=TaskStatusResponse,
+    )
+    async def process_source_batch(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        conversion_request: BatchConvertSourcesRequest,
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
+        ] = None,
+    ):
+        conversion_request = _prepare_batch_convert_request(conversion_request)
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _log.info(
+            f"[TENANT_ID] process_source_batch endpoint received tenant_id='{tenant_id}'"
+        )
+        task = await _enque_source(
+            orchestrator=orchestrator,
+            request=conversion_request,
+            tenant_id=tenant_id,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -1328,6 +1376,7 @@ def create_app():  # noqa: C901
         tags=["tasks"],
         response_model=ConvertDocumentResponse
         | PresignedUrlConvertDocumentResponse
+        | PresignedUrlConvertResponse
         | ChunkDocumentResponse,
         responses={
             200: {

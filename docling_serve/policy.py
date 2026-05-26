@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
+    BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     S3SourceRequest,
 )
@@ -63,6 +64,15 @@ def normalize_convert_options(
 def normalize_convert_request(
     request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> ConvertSourcesRequest:
+    return request.model_copy(
+        update={"options": normalize_convert_options(request.options, policy)},
+        deep=True,
+    )
+
+
+def normalize_batch_convert_request(
+    request: BatchConvertSourcesRequest, policy: ServicePolicy
+) -> BatchConvertSourcesRequest:
     return request.model_copy(
         update={"options": normalize_convert_options(request.options, policy)},
         deep=True,
@@ -154,6 +164,48 @@ def validate_convert_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail='target kind "s3" requires source kind "s3".',
+        )
+
+
+def validate_batch_convert_request(
+    request: BatchConvertSourcesRequest, policy: ServicePolicy
+) -> None:
+    validate_convert_options(request.options, policy)
+
+    if request.callbacks and not policy.callbacks_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Callbacks are disabled by server policy.",
+        )
+
+    if len(request.sources) > policy.max_sources_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"Too many sources: {len(request.sources)} exceeds the "
+                f"maximum of {policy.max_sources_per_request}."
+            ),
+        )
+
+    if isinstance(request.target, PresignedUrlTarget):
+        if not policy.artifact_storage_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Presigned URL target requires artifact storage to be configured "
+                    "and enabled on the server."
+                ),
+            )
+
+    has_s3_source = any(
+        isinstance(source, S3SourceRequest) for source in request.sources
+    )
+    has_s3_target = isinstance(request.target, S3Target)
+
+    if has_s3_source and not has_s3_target:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="S3 sources require an S3 target on the batch endpoint.",
         )
 
 

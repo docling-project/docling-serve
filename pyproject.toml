@@ -33,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling-slim[remote-serving]>=2.88.0,<3.0.0",
+    "docling-slim[service-client]>=2.88.0,<3.0.0",
     "docling-core>=2.45.0",
     "docling-jobkit[kfp,rq,ray,vlm]>=1.20.0,<2.0.0",
     "fastapi[standard]<0.137.0",
@@ -180,8 +180,8 @@ pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 
-docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/service-models-presigned-batch-prep" }
-docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/presigned-url-target-result-models" }
+docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/batch-endpoint-support" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/batch-endpoint-support" }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
