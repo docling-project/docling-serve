@@ -90,6 +90,7 @@ from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
 from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
+from docling_serve.logging_config import setup_logging
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.otel_instrumentation import (
     get_metrics_endpoint_content,
@@ -134,17 +135,18 @@ class ColoredLogFormatter(logging.Formatter):
         return super().format(record)
 
 
-logging.basicConfig(
-    level=logging.INFO,  # Set the logging level
-    format="%(levelname)s:\t%(asctime)s - %(name)s - %(message)s",
-    datefmt="%H:%M:%S",
+# Configure logging based on settings
+# This will be called early, but can be reconfigured in __main__.py
+log_level = (
+    docling_serve_settings.log_level.value
+    if docling_serve_settings.log_level
+    else "INFO"
 )
-
-# Override the formatter with the custom ColoredLogFormatter
-root_logger = logging.getLogger()  # Get the root logger
-for handler in root_logger.handlers:  # Iterate through existing handlers
-    if handler.formatter:
-        handler.setFormatter(ColoredLogFormatter(handler.formatter._fmt))
+setup_logging(
+    log_format=docling_serve_settings.log_format.value,
+    log_level=log_level,
+    header_prefix=docling_serve_settings.log_header_prefix,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -288,6 +290,14 @@ def create_app():  # noqa: C901
         redis_url=redis_url,
         metrics_port=docling_serve_settings.metrics_port,
         ray_redis_manager=ray_redis_manager,
+    )
+
+    # Add log context middleware to extract request headers
+    from docling_serve.logging_config import LogContextMiddleware
+
+    app.add_middleware(
+        LogContextMiddleware,
+        header_prefix=docling_serve_settings.log_header_prefix,
     )
 
     origins = docling_serve_settings.cors_origins
@@ -626,7 +636,21 @@ def create_app():  # noqa: C901
 
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
+        _log.info("Health check requested")
+        _log.debug("Processing health check")
         return HealthCheckResponse()
+
+    @app.get("/test-logging", tags=["health"], include_in_schema=False)
+    def test_logging() -> dict:
+        """Test endpoint to demonstrate request header propagation in logs."""
+        _log.info("Test logging endpoint called")
+        _log.info("Processing request with custom headers")
+        _log.debug("This is a debug message")
+        _log.info("Request processing complete")
+        return {
+            "message": "Check server logs to see request headers propagated",
+            "note": "Logs generated inside this endpoint will include custom headers",
+        }
 
     @app.get("/ready", tags=["health"])
     async def readiness() -> ReadinessResponse:
