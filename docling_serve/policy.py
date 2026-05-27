@@ -202,6 +202,8 @@ def validate_batch_convert_request(
     )
     has_s3_target = isinstance(request.target, S3Target)
 
+    # Batch endpoint intentionally allows S3 sources on the Ray engine; only the
+    # S3 source -> S3 target pairing is enforced here.
     if has_s3_source and not has_s3_target:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

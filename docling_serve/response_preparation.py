@@ -53,7 +53,7 @@ async def prepare_response(
             processing_time=task_result.processing_time,
             num_converted=task_result.num_converted,
             num_succeeded=task_result.num_succeeded,
-            num_partial_success=task_result.num_partial_success,
+            num_partially_succeeded=task_result.num_partially_succeeded,
             num_failed=task_result.num_failed,
         )
     elif isinstance(task_result.result, PresignedArtifactResult):
@@ -62,7 +62,7 @@ async def prepare_response(
             processing_time=task_result.processing_time,
             num_converted=task_result.num_converted,
             num_succeeded=task_result.num_succeeded,
-            num_partial_success=task_result.num_partial_success,
+            num_partially_succeeded=task_result.num_partially_succeeded,
             num_failed=task_result.num_failed,
         )
     elif isinstance(task_result.result, ChunkedDocumentResult):

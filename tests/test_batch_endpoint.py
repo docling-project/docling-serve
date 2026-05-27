@@ -58,7 +58,7 @@ class _FakeOrchestrator:
             processing_time=1.0,
             num_converted=1,
             num_succeeded=1,
-            num_partial_success=0,
+            num_partially_succeeded=0,
             num_failed=0,
         )
 
@@ -195,5 +195,5 @@ async def test_task_result_returns_presigned_artifact_response(app):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["num_partial_success"] == 0
+    assert payload["num_partially_succeeded"] == 0
     assert payload["documents"][0]["source_index"] == 0
