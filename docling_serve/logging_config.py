@@ -141,16 +141,13 @@ class LogContextMiddleware(BaseHTTPMiddleware):
                 field_name = header_name[len(self.header_prefix) :]
                 context[field_name] = header_value
 
-        # Set the context for this request
+        # Set the context for this request. The contextvar lives only in
+        # this task, so it dies with the task when the request finishes —
+        # we deliberately do NOT clear it here, so that uvicorn.access logs
+        # (which fire after the middleware stack returns) still see it.
         set_log_context(context)
 
-        try:
-            # Process the request
-            response = await call_next(request)
-            return response
-        finally:
-            # Clear context after request is complete
-            clear_log_context()
+        return await call_next(request)
 
 
 def setup_logging(
