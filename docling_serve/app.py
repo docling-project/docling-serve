@@ -640,18 +640,6 @@ def create_app():  # noqa: C901
         _log.debug("Processing health check")
         return HealthCheckResponse()
 
-    @app.get("/test-logging", tags=["health"], include_in_schema=False)
-    def test_logging() -> dict:
-        """Test endpoint to demonstrate request header propagation in logs."""
-        _log.info("Test logging endpoint called")
-        _log.info("Processing request with custom headers")
-        _log.debug("This is a debug message")
-        _log.info("Request processing complete")
-        return {
-            "message": "Check server logs to see request headers propagated",
-            "note": "Logs generated inside this endpoint will include custom headers",
-        }
-
     @app.get("/ready", tags=["health"])
     async def readiness() -> ReadinessResponse:
         # Gate on model loading (LocalOrchestrator only; instant for RQ).
