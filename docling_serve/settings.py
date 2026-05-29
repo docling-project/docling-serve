@@ -139,6 +139,7 @@ class DoclingServeSettings(BaseSettings):
     # Artifact storage (required for PresignedUrlTarget)
     artifact_storage_enabled: bool = False
     artifact_storage_endpoint: str = ""
+    artifact_storage_verify_ssl: bool = True
     artifact_storage_bucket: str = ""
     artifact_storage_access_key: str = ""
     artifact_storage_secret_key: str = ""

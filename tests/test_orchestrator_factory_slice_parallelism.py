@@ -133,6 +133,11 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
     )
     monkeypatch.setattr(
         factory_module.docling_serve_settings,
+        "artifact_storage_verify_ssl",
+        False,
+    )
+    monkeypatch.setattr(
+        factory_module.docling_serve_settings,
         "artifact_storage_bucket",
         "bucket-a",
     )
@@ -180,8 +185,9 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
     config = orchestrator.config.s3_presigned_config
     assert config is not None
     assert config.s3_coords.endpoint == "s3.example.com"
+    assert config.s3_coords.verify_ssl is False
     assert config.s3_coords.bucket == "bucket-a"
-    assert config.s3_coords.access_key.get_secret_value() == "key-a"
-    assert config.s3_coords.secret_key.get_secret_value() == "secret-a"
+    assert config.s3_coords.access_key == "key-a"
+    assert config.s3_coords.secret_key == "secret-a"
     assert config.key_prefix == "converted/test/"
     assert config.url_expiration == 900

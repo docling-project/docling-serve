@@ -19,6 +19,7 @@ def _build_s3_presigned_config():
 
     coords = S3Coordinates(
         endpoint=docling_serve_settings.artifact_storage_endpoint,
+        verify_ssl=docling_serve_settings.artifact_storage_verify_ssl,
         access_key=docling_serve_settings.artifact_storage_access_key,
         secret_key=docling_serve_settings.artifact_storage_secret_key,
         bucket=docling_serve_settings.artifact_storage_bucket,

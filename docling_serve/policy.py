@@ -136,7 +136,7 @@ def validate_convert_request(
     if isinstance(request.target, PresignedUrlTarget):
         if not policy.artifact_storage_enabled:
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Presigned URL target requires artifact storage to be configured "
                     "and enabled on the server."
@@ -190,7 +190,7 @@ def validate_batch_convert_request(
     if isinstance(request.target, PresignedUrlTarget):
         if not policy.artifact_storage_enabled:
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Presigned URL target requires artifact storage to be configured "
                     "and enabled on the server."
