@@ -2,7 +2,7 @@
 
 services:
   docling-serve:
-    image: ghcr.io/docling-project/docling-serve-rocm:main
+    image: ghcr.io/docling-project/docling-serve-rocm72:main
     container_name: docling-serve
     ports:
       - "5001:5001"
@@ -12,6 +12,8 @@ services:
       ## This section is for compatibility with older cards
       # HSA_OVERRIDE_GFX_VERSION: "11.0.0"
       # HSA_ENABLE_SDMA: "0"
+      ## Enable experimental Flash/Mem-Efficient attention kernels on AMD GPU (aotriton).
+      TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
