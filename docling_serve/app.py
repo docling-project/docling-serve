@@ -99,9 +99,8 @@ from docling_serve.otel_instrumentation import (
 )
 from docling_serve.policy import (
     build_service_policy,
-    normalize_batch_convert_request,
     normalize_convert_options,
-    normalize_convert_request,
+    normalize_request,
     validate_batch_convert_request,
     validate_chunk_request,
     validate_convert_options,
@@ -525,14 +524,14 @@ def create_app():  # noqa: C901
     def _prepare_convert_request(
         request: ConvertSourcesRequest,
     ) -> ConvertSourcesRequest:
-        normalized_request = normalize_convert_request(request, service_policy)
+        normalized_request = normalize_request(request, service_policy)
         validate_convert_request(normalized_request, service_policy)
         return normalized_request
 
     def _prepare_batch_convert_request(
         request: BatchConvertSourcesRequest,
     ) -> BatchConvertSourcesRequest:
-        normalized_request = normalize_batch_convert_request(request, service_policy)
+        normalized_request = normalize_request(request, service_policy)
         validate_batch_convert_request(normalized_request, service_policy)
         return normalized_request
 
@@ -880,7 +879,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=getattr(task, "error_message", None),
+            error_message=task.error_message,
         )
 
     @app.post(
@@ -915,7 +914,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=getattr(task, "error_message", None),
+            error_message=task.error_message,
         )
 
     # Convert a document from file(s) using the async api
@@ -964,7 +963,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=getattr(task, "error_message", None),
+            error_message=task.error_message,
         )
 
     # Chunking endpoints
@@ -1007,7 +1006,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=getattr(task, "error_message", None),
+                error_message=task.error_message,
             )
 
         @app.post(
@@ -1087,7 +1086,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=getattr(task, "error_message", None),
+                error_message=task.error_message,
             )
 
         @app.post(
@@ -1269,7 +1268,7 @@ def create_app():  # noqa: C901
             task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
-            error_message=getattr(task, "error_message", None),
+            error_message=task.error_message,
         )
 
     # Task status websocket
@@ -1323,7 +1322,7 @@ def create_app():  # noqa: C901
                 task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
-                error_message=getattr(task, "error_message", None),
+                error_message=task.error_message,
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -1340,7 +1339,7 @@ def create_app():  # noqa: C901
                     task_status=task.task_status,
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
-                    error_message=getattr(task, "error_message", None),
+                    error_message=task.error_message,
                 )
                 await websocket.send_text(
                     WebsocketMessage(

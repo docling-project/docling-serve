@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 from fastapi import HTTPException, status
 
@@ -15,6 +16,10 @@ from docling.datamodel.service.targets import PresignedUrlTarget, S3Target
 from docling.models.factories import get_ocr_factory
 
 from docling_serve.settings import AsyncEngine, DoclingServeSettings
+
+_ConvertRequestT = TypeVar(
+    "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,18 +66,9 @@ def normalize_convert_options(
     )
 
 
-def normalize_convert_request(
-    request: ConvertSourcesRequest, policy: ServicePolicy
-) -> ConvertSourcesRequest:
-    return request.model_copy(
-        update={"options": normalize_convert_options(request.options, policy)},
-        deep=True,
-    )
-
-
-def normalize_batch_convert_request(
-    request: BatchConvertSourcesRequest, policy: ServicePolicy
-) -> BatchConvertSourcesRequest:
+def normalize_request(
+    request: _ConvertRequestT, policy: ServicePolicy
+) -> _ConvertRequestT:
     return request.model_copy(
         update={"options": normalize_convert_options(request.options, policy)},
         deep=True,

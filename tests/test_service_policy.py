@@ -110,7 +110,7 @@ def test_validate_convert_request_rejects_presigned_url_when_storage_disabled():
     with pytest.raises(HTTPException) as exc_info:
         validate_convert_request(request, policy)
 
-    assert exc_info.value.status_code == 503
+    assert exc_info.value.status_code == 422
     assert "artifact storage" in exc_info.value.detail.lower()
 
 

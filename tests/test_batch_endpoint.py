@@ -184,6 +184,7 @@ async def test_batch_endpoint_rejects_zip_target(app):
         )
 
     assert response.status_code == 422
+    assert "zip" in response.text
 
 
 @pytest.mark.asyncio
