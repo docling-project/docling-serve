@@ -40,6 +40,11 @@ class LogLevel(str, enum.Enum):
     DEBUG = "DEBUG"
 
 
+class LogFormat(str, enum.Enum):
+    TEXT = "text"
+    JSON = "json"
+
+
 class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
     KFP = "kfp"
@@ -110,6 +115,8 @@ class DoclingServeSettings(BaseSettings):
     enable_ui: bool = False
     api_host: str = "localhost"
     log_level: Optional[LogLevel] = None
+    log_format: LogFormat = LogFormat.TEXT
+    log_header_prefix: str = "X-Docling-Log-"
     artifacts_path: Optional[Path] = None
     static_path: Optional[Path] = None
     scratch_path: Optional[Path] = None
