@@ -180,7 +180,7 @@ pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 
-docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/batch-endpoint-support" }
+docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/batch-endpoint-client-sdk-updates" }
 docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/batch-endpoint-support" }
 
 [[tool.uv.index]]
