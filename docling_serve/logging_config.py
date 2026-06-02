@@ -21,6 +21,24 @@ _log_context: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
 )
 
 
+class ColoredLogFormatter(logging.Formatter):
+    """Colored formatter for text log output."""
+
+    COLOR_CODES = {
+        logging.DEBUG: "\033[94m",  # Blue
+        logging.INFO: "\033[92m",  # Green
+        logging.WARNING: "\033[93m",  # Yellow
+        logging.ERROR: "\033[91m",  # Red
+        logging.CRITICAL: "\033[95m",  # Magenta
+    }
+    RESET_CODE = "\033[0m"
+
+    def format(self, record: logging.LogRecord) -> str:
+        color = self.COLOR_CODES.get(record.levelno, "")
+        record.levelname = f"{color}{record.levelname}{self.RESET_CODE}"
+        return super().format(record)
+
+
 def get_log_context() -> dict[str, Any]:
     """Get the current log context."""
     return _log_context.get()
@@ -178,9 +196,6 @@ def setup_logging(
     if log_format.lower() == "json":
         formatter = JSONLogFormatter()
     else:
-        # Use colored formatter for text logs
-        from docling_serve.app import ColoredLogFormatter
-
         formatter = ColoredLogFormatter(
             "%(levelname)s:\t%(asctime)s - %(name)s - %(message)s",
             datefmt="%H:%M:%S",
