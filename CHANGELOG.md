@@ -1,3 +1,21 @@
+## [v1.21.0](https://github.com/docling-project/docling-serve/releases/tag/v1.21.0) - 2026-06-01
+
+### Feature
+
+* Upgrade docling deps [docling-parse v6, etc] ([#619](https://github.com/docling-project/docling-serve/issues/619)) ([`10d2f02`](https://github.com/docling-project/docling-serve/commit/10d2f0250b0239e7e509a9c230a78607bd70df81))
+* Add support for ROCm 7.2 ([#618](https://github.com/docling-project/docling-serve/issues/618)) ([`b9cb2b3`](https://github.com/docling-project/docling-serve/commit/b9cb2b382c2b7ee9fff46e26cdc0dc7f92534588))
+* Add JSON logging and request header propagation ([#617](https://github.com/docling-project/docling-serve/issues/617)) ([`eca11a9`](https://github.com/docling-project/docling-serve/commit/eca11a93fddd64b001a4f3bdedb234b62807df29))
+
+### Docling libraries included in this release:
+- docling 2.96.1
+- docling-core 2.78.0
+- docling-ibm-models 3.13.2
+- docling-jobkit 1.20.1
+- docling-mcp 2.0.1
+- docling-parse 6.2.0
+- docling-serve 1.21.0
+- docling-slim 2.96.1
+
 ## [v1.20.0](https://github.com/docling-project/docling-serve/releases/tag/v1.20.0) - 2026-05-21
 
 ### Feature

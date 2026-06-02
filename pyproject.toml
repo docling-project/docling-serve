@@ -1,6 +1,6 @@
 [project]
 name = "docling-serve"
-version = "1.20.0"  # DO NOT EDIT, updated automatically
+version = "1.21.0"  # DO NOT EDIT, updated automatically
 description = "Running Docling as a service"
 license = {text = "MIT"}
 authors = [
@@ -128,6 +128,12 @@ rocm = [
   "pytorch-triton-rocm>=3.3.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
+rocm72 = [
+    "torch>=2.7.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torchvision>=0.22.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "triton-rocm ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
 [[tool.uv.dependency-metadata]]
 name = "flash-attn"
 version = "2.8.3"
@@ -145,6 +151,7 @@ conflicts = [
     { group = "cu128" },
     { group = "cu130" },
     { group = "rocm" },
+    { group = "rocm72" },
   ],
 ]
 environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
@@ -164,6 +171,7 @@ torch = [
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 torchvision = [
@@ -174,6 +182,7 @@ torchvision = [
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 pytorch-triton-rocm = [
@@ -182,6 +191,12 @@ pytorch-triton-rocm = [
 
 docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/batch-endpoint-client-sdk-updates" }
 docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "cau/batch-endpoint-support" }
+triton-rocm = [
+    { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
+]
+
+# docling = { git = "https://github.com/docling-project/docling/", rev = "main" }
+# docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
@@ -216,6 +231,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-rocm"
 url = "https://download.pytorch.org/whl/rocm6.3"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm72"
+url = "https://download.pytorch.org/whl/rocm7.2"
 explicit = true
 
 [tool.setuptools.packages.find]
