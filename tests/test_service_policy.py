@@ -14,9 +14,8 @@ from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
     build_service_policy,
-    normalize_batch_convert_request,
     normalize_convert_options,
-    normalize_convert_request,
+    normalize_request,
     validate_batch_convert_request,
     validate_convert_options,
     validate_convert_request,
@@ -49,6 +48,67 @@ def test_validate_convert_options_rejects_timeout_above_policy():
         validate_convert_options(ConvertDocumentsOptions(document_timeout=11), policy)
 
 
+def test_validate_convert_options_rejects_images_scale_above_policy():
+    policy = build_service_policy(DoclingServeSettings(max_images_scale=1.5))
+
+    with pytest.raises(HTTPException, match="images_scale exceeds"):
+        validate_convert_options(ConvertDocumentsOptions(images_scale=1.6), policy)
+
+
+def test_validate_convert_options_allows_all_image_modes_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    # All three modes should be allowed by default
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="placeholder"), policy
+    )
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="referenced"), policy
+    )
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="embedded"), policy
+    )
+
+
+def test_validate_convert_options_rejects_disallowed_image_mode():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_image_export_modes=["placeholder", "referenced"])
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_options(
+            ConvertDocumentsOptions(image_export_mode="embedded"), policy
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "image_export_mode 'embedded' is not allowed" in exc_info.value.detail
+    assert "placeholder" in exc_info.value.detail
+    assert "referenced" in exc_info.value.detail
+
+
+def test_validate_convert_options_allows_configured_image_mode():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_image_export_modes=["placeholder"])
+    )
+
+    # Should allow placeholder
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="placeholder"), policy
+    )
+
+    # Should reject others
+    with pytest.raises(HTTPException, match="image_export_mode.*not allowed"):
+        validate_convert_options(
+            ConvertDocumentsOptions(image_export_mode="referenced"), policy
+        )
+
+
+def test_validate_convert_options_allows_images_scale_at_policy_cap():
+    policy = build_service_policy(DoclingServeSettings(max_images_scale=2.0))
+
+    validate_convert_options(ConvertDocumentsOptions(images_scale=2.0), policy)
+
+
 def test_convert_sources_request_rejects_s3_inputs_at_model_layer():
     with pytest.raises(ValidationError):
         ConvertSourcesRequest(
@@ -78,7 +138,7 @@ def test_normalize_convert_request_preserves_sources_and_target():
         target=InBodyTarget(),
     )
 
-    normalized = normalize_convert_request(request, policy)
+    normalized = normalize_request(request, policy)
 
     assert normalized.sources == request.sources
     assert normalized.target == request.target
@@ -93,7 +153,7 @@ def test_normalize_convert_request_works_for_convert_sources_request():
         target=InBodyTarget(),
     )
 
-    normalized = normalize_convert_request(request, policy)
+    normalized = normalize_request(request, policy)
 
     assert isinstance(normalized, ConvertSourcesRequest)
     assert normalized.sources == request.sources
@@ -208,7 +268,7 @@ def test_normalize_batch_convert_request_sets_default_timeout():
         target=PresignedUrlTarget(),
     )
 
-    normalized = normalize_batch_convert_request(request, policy)
+    normalized = normalize_request(request, policy)
 
     assert isinstance(normalized, BatchConvertSourcesRequest)
     assert normalized.options.document_timeout == policy.max_document_timeout

@@ -143,6 +143,10 @@ class DoclingServeSettings(BaseSettings):
     max_file_size: int = sys.maxsize
     max_sources_per_request: int = 3
 
+    # Image export policy
+    allowed_image_export_modes: Optional[list[str]] = None  # None = all modes allowed
+    max_images_scale: float = 2.0
+
     # Artifact storage (required for PresignedUrlTarget)
     artifact_storage_enabled: bool = False
     artifact_storage_endpoint: str = ""
@@ -429,6 +433,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_layout_presets",
         "allowed_ocr_presets",
         "allowed_ocr_kinds",
+        "allowed_image_export_modes",
         mode="before",
     )
     @classmethod

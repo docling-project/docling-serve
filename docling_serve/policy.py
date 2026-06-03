@@ -25,6 +25,7 @@ _ConvertRequestT = TypeVar(
 @dataclass(frozen=True, slots=True)
 class ServicePolicy:
     max_document_timeout: float
+    max_images_scale: float
     allow_external_plugins: bool
     allowed_ocr_presets: frozenset[str]
     s3_enabled: bool
@@ -32,6 +33,7 @@ class ServicePolicy:
     custom_vlm_enabled: bool
     artifact_storage_enabled: bool
     max_sources_per_request: int
+    allowed_image_export_modes: frozenset[str]
 
 
 def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
@@ -44,8 +46,20 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
 
+    # Determine allowed image export modes
+    if settings.allowed_image_export_modes is None:
+        # All modes allowed by default
+        allowed_image_export_modes = {"placeholder", "referenced", "embedded"}
+    else:
+        # Validate that only known modes are specified
+        valid_modes = {"placeholder", "referenced", "embedded"}
+        allowed_image_export_modes = (
+            set(settings.allowed_image_export_modes) & valid_modes
+        )
+
     return ServicePolicy(
         max_document_timeout=settings.max_document_timeout,
+        max_images_scale=settings.max_images_scale,
         allow_external_plugins=settings.allow_external_plugins,
         allowed_ocr_presets=frozenset(allowed_ocr_presets),
         s3_enabled=settings.eng_kind == AsyncEngine.KFP,
@@ -53,6 +67,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         custom_vlm_enabled=settings.allow_custom_vlm_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
+        allowed_image_export_modes=frozenset(allowed_image_export_modes),
     )
 
 
@@ -92,6 +107,14 @@ def validate_convert_options(
                     f"of {policy.max_document_timeout} seconds."
                 ),
             )
+    if options.images_scale > policy.max_images_scale:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "images_scale exceeds the configured maximum "
+                f"of {policy.max_images_scale}."
+            ),
+        )
 
     if options.ocr_preset not in policy.allowed_ocr_presets:
         raise HTTPException(
@@ -99,6 +122,18 @@ def validate_convert_options(
             detail=(
                 f"ocr_preset '{options.ocr_preset}' is not allowed. "
                 f"Allowed values: {sorted(policy.allowed_ocr_presets)}."
+            ),
+        )
+
+    image_export_mode = getattr(
+        options.image_export_mode, "value", options.image_export_mode
+    )
+    if image_export_mode not in policy.allowed_image_export_modes:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"image_export_mode '{image_export_mode}' is not allowed. "
+                f"Allowed values: {sorted(policy.allowed_image_export_modes)}."
             ),
         )
 
