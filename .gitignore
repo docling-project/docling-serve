@@ -3,6 +3,10 @@ scratch/
 .md-lint
 actionlint
 
+# Environment files — contain secrets, never commit
+.env
+.env.*
+
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,virtualenv,pycharm,visualstudiocode,emacs,vim,jupyternotebooks
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,macos,virtualenv,pycharm,visualstudiocode,emacs,vim,jupyternotebooks
 
