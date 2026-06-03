@@ -474,10 +474,28 @@ package-documents:
       mkdir -p /mnt/docling/scratch
       chmod 1777 /mnt/docling/scratch
 
+      echo "Verifying NVIDIA GPU prerequisites..."
+      # 1. NVIDIA driver must be loaded
+      if ! command -v nvidia-smi &>/dev/null || ! nvidia-smi &>/dev/null; then
+        echo "FATAL: nvidia-smi not available or GPU driver not loaded." >&2
+        echo "       Install the NVIDIA driver: sudo dnf install -y kernel-devel && sudo dnf install -y 'nvidia-driver:latest-dkms'" >&2
+        exit 1
+      fi
+      nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+      # 2. NVIDIA Container Toolkit must be configured for Docker
+      if ! docker info 2>/dev/null | grep -q "nvidia"; then
+        echo "FATAL: NVIDIA Container Toolkit not found in Docker runtime." >&2
+        echo "       Install it: curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg" >&2
+        echo "       Then: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+        exit 1
+      fi
+      echo "GPU prerequisites verified."
+
       echo "Starting container..."
       docker run \
         --name docling-serve \
         --restart always \
+        --gpus all \
         --env-file /docling-serve.env \
         --volume /mnt/docling/scratch:/mnt/docling/scratch \
         --publish {{host_port}}:{{container_port}} \
