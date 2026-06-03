@@ -38,6 +38,11 @@ variables:
   # Default ports — override per-environment in deploy job variables
   HOST_PORT: "8000"
   CONTAINER_PORT: "5001"
+  # PyTorch variant baked into the container image.
+  # Use --group cu128 for NVIDIA GPU deployments (CUDA 12.8, compatible with T4/A10/A100).
+  # Use --group cpu for CPU-only deployments.
+  # Override per-job or as a GitLab CI/CD variable when needed.
+  UV_SYNC_EXTRA_ARGS: "--group cu128"
 
 # ─── UV BOOTSTRAP (shell runner — remove once runner has uv pre-installed) ─────
 # See docs/gitlab-runner-setup.md for instructions on building a custom runner
@@ -112,10 +117,11 @@ build-image:
     - echo "$DOCLING_SERVE_VERSION" > docling_serve_version.txt
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - |
-      echo "Building image for branch: $CI_COMMIT_REF_NAME..."
+      echo "Building image for branch: $CI_COMMIT_REF_NAME (UV_SYNC_EXTRA_ARGS: ${UV_SYNC_EXTRA_ARGS})..."
       docker buildx build \
         --allow security.insecure \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg "UV_SYNC_EXTRA_ARGS=${UV_SYNC_EXTRA_ARGS}" \
         --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
         --cache-from "$CI_REGISTRY_IMAGE:latest" \
         -f Containerfile \
