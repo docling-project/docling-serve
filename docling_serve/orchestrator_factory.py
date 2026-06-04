@@ -10,7 +10,11 @@ _log = logging.getLogger(__name__)
 
 
 def _build_s3_presigned_config():
-    """Build presigned artifact storage config, or return None when disabled."""
+    """Build presigned artifact storage config, or return None when disabled.
+
+    The managed storage prefix and URL TTL are owned by docling-serve settings and
+    injected into jobkit here before any orchestrator is constructed.
+    """
     if not docling_serve_settings.artifact_storage_enabled:
         return None
 
@@ -23,10 +27,10 @@ def _build_s3_presigned_config():
         access_key=docling_serve_settings.artifact_storage_access_key,
         secret_key=docling_serve_settings.artifact_storage_secret_key,
         bucket=docling_serve_settings.artifact_storage_bucket,
+        key_prefix=docling_serve_settings.artifact_storage_key_prefix,
     )
     return S3PresignedConfig(
         s3_coords=coords,
-        key_prefix=docling_serve_settings.artifact_storage_key_prefix,
         url_expiration=docling_serve_settings.artifact_storage_presign_ttl_seconds,
     )
 

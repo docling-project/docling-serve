@@ -189,5 +189,5 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
     assert config.s3_coords.bucket == "bucket-a"
     assert config.s3_coords.access_key == "key-a"
     assert config.s3_coords.secret_key == "secret-a"
-    assert config.key_prefix == "converted/test/"
+    assert config.s3_coords.key_prefix == "converted/test/"
     assert config.url_expiration == 900
