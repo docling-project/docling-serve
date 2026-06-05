@@ -35,6 +35,9 @@ class _FakeOrchestrator:
         del task_id
         return 0
 
+    async def task_outcome(self, task_id: str):
+        return await self.task_result(task_id)
+
     async def task_result(self, task_id: str):
         del task_id
         return DoclingTaskResult(
