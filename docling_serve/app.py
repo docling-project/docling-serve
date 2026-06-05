@@ -70,6 +70,7 @@ from docling.datamodel.service.responses import (
     PresignedUrlConvertDocumentResponse,
     PresignedUrlConvertResponse,
     ReadinessResponse,
+    TaskFailureResult,
     TaskStatusResponse,
     WebsocketMessage,
 )
@@ -81,6 +82,10 @@ from docling.datamodel.service.targets import (
 )
 from docling.datamodel.service.tasks import TaskType
 from docling_jobkit.datamodel.chunking import ChunkingExportOptions
+from docling_jobkit.datamodel.stored_outcome import (
+    StoredFailureOutcome,
+    StoredSuccessOutcome,
+)
 from docling_jobkit.datamodel.task import Task, TaskSource
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
@@ -875,6 +880,7 @@ def create_app():  # noqa: C901
             task_position=task_queue_position,
             task_meta=task.processing_meta,
             error_message=task.error_message,
+            failure=task.failure,
         )
 
     @app.post(
@@ -910,6 +916,7 @@ def create_app():  # noqa: C901
             task_position=task_queue_position,
             task_meta=task.processing_meta,
             error_message=task.error_message,
+            failure=task.failure,
         )
 
     # Convert a document from file(s) using the async api
@@ -959,6 +966,7 @@ def create_app():  # noqa: C901
             task_position=task_queue_position,
             task_meta=task.processing_meta,
             error_message=task.error_message,
+            failure=task.failure,
         )
 
     # Chunking endpoints
@@ -1002,6 +1010,7 @@ def create_app():  # noqa: C901
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
                 error_message=task.error_message,
+                failure=task.failure,
             )
 
         @app.post(
@@ -1082,6 +1091,7 @@ def create_app():  # noqa: C901
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
                 error_message=task.error_message,
+                failure=task.failure,
             )
 
         @app.post(
@@ -1264,6 +1274,7 @@ def create_app():  # noqa: C901
             task_position=task_queue_position,
             task_meta=task.processing_meta,
             error_message=task.error_message,
+            failure=task.failure,
         )
 
     # Task status websocket
@@ -1318,6 +1329,7 @@ def create_app():  # noqa: C901
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
                 error_message=task.error_message,
+                failure=task.failure,
             )
             await websocket.send_text(
                 WebsocketMessage(
@@ -1335,6 +1347,7 @@ def create_app():  # noqa: C901
                     task_position=task_queue_position,
                     task_meta=task.processing_meta,
                     error_message=task.error_message,
+                    failure=task.failure,
                 )
                 await websocket.send_text(
                     WebsocketMessage(
@@ -1371,7 +1384,8 @@ def create_app():  # noqa: C901
         response_model=ConvertDocumentResponse
         | PresignedUrlConvertDocumentResponse
         | PresignedUrlConvertResponse
-        | ChunkDocumentResponse,
+        | ChunkDocumentResponse
+        | TaskFailureResult,
         responses={
             200: {
                 "content": {"application/zip": {}},
@@ -1385,12 +1399,18 @@ def create_app():  # noqa: C901
         task_id: str,
     ):
         try:
-            task_result = await orchestrator.task_result(task_id=task_id)
-            if task_result is None:
+            outcome = await orchestrator.task_outcome(task_id=task_id)
+            if outcome is None:
                 raise HTTPException(
                     status_code=404,
                     detail="Task result not found. Please wait for a completion status.",
                 )
+            if isinstance(outcome, StoredFailureOutcome):
+                return TaskFailureResult(failure=outcome.failure)
+            if isinstance(outcome, StoredSuccessOutcome):
+                task_result = outcome.result
+            else:
+                task_result = outcome
             response = await prepare_response(
                 task_id=task_id,
                 task_result=task_result,
