@@ -58,13 +58,14 @@ class TestTaskStatusResponseErrorMessage:
             task_type="convert",
             task_status="failure",
             failure=PublicFailureInfo(
-                code="internal_error",
                 category=FailureCategory.INTERNAL,
                 message="Internal processing error.",
                 retryable=False,
                 phase=FailurePhase.ORCHESTRATION,
-                correlation_id="t1",
             ),
         )
         data = json.loads(resp.model_dump_json())
-        assert data["failure"]["code"] == "internal_error"
+        assert data["failure"]["category"] == "internal"
+        assert data["failure"]["message"] == "Internal processing error."
+        assert "code" not in data["failure"]
+        assert "correlation_id" not in data["failure"]
