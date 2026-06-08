@@ -39,6 +39,16 @@ def test_list_csv_trims_whitespace(monkeypatch):
     assert settings.allowed_vlm_engines == ["openai", "anthropic"]
 
 
+def test_allowed_target_types_from_csv(monkeypatch):
+    monkeypatch.setenv(
+        "DOCLING_SERVE_ALLOWED_TARGET_TYPES", "zip, presigned_url , inbody"
+    )
+
+    settings = DoclingServeSettings()
+
+    assert settings.allowed_target_types == ["zip", "presigned_url", "inbody"]
+
+
 def test_default_values():
     """Test default values for new parameters."""
     settings = DoclingServeSettings()

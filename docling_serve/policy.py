@@ -15,12 +15,15 @@ from docling.models.factories import get_ocr_factory
 
 from docling_serve.settings import AsyncEngine, DoclingServeSettings
 
+ALL_TARGET_TYPES = frozenset({"inbody", "zip", "s3", "put", "presigned_url"})
+
 
 @dataclass(frozen=True, slots=True)
 class ServicePolicy:
     max_document_timeout: float
     allow_external_plugins: bool
     allowed_ocr_presets: frozenset[str]
+    allowed_target_types: frozenset[str]
     s3_enabled: bool
     callbacks_enabled: bool
     custom_vlm_enabled: bool
@@ -35,11 +38,18 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = registered_ocr_presets
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
+    if settings.allowed_target_types is None:
+        allowed_target_types = ALL_TARGET_TYPES
+    else:
+        allowed_target_types = (
+            frozenset(settings.allowed_target_types) & ALL_TARGET_TYPES
+        )
 
     return ServicePolicy(
         max_document_timeout=settings.max_document_timeout,
         allow_external_plugins=settings.allow_external_plugins,
         allowed_ocr_presets=frozenset(allowed_ocr_presets),
+        allowed_target_types=allowed_target_types,
         s3_enabled=settings.eng_kind == AsyncEngine.KFP,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
@@ -99,10 +109,24 @@ def validate_convert_options(
         )
 
 
+def validate_target_kind(target_kind: str, policy: ServicePolicy) -> None:
+    if target_kind in policy.allowed_target_types:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=(
+            f"target kind '{target_kind}' is not allowed. "
+            f"Allowed values: {sorted(policy.allowed_target_types)}."
+        ),
+    )
+
+
 def validate_convert_request(
     request: ConvertDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
+    validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
         raise HTTPException(
@@ -138,6 +162,7 @@ def validate_chunk_request(
     request: BaseChunkDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.convert_options, policy)
+    validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
         raise HTTPException(

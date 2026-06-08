@@ -14,6 +14,7 @@ def test_load_yaml_config(monkeypatch):
     config_data = {
         "default_vlm_preset": "custom_preset",
         "allowed_vlm_presets": ["preset1", "preset2"],
+        "allowed_target_types": ["zip", "presigned_url"],
     }
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -26,6 +27,7 @@ def test_load_yaml_config(monkeypatch):
 
         assert settings.default_vlm_preset == "custom_preset"
         assert settings.allowed_vlm_presets == ["preset1", "preset2"]
+        assert settings.allowed_target_types == ["zip", "presigned_url"]
     finally:
         Path(config_path).unlink()
 

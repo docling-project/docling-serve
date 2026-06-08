@@ -55,6 +55,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` | `604800` (7 days) | The maximum time for processing a document. |
 |  | `DOCLING_SERVE_MAX_NUM_PAGES` |  | The maximum number of pages for a document to be processed. |
 |  | `DOCLING_SERVE_MAX_FILE_SIZE` |  | The maximum file size for a document to be processed. |
+|  | `DOCLING_SERVE_ALLOWED_TARGET_TYPES` | `null` (all allowed) | List of allowed target kinds. Accepts JSON array or comma-separated string. Use this to block specific response targets such as `inbody`, `zip`, `presigned_url`, `s3`, or `put`. |
 |  | `DOCLING_SERVE_SYNC_POLL_INTERVAL` | `2` | Number of seconds to sleep between polling the task status in the sync endpoints. |
 |  | `DOCLING_SERVE_MAX_SYNC_WAIT` | `120` | Max number of seconds a synchronous endpoint is waiting for the task completion. |
 |  | `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` | `True` | If enabled, the models for the default options will be loaded at boot. |
