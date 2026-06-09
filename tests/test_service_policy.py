@@ -1,23 +1,26 @@
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
-    ConvertDocumentsRequest,
+    BatchConvertSourcesRequest,
+    ConvertSourcesRequest,
     HttpSourceRequest,
     S3SourceRequest,
 )
-from docling.datamodel.service.targets import InBodyTarget, S3Target
+from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, S3Target
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
     build_service_policy,
     normalize_convert_options,
-    normalize_convert_request,
+    normalize_request,
+    validate_batch_convert_request,
     validate_convert_options,
     validate_convert_request,
 )
-from docling_serve.settings import AsyncEngine, DoclingServeSettings
+from docling_serve.settings import DoclingServeSettings
 
 
 def test_convert_options_shim_points_to_shared_type():
@@ -45,10 +48,184 @@ def test_validate_convert_options_rejects_timeout_above_policy():
         validate_convert_options(ConvertDocumentsOptions(document_timeout=11), policy)
 
 
-def test_validate_convert_request_rejects_s3_without_kfp():
-    policy = build_service_policy(DoclingServeSettings(eng_kind=AsyncEngine.LOCAL))
-    request = ConvertDocumentsRequest(
-        options=ConvertDocumentsOptions(),
+def test_validate_convert_options_rejects_images_scale_above_policy():
+    policy = build_service_policy(DoclingServeSettings(max_images_scale=1.5))
+
+    with pytest.raises(HTTPException, match="images_scale exceeds"):
+        validate_convert_options(ConvertDocumentsOptions(images_scale=1.6), policy)
+
+
+def test_validate_convert_options_allows_all_image_modes_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    # All three modes should be allowed by default
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="placeholder"), policy
+    )
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="referenced"), policy
+    )
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="embedded"), policy
+    )
+
+
+def test_validate_convert_options_rejects_disallowed_image_mode():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_image_export_modes=["placeholder", "referenced"])
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_options(
+            ConvertDocumentsOptions(image_export_mode="embedded"), policy
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "image_export_mode 'embedded' is not allowed" in exc_info.value.detail
+    assert "placeholder" in exc_info.value.detail
+    assert "referenced" in exc_info.value.detail
+
+
+def test_validate_convert_options_allows_configured_image_mode():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_image_export_modes=["placeholder"])
+    )
+
+    # Should allow placeholder
+    validate_convert_options(
+        ConvertDocumentsOptions(image_export_mode="placeholder"), policy
+    )
+
+    # Should reject others
+    with pytest.raises(HTTPException, match="image_export_mode.*not allowed"):
+        validate_convert_options(
+            ConvertDocumentsOptions(image_export_mode="referenced"), policy
+        )
+
+
+def test_validate_convert_options_allows_images_scale_at_policy_cap():
+    policy = build_service_policy(DoclingServeSettings(max_images_scale=2.0))
+
+    validate_convert_options(ConvertDocumentsOptions(images_scale=2.0), policy)
+
+
+def test_convert_sources_request_rejects_s3_inputs_at_model_layer():
+    with pytest.raises(ValidationError):
+        ConvertSourcesRequest(
+            options=ConvertDocumentsOptions(),
+            sources=[
+                S3SourceRequest(
+                    endpoint="s3.example.com",
+                    access_key="key",
+                    secret_key="secret",
+                    bucket="bucket",
+                )
+            ],
+            target=S3Target(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            ),
+        )
+
+
+def test_normalize_convert_request_preserves_sources_and_target():
+    policy = build_service_policy(DoclingServeSettings())
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(document_timeout=None),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=InBodyTarget(),
+    )
+
+    normalized = normalize_request(request, policy)
+
+    assert normalized.sources == request.sources
+    assert normalized.target == request.target
+    assert normalized.options.document_timeout == policy.max_document_timeout
+
+
+def test_normalize_convert_request_works_for_convert_sources_request():
+    policy = build_service_policy(DoclingServeSettings())
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(document_timeout=None),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=InBodyTarget(),
+    )
+
+    normalized = normalize_request(request, policy)
+
+    assert isinstance(normalized, ConvertSourcesRequest)
+    assert normalized.sources == request.sources
+    assert normalized.options.document_timeout == policy.max_document_timeout
+
+
+def test_validate_convert_request_rejects_presigned_url_when_storage_disabled():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=False))
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "artifact storage" in exc_info.value.detail.lower()
+
+
+def test_validate_convert_request_rejects_too_many_sources():
+    policy = build_service_policy(DoclingServeSettings(max_sources_per_request=2))
+    request = ConvertSourcesRequest(
+        sources=[
+            HttpSourceRequest(url="https://example.com/a.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/b.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/c.pdf", headers={}),
+        ],
+        target=InBodyTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "Too many sources" in exc_info.value.detail
+
+
+def test_validate_convert_request_allows_presigned_url_when_storage_enabled():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    validate_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_rejects_s3_source_with_presigned_target():
+    policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            )
+        ],
+        target=PresignedUrlTarget(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_batch_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "S3 sources require an S3 target" in exc_info.value.detail
+
+
+def test_validate_batch_convert_request_allows_s3_source_with_s3_target_without_kfp():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
         sources=[
             S3SourceRequest(
                 endpoint="s3.example.com",
@@ -61,26 +238,37 @@ def test_validate_convert_request_rejects_s3_without_kfp():
             endpoint="s3.example.com",
             access_key="key",
             secret_key="secret",
-            bucket="bucket",
+            bucket="converted",
         ),
     )
 
-    with pytest.raises(
-        HTTPException, match='source kind "s3" requires engine kind "KFP"'
-    ):
-        validate_convert_request(request, policy)
+    validate_batch_convert_request(request, policy)
 
 
-def test_normalize_convert_request_preserves_sources_and_target():
+def test_validate_batch_convert_request_allows_http_source_with_s3_target():
     policy = build_service_policy(DoclingServeSettings())
-    request = ConvertDocumentsRequest(
-        options=ConvertDocumentsOptions(document_timeout=None),
+    request = BatchConvertSourcesRequest(
         sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
-        target=InBodyTarget(),
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
     )
 
-    normalized = normalize_convert_request(request, policy)
+    validate_batch_convert_request(request, policy)
 
-    assert normalized.sources == request.sources
-    assert normalized.target == request.target
+
+def test_normalize_batch_convert_request_sets_default_timeout():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        options=ConvertDocumentsOptions(document_timeout=None),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=PresignedUrlTarget(),
+    )
+
+    normalized = normalize_request(request, policy)
+
+    assert isinstance(normalized, BatchConvertSourcesRequest)
     assert normalized.options.document_timeout == policy.max_document_timeout

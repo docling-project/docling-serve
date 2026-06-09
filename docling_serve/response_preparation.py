@@ -1,16 +1,14 @@
-import logging
-
 from fastapi import BackgroundTasks, Response
 
 from docling.datamodel.service.responses import (
     ChunkDocumentResponse,
-    ConvertDocumentResponse,
-    PresignedUrlConvertDocumentResponse,
-)
-from docling_jobkit.datamodel.result import (
     ChunkedDocumentResult,
+    ConvertDocumentResponse,
     DoclingTaskResult,
     ExportResult,
+    PresignedArtifactResult,
+    PresignedUrlConvertDocumentResponse,
+    PresignedUrlConvertResponse,
     RemoteTargetResult,
     ZipArchiveResult,
 )
@@ -19,8 +17,6 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 
 from docling_serve.settings import docling_serve_settings
-
-_log = logging.getLogger(__name__)
 
 
 async def prepare_response(
@@ -33,11 +29,12 @@ async def prepare_response(
         Response
         | ConvertDocumentResponse
         | PresignedUrlConvertDocumentResponse
+        | PresignedUrlConvertResponse
         | ChunkDocumentResponse
     )
     if isinstance(task_result.result, ExportResult):
         response = ConvertDocumentResponse(
-            document=task_result.result.content,
+            document=task_result.result.document,
             status=task_result.result.status,
             processing_time=task_result.processing_time,
             timings=task_result.result.timings,
@@ -56,6 +53,16 @@ async def prepare_response(
             processing_time=task_result.processing_time,
             num_converted=task_result.num_converted,
             num_succeeded=task_result.num_succeeded,
+            num_partially_succeeded=task_result.num_partially_succeeded,
+            num_failed=task_result.num_failed,
+        )
+    elif isinstance(task_result.result, PresignedArtifactResult):
+        response = PresignedUrlConvertResponse(
+            documents=task_result.result.documents,
+            processing_time=task_result.processing_time,
+            num_converted=task_result.num_converted,
+            num_succeeded=task_result.num_succeeded,
+            num_partially_succeeded=task_result.num_partially_succeeded,
             num_failed=task_result.num_failed,
         )
     elif isinstance(task_result.result, ChunkedDocumentResult):

@@ -2,7 +2,12 @@
 
 import json
 
-from docling_serve.datamodel.responses import TaskStatusResponse
+from docling_serve.datamodel.responses import (
+    FailureCategory,
+    FailurePhase,
+    PublicFailureInfo,
+    TaskStatusResponse,
+)
 
 
 class TestTaskStatusResponseErrorMessage:
@@ -46,3 +51,21 @@ class TestTaskStatusResponseErrorMessage:
         old_json = '{"task_id": "t1", "task_type": "convert", "task_status": "failure"}'
         resp = TaskStatusResponse.model_validate_json(old_json)
         assert resp.error_message is None
+
+    def test_failure_field_in_json_output(self):
+        resp = TaskStatusResponse(
+            task_id="t1",
+            task_type="convert",
+            task_status="failure",
+            failure=PublicFailureInfo(
+                category=FailureCategory.INTERNAL,
+                message="Internal processing error.",
+                retryable=False,
+                phase=FailurePhase.ORCHESTRATION,
+            ),
+        )
+        data = json.loads(resp.model_dump_json())
+        assert data["failure"]["category"] == "internal"
+        assert data["failure"]["message"] == "Internal processing error."
+        assert "code" not in data["failure"]
+        assert "correlation_id" not in data["failure"]
