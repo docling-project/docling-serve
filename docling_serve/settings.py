@@ -141,6 +141,21 @@ class DoclingServeSettings(BaseSettings):
     max_document_timeout: float = 3_600 * 24 * 7  # 7 days
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
+    max_sources_per_request: int = 3
+
+    # Image export policy
+    allowed_image_export_modes: Optional[list[str]] = None  # None = all modes allowed
+    max_images_scale: float = 2.0
+
+    # Artifact storage (required for PresignedUrlTarget)
+    artifact_storage_enabled: bool = False
+    artifact_storage_endpoint: str = ""
+    artifact_storage_verify_ssl: bool = True
+    artifact_storage_bucket: str = ""
+    artifact_storage_access_key: str = ""
+    artifact_storage_secret_key: str = ""
+    artifact_storage_key_prefix: str = "converted/"
+    artifact_storage_presign_ttl_seconds: int = 3600
 
     # Threading pipeline
     queue_max_size: Optional[int] = None
@@ -422,6 +437,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_ocr_presets",
         "allowed_ocr_kinds",
         "allowed_target_types",
+        "allowed_image_export_modes",
         mode="before",
     )
     @classmethod

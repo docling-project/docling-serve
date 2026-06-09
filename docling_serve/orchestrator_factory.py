@@ -9,6 +9,32 @@ from docling_serve.storage import get_scratch
 _log = logging.getLogger(__name__)
 
 
+def _build_s3_presigned_config():
+    """Build presigned artifact storage config, or return None when disabled.
+
+    The managed storage prefix and URL TTL are owned by docling-serve settings and
+    injected into jobkit here before any orchestrator is constructed.
+    """
+    if not docling_serve_settings.artifact_storage_enabled:
+        return None
+
+    from docling.datamodel.service.sources import S3Coordinates
+    from docling_jobkit.config.target_config import S3PresignedConfig
+
+    coords = S3Coordinates(
+        endpoint=docling_serve_settings.artifact_storage_endpoint,
+        verify_ssl=docling_serve_settings.artifact_storage_verify_ssl,
+        access_key=docling_serve_settings.artifact_storage_access_key,
+        secret_key=docling_serve_settings.artifact_storage_secret_key,
+        bucket=docling_serve_settings.artifact_storage_bucket,
+        key_prefix=docling_serve_settings.artifact_storage_key_prefix,
+    )
+    return S3PresignedConfig(
+        s3_coords=coords,
+        url_expiration=docling_serve_settings.artifact_storage_presign_ttl_seconds,
+    )
+
+
 @lru_cache
 def get_async_orchestrator() -> BaseOrchestrator:
     if docling_serve_settings.eng_kind == AsyncEngine.LOCAL:
@@ -26,6 +52,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             shared_models=docling_serve_settings.eng_loc_share_models,
             scratch_dir=get_scratch(),
             result_removal_delay=docling_serve_settings.result_removal_delay,
+            s3_presigned_config=_build_s3_presigned_config(),
         )
 
         cm_config = DoclingConverterManagerConfig(
@@ -115,6 +142,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             zombie_reaper_interval=docling_serve_settings.eng_rq_zombie_reaper_interval,
             zombie_reaper_max_age=docling_serve_settings.eng_rq_zombie_reaper_max_age,
             result_removal_delay=docling_serve_settings.result_removal_delay,
+            s3_presigned_config=_build_s3_presigned_config(),
         )
 
         orchestrator = RQOrchestrator(config=rq_config)
@@ -223,6 +251,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         # Create Fair Ray orchestrator config
         ray_config = RayOrchestratorConfig(
+            s3_presigned_config=_build_s3_presigned_config(),
             # Redis Configuration
             redis_url=docling_serve_settings.eng_ray_redis_url,
             redis_max_connections=docling_serve_settings.eng_ray_redis_max_connections,

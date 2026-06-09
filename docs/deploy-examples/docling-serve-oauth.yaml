@@ -91,7 +91,7 @@ spec:
               memory: 1Gi
           startupProbe:
             httpGet:
-              path: /ready
+              path: /livez
               port: http
               scheme: HTTPS
             initialDelaySeconds: 5
@@ -100,7 +100,7 @@ spec:
             timeoutSeconds: 2
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /readyz
               port: http
               scheme: HTTPS
             periodSeconds: 5
@@ -109,7 +109,7 @@ spec:
             failureThreshold: 3
           livenessProbe:
             httpGet:
-              path: /health
+              path: /livez
               port: http
               scheme: HTTPS
             initialDelaySeconds: 3
