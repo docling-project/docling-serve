@@ -111,6 +111,7 @@ from docling_serve.policy import (
     validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
+    validate_target_kind,
 )
 from docling_serve.public_errors import build_public_http_detail
 from docling_serve.response_preparation import prepare_response
@@ -554,6 +555,9 @@ def create_app():  # noqa: C901
         validate_convert_options(normalized_options, service_policy)
         return normalized_options
 
+    def _validate_multipart_target_type(target_type: TargetName) -> None:
+        validate_target_kind(target_type.value, service_policy)
+
     def _check_file_upload(files: list[UploadFile], target_type: TargetName) -> None:
         if len(files) > service_policy.max_sources_per_request:
             raise HTTPException(
@@ -809,6 +813,7 @@ def create_app():  # noqa: C901
     ):
         _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
+        _validate_multipart_target_type(target_type)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = _resolve_file_target(target_type)
@@ -940,6 +945,7 @@ def create_app():  # noqa: C901
     ):
         _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
+        _validate_multipart_target_type(target_type)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
@@ -1063,6 +1069,7 @@ def create_app():  # noqa: C901
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
             convert_options = _prepare_convert_options(convert_options)
+            _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_file_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
@@ -1204,6 +1211,7 @@ def create_app():  # noqa: C901
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
             convert_options = _prepare_convert_options(convert_options)
+            _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_file ({path_name}) endpoint received tenant_id='{tenant_id}'"

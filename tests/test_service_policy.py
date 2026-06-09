@@ -13,12 +13,14 @@ from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, 
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
+    ALL_TARGET_TYPES,
     build_service_policy,
     normalize_convert_options,
     normalize_request,
     validate_batch_convert_request,
     validate_convert_options,
     validate_convert_request,
+    validate_target_kind,
 )
 from docling_serve.settings import DoclingServeSettings
 
@@ -39,6 +41,12 @@ def test_normalize_convert_options_sets_default_timeout():
     normalized = normalize_convert_options(ConvertDocumentsOptions(), policy)
 
     assert normalized.document_timeout == policy.max_document_timeout
+
+
+def test_build_service_policy_allows_all_target_types_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    assert policy.allowed_target_types == ALL_TARGET_TYPES
 
 
 def test_validate_convert_options_rejects_timeout_above_policy():
@@ -245,6 +253,13 @@ def test_validate_batch_convert_request_allows_s3_source_with_s3_target_without_
     validate_batch_convert_request(request, policy)
 
 
+def test_validate_target_kind_rejects_disallowed_target():
+    policy = build_service_policy(DoclingServeSettings(allowed_target_types=["zip"]))
+
+    with pytest.raises(HTTPException, match="target kind 'inbody' is not allowed"):
+        validate_target_kind("inbody", policy)
+
+
 def test_validate_batch_convert_request_allows_http_source_with_s3_target():
     policy = build_service_policy(DoclingServeSettings())
     request = BatchConvertSourcesRequest(
@@ -272,3 +287,15 @@ def test_normalize_batch_convert_request_sets_default_timeout():
 
     assert isinstance(normalized, BatchConvertSourcesRequest)
     assert normalized.options.document_timeout == policy.max_document_timeout
+
+
+def test_validate_convert_request_rejects_disallowed_target_type():
+    policy = build_service_policy(DoclingServeSettings(allowed_target_types=["zip"]))
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(),
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=InBodyTarget(),
+    )
+
+    with pytest.raises(HTTPException, match="target kind 'inbody' is not allowed"):
+        validate_convert_request(request, policy)
