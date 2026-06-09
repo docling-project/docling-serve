@@ -43,6 +43,36 @@ def test_normalize_convert_options_sets_default_timeout():
     assert normalized.document_timeout == policy.max_document_timeout
 
 
+def test_normalize_convert_options_placeholder_disables_images():
+    policy = build_service_policy(DoclingServeSettings())
+
+    # include_images defaults to True; placeholder must not fail on that default,
+    # it should coerce the include_* flags off instead.
+    normalized = normalize_convert_options(
+        ConvertDocumentsOptions(
+            image_export_mode="placeholder", include_page_images=True
+        ),
+        policy,
+    )
+
+    assert normalized.include_images is False
+    assert normalized.include_page_images is False
+
+
+def test_normalize_convert_options_preserves_images_for_non_placeholder():
+    policy = build_service_policy(DoclingServeSettings())
+
+    normalized = normalize_convert_options(
+        ConvertDocumentsOptions(
+            image_export_mode="referenced", include_page_images=True
+        ),
+        policy,
+    )
+
+    assert normalized.include_images is True
+    assert normalized.include_page_images is True
+
+
 def test_build_service_policy_allows_all_target_types_by_default():
     policy = build_service_policy(DoclingServeSettings())
 
