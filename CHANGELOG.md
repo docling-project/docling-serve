@@ -1,3 +1,19 @@
+## [v1.22.0](https://github.com/docling-project/docling-serve/releases/tag/v1.22.0) - 2026-06-09
+
+### Feature
+
+* Add config and policy for `allowed_target_types` ([#625](https://github.com/docling-project/docling-serve/issues/625)) ([`95039ce`](https://github.com/docling-project/docling-serve/commit/95039ce0e0446a7413897f23fb9f0e4e5740e2be))
+* Add PreSignedUrlTarget, batch convert endpoint and improved failure handling ([#623](https://github.com/docling-project/docling-serve/issues/623)) ([`14b6c08`](https://github.com/docling-project/docling-serve/commit/14b6c081d8c7fc5a771544fa6c0340de0662e6bd))
+
+### Docling libraries included in this release:
+- docling-core 2.79.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 1.21.0
+- docling-mcp 2.1.0
+- docling-parse 6.2.0
+- docling-serve 1.22.0
+- docling-slim 2.99.0
+
 ## [v1.21.0](https://github.com/docling-project/docling-serve/releases/tag/v1.21.0) - 2026-06-01
 
 ### Feature
