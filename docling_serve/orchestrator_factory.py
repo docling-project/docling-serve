@@ -315,6 +315,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             dispatcher_max_task_retries=docling_serve_settings.eng_ray_dispatcher_max_task_retries,
             # Timeouts
             task_timeout=docling_serve_settings.eng_ray_task_timeout,
+            dispatch_claim_timeout=docling_serve_settings.eng_ray_dispatch_claim_timeout,
             document_timeout=docling_serve_settings.eng_ray_document_timeout,
             redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
             dispatcher_rpc_timeout=docling_serve_settings.eng_ray_dispatcher_rpc_timeout,

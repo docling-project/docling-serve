@@ -283,6 +283,7 @@ class DoclingServeSettings(BaseSettings):
 
     # Timeouts
     eng_ray_task_timeout: Optional[float] = 3600.0
+    eng_ray_dispatch_claim_timeout: float = 300.0
     eng_ray_document_timeout: Optional[float] = 300.0
     eng_ray_redis_operation_timeout: float = 30.0
     eng_ray_dispatcher_rpc_timeout: float = 5.0
