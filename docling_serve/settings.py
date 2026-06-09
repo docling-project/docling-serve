@@ -166,6 +166,7 @@ class DoclingServeSettings(BaseSettings):
 
     sync_poll_interval: int = 2  # seconds
     max_sync_wait: int = 120  # 2 minutes
+    ws_heartbeat_interval: int = 30  # seconds
 
     cors_origins: list[str] = ["*"]
     cors_methods: list[str] = ["*"]
