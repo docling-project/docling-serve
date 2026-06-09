@@ -16,6 +16,7 @@ VARIABLE_WORDS: list[str] = [
     "vlm",
     "vlm_pipeline_model_api",
     "ocr_engines_enum",
+    "ocr_skip_text_layer_pages",
     "easyocr",
     "dlparse_v4",
     "docling_parse",
