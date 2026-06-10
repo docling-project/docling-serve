@@ -52,6 +52,9 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.57b0,<0.58",
     "opentelemetry-exporter-prometheus>=0.57b0",
     "prometheus-client>=0.21.0",
+    "grpcio>=1.80.0",
+    "grpcio-reflection>=1.80.0",
+    "protobuf>=4.29.6",
 ]
 
 [project.optional-dependencies]
@@ -86,6 +89,8 @@ dev = [
     "pytest-check~=2.4",
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
+    "grpcio-tools>=1.80.0",
+    "docling-jobkit>=1.10.1",
     "types-psutil>=7.2.2.20260130",
     "types-pyyaml>=6.0.12.20250915",
 ]
@@ -158,7 +163,7 @@ environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
 override-dependencies = [
   "urllib3~=2.0",
   "xgrammar>=0.1.24",
-  "grpcio>=1.75.1",
+  "grpcio>=1.80.0",
   "cryptography>=46.0.7",
 ]
 
@@ -188,6 +193,7 @@ torchvision = [
 pytorch-triton-rocm = [
   { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
+docling-core = { path = "../docling-core", editable = true }
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
@@ -196,6 +202,7 @@ triton-rocm = [
 ]
 
 # docling = { git = "https://github.com/docling-project/docling/", rev = "main" }
+
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
@@ -244,6 +251,7 @@ namespaces = true
 
 [project.scripts]
 docling-serve = "docling_serve.__main__:main"
+docling-serve-grpc = "docling_serve.grpc.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/docling-project/docling-serve"
@@ -256,6 +264,7 @@ Changelog = "https://github.com/docling-project/docling-serve/blob/main/CHANGELO
 target-version = "py310"
 line-length = 88
 respect-gitignore = true
+extend-exclude = ["*.sh"]
 
 # extend-exclude = [
 #     "tests",
@@ -352,6 +361,9 @@ testpaths = [
 addopts = "-rA --color=yes --tb=short --maxfail=5"
 markers = [
 "asyncio",
+"ocr",
+"unit",
+"integration",
 ]
 
 [tool.semantic_release]

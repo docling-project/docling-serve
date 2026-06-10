@@ -2,6 +2,7 @@ model_artifacts/
 scratch/
 .md-lint
 actionlint
+buf.yaml
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,virtualenv,pycharm,visualstudiocode,emacs,vim,jupyternotebooks
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,macos,virtualenv,pycharm,visualstudiocode,emacs,vim,jupyternotebooks
@@ -133,6 +134,7 @@ Temporary Items
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
+*.iml
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
@@ -449,3 +451,7 @@ cookies.txt
 
 # Examples
 /examples/splitted_pdf/*
+
+
+# Cursor workspace
+*.code-workspace
