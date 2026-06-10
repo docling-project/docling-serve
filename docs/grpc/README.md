@@ -62,6 +62,40 @@ This is the standard gRPC pattern for binary payloads. Encode your file with bas
 
 The gRPC API does not expose REST-only endpoints such as `/metrics` or `/version` directly; use the `Health` RPC for version information. For production observability, run the REST server in parallel or use gRPC health checks.
 
+### Intentional divergences
+
+These are feature-parity decisions, not gaps. The contract is parity of
+*capability* with REST, expressed through gRPC-native idioms rather than a
+1:1 endpoint mirror.
+
+- **Batch convert endpoint** (`POST /v1/convert/source/batch`): not mirrored
+  as a separate RPC. `ConvertSource` already accepts `repeated Source`, which
+  is the gRPC-native equivalent of submitting multiple documents in one
+  request. REST needed a separate batch route because its single-convert
+  endpoint predates batching; the gRPC surface does not carry that history.
+  Per-document progress for large batches is available through the async +
+  `PollTaskStatus` flow (`TaskStatusMetadata` reports `num_docs`,
+  `num_processed`, `num_succeeded`, `num_failed`). If upstream batch semantics
+  diverge further (e.g. per-document task fan-out), revisit with a dedicated
+  `ConvertSourceBatch` RPC.
+
+### Policy enforcement
+
+The gRPC server enforces the same `ServicePolicy` as REST (built from
+`docling_serve.settings`): `allowed_target_types`, `max_sources_per_request`,
+`max_document_timeout`, `max_images_scale`, `allowed_ocr_presets`,
+`allowed_image_export_modes`, custom-VLM gating, S3 source/target pairing
+rules, and presigned-URL target restrictions. Policy violations abort the RPC
+with `INVALID_ARGUMENT` and the same detail message REST returns as HTTP 422.
+See `docling_serve/grpc/policy_enforcement.py`.
+
+### Error detail exposure
+
+Unhandled server errors are sanitized the same way as REST (#609): clients
+receive a generic `INTERNAL` status unless `DOCLING_SERVE_DEBUG_ERROR_DETAILS`
+is enabled; full tracebacks are always logged server-side. Validation and
+policy errors are returned verbatim, matching REST 422 behavior.
+
 ## Protobuf Definitions
 
 Proto files are under `proto/ai/docling/`:

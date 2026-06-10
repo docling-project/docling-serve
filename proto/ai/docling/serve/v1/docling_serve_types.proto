@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package ai.docling.serve.v1;
 
+import "ai/docling/core/v1/docling_document.proto";
+import "google/protobuf/struct.proto";
+
 option java_multiple_files = true;
 option java_outer_classname = "DoclingServeTypesProto";
 option java_package = "ai.docling.serve.v1";
-
-import "ai/docling/core/v1/docling_document.proto";
-import "google/protobuf/struct.proto";
 
 // ============================================================================
 // Enumerations - 1:1 mapping of the REST API enum types
@@ -201,6 +201,7 @@ message Target {
     PutTarget put = 2;
     S3Target s3 = 3;
     ZipTarget zip = 4;
+    PreSignedUrlTarget presigned_url = 5;
   }
 }
 
@@ -224,6 +225,11 @@ message S3Target {
 
 // ZipTarget returns results as a ZIP archive.
 message ZipTarget {}
+
+// PreSignedUrlTarget stores results in the configured artifact storage and
+// returns pre-signed download URLs. Requires artifact storage to be enabled
+// on the server; not supported for chunk endpoints.
+message PreSignedUrlTarget {}
 
 // ============================================================================
 // Convert Options
@@ -372,11 +378,36 @@ message ConvertDocumentOptions {
 // Error types
 // ============================================================================
 
+// ConversionStatus mirrors docling's ConversionStatus enum.
+enum ConversionStatus {
+  CONVERSION_STATUS_UNSPECIFIED = 0;
+  CONVERSION_STATUS_PENDING = 1;
+  CONVERSION_STATUS_STARTED = 2;
+  CONVERSION_STATUS_FAILURE = 3;
+  CONVERSION_STATUS_SUCCESS = 4;
+  CONVERSION_STATUS_PARTIAL_SUCCESS = 5;
+  CONVERSION_STATUS_SKIPPED = 6;
+}
+
+// DoclingComponentType mirrors docling's DoclingComponentType enum.
+enum DoclingComponentType {
+  DOCLING_COMPONENT_TYPE_UNSPECIFIED = 0;
+  DOCLING_COMPONENT_TYPE_DOCUMENT_BACKEND = 1;
+  DOCLING_COMPONENT_TYPE_MODEL = 2;
+  DOCLING_COMPONENT_TYPE_DOC_ASSEMBLER = 3;
+  DOCLING_COMPONENT_TYPE_USER_INPUT = 4;
+  DOCLING_COMPONENT_TYPE_PIPELINE = 5;
+}
+
 // ErrorItem represents a processing error from a specific component.
 message ErrorItem {
-  string component_type = 1;
+  DoclingComponentType component_type = 1;
   string error_message = 2;
   string module_name = 3;
+  // Raw component type fallback for forward-compatibility with newer
+  // docling component vocabularies (populated when component_type is
+  // DOCLING_COMPONENT_TYPE_UNSPECIFIED but the source had a value).
+  optional string component_type_raw = 4;
 }
 
 // ============================================================================
@@ -414,8 +445,11 @@ message ExportDocumentResponse {
 message Document {
   optional string kind = 1;
   ExportDocumentResponse content = 2;
-  string status = 3;
+  ConversionStatus status = 3;
   repeated ErrorItem errors = 4;
+  // Raw status fallback for forward-compatibility with newer docling
+  // conversion status vocabularies.
+  optional string status_raw = 5;
 }
 
 // ============================================================================
@@ -446,8 +480,11 @@ message ConvertDocumentResponse {
   DocumentResponse document = 1;
   repeated ErrorItem errors = 2;
   double processing_time = 3;
-  string status = 4;
+  ConversionStatus status = 4;
   map<string, double> timings = 5;
+  // Raw status fallback for forward-compatibility with newer docling
+  // conversion status vocabularies.
+  optional string status_raw = 6;
 }
 
 // HierarchicalChunkerOptions configures the hierarchical chunker.

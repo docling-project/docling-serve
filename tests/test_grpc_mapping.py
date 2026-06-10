@@ -252,6 +252,88 @@ def test_to_task_sources_and_target():
         ),
         S3Target,
     )
+    presigned = to_task_target(
+        docling_serve_types_pb2.Target(
+            presigned_url=docling_serve_types_pb2.PreSignedUrlTarget()
+        )
+    )
+    assert presigned.kind == "presigned_url"
+
+
+def test_conversion_status_enum_and_raw():
+    """Recognized statuses set only the enum; unknown values fall back to raw."""
+    from docling.datamodel.base_models import ConversionStatus
+
+    from docling_serve.grpc.mapping import _conversion_status_enum_and_raw
+
+    enum_val, raw = _conversion_status_enum_and_raw(ConversionStatus.SUCCESS)
+    assert enum_val == docling_serve_types_pb2.CONVERSION_STATUS_SUCCESS
+    assert raw is None
+
+    enum_val, raw = _conversion_status_enum_and_raw("partial_success")
+    assert enum_val == docling_serve_types_pb2.CONVERSION_STATUS_PARTIAL_SUCCESS
+    assert raw is None
+
+    enum_val, raw = _conversion_status_enum_and_raw("some_future_status")
+    assert enum_val == docling_serve_types_pb2.CONVERSION_STATUS_UNSPECIFIED
+    assert raw == "some_future_status"
+
+
+def test_error_item_component_type_enum_and_raw():
+    """Known component types map to the enum; unknown ones use the raw fallback."""
+    from docling.datamodel.base_models import ErrorItem
+
+    from docling_serve.grpc.mapping import _error_item_to_proto
+
+    known = _error_item_to_proto(
+        ErrorItem(
+            component_type="model",
+            module_name="layout",
+            error_message="boom",
+        )
+    )
+    assert known.component_type == docling_serve_types_pb2.DOCLING_COMPONENT_TYPE_MODEL
+    assert not known.HasField("component_type_raw")
+    assert known.error_message == "boom"
+
+
+def test_conversion_status_proto_covers_pydantic():
+    """Guard against drift: every docling ConversionStatus maps to a proto tag."""
+    from docling.datamodel.base_models import ConversionStatus
+
+    from docling_serve.grpc.mapping import _conversion_status_enum_and_raw
+
+    unspecified = docling_serve_types_pb2.CONVERSION_STATUS_UNSPECIFIED
+    unmapped = []
+    for member in ConversionStatus:
+        enum_val, raw = _conversion_status_enum_and_raw(member)
+        if enum_val == unspecified or raw is not None:
+            unmapped.append(member.value)
+    assert not unmapped, (
+        f"ConversionStatus values falling back to raw (add proto tags): {unmapped}"
+    )
+
+
+def test_component_type_proto_covers_pydantic():
+    """Guard against drift: every DoclingComponentType maps to a proto tag."""
+    from docling.datamodel.base_models import DoclingComponentType, ErrorItem
+
+    from docling_serve.grpc.mapping import _error_item_to_proto
+
+    unmapped = []
+    for member in DoclingComponentType:
+        item = _error_item_to_proto(
+            ErrorItem(
+                component_type=member,
+                module_name="m",
+                error_message="e",
+            )
+        )
+        if item.HasField("component_type_raw"):
+            unmapped.append(member.value)
+    assert not unmapped, (
+        f"DoclingComponentType values falling back to raw (add proto tags): {unmapped}"
+    )
 
 
 def test_to_task_sources_empty_oneof_raises():

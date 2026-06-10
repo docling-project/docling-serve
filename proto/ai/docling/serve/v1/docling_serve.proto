@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package ai.docling.serve.v1;
 
+import "ai/docling/serve/v1/docling_serve_types.proto";
+
 option java_multiple_files = true;
 option java_outer_classname = "DoclingServeProto";
 option java_package = "ai.docling.serve.v1";
-
-import "ai/docling/serve/v1/docling_serve_types.proto";
 
 // ============================================================================
 // Service Definition
@@ -18,7 +18,6 @@ import "ai/docling/serve/v1/docling_serve_types.proto";
 // Adheres to Buf linting and Google gRPC style guide by providing unique
 // request and response messages for every RPC.
 service DoclingServeService {
-
   // Health check - mirrors GET /health
   rpc Health(HealthRequest) returns (HealthResponse);
 
@@ -84,7 +83,7 @@ message HealthRequest {}
 
 message HealthResponse {
   optional string status = 1;
-  optional string version = 2;  // docling-serve version, e.g. "1.12.0"
+  optional string version = 2; // docling-serve version, e.g. "1.12.0"
 }
 
 // --- Convert ---

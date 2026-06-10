@@ -34,6 +34,7 @@ from docling_jobkit.datamodel.task_targets import (
     S3Target,
     ZipTarget,
 )
+from docling.datamodel.service.targets import PresignedUrlTarget
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.settings import docling_serve_settings
@@ -293,6 +294,8 @@ def to_task_target(proto_target: Optional[docling_serve_types_pb2.Target]):
             key_prefix=s3_tgt.key_prefix if s3_tgt.HasField("key_prefix") else "",
             verify_ssl=s3_tgt.verify_ssl,
         )
+    if kind == "presigned_url":
+        return PresignedUrlTarget()
     return InBodyTarget()
 
 
@@ -564,15 +567,65 @@ def _docling_document_to_proto(doc) -> docling_document_pb2.DoclingDocument:
     return docling_document_to_proto(doc)
 
 
+_COMPONENT_TYPE_TO_PROTO = {
+    "document_backend": (
+        docling_serve_types_pb2.DoclingComponentType.DOCLING_COMPONENT_TYPE_DOCUMENT_BACKEND
+    ),
+    "model": docling_serve_types_pb2.DoclingComponentType.DOCLING_COMPONENT_TYPE_MODEL,
+    "doc_assembler": (
+        docling_serve_types_pb2.DoclingComponentType.DOCLING_COMPONENT_TYPE_DOC_ASSEMBLER
+    ),
+    "user_input": (
+        docling_serve_types_pb2.DoclingComponentType.DOCLING_COMPONENT_TYPE_USER_INPUT
+    ),
+    "pipeline": (
+        docling_serve_types_pb2.DoclingComponentType.DOCLING_COMPONENT_TYPE_PIPELINE
+    ),
+}
+
+_CONVERSION_STATUS_TO_PROTO = {
+    "pending": docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_PENDING,
+    "started": docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_STARTED,
+    "failure": docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_FAILURE,
+    "success": docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_SUCCESS,
+    "partial_success": (
+        docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_PARTIAL_SUCCESS
+    ),
+    "skipped": docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_SKIPPED,
+}
+
+
+def _conversion_status_enum_and_raw(status) -> tuple[int, Optional[str]]:
+    """Map a docling ConversionStatus (or string) to proto enum + raw fallback.
+
+    Follows the *_raw discriminator contract: a recognized value sets only the
+    enum tag; an unrecognized value sets UNSPECIFIED and carries the original
+    string in the raw companion.
+    """
+    value = getattr(status, "value", status)
+    value = str(value)
+    enum_val = _CONVERSION_STATUS_TO_PROTO.get(value)
+    if enum_val is None:
+        return (
+            docling_serve_types_pb2.ConversionStatus.CONVERSION_STATUS_UNSPECIFIED,
+            value,
+        )
+    return enum_val, None
+
+
 def _error_item_to_proto(error) -> docling_serve_types_pb2.ErrorItem:
-    component = error.component_type
-    if hasattr(component, "value"):
-        component = component.value
-    return docling_serve_types_pb2.ErrorItem(
-        component_type=str(component),
+    component = getattr(error.component_type, "value", error.component_type)
+    component = str(component)
+    message = docling_serve_types_pb2.ErrorItem(
         error_message=error.error_message,
         module_name=error.module_name,
     )
+    enum_val = _COMPONENT_TYPE_TO_PROTO.get(component)
+    if enum_val is None:
+        message.component_type_raw = component
+    else:
+        message.component_type = enum_val
+    return message
 
 
 def _timings_to_proto(timings: dict[str, ProfilingItem]) -> dict[str, float]:
@@ -641,16 +694,16 @@ def convert_result_to_proto(
     processing_time: float,
     requested_formats: Optional[set[OutputFormat]] = None,
 ) -> docling_serve_types_pb2.ConvertDocumentResponse:
-    status = result.status
-    if hasattr(status, "value"):
-        status = status.value
+    status_enum, status_raw = _conversion_status_enum_and_raw(result.status)
     response = docling_serve_types_pb2.ConvertDocumentResponse(
         document=document_response_to_proto(result.content, requested_formats),
         errors=[_error_item_to_proto(err) for err in result.errors],
         processing_time=processing_time,
-        status=str(status),
+        status=status_enum,
         timings=_timings_to_proto(result.timings),
     )
+    if status_raw is not None:
+        response.status_raw = status_raw
     return response
 
 
@@ -679,17 +732,16 @@ def chunk_result_to_proto(
 
     documents = []
     for doc in result.documents:
-        status = doc.status
-        if hasattr(status, "value"):
-            status = status.value
-        documents.append(
-            docling_serve_types_pb2.Document(
-                kind=doc.kind,
-                content=export_document_to_proto(doc.content, requested_formats),
-                status=str(status),
-                errors=[_error_item_to_proto(err) for err in doc.errors],
-            )
+        status_enum, status_raw = _conversion_status_enum_and_raw(doc.status)
+        document = docling_serve_types_pb2.Document(
+            kind=doc.kind,
+            content=export_document_to_proto(doc.content, requested_formats),
+            status=status_enum,
+            errors=[_error_item_to_proto(err) for err in doc.errors],
         )
+        if status_raw is not None:
+            document.status_raw = status_raw
+        documents.append(document)
 
     return docling_serve_types_pb2.ChunkDocumentResponse(
         chunks=chunks,

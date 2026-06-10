@@ -17,6 +17,8 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 
 from docling_serve.orchestrator_factory import get_async_orchestrator
+from docling_serve.policy import ServicePolicy, build_service_policy
+from docling_serve.public_errors import build_public_http_detail
 from docling_serve.settings import docling_serve_settings
 
 from .gen.ai.docling.serve.v1 import (
@@ -37,13 +39,19 @@ from .mapping import (
     to_task_target,
     with_single_use_cleanup,
 )
+from .policy_enforcement import normalize_options, validate_request
 
 _log = logging.getLogger(__name__)
 
 
 class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer):
-    def __init__(self, orchestrator: Optional[BaseOrchestrator] = None) -> None:
+    def __init__(
+        self,
+        orchestrator: Optional[BaseOrchestrator] = None,
+        policy: Optional[ServicePolicy] = None,
+    ) -> None:
         self._orchestrator = orchestrator or get_async_orchestrator()
+        self._policy = policy or build_service_policy(docling_serve_settings)
         self._queue_task: Optional[asyncio.Task] = None
         self._queue_lock = asyncio.Lock()
         self._requested_formats: dict[str, set[OutputFormat]] = {}
@@ -99,6 +107,27 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             )
             return None
         return sources
+
+    async def _enforce_policy(
+        self,
+        context: grpc.aio.ServicerContext,
+        sources: list,
+        options,
+        target,
+        *,
+        chunk: bool = False,
+    ):
+        """Normalize options and enforce the service policy (same rules as REST).
+
+        Returns the normalized options, or None after aborting the RPC with
+        INVALID_ARGUMENT when the request violates policy.
+        """
+        options = normalize_options(options, self._policy)
+        detail = validate_request(sources, options, target, self._policy, chunk=chunk)
+        if detail is not None:
+            await self._abort(context, grpc.StatusCode.INVALID_ARGUMENT, detail)
+            return None
+        return options
 
     async def _wait_task_complete(self, task_id: str) -> bool:
         start = asyncio.get_running_loop().time()
@@ -183,6 +212,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         target = to_task_target(
             request.request.target if request.request.HasField("target") else None
         )
+        options = await self._enforce_policy(context, sources, options, target)
+        if options is None:
+            return docling_serve_pb2.ConvertSourceResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -245,6 +277,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         target = to_task_target(
             request.request.target if request.request.HasField("target") else None
         )
+        options = await self._enforce_policy(context, sources, options, target)
+        if options is None:
+            return docling_serve_pb2.ConvertSourceAsyncResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -291,6 +326,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return docling_serve_pb2.ChunkHierarchicalSourceResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -368,6 +408,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return docling_serve_pb2.ChunkHybridSourceResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -445,6 +490,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return docling_serve_pb2.ChunkHierarchicalSourceAsyncResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -493,6 +543,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return docling_serve_pb2.ChunkHybridSourceAsyncResponse()
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -648,6 +703,9 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         target = to_task_target(
             request.request.target if request.request.HasField("target") else None
         )
+        options = await self._enforce_policy(context, sources, options, target)
+        if options is None:
+            return
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CONVERT,
@@ -686,6 +744,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -728,6 +791,11 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
         export_options = ChunkingExportOptions(
             include_converted_doc=request.request.include_converted_doc
         )
+        options = await self._enforce_policy(
+            context, sources, options, target, chunk=True
+        )
+        if options is None:
+            return
 
         task = await self._orchestrator.enqueue(
             task_type=TaskType.CHUNK,
@@ -742,6 +810,82 @@ class DoclingServeGrpcService(docling_serve_pb2_grpc.DoclingServeServiceServicer
             yield docling_serve_pb2.WatchChunkHybridSourceResponse(response=status)
 
 
+class PublicErrorInterceptor(grpc.aio.ServerInterceptor):
+    """Catch unhandled exceptions and sanitize details before they reach clients.
+
+    Mirrors the REST layer's use of ``build_public_http_detail``: internal
+    exception text is only exposed when ``debug_error_details`` is enabled;
+    otherwise clients get a generic message while the full traceback is logged
+    server-side. Explicit aborts (policy violations, validation errors) pass
+    through untouched.
+    """
+
+    _FALLBACK = "Internal server error."
+
+    async def intercept_service(self, continuation, handler_call_details):
+        handler = await continuation(handler_call_details)
+        if handler is None:
+            return None
+        method = handler_call_details.method
+
+        if handler.unary_unary is not None:
+            inner_unary = handler.unary_unary
+
+            async def unary_unary(request, context):
+                try:
+                    return await inner_unary(request, context)
+                except grpc.aio.AbortError:
+                    raise
+                except TaskNotFoundError:
+                    await context.abort(grpc.StatusCode.NOT_FOUND, "Task not found.")
+                except Exception as exc:
+                    _log.exception("Unhandled error in %s", method)
+                    await context.abort(
+                        grpc.StatusCode.INTERNAL,
+                        build_public_http_detail(
+                            exc=exc,
+                            debug_enabled=docling_serve_settings.debug_error_details,
+                            fallback_message=self._FALLBACK,
+                        ),
+                    )
+
+            return grpc.unary_unary_rpc_method_handler(
+                unary_unary,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        if handler.unary_stream is not None:
+            inner_stream = handler.unary_stream
+
+            async def unary_stream(request, context):
+                try:
+                    async for item in inner_stream(request, context):
+                        yield item
+                except grpc.aio.AbortError:
+                    raise
+                except TaskNotFoundError:
+                    await context.abort(grpc.StatusCode.NOT_FOUND, "Task not found.")
+                except Exception as exc:
+                    _log.exception("Unhandled error in %s", method)
+                    await context.abort(
+                        grpc.StatusCode.INTERNAL,
+                        build_public_http_detail(
+                            exc=exc,
+                            debug_enabled=docling_serve_settings.debug_error_details,
+                            fallback_message=self._FALLBACK,
+                        ),
+                    )
+
+            return grpc.unary_stream_rpc_method_handler(
+                unary_stream,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        return handler
+
+
 async def serve(host: str, port: int) -> None:
     from grpc_reflection.v1alpha import reflection
 
@@ -753,7 +897,7 @@ async def serve(host: str, port: int) -> None:
         ("grpc.max_send_message_length", 2 * 1024 * 1024 * 1024 - 1),  # 2 GB
         ("grpc.max_receive_message_length", 2 * 1024 * 1024 * 1024 - 1),  # 2 GB
     ]
-    server = grpc.aio.server(options=options)
+    server = grpc.aio.server(options=options, interceptors=[PublicErrorInterceptor()])
     service = DoclingServeGrpcService()
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)

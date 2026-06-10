@@ -1,5 +1,7 @@
 import asyncio
 import base64
+from contextlib import asynccontextmanager
+from dataclasses import replace
 
 import grpc
 import pytest
@@ -23,7 +25,8 @@ from docling_serve.grpc.gen.ai.docling.serve.v1 import (
     docling_serve_pb2_grpc,
     docling_serve_types_pb2,
 )
-from docling_serve.grpc.server import DoclingServeGrpcService
+from docling_serve.grpc.server import DoclingServeGrpcService, PublicErrorInterceptor
+from docling_serve.policy import build_service_policy
 from docling_serve.settings import docling_serve_settings
 
 pytestmark = pytest.mark.unit
@@ -681,8 +684,12 @@ async def test_convert_source_http_source(grpc_stub):
 
 
 @pytest.mark.asyncio
-async def test_convert_source_s3_source(grpc_stub):
-    """ConvertSource with S3Source succeeds end-to-end through fake orchestrator."""
+async def test_convert_source_s3_source():
+    """ConvertSource with S3Source succeeds when policy allows S3 (KFP pairing rules)."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        s3_enabled=True,
+    )
     request = docling_serve_pb2.ConvertSourceRequest(
         request=docling_serve_types_pb2.ConvertDocumentRequest(
             sources=[
@@ -696,10 +703,22 @@ async def test_convert_source_s3_source(grpc_stub):
                         verify_ssl=True,
                     )
                 )
-            ]
+            ],
+            # Policy requires S3 sources to pair with an S3 target.
+            target=docling_serve_types_pb2.Target(
+                s3=docling_serve_types_pb2.S3Target(
+                    endpoint="s3.example.com",
+                    access_key="AKIA...",
+                    secret_key="secret",
+                    bucket="out-bucket",
+                    key_prefix="results/",
+                    verify_ssl=True,
+                )
+            ),
         )
     )
-    response = await grpc_stub.ConvertSource(request)
+    async with _server_with(policy=policy) as stub:
+        response = await stub.ConvertSource(request)
     assert response.response.document.doc.schema_name == "DoclingDocument"
 
 
@@ -820,3 +839,223 @@ async def test_explicit_json_export_matches_model_dump_json(grpc_stub):
     parsed = json.loads(json_export)
     assert parsed["name"] == "doc"
     assert "schema_name" in parsed
+
+
+# ---------------------------------------------------------------------------
+# Policy enforcement (mirrors REST ServicePolicy rules)
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def _server_with(policy=None, orchestrator=None, interceptors=None):
+    """Spin up a gRPC server with a custom policy/orchestrator/interceptors."""
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
+    server = grpc.aio.server(interceptors=list(interceptors or []))
+    orchestrator = orchestrator or FakeOrchestrator()
+    service = DoclingServeGrpcService(orchestrator=orchestrator, policy=policy)
+    await service.start()
+    docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+    port = server.add_insecure_port("[::]:0")
+    await server.start()
+    try:
+        async with grpc.aio.insecure_channel(f"localhost:{port}") as channel:
+            yield docling_serve_pb2_grpc.DoclingServeServiceStub(channel)
+    finally:
+        await service.close()
+        docling_serve_settings.single_use_results = original_single_use
+        await server.stop(grace=1)
+
+
+def _file_convert_request(num_sources=1, target=None):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    return docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename=f"test_{i}.pdf",
+                    )
+                )
+                for i in range(num_sources)
+            ],
+            target=target,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_s3_source_rejected_by_default_policy(grpc_stub):
+    """S3 sources are rejected on a non-KFP engine (default policy)."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        verify_ssl=True,
+                    )
+                )
+            ]
+        )
+    )
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
+async def test_s3_source_requires_s3_target():
+    """Even with S3 enabled, an S3 source without an S3 target is rejected."""
+    policy = replace(build_service_policy(docling_serve_settings), s3_enabled=True)
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        verify_ssl=True,
+                    )
+                )
+            ]
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert 'target kind "s3"' in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_policy_rejects_disallowed_target_type():
+    """allowed_target_types restricts which targets a request may use."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        allowed_target_types=frozenset({"inbody"}),
+    )
+    request = _file_convert_request(
+        target=docling_serve_types_pb2.Target(zip=docling_serve_types_pb2.ZipTarget())
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "not allowed" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_policy_rejects_too_many_sources():
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        max_sources_per_request=1,
+    )
+    request = _file_convert_request(num_sources=2)
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "Too many sources" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_presigned_url_target_requires_artifact_storage():
+    """presigned_url target is rejected when artifact storage is disabled."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        artifact_storage_enabled=False,
+    )
+    request = _file_convert_request(
+        target=docling_serve_types_pb2.Target(
+            presigned_url=docling_serve_types_pb2.PreSignedUrlTarget()
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "artifact storage" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_presigned_url_target_rejected_for_chunk():
+    """presigned_url target is never allowed on chunk RPCs (REST parity)."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        artifact_storage_enabled=True,
+    )
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ChunkHierarchicalSourceRequest(
+        request=docling_serve_types_pb2.HierarchicalChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            target=docling_serve_types_pb2.Target(
+                presigned_url=docling_serve_types_pb2.PreSignedUrlTarget()
+            ),
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ChunkHierarchicalSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "not supported for chunk" in exc_info.value.details()
+
+
+# ---------------------------------------------------------------------------
+# Error detail sanitization (mirrors REST public_errors behavior)
+# ---------------------------------------------------------------------------
+
+
+class BrokenOrchestrator(FakeOrchestrator):
+    async def enqueue(self, **kwargs):
+        raise RuntimeError("sensitive internal detail: db password leaked")
+
+
+@pytest.mark.asyncio
+async def test_unhandled_error_sanitized_without_debug():
+    """Unexpected exceptions yield a generic INTERNAL message by default."""
+    original = docling_serve_settings.debug_error_details
+    docling_serve_settings.debug_error_details = False
+    try:
+        async with _server_with(
+            orchestrator=BrokenOrchestrator(),
+            interceptors=[PublicErrorInterceptor()],
+        ) as stub:
+            with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+                await stub.ConvertSource(_file_convert_request())
+        assert exc_info.value.code() == grpc.StatusCode.INTERNAL
+        assert exc_info.value.details() == "Internal server error."
+        assert "sensitive" not in exc_info.value.details()
+    finally:
+        docling_serve_settings.debug_error_details = original
+
+
+@pytest.mark.asyncio
+async def test_unhandled_error_detail_with_debug():
+    """With debug_error_details enabled, the exception text is exposed."""
+    original = docling_serve_settings.debug_error_details
+    docling_serve_settings.debug_error_details = True
+    try:
+        async with _server_with(
+            orchestrator=BrokenOrchestrator(),
+            interceptors=[PublicErrorInterceptor()],
+        ) as stub:
+            with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+                await stub.ConvertSource(_file_convert_request())
+        assert exc_info.value.code() == grpc.StatusCode.INTERNAL
+        assert "sensitive internal detail" in exc_info.value.details()
+    finally:
+        docling_serve_settings.debug_error_details = original
