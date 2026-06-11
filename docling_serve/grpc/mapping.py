@@ -97,6 +97,7 @@ def _map_output_format(value: int) -> Optional[OutputFormat]:
         "OUTPUT_FORMAT_TEXT": OutputFormat.TEXT,
         "OUTPUT_FORMAT_YAML": OutputFormat.YAML,
         "OUTPUT_FORMAT_VTT": OutputFormat.VTT,
+        "OUTPUT_FORMAT_DOCLANG": OutputFormat.DOCLANG,
     }
     return mapping.get(name)
 
