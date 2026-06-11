@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
 
@@ -14,6 +14,7 @@ from docling.datamodel.service.requests import (
 )
 from docling.datamodel.service.targets import PresignedUrlTarget, S3Target
 from docling.models.factories import get_ocr_factory
+from docling_core.types.doc import ImageRefMode
 
 from docling_serve.settings import AsyncEngine, DoclingServeSettings
 
@@ -83,11 +84,24 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
 def normalize_convert_options(
     options: ConvertDocumentsOptions, policy: ServicePolicy
 ) -> ConvertDocumentsOptions:
-    if options.document_timeout is not None:
+    updates: dict[str, Any] = {}
+
+    if options.document_timeout is None:
+        updates["document_timeout"] = policy.max_document_timeout
+
+    # Placeholder export mode discards all image data, so generating images would
+    # be wasted work. Coerce the include_* flags off rather than rejecting the
+    # request: include_images defaults to True, so a 422 here would fail requests
+    # purely on a default the caller never set.
+    if options.image_export_mode == ImageRefMode.PLACEHOLDER:
+        if options.include_images:
+            updates["include_images"] = False
+        if options.include_page_images:
+            updates["include_page_images"] = False
+
+    if not updates:
         return options
-    return options.model_copy(
-        update={"document_timeout": policy.max_document_timeout}, deep=True
-    )
+    return options.model_copy(update=updates, deep=True)
 
 
 def normalize_request(
