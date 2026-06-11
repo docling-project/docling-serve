@@ -1,3 +1,18 @@
+## [v1.22.1](https://github.com/docling-project/docling-serve/releases/tag/v1.22.1) - 2026-06-11
+
+### Fix
+
+* Normalize include_images options when using image_export_mode `placeholder` ([#626](https://github.com/docling-project/docling-serve/issues/626)) ([`ed99827`](https://github.com/docling-project/docling-serve/commit/ed998270730172801e05a1862623cf1aca170869))
+
+### Docling libraries included in this release:
+- docling-core 2.81.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 1.22.0
+- docling-mcp 2.1.0
+- docling-parse 6.2.0
+- docling-serve 1.22.1
+- docling-slim 2.101.0
+
 ## [v1.22.0](https://github.com/docling-project/docling-serve/releases/tag/v1.22.0) - 2026-06-09
 
 ### Feature
