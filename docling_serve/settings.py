@@ -248,6 +248,8 @@ class DoclingServeSettings(BaseSettings):
     # Hard cap on concurrent in-flight requests per replica.
     # None -> follow eng_ray_target_requests_per_replica.
     eng_ray_max_ongoing_requests_per_replica: Optional[int] = None
+    # Hard cap on converter Serve replicas per Ray node. None -> no cap.
+    eng_ray_converter_max_replicas_per_node: Optional[int] = None
     eng_ray_upscale_delay_s: float = 30.0
     eng_ray_downscale_delay_s: float = 600.0
     # None -> use Ray Serve defaults.
@@ -269,6 +271,8 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_coordinator_max_actors: Optional[int] = None
     eng_ray_coordinator_target_requests_per_replica: Optional[int] = None
     eng_ray_coordinator_max_ongoing_requests_per_replica: int = 8
+    # Hard cap on coordinator Serve replicas per Ray node. None -> no cap.
+    eng_ray_coordinator_max_replicas_per_node: Optional[int] = None
     eng_ray_coordinator_actor_num_cpus: float = 0.25
     eng_ray_coordinator_actor_memory_request: Optional[str] = None
 
