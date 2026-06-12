@@ -292,6 +292,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             max_actors=docling_serve_settings.eng_ray_max_actors,
             target_requests_per_replica=docling_serve_settings.eng_ray_target_requests_per_replica,
             max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_max_ongoing_requests_per_replica,
+            converter_max_replicas_per_node=docling_serve_settings.eng_ray_converter_max_replicas_per_node,
             upscale_delay_s=docling_serve_settings.eng_ray_upscale_delay_s,
             downscale_delay_s=docling_serve_settings.eng_ray_downscale_delay_s,
             graceful_shutdown_wait_loop_s=docling_serve_settings.eng_ray_graceful_shutdown_wait_loop_s,
@@ -304,6 +305,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             coordinator_max_actors=docling_serve_settings.eng_ray_coordinator_max_actors,
             coordinator_target_requests_per_replica=docling_serve_settings.eng_ray_coordinator_target_requests_per_replica,
             coordinator_max_ongoing_requests_per_replica=docling_serve_settings.eng_ray_coordinator_max_ongoing_requests_per_replica,
+            coordinator_max_replicas_per_node=docling_serve_settings.eng_ray_coordinator_max_replicas_per_node,
             coordinator_actor_num_cpus=docling_serve_settings.eng_ray_coordinator_actor_num_cpus,
             coordinator_actor_memory_request=docling_serve_settings.eng_ray_coordinator_actor_memory_request,
             # Fault Tolerance & Retry
