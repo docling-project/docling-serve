@@ -1,3 +1,25 @@
+## [v1.23.0](https://github.com/docling-project/docling-serve/releases/tag/v1.23.0) - 2026-06-12
+
+### Feature
+
+* Add settings for coordinator and converter max_replicas_per_node ([#629](https://github.com/docling-project/docling-serve/issues/629)) ([`b67600e`](https://github.com/docling-project/docling-serve/commit/b67600ee99a2e841b7bd8d719fbb770152d338b3))
+
+### Fix
+
+* Updated dependencies ([#632](https://github.com/docling-project/docling-serve/issues/632)) ([`21a3c02`](https://github.com/docling-project/docling-serve/commit/21a3c0279758fb6a929fcae10fc90afed3689c5f))
+* Correctly allow floating values for target_requests_per_replica ([#631](https://github.com/docling-project/docling-serve/issues/631)) ([`1b12f00`](https://github.com/docling-project/docling-serve/commit/1b12f002e623da296a27f06de18ff92131e25a36))
+* Enforce tenant ownership on task read endpoints ([#628](https://github.com/docling-project/docling-serve/issues/628)) ([`7a1eaac`](https://github.com/docling-project/docling-serve/commit/7a1eaac1dcaed6758dba84328249a4c594bca646))
+* Supervise orchestrator queue processor and harden WebSocket status push ([#630](https://github.com/docling-project/docling-serve/issues/630)) ([`7c04b5d`](https://github.com/docling-project/docling-serve/commit/7c04b5d9a1bb7e5dbc72d751b6432ac60a7cab9d))
+
+### Docling libraries included in this release:
+- docling-core 2.82.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 1.23.0
+- docling-mcp 2.1.0
+- docling-parse 6.2.0
+- docling-serve 1.23.0
+- docling-slim 2.102.1
+
 ## [v1.22.1](https://github.com/docling-project/docling-serve/releases/tag/v1.22.1) - 2026-06-11
 
 ### Fix
