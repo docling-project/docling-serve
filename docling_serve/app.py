@@ -1320,26 +1320,21 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
         api_key: Annotated[str, Query()] = "",
-        x_api_key: Annotated[str | None, Header(alias=require_auth.header_name)] = None,
-        x_tenant_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
-        ] = None,
+        tenant_id: Annotated[str | None, Query()] = None,
     ):
         if docling_serve_settings.api_key:
-            # Prefer the API key from the header; fall back to the query
-            # parameter for browser clients that cannot set headers. Note that
-            # query-parameter keys may be captured in proxy/access logs.
-            provided_key = x_api_key if x_api_key is not None else api_key
-            if provided_key != docling_serve_settings.api_key:
+            # WebSocket clients on this endpoint authenticate via query
+            # parameter. Note that query-parameter keys may be captured in
+            # proxy/access logs.
+            if api_key != docling_serve_settings.api_key:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=(
-                        f"Api key is required as the {require_auth.header_name} "
-                        "header or ?api_key=SECRET query parameter."
+                        "Api key is required as the ?api_key=SECRET query parameter."
                     ),
                 )
 
-        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        tenant_id = tenant_id or "default"
 
         assert isinstance(orchestrator.notifier, WebsocketNotifier)
         await websocket.accept()
