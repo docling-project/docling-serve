@@ -539,6 +539,27 @@ def create_app():  # noqa: C901
         )
         return tenant_id
 
+    def _task_tenant_id(task: Task) -> str:
+        """Return the tenant that owns a task, defaulting to 'default'."""
+        return (task.metadata or {}).get("tenant_id") or "default"
+
+    def _assert_task_tenant(task: Task, tenant_id: str) -> None:
+        """Ensure the caller's tenant owns the task.
+
+        Raises TaskNotFoundError (surfaced as 404) on mismatch rather than 403
+        so a caller cannot probe whether a task UUID exists for another tenant.
+
+        When tenants are not in use, every task is owned by 'default' and every
+        caller resolves to 'default', so this check is transparent.
+        """
+        owner_tenant_id = _task_tenant_id(task)
+        if owner_tenant_id != tenant_id:
+            _log.warning(
+                f"[TENANT_ID] Tenant mismatch for task {task.task_id}: "
+                f"caller='{tenant_id}' owner='{owner_tenant_id}' - denying access"
+            )
+            raise TaskNotFoundError()
+
     async def _wait_task_complete(orchestrator: BaseOrchestrator, task_id: str) -> bool:
         start_time = time.monotonic()
         while True:
@@ -1308,13 +1329,18 @@ def create_app():  # noqa: C901
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
+        ] = None,
         wait: Annotated[
             float,
             Query(description="Number of seconds to wait for a completed status."),
         ] = 0.0,
     ):
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
         try:
             task = await orchestrator.task_status(task_id=task_id, wait=wait)
+            _assert_task_tenant(task, tenant_id)
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
@@ -1337,19 +1363,28 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         task_id: str,
         api_key: Annotated[str, Query()] = "",
+        tenant_id: Annotated[str | None, Query()] = None,
     ):
         if docling_serve_settings.api_key:
+            # WebSocket clients on this endpoint authenticate via query
+            # parameter. Note that query-parameter keys may be captured in
+            # proxy/access logs.
             if api_key != docling_serve_settings.api_key:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Api key is required as ?api_key=SECRET.",
+                    detail=(
+                        "Api key is required as the ?api_key=SECRET query parameter."
+                    ),
                 )
+
+        tenant_id = tenant_id or "default"
 
         assert isinstance(orchestrator.notifier, WebsocketNotifier)
         await websocket.accept()
 
         try:
             task = await orchestrator.task_status(task_id=task_id)
+            _assert_task_tenant(task, tenant_id)
         except RedisBackpressureError:
             await websocket.send_text(
                 WebsocketMessage(
@@ -1461,8 +1496,14 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         background_tasks: BackgroundTasks,
         task_id: str,
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
+        ] = None,
     ):
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
         try:
+            task = await orchestrator.task_status(task_id=task_id)
+            _assert_task_tenant(task, tenant_id)
             outcome = await orchestrator.task_outcome(task_id=task_id)
             if outcome is None:
                 raise HTTPException(
