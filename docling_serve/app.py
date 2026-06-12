@@ -147,6 +147,31 @@ _log = logging.getLogger(__name__)
 # implementation is a no-op so this event fires instantly in RQ deployments.
 _models_ready = asyncio.Event()
 
+# Set if the background queue processor task dies with an error. Liveness/
+# readiness then fail so the platform restarts the pod instead of silently
+# serving with a dead orchestrator loop: a dead pub/sub listener stops WebSocket
+# push delivery while polling still succeeds, which is otherwise very hard to
+# detect.
+_queue_processor_failed = asyncio.Event()
+
+
+def _supervise_queue_processor(task: asyncio.Task, failed_event: asyncio.Event) -> None:
+    """Mark the orchestrator loop unhealthy only if it died with an exception.
+
+    A clean return is legitimate: some engines (e.g. KFP) have no in-process
+    queue loop and ``process_queue()`` is a no-op, so completing is expected and
+    must not flag the pod unhealthy. Only an unhandled exception means a
+    supervised loop (RQ/Ray pub/sub listener, Local workers) actually broke.
+    """
+    if task.cancelled():
+        return  # expected on shutdown
+    exc = task.exception()
+    if exc is None:
+        _log.debug("Background queue processor completed without error")
+        return
+    _log.error("Background queue processor died: %s", exc, exc_info=exc)
+    failed_event.set()
+
 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
@@ -164,8 +189,13 @@ async def lifespan(app: FastAPI):
 
     _models_ready.set()
 
-    # Start the background queue processor
+    # Start the background queue processor. If a supervised loop (RQ/Ray pub/sub
+    # listener, Local workers) ever crashes, the done-callback flags the pod
+    # unhealthy so it gets restarted instead of silently dropping WebSocket push.
     queue_task = asyncio.create_task(orchestrator.process_queue())
+    queue_task.add_done_callback(
+        lambda task: _supervise_queue_processor(task, _queue_processor_failed)
+    )
 
     reaper_task = None
     if isinstance(orchestrator, RQOrchestrator):
@@ -683,6 +713,12 @@ def create_app():  # noqa: C901
                 detail="Models not yet loaded",
             )
 
+        if _queue_processor_failed.is_set():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Background queue processor is not running.",
+            )
+
         orchestrator = get_async_orchestrator()
         try:
             await orchestrator.check_connection()
@@ -704,6 +740,13 @@ def create_app():  # noqa: C901
 
     @app.get("/livez", tags=["health"], include_in_schema=False)
     async def livez() -> HealthCheckResponse:
+        # Fail liveness if the orchestrator loop has died so the platform
+        # restarts the pod (which re-subscribes the pub/sub listener).
+        if _queue_processor_failed.is_set():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Background queue processor is not running.",
+            )
         return HealthCheckResponse()
 
     # API readiness compatibility for OpenShift AI Workbench
@@ -1345,6 +1388,10 @@ def create_app():  # noqa: C901
                 ).model_dump_json()
             )
             while True:
+                # Refresh from the orchestrator each iteration so the client
+                # always sees current state — and the socket is closed on
+                # completion — even if the real-time pub/sub push was missed.
+                task = await orchestrator.task_status(task_id=task_id)
                 task_queue_position = await orchestrator.get_queue_position(
                     task_id=task_id
                 )
@@ -1362,10 +1409,19 @@ def create_app():  # noqa: C901
                         message=MessageKind.UPDATE, task=task_response
                     ).model_dump_json()
                 )
+                if task.is_completed():
+                    await websocket.close()
+                    return
                 # each client message will be interpreted as a request for update
                 msg = await websocket.receive_text()
                 _log.debug(f"Received message: {msg}")
 
+        except TaskNotFoundError:
+            # Task was removed (e.g. reaped) while streaming; close gracefully.
+            try:
+                await websocket.close()
+            except Exception:
+                pass
         except RedisBackpressureError:
             try:
                 await websocket.send_text(
