@@ -6,7 +6,12 @@ import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
-from docling_serve.app import _models_ready, create_app
+from docling_serve.app import (
+    _models_ready,
+    _queue_processor_failed,
+    _supervise_queue_processor,
+    create_app,
+)
 from docling_serve.datamodel.responses import (
     HealthCheckResponse,
     ReadinessResponse,
@@ -148,6 +153,62 @@ async def test_ready_returns_503_when_models_not_loaded(client: AsyncClient):
         assert "Models not yet loaded" in response.json()["detail"]
     finally:
         _models_ready.set()
+
+
+@pytest.mark.asyncio
+async def test_livez_returns_503_when_queue_processor_failed(client: AsyncClient):
+    _queue_processor_failed.set()
+    try:
+        response = await client.get("/livez")
+        assert response.status_code == 503
+        assert "queue processor is not running" in response.json()["detail"]
+    finally:
+        _queue_processor_failed.clear()
+
+
+@pytest.mark.asyncio
+async def test_ready_returns_503_when_queue_processor_failed(client: AsyncClient):
+    _queue_processor_failed.set()
+    try:
+        response = await client.get("/ready")
+        assert response.status_code == 503
+        assert "queue processor is not running" in response.json()["detail"]
+    finally:
+        _queue_processor_failed.clear()
+
+
+def test_supervise_queue_processor_flags_on_exception():
+    event = asyncio.Event()
+    task = MagicMock()
+    task.cancelled.return_value = False
+    task.exception.return_value = RuntimeError("pub/sub listener died")
+
+    _supervise_queue_processor(task, event)
+
+    assert event.is_set()
+
+
+def test_supervise_queue_processor_ignores_clean_return():
+    # KFP (and other no-op orchestrators) return from process_queue() immediately
+    # with no exception; that must not mark the pod unhealthy.
+    event = asyncio.Event()
+    task = MagicMock()
+    task.cancelled.return_value = False
+    task.exception.return_value = None
+
+    _supervise_queue_processor(task, event)
+
+    assert not event.is_set()
+
+
+def test_supervise_queue_processor_ignores_cancellation():
+    event = asyncio.Event()
+    task = MagicMock()
+    task.cancelled.return_value = True
+
+    _supervise_queue_processor(task, event)
+
+    assert not event.is_set()
 
 
 def test_health_check_response_model():
