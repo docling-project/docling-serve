@@ -173,3 +173,15 @@ run-docling-rocm72: ## Run the docling-serve container with ROCm 7.2 support and
 		-e TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 \
 		-e DOCLING_SERVE_ENABLE_UI=true \
 		ghcr.io/docling-project/docling-serve-rocm72:main
+
+.PHONY: test-grpc-unit
+test-grpc-unit: ## Run gRPC unit tests (no models)
+	$(CMD_PREFIX) uv run pytest -m unit -k grpc -v
+
+.PHONY: test-grpc-integration
+test-grpc-integration: ## Run gRPC integration tests (excludes OCR)
+	$(CMD_PREFIX) uv run pytest -m "integration and not ocr" -k grpc -v
+
+.PHONY: test-grpc-ocr
+test-grpc-ocr: ## Run gRPC OCR integration tests
+	$(CMD_PREFIX) uv run pytest -m "integration and ocr" -k grpc -v
