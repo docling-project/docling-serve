@@ -178,6 +178,7 @@ class DoclingServeSettings(BaseSettings):
     eng_loc_share_models: bool = False
     # RQ engine
     eng_rq_redis_url: str = ""
+    eng_rq_queue_name: str = "convert"
     eng_rq_results_prefix: str = "docling:results"
     eng_rq_sub_channel: str = "docling:updates"
     eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
