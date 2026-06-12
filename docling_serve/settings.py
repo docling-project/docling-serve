@@ -6,7 +6,14 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 import yaml
-from pydantic import AliasChoices, AnyUrl, Field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    AnyUrl,
+    Field,
+    PositiveFloat,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -244,7 +251,7 @@ class DoclingServeSettings(BaseSettings):
     # Ray Serve Autoscaling
     eng_ray_min_actors: int = 1
     eng_ray_max_actors: int = 10
-    eng_ray_target_requests_per_replica: int = 1
+    eng_ray_target_requests_per_replica: PositiveFloat = 1.0
     # Hard cap on concurrent in-flight requests per replica.
     # None -> follow eng_ray_target_requests_per_replica.
     eng_ray_max_ongoing_requests_per_replica: Optional[int] = None
@@ -269,7 +276,7 @@ class DoclingServeSettings(BaseSettings):
     eng_ray_max_page_slice_parallelism: Optional[int] = None
     eng_ray_coordinator_min_actors: Optional[int] = None
     eng_ray_coordinator_max_actors: Optional[int] = None
-    eng_ray_coordinator_target_requests_per_replica: Optional[int] = None
+    eng_ray_coordinator_target_requests_per_replica: Optional[PositiveFloat] = None
     eng_ray_coordinator_max_ongoing_requests_per_replica: int = 8
     # Hard cap on coordinator Serve replicas per Ray node. None -> no cap.
     eng_ray_coordinator_max_replicas_per_node: Optional[int] = None
