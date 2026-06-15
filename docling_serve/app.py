@@ -35,6 +35,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import create_model
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
@@ -107,6 +108,7 @@ from docling_serve.policy import (
     build_service_policy,
     normalize_convert_options,
     normalize_request,
+    resolve_default_target,
     validate_batch_convert_request,
     validate_chunk_request,
     validate_convert_options,
@@ -245,6 +247,22 @@ def create_app():  # noqa: C901
 
     require_auth = APIKeyAuth(docling_serve_settings.api_key)
     service_policy = build_service_policy(docling_serve_settings)
+
+    # Clients omit fields left at their model default, so the imported request
+    # model's `target` default must match what this deployment actually accepts;
+    # otherwise an omitted target arrives carrying a target kind the policy
+    # rejects with a spurious 422. Subclass the imported model to repopulate the
+    # `target` default with the deployment-resolved one. Because the default is
+    # a concrete value it also flows into the OpenAPI schema automatically. The
+    # subclass keeps the public "ConvertSourcesRequest" schema name.
+    default_target = resolve_default_target(service_policy)
+    default_target_name = TargetName(default_target.kind)
+    ConvertSourcesRequestModel = create_model(
+        "ConvertSourcesRequest",
+        __base__=ConvertSourcesRequest,
+        target=(TargetRequest, default_target),
+    )
+
     app = FastAPI(
         title="Docling Serve",
         docs_url=None if offline_docs_assets else "/swagger",
@@ -813,16 +831,16 @@ def create_app():  # noqa: C901
         background_tasks: BackgroundTasks,
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        conversion_request: ConvertSourcesRequest,
+        conversion_request: ConvertSourcesRequestModel,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        conversion_request = _prepare_convert_request(conversion_request)
+        prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_url endpoint received tenant_id='{tenant_id}'")
         task = await _enque_source(
-            orchestrator=orchestrator, request=conversion_request, tenant_id=tenant_id
+            orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -870,7 +888,7 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        target_type: Annotated[TargetName, Form()] = default_target_name,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
@@ -926,18 +944,18 @@ def create_app():  # noqa: C901
     async def process_url_async(
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        conversion_request: ConvertSourcesRequest,
+        conversion_request: ConvertSourcesRequestModel,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        conversion_request = _prepare_convert_request(conversion_request)
+        prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_url_async endpoint received tenant_id='{tenant_id}'"
         )
         task = await _enque_source(
-            orchestrator=orchestrator, request=conversion_request, tenant_id=tenant_id
+            orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -1002,7 +1020,7 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = TargetName.INBODY,
+        target_type: Annotated[TargetName, Form()] = default_target_name,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
