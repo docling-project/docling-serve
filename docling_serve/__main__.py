@@ -394,6 +394,7 @@ def rq_worker() -> Any:
     )
 
     from docling_serve.logging_config import setup_logging
+    from docling_serve.orchestrator_factory import _build_s3_presigned_config
     from docling_serve.rq_instrumentation import setup_rq_worker_instrumentation
     from docling_serve.rq_worker_instrumented import InstrumentedRQWorker
 
@@ -415,6 +416,7 @@ def rq_worker() -> Any:
 
     rq_config = RQOrchestratorConfig(
         redis_url=docling_serve_settings.eng_rq_redis_url,
+        queue_name=docling_serve_settings.eng_rq_queue_name,
         results_prefix=docling_serve_settings.eng_rq_results_prefix,
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
@@ -427,6 +429,7 @@ def rq_worker() -> Any:
         redis_gate_reserved_connections=docling_serve_settings.eng_rq_redis_gate_reserved_connections,
         redis_gate_wait_timeout=docling_serve_settings.eng_rq_redis_gate_wait_timeout,
         redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_rq_redis_gate_status_poll_wait_timeout,
+        s3_presigned_config=_build_s3_presigned_config(),
     )
 
     cm_config = DoclingConverterManagerConfig(
