@@ -1,3 +1,23 @@
+## [v1.24.0](https://github.com/docling-project/docling-serve/releases/tag/v1.24.0) - 2026-06-15
+
+### Feature
+
+* Support configurable RQ queue name (#620) ([#621](https://github.com/docling-project/docling-serve/issues/621)) ([`74b5848`](https://github.com/docling-project/docling-serve/commit/74b5848a179ccaee14d9c7195bd04cd12e0d0dbc))
+
+### Fix
+
+* Resolve omitted convert target from server policy ([#635](https://github.com/docling-project/docling-serve/issues/635)) ([`9a4288d`](https://github.com/docling-project/docling-serve/commit/9a4288de866336cee4a31a099f198507dd0e17ef))
+* Construct s3_presigned_config in RQ worker entrypoint ([#634](https://github.com/docling-project/docling-serve/issues/634)) ([`eb2f35c`](https://github.com/docling-project/docling-serve/commit/eb2f35c74ea9fbc03529493ae01079a237ed27e4))
+
+### Docling libraries included in this release:
+- docling-core 2.82.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 1.23.1
+- docling-mcp 2.1.0
+- docling-parse 6.2.0
+- docling-serve 1.24.0
+- docling-slim 2.102.2
+
 ## [v1.23.0](https://github.com/docling-project/docling-serve/releases/tag/v1.23.0) - 2026-06-12
 
 ### Feature
