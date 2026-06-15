@@ -11,8 +11,13 @@ from docling.datamodel.service.requests import (
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     S3SourceRequest,
+    TargetRequest,
 )
-from docling.datamodel.service.targets import PresignedUrlTarget, S3Target
+from docling.datamodel.service.targets import (
+    InBodyTarget,
+    PresignedUrlTarget,
+    S3Target,
+)
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
 
@@ -79,6 +84,26 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         max_sources_per_request=settings.max_sources_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
     )
+
+
+def resolve_default_target(policy: ServicePolicy) -> TargetRequest:
+    """Pick a target for requests that omit one.
+
+    Clients drop fields left at their model default, so an omitted ``target``
+    arrives carrying whatever default the request model happens to declare —
+    which may not be a target this deployment allows, falsely tripping the
+    policy checks with a 422. Resolve the omitted case to something the
+    deployment actually supports instead: prefer presigned whenever artifact
+    storage is enabled (keeps result payloads out of the response body), and
+    otherwise fall back to inbody. If inbody is not allowed either the request
+    is misconfigured; return it anyway and let validation surface a clear error.
+    """
+    if (
+        "presigned_url" in policy.allowed_target_types
+        and policy.artifact_storage_enabled
+    ):
+        return PresignedUrlTarget()
+    return InBodyTarget()
 
 
 def normalize_convert_options(
