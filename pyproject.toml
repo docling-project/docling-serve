@@ -33,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling-slim[standard,service-client,remote-serving]>=2.101.2,<3.0.0",
+    "docling-slim[standard,service-client,models-remote]>=2.101.2,<3.0.0",
     "docling-core>=2.79.0",
     "docling-jobkit[rq,ray,vlm]>=1.23.1,<2.0.0",
     "fastapi[standard]<0.137.0",
@@ -193,7 +193,7 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
-# docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
+docling-slim = { git = "https://github.com/docling-project/docling/", rev = "cau/expose-confidence-through-service" }
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
