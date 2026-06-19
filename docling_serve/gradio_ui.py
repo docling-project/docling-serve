@@ -590,7 +590,7 @@ with gr.Blocks(
         with gr.Column(scale=1, min_width=200):
             gr.Markdown(
                 f"# Docling Serve \n(docling version: "
-                f"{importlib.metadata.version('docling')})",
+                f"{docling_version})",
                 elem_id="title",
                 elem_classes=["title-text"],
             )
