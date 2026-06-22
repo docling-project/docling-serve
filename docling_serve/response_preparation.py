@@ -39,6 +39,7 @@ async def prepare_response(
             processing_time=task_result.processing_time,
             timings=task_result.result.timings,
             errors=task_result.result.errors,
+            confidence=task_result.result.confidence,
         )
     elif isinstance(task_result.result, ZipArchiveResult):
         response = Response(

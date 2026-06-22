@@ -13,7 +13,7 @@ On top of the source of file (see below), both endpoints support the same parame
 |------------|------|-------------|
 | `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `mets_gbs`, `json_docling`, `audio`, `vtt`, `latex`, `email`, `epub`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`. Optional, defaults to Markdown. |
-| `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Embedded. |
+| `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
 | `ocr_engine` | str | DEPRECATED: Use ocr_preset instead. The OCR engine to use. String.  |
@@ -82,6 +82,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `trust_remote_code` | bool | Whether to trust remote code for this model |
 | `stop_strings` | List[str] | Stop strings for generation |
 | `max_new_tokens` | int | Maximum number of new tokens to generate |
+| `temperature` | float | Sampling temperature for generation. 0.0 uses greedy decoding. |
 
 <h4>BaseVlmEngineOptions</h4>
 
