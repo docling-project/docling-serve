@@ -1,3 +1,22 @@
+## [v1.25.0](https://github.com/docling-project/docling-serve/releases/tag/v1.25.0) - 2026-06-22
+
+### Feature
+
+* Surface confidence on convert response ([#638](https://github.com/docling-project/docling-serve/issues/638)) ([`23ad1ff`](https://github.com/docling-project/docling-serve/commit/23ad1ffceed7ab140073e6d76617c967f379de90))
+
+### Fix
+
+* **ui:** Docling package not found blocking UI ([#640](https://github.com/docling-project/docling-serve/issues/640)) ([`7826d5e`](https://github.com/docling-project/docling-serve/commit/7826d5e76bd48e2d312b02170863b077170158a6))
+
+### Docling libraries included in this release:
+- docling-core 2.82.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 1.23.1
+- docling-mcp 2.1.0
+- docling-parse 6.2.0
+- docling-serve 1.25.0
+- docling-slim 2.104.0
+
 ## [v1.24.0](https://github.com/docling-project/docling-serve/releases/tag/v1.24.0) - 2026-06-15
 
 ### Feature
