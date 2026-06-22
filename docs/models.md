@@ -4,7 +4,29 @@ When enabling steps in Docling Serve that require extra models (such as picture 
 
 ## Model Storage Location
 
-Docling Serve loads models from the directory specified by the `DOCLING_SERVE_ARTIFACTS_PATH` environment variable. This path must be consistent across model download and runtime. When running with multiple workers or reload enabled, you must use the environment variable rather than the CLI argument for configuration [[source]](./configuration.md).
+Docling Serve loads models from the directory specified by the `DOCLING_SERVE_ARTIFACTS_PATH` environment variable. This path must be consistent across model download and runtime.
+
+### Configuration options
+
+**Environment variable (REST and gRPC)**
+
+Set `DOCLING_SERVE_ARTIFACTS_PATH` to configure the artifacts directory for both servers:
+
+```sh
+export DOCLING_SERVE_ARTIFACTS_PATH=/path/to/models
+```
+
+This is the recommended approach for production. When running the **REST** server with **multiple workers** or **reload** enabled, you must use this environment variable (not only a one-off CLI override) so every worker shares the same path [[source]](./configuration.md).
+
+**CLI flag (gRPC only)**
+
+When you start the gRPC server with `docling-serve-grpc`, you can set the same directory with `--artifacts-path`:
+
+```sh
+docling-serve-grpc run --artifacts-path /path/to/models --host 0.0.0.0 --port 50051
+```
+
+The flag applies to that gRPC process only. For REST with multiple workers or reload, keep using the environment variable.
 
 ## Approaches for Making Extra Models Available
 
@@ -158,6 +180,12 @@ spec:
 
 The value of `DOCLING_SERVE_ARTIFACTS_PATH` must match the mount path where models are stored.
 
+**gRPC with the same PVC mount:** you can also point the gRPC process at the mount with `--artifacts-path` (equivalent to setting `DOCLING_SERVE_ARTIFACTS_PATH` for that process):
+
+```sh
+docling-serve-grpc run --artifacts-path /modelcache --host 0.0.0.0 --port 50051
+```
+
 Now, when docling-serve is executing tasks, the underlying docling installation will load model weights from mounted volume.
 
 Manifest example: [docling-model-cache-deployment.yaml](./deploy-examples/docling-model-cache-deployment.yaml)
@@ -170,6 +198,7 @@ For local Docker or Podman execution, you can use any of the approaches above. M
 
 - If a required model is missing from the artifacts path, Docling Serve will raise a runtime error.
 - Always ensure the value of `DOCLING_SERVE_ARTIFACTS_PATH` matches the directory where models are stored and mounted.
+- For **REST** deployments with **multiple workers** or **reload** enabled, set the artifacts path with the environment variable. For **gRPC**, you can use either `DOCLING_SERVE_ARTIFACTS_PATH` or `docling-serve-grpc run --artifacts-path`.
 - For production and cluster environments, prefer persistent storage and pre-loading models via a dedicated job.
 
 For more details and YAML manifest examples, see the [deployment documentation](./deployment.md).

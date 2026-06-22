@@ -1,0 +1,1077 @@
+import asyncio
+import base64
+from contextlib import asynccontextmanager
+from dataclasses import replace
+
+import grpc
+import pytest
+import pytest_asyncio
+
+from docling.datamodel.base_models import ConversionStatus
+from docling_core.types.doc.document import DoclingDocument
+from docling_jobkit.datamodel.result import (
+    ChunkedDocumentResult,
+    ChunkedDocumentResultItem,
+    DoclingTaskResult,
+    ExportDocumentResponse,
+    ExportResult,
+)
+from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task_meta import TaskProcessingMeta, TaskStatus, TaskType
+from docling_jobkit.orchestrators.base_orchestrator import TaskNotFoundError
+
+from docling_serve.grpc.gen.ai.docling.serve.v1 import (
+    docling_serve_pb2,
+    docling_serve_pb2_grpc,
+    docling_serve_types_pb2,
+)
+from docling_serve.grpc.server import DoclingServeGrpcService, PublicErrorInterceptor
+from docling_serve.policy import build_service_policy
+from docling_serve.settings import docling_serve_settings
+
+pytestmark = pytest.mark.unit
+
+
+def _fake_docling_document() -> DoclingDocument:
+    return DoclingDocument(name="doc")
+
+
+class FakeOrchestrator:
+    def __init__(self) -> None:
+        self.tasks: dict[str, Task] = {}
+        self.results: dict[str, DoclingTaskResult] = {}
+        self.positions: dict[str, int] = {}
+        self.cleared_converters = False
+        self.cleared_results: list[float] = []
+        self.deleted_tasks: list[str] = []
+        self._stop = asyncio.Event()
+        self._counter = 0
+
+    async def warm_up_caches(self) -> None:
+        return
+
+    async def process_queue(self) -> None:
+        await self._stop.wait()
+
+    async def enqueue(
+        self, *, task_type, sources, convert_options, target, **kwargs
+    ) -> Task:
+        self._counter += 1
+        task_id = f"task-{self._counter}"
+        task = Task(
+            task_id=task_id,
+            task_type=task_type,
+            task_status=TaskStatus.SUCCESS,
+            sources=sources,
+            target=target,
+            convert_options=convert_options,
+        )
+        self.tasks[task_id] = task
+        self.positions[task_id] = 0
+        if task_type == TaskType.CONVERT:
+            export = ExportResult(
+                content=ExportDocumentResponse(
+                    filename="doc.md",
+                    md_content="hello",
+                    json_content=_fake_docling_document(),
+                ),
+                status=ConversionStatus.SUCCESS,
+            )
+            self.results[task_id] = DoclingTaskResult(
+                result=export,
+                processing_time=0.1,
+                num_converted=1,
+                num_succeeded=1,
+                num_failed=0,
+            )
+        return task
+
+    async def task_status(self, *, task_id: str, wait: float | None = None) -> Task:
+        try:
+            return self.tasks[task_id]
+        except KeyError as exc:
+            raise TaskNotFoundError(task_id) from exc
+
+    async def get_queue_position(self, *, task_id: str) -> int:
+        return self.positions.get(task_id, 0)
+
+    async def task_result(self, *, task_id: str):
+        return self.results.get(task_id)
+
+    async def clear_converters(self) -> None:
+        self.cleared_converters = True
+
+    async def clear_results(self, *, older_than: float) -> None:
+        self.cleared_results.append(older_than)
+
+    async def delete_task(self, *, task_id: str) -> None:
+        self.deleted_tasks.append(task_id)
+
+
+@pytest_asyncio.fixture
+async def grpc_server():
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    server = grpc.aio.server(options=options)
+    orchestrator = FakeOrchestrator()
+    service = DoclingServeGrpcService(orchestrator=orchestrator)
+    await service.start()
+    docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+
+    port = server.add_insecure_port("[::]:0")
+    await server.start()
+
+    yield {"address": f"localhost:{port}", "orchestrator": orchestrator}
+
+    await service.close()
+    docling_serve_settings.single_use_results = original_single_use
+    await server.stop(grace=1)
+
+
+@pytest_asyncio.fixture
+async def grpc_channel(grpc_server):
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    async with grpc.aio.insecure_channel(
+        grpc_server["address"], options=options
+    ) as channel:
+        yield channel
+
+
+@pytest_asyncio.fixture
+async def grpc_stub(grpc_channel):
+    return docling_serve_pb2_grpc.DoclingServeServiceStub(grpc_channel)
+
+
+@pytest.fixture
+def orchestrator(grpc_server):
+    return grpc_server["orchestrator"]
+
+
+@pytest.mark.asyncio
+async def test_health_returns_version(grpc_stub):
+    """Health RPC returns status and version."""
+    response = await grpc_stub.Health(docling_serve_pb2.HealthRequest())
+    assert response.status == "ok"
+    assert response.HasField("version")
+    # When installed via uv/pip, version is e.g. "1.12.0"; fallback is "0.0.0"
+    assert isinstance(response.version, str) and len(response.version) > 0
+
+
+@pytest.mark.asyncio
+async def test_convert_source_empty_sources_invalid_argument(grpc_stub):
+    """ConvertSource with empty sources list fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(sources=[])
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
+async def test_get_convert_result(grpc_stub, orchestrator):
+    task_id = "convert-1"
+    export = ExportResult(
+        content=ExportDocumentResponse(
+            filename="doc.md",
+            md_content="hello",
+            json_content=_fake_docling_document(),
+        ),
+        status=ConversionStatus.SUCCESS,
+    )
+    orchestrator.results[task_id] = DoclingTaskResult(
+        result=export,
+        processing_time=0.5,
+        num_converted=1,
+        num_succeeded=1,
+        num_failed=0,
+    )
+
+    response = await grpc_stub.GetConvertResult(
+        docling_serve_pb2.GetConvertResultRequest(
+            request=docling_serve_types_pb2.TaskResultRequest(task_id=task_id)
+        )
+    )
+
+    assert not response.response.document.HasField("exports")
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_get_convert_result_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.GetConvertResult(
+            docling_serve_pb2.GetConvertResultRequest(
+                request=docling_serve_types_pb2.TaskResultRequest(task_id="missing")
+            )
+        )
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_get_chunk_result(grpc_stub, orchestrator):
+    task_id = "chunk-1"
+    chunk = ChunkedDocumentResultItem(
+        filename="doc.md",
+        chunk_index=0,
+        text="chunk text",
+        doc_items=[],
+    )
+    doc_export = ExportResult(
+        content=ExportDocumentResponse(
+            filename="doc.md",
+            md_content="hello",
+            json_content=_fake_docling_document(),
+        ),
+        status=ConversionStatus.SUCCESS,
+    )
+    chunked = ChunkedDocumentResult(
+        chunks=[chunk],
+        documents=[doc_export],
+    )
+    orchestrator.results[task_id] = DoclingTaskResult(
+        result=chunked,
+        processing_time=0.2,
+        num_converted=1,
+        num_succeeded=1,
+        num_failed=0,
+    )
+
+    response = await grpc_stub.GetChunkResult(
+        docling_serve_pb2.GetChunkResultRequest(
+            request=docling_serve_types_pb2.TaskResultRequest(task_id=task_id)
+        )
+    )
+
+    assert len(response.response.chunks) == 1
+    assert response.response.chunks[0].text == "chunk text"
+    assert response.response.documents[0].content.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_get_chunk_result_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.GetChunkResult(
+            docling_serve_pb2.GetChunkResultRequest(
+                request=docling_serve_types_pb2.TaskResultRequest(task_id="missing")
+            )
+        )
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_poll_task_status(grpc_stub, orchestrator):
+    task_id = "status-1"
+    orchestrator.tasks[task_id] = Task(
+        task_id=task_id,
+        task_type=TaskType.CONVERT,
+        task_status=TaskStatus.STARTED,
+        sources=[],
+        processing_meta=TaskProcessingMeta(num_docs=1),
+    )
+
+    response = await grpc_stub.PollTaskStatus(
+        docling_serve_pb2.PollTaskStatusRequest(
+            request=docling_serve_types_pb2.TaskStatusPollRequest(task_id=task_id)
+        )
+    )
+
+    assert response.response.task_status == docling_serve_types_pb2.TASK_STATUS_STARTED
+    assert response.response.task_meta.num_docs == 1
+
+
+@pytest.mark.asyncio
+async def test_poll_task_status_not_found(grpc_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.PollTaskStatus(
+            docling_serve_pb2.PollTaskStatusRequest(
+                request=docling_serve_types_pb2.TaskStatusPollRequest(task_id="missing")
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_poll_task_status_empty_task_id_not_found(grpc_stub):
+    """PollTaskStatus with empty task_id returns NOT_FOUND."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.PollTaskStatus(
+            docling_serve_pb2.PollTaskStatusRequest(
+                request=docling_serve_types_pb2.TaskStatusPollRequest(task_id="")
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_clear_results_and_converters(grpc_stub, orchestrator):
+    response = await grpc_stub.ClearResults(
+        docling_serve_pb2.ClearResultsRequest(older_than=12)
+    )
+    assert response.response.status == "ok"
+    assert orchestrator.cleared_results == [12]
+
+    response = await grpc_stub.ClearConverters(
+        docling_serve_pb2.ClearConvertersRequest()
+    )
+    assert response.response.status == "ok"
+    assert orchestrator.cleared_converters is True
+
+
+@pytest.mark.asyncio
+async def test_watch_convert_source(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.WatchConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ]
+        )
+    )
+
+    async for response in grpc_stub.WatchConvertSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+@pytest.mark.asyncio
+async def test_watch_chunk_hierarchical_source(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+        request=docling_serve_types_pb2.HierarchicalChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            chunking_options=docling_serve_types_pb2.HierarchicalChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=False,
+            ),
+        )
+    )
+
+    async for response in grpc_stub.WatchChunkHierarchicalSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+@pytest.mark.asyncio
+async def test_watch_chunk_hybrid_source(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.WatchChunkHybridSourceRequest(
+        request=docling_serve_types_pb2.HybridChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            chunking_options=docling_serve_types_pb2.HybridChunkerOptions(
+                use_markdown_tables=True,
+                include_raw_text=False,
+                max_tokens=64,
+            ),
+        )
+    )
+
+    async for response in grpc_stub.WatchChunkHybridSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+@pytest.mark.asyncio
+async def test_convert_source_stream(grpc_stub):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceStreamRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ]
+        )
+    )
+
+    responses = [response async for response in grpc_stub.ConvertSourceStream(request)]
+    assert len(responses) == 1
+    assert responses[0].response.HasField("document")
+
+
+# --------------- API key enforcement for streaming RPCs ---------------
+
+
+@pytest_asyncio.fixture
+async def api_key_server():
+    """Server with API key required."""
+    original_key = docling_serve_settings.api_key
+    docling_serve_settings.api_key = "test-secret-key"
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
+
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    server = grpc.aio.server(options=options)
+    orchestrator = FakeOrchestrator()
+    service = DoclingServeGrpcService(orchestrator=orchestrator)
+    await service.start()
+    docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+
+    port = server.add_insecure_port("[::]:0")
+    await server.start()
+
+    yield f"localhost:{port}"
+
+    await service.close()
+    await server.stop(grace=1)
+    docling_serve_settings.api_key = original_key
+    docling_serve_settings.single_use_results = original_single_use
+
+
+@pytest_asyncio.fixture
+async def api_key_stub(api_key_server):
+    options = [
+        ("grpc.max_send_message_length", 50 * 1024 * 1024),
+        ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+    ]
+    async with grpc.aio.insecure_channel(api_key_server, options=options) as channel:
+        yield docling_serve_pb2_grpc.DoclingServeServiceStub(channel)
+
+
+def _dummy_convert_request():
+    return docling_serve_types_pb2.ConvertDocumentRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ]
+    )
+
+
+def _dummy_hierarchical_request():
+    return docling_serve_types_pb2.HierarchicalChunkRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ],
+    )
+
+
+def _dummy_hybrid_request():
+    return docling_serve_types_pb2.HybridChunkRequest(
+        sources=[
+            docling_serve_types_pb2.Source(
+                file=docling_serve_types_pb2.FileSource(
+                    base64_string=base64.b64encode(b"dummy").decode("utf-8"),
+                    filename="test.pdf",
+                )
+            )
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_key_health_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await api_key_stub.Health(docling_serve_pb2.HealthRequest())
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_health_accepted(api_key_stub):
+    response = await api_key_stub.Health(
+        docling_serve_pb2.HealthRequest(),
+        metadata=(("x-api-key", "test-secret-key"),),
+    )
+    assert response.status == "ok"
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_convert_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchConvertSource(
+            docling_serve_pb2.WatchConvertSourceRequest(
+                request=_dummy_convert_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_chunk_hierarchical_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchChunkHierarchicalSource(
+            docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+                request=_dummy_hierarchical_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_watch_chunk_hybrid_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.WatchChunkHybridSource(
+            docling_serve_pb2.WatchChunkHybridSourceRequest(
+                request=_dummy_hybrid_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_convert_source_stream_rejected(api_key_stub):
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in api_key_stub.ConvertSourceStream(
+            docling_serve_pb2.ConvertSourceStreamRequest(
+                request=_dummy_convert_request()
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.asyncio
+async def test_api_key_streaming_accepted_with_key(api_key_stub):
+    """Streaming RPCs succeed when the correct API key is provided."""
+    metadata = (("x-api-key", "test-secret-key"),)
+
+    async for response in api_key_stub.WatchConvertSource(
+        docling_serve_pb2.WatchConvertSourceRequest(request=_dummy_convert_request()),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+    async for response in api_key_stub.WatchChunkHierarchicalSource(
+        docling_serve_pb2.WatchChunkHierarchicalSourceRequest(
+            request=_dummy_hierarchical_request()
+        ),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+    async for response in api_key_stub.WatchChunkHybridSource(
+        docling_serve_pb2.WatchChunkHybridSourceRequest(
+            request=_dummy_hybrid_request()
+        ),
+        metadata=metadata,
+    ):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+# ---------------------------------------------------------------------------
+# Source validation and source-type coverage
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_convert_source_no_variant_invalid_argument(grpc_stub):
+    """A Source with no variant (file/http/s3) fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[docling_serve_types_pb2.Source()]
+                )
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "no variant set" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_convert_source_mixed_with_empty_variant_invalid_argument(grpc_stub):
+    """A mix of valid and empty-variant sources fails with INVALID_ARGUMENT."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(
+            docling_serve_pb2.ConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[
+                        docling_serve_types_pb2.Source(
+                            file=docling_serve_types_pb2.FileSource(
+                                base64_string=base64.b64encode(b"dummy").decode(),
+                                filename="a.pdf",
+                            )
+                        ),
+                        docling_serve_types_pb2.Source(),  # no variant
+                    ]
+                )
+            )
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "index 1" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_convert_source_http_source(grpc_stub):
+    """ConvertSource with HttpSource succeeds end-to-end through fake orchestrator."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/doc.pdf",
+                        headers={"Authorization": "Bearer token"},
+                    )
+                )
+            ]
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_convert_source_s3_source():
+    """ConvertSource with S3Source succeeds when policy allows S3 (KFP pairing rules)."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        s3_enabled=True,
+    )
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        key_prefix="docs/",
+                        verify_ssl=True,
+                    )
+                )
+            ],
+            # Policy requires S3 sources to pair with an S3 target.
+            target=docling_serve_types_pb2.Target(
+                s3=docling_serve_types_pb2.S3Target(
+                    endpoint="s3.example.com",
+                    access_key="AKIA...",
+                    secret_key="secret",
+                    bucket="out-bucket",
+                    key_prefix="results/",
+                    verify_ssl=True,
+                )
+            ),
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        response = await stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_convert_source_mixed_file_and_http(grpc_stub):
+    """ConvertSource with mixed file + http sources succeeds."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=base64.b64encode(b"dummy").decode(),
+                        filename="test.pdf",
+                    )
+                ),
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/other.pdf",
+                    )
+                ),
+            ]
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+
+
+@pytest.mark.asyncio
+async def test_watch_convert_source_no_variant_invalid_argument(grpc_stub):
+    """Streaming RPC also rejects sources with no variant."""
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        async for _ in grpc_stub.WatchConvertSource(
+            docling_serve_pb2.WatchConvertSourceRequest(
+                request=docling_serve_types_pb2.ConvertDocumentRequest(
+                    sources=[docling_serve_types_pb2.Source()]
+                )
+            )
+        ):
+            pass
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
+async def test_watch_convert_source_http_source(grpc_stub):
+    """WatchConvertSource with HttpSource succeeds end-to-end."""
+    request = docling_serve_pb2.WatchConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    http=docling_serve_types_pb2.HttpSource(
+                        url="https://example.com/doc.pdf",
+                    )
+                )
+            ]
+        )
+    )
+    async for response in grpc_stub.WatchConvertSource(request):
+        assert response.response.task_status in (
+            docling_serve_types_pb2.TASK_STATUS_SUCCESS,
+            docling_serve_types_pb2.TASK_STATUS_PENDING,
+            docling_serve_types_pb2.TASK_STATUS_STARTED,
+        )
+        break
+
+
+# ---------------------------------------------------------------------------
+# Review-driven regression tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_no_to_formats_yields_doc_without_exports(grpc_stub):
+    """A request with no to_formats returns doc but no exports (gRPC-native default)."""
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            # No options → no to_formats
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+    assert not response.response.document.HasField("exports")
+
+
+@pytest.mark.asyncio
+async def test_explicit_json_export_matches_model_dump_json(grpc_stub):
+    """When JSON export is requested, it equals the canonical Pydantic serializer output."""
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            options=docling_serve_types_pb2.ConvertDocumentOptions(
+                to_formats=[docling_serve_types_pb2.OUTPUT_FORMAT_JSON],
+            ),
+        )
+    )
+    response = await grpc_stub.ConvertSource(request)
+    assert response.response.document.HasField("exports")
+    json_export = response.response.document.exports.json
+    # The canonical serializer produces valid JSON with the schema_name field
+    import json
+
+    parsed = json.loads(json_export)
+    assert parsed["name"] == "doc"
+    assert "schema_name" in parsed
+
+
+# ---------------------------------------------------------------------------
+# Policy enforcement (mirrors REST ServicePolicy rules)
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def _server_with(policy=None, orchestrator=None, interceptors=None):
+    """Spin up a gRPC server with a custom policy/orchestrator/interceptors."""
+    original_single_use = docling_serve_settings.single_use_results
+    docling_serve_settings.single_use_results = False
+    server = grpc.aio.server(interceptors=list(interceptors or []))
+    orchestrator = orchestrator or FakeOrchestrator()
+    service = DoclingServeGrpcService(orchestrator=orchestrator, policy=policy)
+    await service.start()
+    docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+    port = server.add_insecure_port("[::]:0")
+    await server.start()
+    try:
+        async with grpc.aio.insecure_channel(f"localhost:{port}") as channel:
+            yield docling_serve_pb2_grpc.DoclingServeServiceStub(channel)
+    finally:
+        await service.close()
+        docling_serve_settings.single_use_results = original_single_use
+        await server.stop(grace=1)
+
+
+def _file_convert_request(num_sources=1, target=None):
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    return docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename=f"test_{i}.pdf",
+                    )
+                )
+                for i in range(num_sources)
+            ],
+            target=target,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_s3_source_rejected_by_default_policy(grpc_stub):
+    """S3 sources are rejected on a non-KFP engine (default policy)."""
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        verify_ssl=True,
+                    )
+                )
+            ]
+        )
+    )
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await grpc_stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.asyncio
+async def test_s3_source_requires_s3_target():
+    """Even with S3 enabled, an S3 source without an S3 target is rejected."""
+    policy = replace(build_service_policy(docling_serve_settings), s3_enabled=True)
+    request = docling_serve_pb2.ConvertSourceRequest(
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    s3=docling_serve_types_pb2.S3Source(
+                        endpoint="s3.example.com",
+                        access_key="AKIA...",
+                        secret_key="secret",
+                        bucket="my-bucket",
+                        verify_ssl=True,
+                    )
+                )
+            ]
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert 'target kind "s3"' in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_policy_rejects_disallowed_target_type():
+    """allowed_target_types restricts which targets a request may use."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        allowed_target_types=frozenset({"inbody"}),
+    )
+    request = _file_convert_request(
+        target=docling_serve_types_pb2.Target(zip=docling_serve_types_pb2.ZipTarget())
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "not allowed" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_policy_rejects_too_many_sources():
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        max_sources_per_request=1,
+    )
+    request = _file_convert_request(num_sources=2)
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "Too many sources" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_omitted_target_prefers_presigned_when_artifacts_enabled():
+    """Omitted gRPC targets follow REST's policy-aware default target."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        artifact_storage_enabled=True,
+    )
+    orchestrator = FakeOrchestrator()
+    async with _server_with(policy=policy, orchestrator=orchestrator) as stub:
+        response = await stub.ConvertSource(_file_convert_request())
+
+    assert response.response.document.doc.schema_name == "DoclingDocument"
+    [task] = orchestrator.tasks.values()
+    assert task.target.kind == "presigned_url"
+
+
+@pytest.mark.asyncio
+async def test_presigned_url_target_requires_artifact_storage():
+    """presigned_url target is rejected when artifact storage is disabled."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        artifact_storage_enabled=False,
+    )
+    request = _file_convert_request(
+        target=docling_serve_types_pb2.Target(
+            presigned_url=docling_serve_types_pb2.PreSignedUrlTarget()
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ConvertSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "artifact storage" in exc_info.value.details()
+
+
+@pytest.mark.asyncio
+async def test_presigned_url_target_rejected_for_chunk():
+    """presigned_url target is never allowed on chunk RPCs (REST parity)."""
+    policy = replace(
+        build_service_policy(docling_serve_settings),
+        artifact_storage_enabled=True,
+    )
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_pb2.ChunkHierarchicalSourceRequest(
+        request=docling_serve_types_pb2.HierarchicalChunkRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="test.pdf",
+                    )
+                )
+            ],
+            target=docling_serve_types_pb2.Target(
+                presigned_url=docling_serve_types_pb2.PreSignedUrlTarget()
+            ),
+        )
+    )
+    async with _server_with(policy=policy) as stub:
+        with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+            await stub.ChunkHierarchicalSource(request)
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert "not supported for chunk" in exc_info.value.details()
+
+
+# ---------------------------------------------------------------------------
+# Error detail sanitization (mirrors REST public_errors behavior)
+# ---------------------------------------------------------------------------
+
+
+class BrokenOrchestrator(FakeOrchestrator):
+    async def enqueue(self, **kwargs):
+        raise RuntimeError("sensitive internal detail: db password leaked")
+
+
+@pytest.mark.asyncio
+async def test_unhandled_error_sanitized_without_debug():
+    """Unexpected exceptions yield a generic INTERNAL message by default."""
+    original = docling_serve_settings.debug_error_details
+    docling_serve_settings.debug_error_details = False
+    try:
+        async with _server_with(
+            orchestrator=BrokenOrchestrator(),
+            interceptors=[PublicErrorInterceptor()],
+        ) as stub:
+            with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+                await stub.ConvertSource(_file_convert_request())
+        assert exc_info.value.code() == grpc.StatusCode.INTERNAL
+        assert exc_info.value.details() == "Internal server error."
+        assert "sensitive" not in exc_info.value.details()
+    finally:
+        docling_serve_settings.debug_error_details = original
+
+
+@pytest.mark.asyncio
+async def test_unhandled_error_detail_with_debug():
+    """With debug_error_details enabled, the exception text is exposed."""
+    original = docling_serve_settings.debug_error_details
+    docling_serve_settings.debug_error_details = True
+    try:
+        async with _server_with(
+            orchestrator=BrokenOrchestrator(),
+            interceptors=[PublicErrorInterceptor()],
+        ) as stub:
+            with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+                await stub.ConvertSource(_file_convert_request())
+        assert exc_info.value.code() == grpc.StatusCode.INTERNAL
+        assert "sensitive internal detail" in exc_info.value.details()
+    finally:
+        docling_serve_settings.debug_error_details = original
