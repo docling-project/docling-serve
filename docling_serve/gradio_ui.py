@@ -1,5 +1,5 @@
 import base64
-import importlib
+import importlib.metadata
 import itertools
 import json
 import logging
@@ -26,6 +26,14 @@ from docling_serve.helper_functions import _to_list_of_strings
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
 
 logger = logging.getLogger(__name__)
+
+try:
+    docling_version = importlib.metadata.version("docling")
+except (importlib.metadata.PackageNotFoundError, AttributeError):
+    try:
+        docling_version = importlib.metadata.version("docling-slim")
+    except (importlib.metadata.PackageNotFoundError, AttributeError):
+        docling_version = "unknown"
 
 ############################
 # Path of static artifacts #
@@ -589,8 +597,7 @@ with gr.Blocks(
         # Title
         with gr.Column(scale=1, min_width=200):
             gr.Markdown(
-                f"# Docling Serve \n(docling version: "
-                f"{importlib.metadata.version('docling')})",
+                f"# Docling Serve \n(docling version: {docling_version})",
                 elem_id="title",
                 elem_classes=["title-text"],
             )
