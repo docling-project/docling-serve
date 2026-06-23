@@ -98,6 +98,23 @@ _LIFECYCLE_COUNTERS = [
     ("ray_tenant_tasks_failed", "tasks_failed_total", "Tasks failed"),
 ]
 
+# Per-tenant cumulative document counters, read from the tenant:{id}:stats hash
+# (TenantStats). Tuple is (prometheus_name, stats_attr, help). These are
+# best-effort: stats is written as a post-finalize follow-up, and only
+# documents_succeeded / documents_failed reflect the real per-document counts
+# from the conversion result. total_documents (and failure-path failed counts)
+# fall back to the task's source-spec count, which is not the document count for
+# expanding sources such as S3 buckets. Exposed as-is for now.
+_STATS_COUNTERS = [
+    ("ray_tenant_documents", "total_documents", "Documents processed (terminal)"),
+    (
+        "ray_tenant_documents_succeeded",
+        "successful_documents",
+        "Documents successfully converted (terminal)",
+    ),
+    ("ray_tenant_documents_failed", "failed_documents", "Documents failed (terminal)"),
+]
+
 
 class RayCollector(Collector):
     """Ray orchestrator metrics collector for Prometheus.
@@ -131,6 +148,10 @@ class RayCollector(Collector):
         e.g. currently-running =
         tasks_started_total - tasks_succeeded_total - tasks_failed_total.
 
+        Plus cumulative per-tenant document counters from the stats hash
+        (documents processed / succeeded / failed); best-effort, see
+        _STATS_COUNTERS.
+
         Plus cheap O(1) snapshot gauges for current depth:
         - Per-tenant pending tasks (queue length)
         - Per-tenant active tasks (dispatched-or-running, active-set size)
@@ -145,6 +166,12 @@ class RayCollector(Collector):
             counter_families = {
                 field: CounterMetricFamily(name, doc, labels=["tenant_id"])
                 for name, field, doc in _LIFECYCLE_COUNTERS
+            }
+
+            # --- Cumulative document counters (per tenant, from stats) ---
+            stats_counter_families = {
+                attr: CounterMetricFamily(name, doc, labels=["tenant_id"])
+                for name, attr, doc in _STATS_COUNTERS
             }
 
             # --- Snapshot gauges (current depth) ---
@@ -229,6 +256,15 @@ class RayCollector(Collector):
                         for field, family in counter_families.items():
                             family.add_metric([tenant_id], getattr(counters, field))
 
+                        # Cumulative document counters (best-effort, from stats)
+                        stats = run_async_with_new_connection(
+                            self.redis_manager,
+                            self.redis_manager.get_tenant_stats,
+                            tenant_id,
+                        )
+                        for attr, family in stats_counter_families.items():
+                            family.add_metric([tenant_id], getattr(stats, attr))
+
                         # Queue depth (pending tasks) - O(1) LLEN
                         queue_size = run_async_with_new_connection(
                             self.redis_manager,
@@ -297,6 +333,7 @@ class RayCollector(Collector):
 
             # Yield all metrics
             yield from counter_families.values()
+            yield from stats_counter_families.values()
             yield tenant_tasks_pending
             yield tenant_tasks_active
             yield tenant_documents_active
