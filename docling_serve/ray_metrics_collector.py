@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from prometheus_client import Summary
-from prometheus_client.core import GaugeMetricFamily
+from prometheus_client.core import CounterMetricFamily, GaugeMetricFamily
 from prometheus_client.registry import Collector
 
 logger = logging.getLogger(__name__)
@@ -85,45 +85,18 @@ def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> 
         raise
 
 
-def get_tenant_activity_breakdown(redis_manager, tenant_id: str) -> tuple[int, int]:
-    """Classify active tenant tasks into dispatched vs running.
-
-    The current RedisStateManager no longer exposes direct per-tenant dispatched
-    and running counters, so derive them from active task metadata.
-    """
-    active_task_ids = run_async_with_new_connection(
-        redis_manager,
-        redis_manager.get_tenant_active_task_ids,
-        tenant_id,
-    )
-    dispatched_count = 0
-    running_count = 0
-
-    for task_id in active_task_ids:
-        metadata = run_async_with_new_connection(
-            redis_manager,
-            redis_manager.get_task_metadata,
-            task_id,
-        )
-        status = str(metadata.get("status", "")).upper()
-        if status == "STARTED":
-            running_count += 1
-            continue
-        if status == "PENDING":
-            dispatched_count += 1
-            continue
-
-        dispatch_state = run_async_with_new_connection(
-            redis_manager,
-            redis_manager.get_task_dispatch_hash,
-            task_id,
-        )
-        if dispatch_state.get("processing_started_at"):
-            running_count += 1
-        else:
-            dispatched_count += 1
-
-    return dispatched_count, running_count
+# Per-tenant monotonic lifecycle counters exposed to Prometheus. The name is the
+# Redis hash field; the Prometheus metric name is derived by stripping the
+# trailing "_total" (CounterMetricFamily re-appends it) and prefixing "ray_".
+# These are cumulative and read straight from Redis, so transitions that happen
+# between two scrapes are never lost.
+_LIFECYCLE_COUNTERS = [
+    ("ray_tenant_tasks_enqueued", "tasks_enqueued_total", "Tasks enqueued"),
+    ("ray_tenant_tasks_dispatched", "tasks_dispatched_total", "Tasks dispatched"),
+    ("ray_tenant_tasks_started", "tasks_started_total", "Tasks started"),
+    ("ray_tenant_tasks_succeeded", "tasks_succeeded_total", "Tasks succeeded"),
+    ("ray_tenant_tasks_failed", "tasks_failed_total", "Tasks failed"),
+]
 
 
 class RayCollector(Collector):
@@ -150,33 +123,39 @@ class RayCollector(Collector):
     def collect(self):
         """Collect Ray metrics from Redis.
 
-        Yields Prometheus metric families for:
-        - Per-tenant pending tasks
-        - Per-tenant running tasks
+        Yields Prometheus metric families:
+
+        Monotonic per-tenant lifecycle counters (cumulative, loss-proof across
+        scrapes) for the queued -> dispatched -> started -> terminal transitions.
+        Instantaneous occupancy is derived in Grafana from counter differences,
+        e.g. currently-running =
+        tasks_started_total - tasks_succeeded_total - tasks_failed_total.
+
+        Plus cheap O(1) snapshot gauges for current depth:
+        - Per-tenant pending tasks (queue length)
+        - Per-tenant active tasks (dispatched-or-running, active-set size)
         - Per-tenant active documents
         - Per-tenant limits (concurrent tasks, queued tasks, documents)
-        - Total pending tasks
-        - Total running tasks
-        - Total active documents
-        - Number of tenants with tasks
+        - System-wide totals and number of tenants with tasks
         """
         logger.debug("Collecting Ray metrics...")
 
         with self.summary.time():
-            # Define metric families
+            # --- Monotonic lifecycle counters (per tenant) ---
+            counter_families = {
+                field: CounterMetricFamily(name, doc, labels=["tenant_id"])
+                for name, field, doc in _LIFECYCLE_COUNTERS
+            }
+
+            # --- Snapshot gauges (current depth) ---
             tenant_tasks_pending = GaugeMetricFamily(
                 "ray_tenant_tasks_pending",
                 "Number of tasks waiting in tenant's queue (not yet dispatched to actors)",
                 labels=["tenant_id"],
             )
-            tenant_tasks_dispatched = GaugeMetricFamily(
-                "ray_tenant_tasks_dispatched",
-                "Number of tasks dispatched to actors but not yet started processing (status=PENDING)",
-                labels=["tenant_id"],
-            )
-            tenant_tasks_running = GaugeMetricFamily(
-                "ray_tenant_tasks_running",
-                "Number of tasks actively being processed (status=STARTED)",
+            tenant_tasks_active = GaugeMetricFamily(
+                "ray_tenant_tasks_active",
+                "Number of tasks currently in the active set (dispatched or running)",
                 labels=["tenant_id"],
             )
             tenant_documents_active = GaugeMetricFamily(
@@ -200,18 +179,14 @@ class RayCollector(Collector):
                 labels=["tenant_id"],
             )
 
-            # Total metrics (no labels)
+            # Total snapshot gauges (no labels)
             total_tasks_pending = GaugeMetricFamily(
                 "ray_total_tasks_pending",
                 "Total number of pending tasks across all tenants (in queue, not yet dispatched to actors)",
             )
-            total_tasks_dispatched = GaugeMetricFamily(
-                "ray_total_tasks_dispatched",
-                "Total number of dispatched tasks across all tenants (sent to actors but not yet started, status=PENDING)",
-            )
-            total_tasks_running = GaugeMetricFamily(
-                "ray_total_tasks_running",
-                "Total number of running tasks across all tenants (actively being processed, status=STARTED)",
+            total_tasks_active = GaugeMetricFamily(
+                "ray_total_tasks_active",
+                "Total number of active tasks across all tenants (dispatched or running)",
             )
             total_documents_active = GaugeMetricFamily(
                 "ray_total_documents_active",
@@ -223,22 +198,38 @@ class RayCollector(Collector):
             )
 
             try:
-                # Get all users with tasks (queued OR active) using a fresh connection
-                tenants = run_async_with_new_connection(
+                # Union of tenants with live tasks and tenants with cumulative
+                # counters. Idle-but-historically-active tenants must keep being
+                # scraped, otherwise their counters would vanish and reappear,
+                # looking like a reset to rate()/increase().
+                tenants_with_any = run_async_with_new_connection(
                     self.redis_manager,
                     self.redis_manager.get_all_tenants_with_any_tasks,
                 )
+                tenants_with_counters = run_async_with_new_connection(
+                    self.redis_manager,
+                    self.redis_manager.get_all_tenants_with_task_counters,
+                )
+                tenants = sorted(set(tenants_with_any) | set(tenants_with_counters))
 
-                # Accumulators for totals
+                # Accumulators for snapshot totals
                 total_pending = 0
-                total_dispatched = 0
-                total_running = 0
+                total_active = 0
                 total_docs = 0
 
-                # Collect per-user metrics
+                # Collect per-tenant metrics
                 for tenant_id in tenants:
                     try:
-                        # Get queue size (pending tasks)
+                        # Monotonic counters
+                        counters = run_async_with_new_connection(
+                            self.redis_manager,
+                            self.redis_manager.get_tenant_task_counters,
+                            tenant_id,
+                        )
+                        for field, family in counter_families.items():
+                            family.add_metric([tenant_id], getattr(counters, field))
+
+                        # Queue depth (pending tasks) - O(1) LLEN
                         queue_size = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_tenant_queue_size,
@@ -247,38 +238,32 @@ class RayCollector(Collector):
                         tenant_tasks_pending.add_metric([tenant_id], queue_size)
                         total_pending += queue_size
 
-                        # Get dispatched task count (sent to actors but not yet running)
-                        dispatched_count, running_count = get_tenant_activity_breakdown(
-                            self.redis_manager, tenant_id
+                        # Active tasks (dispatched or running) - O(1) SCARD
+                        active_count = run_async_with_new_connection(
+                            self.redis_manager,
+                            self.redis_manager.get_tenant_active_task_count,
+                            tenant_id,
                         )
-                        tenant_tasks_dispatched.add_metric(
-                            [tenant_id], dispatched_count
-                        )
-                        total_dispatched += dispatched_count
+                        tenant_tasks_active.add_metric([tenant_id], active_count)
+                        total_active += active_count
 
-                        # Get running task count (actively being processed)
-                        tenant_tasks_running.add_metric([tenant_id], running_count)
-                        total_running += running_count
-
-                        # Get user limits (includes active documents)
+                        # Tenant limits (includes active documents)
                         limits = run_async_with_new_connection(
                             self.redis_manager,
                             self.redis_manager.get_tenant_limits,
                             tenant_id,
                         )
 
-                        # Active documents
                         tenant_documents_active.add_metric(
                             [tenant_id], limits.active_documents
                         )
                         total_docs += limits.active_documents
 
-                        # Tenant limits
                         tenant_limit_max_concurrent.add_metric(
                             [tenant_id], limits.max_concurrent_tasks
                         )
 
-                        # Handle None values for optional limits (use 0 to indicate unlimited)
+                        # Handle None values for optional limits (0 = unlimited)
                         max_queued = (
                             limits.max_queued_tasks
                             if limits.max_queued_tasks is not None
@@ -295,33 +280,31 @@ class RayCollector(Collector):
 
                     except Exception as e:
                         logger.error(
-                            f"Error collecting metrics for user {tenant_id}: {e}",
+                            f"Error collecting metrics for tenant {tenant_id}: {e}",
                             exc_info=True,
                         )
                         continue
 
-                # Set total metrics
+                # Set total snapshot gauges
                 total_tasks_pending.add_metric([], total_pending)
-                total_tasks_dispatched.add_metric([], total_dispatched)
-                total_tasks_running.add_metric([], total_running)
+                total_tasks_active.add_metric([], total_active)
                 total_documents_active.add_metric([], total_docs)
-                tenants_with_tasks.add_metric([], len(tenants))
+                tenants_with_tasks.add_metric([], len(tenants_with_any))
 
             except Exception as e:
                 logger.error(f"Error collecting Fair Ray metrics: {e}", exc_info=True)
                 # Return empty metrics on error
 
             # Yield all metrics
+            yield from counter_families.values()
             yield tenant_tasks_pending
-            yield tenant_tasks_dispatched
-            yield tenant_tasks_running
+            yield tenant_tasks_active
             yield tenant_documents_active
             yield tenant_limit_max_concurrent
             yield tenant_limit_max_queued
             yield tenant_limit_max_documents
             yield total_tasks_pending
-            yield total_tasks_dispatched
-            yield total_tasks_running
+            yield total_tasks_active
             yield total_documents_active
             yield tenants_with_tasks
 
