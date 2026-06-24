@@ -3,6 +3,7 @@
 import asyncio
 import concurrent.futures
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from prometheus_client import Summary
@@ -11,35 +12,112 @@ from prometheus_client.registry import Collector
 
 logger = logging.getLogger(__name__)
 
-# Thread pool for running async operations from sync context
-# This avoids event loop conflicts by isolating async operations in a separate thread
+# Thread pool for running async operations from sync context. The Prometheus
+# Collector.collect() API is synchronous, but the Redis client is async; we run
+# the whole collection as a single coroutine in a dedicated thread/event loop to
+# avoid "Future attached to a different loop" errors.
 _executor = concurrent.futures.ThreadPoolExecutor(
     max_workers=1, thread_name_prefix="ray_metrics"
 )
 
+# Number of Redis reads issued per tenant in _collect_from_manager (counters,
+# stats, queue size, active count, limits). Used to size concurrency so the
+# in-flight reads stay within the connection pool.
+_READS_PER_TENANT = 5
 
-def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> Any:
-    """Run async coroutine with a fresh Redis connection in a separate thread.
+# Hard ceiling for the timeout of a single scrape's Redis work.
+_COLLECT_TIMEOUT_S = 30
 
-    This creates a new RedisStateManager connection in the thread's event loop,
-    avoiding "Future attached to a different loop" errors that occur when using
-    a connection created in a different event loop.
 
-    Args:
-        redis_manager: Original RedisStateManager (used for config only)
-        coro_func: Async function to call (e.g., redis_manager.get_all_tenants_with_tasks)
-        *args: Arguments to pass to coro_func
-        **kwargs: Keyword arguments to pass to coro_func
+@dataclass
+class TenantSnapshot:
+    """All per-tenant values read from Redis in a single scrape."""
 
-    Returns:
-        Result of the coroutine
+    tenant_id: str
+    counters: Any  # TenantTaskCounters
+    stats: Any  # TenantStats
+    queue_size: int
+    active_count: int
+    limits: Any  # TenantLimits
+
+
+@dataclass
+class CollectedData:
+    """Everything one scrape needs, gathered over a single Redis connection."""
+
+    tenants: list  # list[TenantSnapshot]
+    num_tenants_with_any: int
+
+
+async def _collect_from_manager(redis_manager) -> CollectedData:
+    """Gather every metric value over a single (already connected) manager.
+
+    The two tenant-list reads run concurrently; then each tenant's reads run
+    concurrently, with a semaphore bounding the total in-flight reads to stay
+    within the connection pool. This replaces the previous design that opened
+    and tore down a fresh connection for every single value.
+    """
+    tenants_with_any, tenants_with_counters = await asyncio.gather(
+        redis_manager.get_all_tenants_with_any_tasks(),
+        redis_manager.get_all_tenants_with_task_counters(),
+    )
+    # Union: idle-but-historically-active tenants must keep being scraped,
+    # otherwise their counters would vanish and reappear, looking like a reset
+    # to rate()/increase().
+    tenants = sorted(set(tenants_with_any) | set(tenants_with_counters))
+
+    max_conn = getattr(redis_manager, "max_connections", None) or 50
+    # Leave a little headroom under the pool size; never below 1.
+    tenant_concurrency = max(1, min(16, (max_conn - 1) // _READS_PER_TENANT))
+    semaphore = asyncio.Semaphore(tenant_concurrency)
+
+    async def _one(tenant_id: str) -> TenantSnapshot:
+        async with semaphore:
+            counters, stats, queue_size, active_count, limits = await asyncio.gather(
+                redis_manager.get_tenant_task_counters(tenant_id),
+                redis_manager.get_tenant_stats(tenant_id),
+                redis_manager.get_tenant_queue_size(tenant_id),
+                redis_manager.get_tenant_active_task_count(tenant_id),
+                redis_manager.get_tenant_limits(tenant_id),
+            )
+            return TenantSnapshot(
+                tenant_id=tenant_id,
+                counters=counters,
+                stats=stats,
+                queue_size=queue_size,
+                active_count=active_count,
+                limits=limits,
+            )
+
+    results = await asyncio.gather(*(_one(t) for t in tenants), return_exceptions=True)
+
+    snapshots: list = []
+    for tenant_id, result in zip(tenants, results):
+        if isinstance(result, Exception):
+            logger.error(
+                "Error collecting metrics for tenant %s: %s",
+                tenant_id,
+                result,
+                exc_info=result,
+            )
+            continue
+        snapshots.append(result)
+
+    return CollectedData(tenants=snapshots, num_tenants_with_any=len(tenants_with_any))
+
+
+def collect_metrics_data(redis_manager) -> CollectedData:
+    """Run one full collection in a dedicated thread over a single connection.
+
+    Creates a fresh RedisStateManager in the thread's event loop (using the
+    original manager only for config), connects once, gathers all values, and
+    disconnects once.
 
     Raises:
-        TimeoutError: If coroutine takes longer than 30 seconds
+        TimeoutError: if the collection takes longer than _COLLECT_TIMEOUT_S.
     """
 
-    def run_in_thread():
-        """Run coroutine in a new event loop with fresh Redis connection."""
+    def run_in_thread() -> CollectedData:
         from docling_jobkit.orchestrators.ray.redis_helper import (
             RedisStateManager,
         )
@@ -47,7 +125,6 @@ def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            # Create a new RedisStateManager in this thread's event loop
             thread_redis_manager = RedisStateManager(
                 redis_url=redis_manager.redis_url,
                 results_ttl=redis_manager.results_ttl,
@@ -62,26 +139,22 @@ def run_async_with_new_connection(redis_manager, coro_func, *args, **kwargs) -> 
                 log_level=redis_manager.log_level,
             )
 
-            async def run_with_connection():
-                """Connect, run the coroutine, and disconnect."""
+            async def runner() -> CollectedData:
                 await thread_redis_manager.connect()
                 try:
-                    # Get the method from the new manager and call it
-                    method = getattr(thread_redis_manager, coro_func.__name__)
-                    return await method(*args, **kwargs)
+                    return await _collect_from_manager(thread_redis_manager)
                 finally:
                     await thread_redis_manager.disconnect()
 
-            return loop.run_until_complete(run_with_connection())
+            return loop.run_until_complete(runner())
         finally:
             loop.close()
 
-    # Submit to thread pool and wait for result with timeout
     future = _executor.submit(run_in_thread)
     try:
-        return future.result(timeout=30)  # 30 second timeout
+        return future.result(timeout=_COLLECT_TIMEOUT_S)
     except concurrent.futures.TimeoutError:
-        logger.error("Timeout waiting for async operation in metrics collector")
+        logger.error("Timeout collecting Ray metrics from Redis")
         raise
 
 
@@ -158,6 +231,9 @@ class RayCollector(Collector):
         - Per-tenant active documents
         - Per-tenant limits (concurrent tasks, queued tasks, documents)
         - System-wide totals and number of tenants with tasks
+
+        All values are read over a single Redis connection per scrape (see
+        collect_metrics_data), so scrape cost stays low even with many tenants.
         """
         logger.debug("Collecting Ray metrics...")
 
@@ -225,107 +301,60 @@ class RayCollector(Collector):
             )
 
             try:
-                # Union of tenants with live tasks and tenants with cumulative
-                # counters. Idle-but-historically-active tenants must keep being
-                # scraped, otherwise their counters would vanish and reappear,
-                # looking like a reset to rate()/increase().
-                tenants_with_any = run_async_with_new_connection(
-                    self.redis_manager,
-                    self.redis_manager.get_all_tenants_with_any_tasks,
-                )
-                tenants_with_counters = run_async_with_new_connection(
-                    self.redis_manager,
-                    self.redis_manager.get_all_tenants_with_task_counters,
-                )
-                tenants = sorted(set(tenants_with_any) | set(tenants_with_counters))
+                data = collect_metrics_data(self.redis_manager)
 
-                # Accumulators for snapshot totals
                 total_pending = 0
                 total_active = 0
                 total_docs = 0
 
-                # Collect per-tenant metrics
-                for tenant_id in tenants:
-                    try:
-                        # Monotonic counters
-                        counters = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_task_counters,
-                            tenant_id,
-                        )
-                        for field, family in counter_families.items():
-                            family.add_metric([tenant_id], getattr(counters, field))
+                for snap in data.tenants:
+                    tenant_id = snap.tenant_id
 
-                        # Cumulative document counters (best-effort, from stats)
-                        stats = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_stats,
-                            tenant_id,
-                        )
-                        for attr, family in stats_counter_families.items():
-                            family.add_metric([tenant_id], getattr(stats, attr))
+                    # Monotonic lifecycle counters
+                    for field, family in counter_families.items():
+                        family.add_metric([tenant_id], getattr(snap.counters, field))
 
-                        # Queue depth (pending tasks) - O(1) LLEN
-                        queue_size = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_queue_size,
-                            tenant_id,
-                        )
-                        tenant_tasks_pending.add_metric([tenant_id], queue_size)
-                        total_pending += queue_size
+                    # Cumulative document counters (best-effort, from stats)
+                    for attr, family in stats_counter_families.items():
+                        family.add_metric([tenant_id], getattr(snap.stats, attr))
 
-                        # Active tasks (dispatched or running) - O(1) SCARD
-                        active_count = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_active_task_count,
-                            tenant_id,
-                        )
-                        tenant_tasks_active.add_metric([tenant_id], active_count)
-                        total_active += active_count
+                    # Queue depth (pending tasks)
+                    tenant_tasks_pending.add_metric([tenant_id], snap.queue_size)
+                    total_pending += snap.queue_size
 
-                        # Tenant limits (includes active documents)
-                        limits = run_async_with_new_connection(
-                            self.redis_manager,
-                            self.redis_manager.get_tenant_limits,
-                            tenant_id,
-                        )
+                    # Active tasks (dispatched or running)
+                    tenant_tasks_active.add_metric([tenant_id], snap.active_count)
+                    total_active += snap.active_count
 
-                        tenant_documents_active.add_metric(
-                            [tenant_id], limits.active_documents
-                        )
-                        total_docs += limits.active_documents
+                    # Active documents (from limits)
+                    limits = snap.limits
+                    tenant_documents_active.add_metric(
+                        [tenant_id], limits.active_documents
+                    )
+                    total_docs += limits.active_documents
 
-                        tenant_limit_max_concurrent.add_metric(
-                            [tenant_id], limits.max_concurrent_tasks
-                        )
+                    tenant_limit_max_concurrent.add_metric(
+                        [tenant_id], limits.max_concurrent_tasks
+                    )
 
-                        # Handle None values for optional limits (0 = unlimited)
-                        max_queued = (
-                            limits.max_queued_tasks
-                            if limits.max_queued_tasks is not None
-                            else 0
-                        )
-                        tenant_limit_max_queued.add_metric([tenant_id], max_queued)
+                    # Handle None values for optional limits (0 = unlimited)
+                    max_queued = (
+                        limits.max_queued_tasks
+                        if limits.max_queued_tasks is not None
+                        else 0
+                    )
+                    tenant_limit_max_queued.add_metric([tenant_id], max_queued)
 
-                        max_docs = (
-                            limits.max_documents
-                            if limits.max_documents is not None
-                            else 0
-                        )
-                        tenant_limit_max_documents.add_metric([tenant_id], max_docs)
-
-                    except Exception as e:
-                        logger.error(
-                            f"Error collecting metrics for tenant {tenant_id}: {e}",
-                            exc_info=True,
-                        )
-                        continue
+                    max_docs = (
+                        limits.max_documents if limits.max_documents is not None else 0
+                    )
+                    tenant_limit_max_documents.add_metric([tenant_id], max_docs)
 
                 # Set total snapshot gauges
                 total_tasks_pending.add_metric([], total_pending)
                 total_tasks_active.add_metric([], total_active)
                 total_documents_active.add_metric([], total_docs)
-                tenants_with_tasks.add_metric([], len(tenants_with_any))
+                tenants_with_tasks.add_metric([], data.num_tenants_with_any)
 
             except Exception as e:
                 logger.error(f"Error collecting Fair Ray metrics: {e}", exc_info=True)
