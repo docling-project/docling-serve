@@ -35,7 +35,8 @@ requires-python = ">=3.10"
 dependencies = [
     "docling-slim[standard,service-client,remote-serving]>=2.101.2,<3.0.0",
     "docling-core>=2.79.0",
-    "docling-jobkit[rq,ray,vlm]>=1.23.1,<2.0.0",
+    #"docling-jobkit[rq,ray,vlm]>=1.23.1,<2.0.0",
+    "docling-jobkit[rq,ray]",
     "fastapi[standard]<0.137.0",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -194,8 +195,9 @@ triton-rocm = [
 ]
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "e77755dd0ae46ba3050083820efd63d969e1ea6c" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
+
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
