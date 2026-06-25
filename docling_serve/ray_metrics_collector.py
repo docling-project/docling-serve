@@ -1,5 +1,44 @@
 """Prometheus metrics collector for Ray orchestrator."""
 
+# Example Grafana / PromQL queries for the metrics exposed here. Replace `acme`
+# with a tenant_id, or drop the {tenant_id=...} selector and wrap in sum() to
+# aggregate across all tenants. Use rate()/increase() only on the *_total
+# counters, never on the *_pending / *_active gauges.
+#
+# --- Documents for a tenant ---
+#   # lifetime documents processed / succeeded / failed (cumulative counters)
+#   ray_tenant_documents_total{tenant_id="acme"}
+#   ray_tenant_documents_succeeded_total{tenant_id="acme"}
+#   ray_tenant_documents_failed_total{tenant_id="acme"}
+#   # documents processed in the last hour
+#   increase(ray_tenant_documents_total{tenant_id="acme"}[1h])
+#
+# --- Tasks for a tenant ---
+#   # current snapshot (gauges)
+#   ray_tenant_tasks_pending{tenant_id="acme"}   # waiting in queue
+#   ray_tenant_tasks_active{tenant_id="acme"}     # dispatched or running
+#   # currently running, derived from loss-proof counters
+#   ray_tenant_tasks_started_total{tenant_id="acme"}
+#     - ray_tenant_tasks_succeeded_total{tenant_id="acme"}
+#     - ray_tenant_tasks_failed_total{tenant_id="acme"}
+#   # lifetime totals
+#   ray_tenant_tasks_enqueued_total{tenant_id="acme"}
+#   ray_tenant_tasks_succeeded_total{tenant_id="acme"}
+#   ray_tenant_tasks_failed_total{tenant_id="acme"}
+#
+# --- Processing rate (derived) ---
+#   # documents/sec (multiply by 60 for /min); window must span >= 2 scrapes
+#   rate(ray_tenant_documents_total{tenant_id="acme"}[5m])
+#   # task completion rate (succeeded + failed), per second
+#   rate(ray_tenant_tasks_succeeded_total{tenant_id="acme"}[5m])
+#     + rate(ray_tenant_tasks_failed_total{tenant_id="acme"}[5m])
+#   # throughput across all tenants
+#   sum(rate(ray_tenant_documents_succeeded_total[5m]))
+#   # failure ratio (0-1)
+#   rate(ray_tenant_tasks_failed_total{tenant_id="acme"}[5m])
+#     / (rate(ray_tenant_tasks_succeeded_total{tenant_id="acme"}[5m])
+#        + rate(ray_tenant_tasks_failed_total{tenant_id="acme"}[5m]))
+
 import asyncio
 import concurrent.futures
 import logging
