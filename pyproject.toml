@@ -195,7 +195,7 @@ triton-rocm = [
 ]
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "0a2f4a4e3e9bbfa6dda97fa7e4028f46ff5c1c69" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "6f3bb9d1cafc7bb010685802193cab54914481bb" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 
