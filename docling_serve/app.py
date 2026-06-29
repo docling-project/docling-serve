@@ -120,6 +120,7 @@ from docling_serve.response_preparation import prepare_response
 from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
+from docling_serve.ws_convert import register_ws_convert
 
 # Pre-import OCR backends that use cysignals (signal handlers must be registered
 # in the main thread; worker threads would raise "signal only works in main thread").
@@ -736,6 +737,16 @@ def create_app():  # noqa: C901
             logo_url = "/static/logo.svg"
         response = RedirectResponse(url=logo_url)
         return response
+
+    @app.get("/v1/queue", tags=["health"])
+    async def queue_status() -> dict:
+    """Queue length"""
+        orchestrator = get_async_orchestrator()
+        try:
+            queue_length = await orchestrator.queue_size()
+        except (AttributeError, NotImplementedError):
+            queue_length = 0
+        return {"queue_length": queue_length}
 
     @app.get("/health", tags=["health"])
     def health() -> HealthCheckResponse:
@@ -1655,5 +1666,13 @@ def create_app():  # noqa: C901
             },
             "top_types": [{"type": k, "count": v} for k, v in counter.most_common(20)],
         }
+
+    # Register WebSocket convert endpoint
+    register_ws_convert(
+        app=app,
+        enque_source=_enque_source,
+        prepare_convert_request=_prepare_convert_request,
+        prepare_convert_options=_prepare_convert_options,
+    )
 
     return app
