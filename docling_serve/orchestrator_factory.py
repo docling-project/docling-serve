@@ -154,23 +154,6 @@ def get_async_orchestrator() -> BaseOrchestrator:
             )
         return orchestrator
 
-    elif docling_serve_settings.eng_kind == AsyncEngine.KFP:
-        from docling_jobkit.orchestrators.kfp.orchestrator import (
-            KfpOrchestrator,
-            KfpOrchestratorConfig,
-        )
-
-        kfp_config = KfpOrchestratorConfig(
-            endpoint=docling_serve_settings.eng_kfp_endpoint,
-            token=docling_serve_settings.eng_kfp_token,
-            ca_cert_path=docling_serve_settings.eng_kfp_ca_cert_path,
-            self_callback_endpoint=docling_serve_settings.eng_kfp_self_callback_endpoint,
-            self_callback_token_path=docling_serve_settings.eng_kfp_self_callback_token_path,
-            self_callback_ca_cert_path=docling_serve_settings.eng_kfp_self_callback_ca_cert_path,
-        )
-
-        return KfpOrchestrator(config=kfp_config)
-
     elif docling_serve_settings.eng_kind == AsyncEngine.RAY:
         from docling_jobkit.convert.manager import (
             DoclingConverterManager,
