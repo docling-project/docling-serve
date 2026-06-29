@@ -362,6 +362,7 @@ def process_url(
     pipeline,
     ocr,
     force_ocr,
+    ocr_skip_text_layer_pages,
     ocr_engine,
     ocr_lang,
     pdf_backend,
@@ -384,6 +385,7 @@ def process_url(
             "pipeline": pipeline,
             "ocr": ocr,
             "force_ocr": force_ocr,
+            "ocr_skip_text_layer_pages": ocr_skip_text_layer_pages,
             "ocr_engine": ocr_engine,
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
@@ -444,6 +446,7 @@ def process_file(
     pipeline,
     ocr,
     force_ocr,
+    ocr_skip_text_layer_pages,
     ocr_engine,
     ocr_lang,
     pdf_backend,
@@ -472,6 +475,7 @@ def process_file(
             "pipeline": pipeline,
             "ocr": ocr,
             "force_ocr": force_ocr,
+            "ocr_skip_text_layer_pages": ocr_skip_text_layer_pages,
             "ocr_engine": ocr_engine,
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
@@ -701,6 +705,9 @@ with gr.Blocks(
             with gr.Column(scale=1, min_width=200):
                 ocr = gr.Checkbox(label="Enable OCR", value=True)
                 force_ocr = gr.Checkbox(label="Force OCR", value=False)
+                ocr_skip_text_layer_pages = gr.Checkbox(
+                    label="Skip text-layer pages", value=False
+                )
             with gr.Column(scale=1):
                 engines_list = [
                     ("Auto", "auto"),
@@ -838,6 +845,7 @@ with gr.Blocks(
             pipeline,
             ocr,
             force_ocr,
+            ocr_skip_text_layer_pages,
             ocr_engine,
             ocr_lang,
             pdf_backend,
@@ -926,6 +934,7 @@ with gr.Blocks(
             pipeline,
             ocr,
             force_ocr,
+            ocr_skip_text_layer_pages,
             ocr_engine,
             ocr_lang,
             pdf_backend,
