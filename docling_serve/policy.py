@@ -21,7 +21,7 @@ from docling.datamodel.service.targets import (
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
 
-from docling_serve.settings import AsyncEngine, DoclingServeSettings
+from docling_serve.settings import DoclingServeSettings
 
 ALL_TARGET_TYPES = frozenset({"inbody", "zip", "s3", "put", "presigned_url"})
 _ConvertRequestT = TypeVar(
@@ -36,7 +36,6 @@ class ServicePolicy:
     allow_external_plugins: bool
     allowed_ocr_presets: frozenset[str]
     allowed_target_types: frozenset[str]
-    s3_enabled: bool
     callbacks_enabled: bool
     custom_vlm_enabled: bool
     artifact_storage_enabled: bool
@@ -77,7 +76,6 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allow_external_plugins=settings.allow_external_plugins,
         allowed_ocr_presets=frozenset(allowed_ocr_presets),
         allowed_target_types=allowed_target_types,
-        s3_enabled=settings.eng_kind == AsyncEngine.KFP,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
@@ -242,11 +240,6 @@ def validate_convert_request(
     has_s3_target = isinstance(request.target, S3Target)
 
     if has_s3_source:
-        if not policy.s3_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail='source kind "s3" requires engine kind "KFP".',
-            )
         if not has_s3_target:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -328,11 +321,6 @@ def validate_chunk_request(
     has_s3_target = isinstance(request.target, S3Target)
 
     if has_s3_source:
-        if not policy.s3_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail='source kind "s3" requires engine kind "KFP".',
-            )
         if not has_s3_target:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

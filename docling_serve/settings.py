@@ -8,7 +8,6 @@ from typing import Any, Optional, Union
 import yaml
 from pydantic import (
     AliasChoices,
-    AnyUrl,
     Field,
     PositiveFloat,
     field_validator,
@@ -54,7 +53,6 @@ class LogFormat(str, enum.Enum):
 
 class AsyncEngine(str, enum.Enum):
     LOCAL = "local"
-    KFP = "kfp"
     RQ = "rq"
     RAY = "ray"
 
@@ -201,16 +199,6 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_gate_status_poll_wait_timeout: float = 5.0
     eng_rq_zombie_reaper_interval: float = 300.0
     eng_rq_zombie_reaper_max_age: float = 3600.0
-    # KFP engine
-    eng_kfp_endpoint: Optional[AnyUrl] = None
-    eng_kfp_token: Optional[str] = None
-    eng_kfp_ca_cert_path: Optional[str] = None
-    eng_kfp_self_callback_endpoint: Optional[str] = None
-    eng_kfp_self_callback_token_path: Optional[Path] = None
-    eng_kfp_self_callback_ca_cert_path: Optional[Path] = None
-
-    eng_kfp_experimental: bool = False
-
     # Fair Ray engine
     # Redis Configuration
     eng_ray_redis_url: str = ""
@@ -498,17 +486,6 @@ class DoclingServeSettings(BaseSettings):
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
-        # Validate KFP engine settings
-        if self.eng_kind == AsyncEngine.KFP:
-            if self.eng_kfp_endpoint is None:
-                raise ValueError("KFP endpoint is required when using the KFP engine.")
-
-        if self.eng_kind == AsyncEngine.KFP:
-            if not self.eng_kfp_experimental:
-                raise ValueError(
-                    "KFP is not yet working. To enable the development version, you must set DOCLING_SERVE_ENG_KFP_EXPERIMENTAL=true."
-                )
-
         if self.eng_kind == AsyncEngine.RQ:
             if not self.eng_rq_redis_url:
                 raise ValueError("RQ Redis url is required when using the RQ engine.")

@@ -261,7 +261,7 @@ def test_validate_batch_convert_request_rejects_s3_source_with_presigned_target(
     assert "S3 sources require an S3 target" in exc_info.value.detail
 
 
-def test_validate_batch_convert_request_allows_s3_source_with_s3_target_without_kfp():
+def test_validate_batch_convert_request_allows_s3_source_with_s3_target():
     policy = build_service_policy(DoclingServeSettings())
     request = BatchConvertSourcesRequest(
         sources=[
