@@ -1,3 +1,22 @@
+## [v1.26.0](https://github.com/docling-project/docling-serve/releases/tag/v1.26.0) - 2026-06-29
+
+### Feature
+
+* Upgrade deps and remove experimental kfp ([#643](https://github.com/docling-project/docling-serve/issues/643)) ([`3f63843`](https://github.com/docling-project/docling-serve/commit/3f6384301fb0aed6790870a674f29b628895af08))
+
+### Fix
+
+* **metrics:** Expose Ray task-lifecycle counters ([#641](https://github.com/docling-project/docling-serve/issues/641)) ([`4ed7a8c`](https://github.com/docling-project/docling-serve/commit/4ed7a8ce2be06b50fd3544c74f78a7247c4f1b8a))
+
+### Docling libraries included in this release:
+- docling-core 2.85.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 2.0.0
+- docling-mcp 2.1.0
+- docling-parse 7.2.0
+- docling-serve 1.26.0
+- docling-slim 2.107.0
+
 ## [v1.25.0](https://github.com/docling-project/docling-serve/releases/tag/v1.25.0) - 2026-06-22
 
 ### Feature
