@@ -98,17 +98,36 @@ policy errors are returned verbatim, matching REST 422 behavior.
 
 ## Protobuf Definitions
 
-Proto files are under `proto/ai/docling/`:
+Serve proto files are under `proto/ai/docling/serve/v1/`:
 
-- `serve/v1/docling_serve.proto` – Service and RPC definitions
-- `serve/v1/docling_serve_types.proto` – Request/response types, enums
-- `core/v1/docling_document.proto` – DoclingDocument structure (document schema)
+- `docling_serve.proto` – Service and RPC definitions
+- `docling_serve_types.proto` – Request/response types, enums
+
+The document schema proto, `ai/docling/core/v1/docling_document.proto`, is
+owned by the **docling-core** repository and is imported by the serve protos.
+It is intentionally not duplicated here; `scripts/gen_grpc.py` resolves it from
+the installed docling-core package (or a sibling `../docling-core` checkout
+during development).
 
 Regenerate Python stubs with:
 
 ```sh
 uv run python scripts/gen_grpc.py
 ```
+
+### Linting and formatting protos
+
+Because the serve protos import the docling-core document proto from another
+repository, a bare `buf lint` in this repo cannot resolve that import. Use the
+helper script, which assembles the combined proto tree before linting:
+
+```sh
+uv run python scripts/buf_check.py          # buf lint + buf format --diff
+uv run python scripts/buf_check.py --write  # additionally applies buf format -w
+```
+
+Both the serve protos and the combined (core + serve) tree must pass `buf lint`
+with the `STANDARD` rule set configured in `buf.yaml`.
 
 ## End-to-End Testing
 
