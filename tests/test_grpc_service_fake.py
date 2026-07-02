@@ -685,11 +685,8 @@ async def test_convert_source_http_source(grpc_stub):
 
 @pytest.mark.asyncio
 async def test_convert_source_s3_source():
-    """ConvertSource with S3Source succeeds when policy allows S3 (KFP pairing rules)."""
-    policy = replace(
-        build_service_policy(docling_serve_settings),
-        s3_enabled=True,
-    )
+    """ConvertSource with S3Source succeeds when policy allows S3 targets."""
+    policy = build_service_policy(docling_serve_settings)
     request = docling_serve_pb2.ConvertSourceRequest(
         request=docling_serve_types_pb2.ConvertDocumentRequest(
             sources=[
@@ -887,7 +884,7 @@ def _file_convert_request(num_sources=1, target=None):
 
 @pytest.mark.asyncio
 async def test_s3_source_rejected_by_default_policy(grpc_stub):
-    """S3 sources are rejected on a non-KFP engine (default policy)."""
+    """S3 sources without an S3 target are rejected by default policy."""
     request = docling_serve_pb2.ConvertSourceRequest(
         request=docling_serve_types_pb2.ConvertDocumentRequest(
             sources=[
@@ -910,8 +907,8 @@ async def test_s3_source_rejected_by_default_policy(grpc_stub):
 
 @pytest.mark.asyncio
 async def test_s3_source_requires_s3_target():
-    """Even with S3 enabled, an S3 source without an S3 target is rejected."""
-    policy = replace(build_service_policy(docling_serve_settings), s3_enabled=True)
+    """An S3 source without an S3 target is rejected."""
+    policy = build_service_policy(docling_serve_settings)
     request = docling_serve_pb2.ConvertSourceRequest(
         request=docling_serve_types_pb2.ConvertDocumentRequest(
             sources=[

@@ -47,6 +47,7 @@ from docling_core.types.doc.labels import (
     GraphCellLabel,
     GraphLinkLabel,
     GroupLabel,
+    PictureClassificationLabel,
 )
 from docling_jobkit.datamodel.result import ExportDocumentResponse
 
@@ -648,6 +649,37 @@ def test_docling_document_to_proto_picture_classification_predictions():
     assert len(preds) == 2
     assert preds[0].class_name == "foo"
     assert preds[1].confidence == pytest.approx(0.9)
+
+
+def test_docling_document_to_proto_picture_classification_other_chart():
+    """OTHER_CHART is a string label on the wire; it must pass through unchanged.
+
+    The proto carries ``class_name`` as a plain string rather than an enum, so
+    new PictureClassificationLabel values added upstream (like ``other_chart``)
+    require no proto changes — this test locks in that behavior.
+    """
+    doc = _base_doc()
+
+    pic = PictureItem(
+        self_ref="#/pictures/0",
+        label=DocItemLabel.PICTURE,
+        meta=PictureMeta(
+            classification=PictureClassificationMetaField(
+                predictions=[
+                    PictureClassificationPrediction(
+                        class_name=PictureClassificationLabel.OTHER_CHART.value,
+                        confidence=0.88,
+                    )
+                ]
+            )
+        ),
+    )
+    doc.pictures = [pic]
+
+    proto = docling_document_to_proto(doc)
+    pred = proto.pictures[0].meta.classification.predictions[0]
+    assert pred.class_name == "other_chart"
+    assert pred.confidence == pytest.approx(0.88)
 
 
 def test_docling_document_to_proto_tabular_chart_data():

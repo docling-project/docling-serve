@@ -74,8 +74,8 @@ def validate_request(
     has_s3_target = isinstance(target, S3Target)
 
     if has_s3_source:
-        if not policy.s3_enabled:
-            return 'source kind "s3" requires engine kind "KFP".'
+        if "s3" not in policy.allowed_target_types:
+            return 'source kind "s3" is not allowed by server policy.'
         if not has_s3_target:
             return 'source kind "s3" requires target kind "s3".'
 

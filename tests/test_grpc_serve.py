@@ -46,9 +46,20 @@ pytestmark = pytest.mark.integration
 async def grpc_server():
     """Start a gRPC server for testing."""
     get_async_orchestrator.cache_clear()
-    orchestrator = get_async_orchestrator()
     original_single_use = docling_serve_settings.single_use_results
+    original_default_ocr_preset = docling_serve_settings.default_ocr_preset
+    original_default_ocr_kind = docling_serve_settings.default_ocr_kind
+    original_custom_ocr_presets = docling_serve_settings.custom_ocr_presets
+
+    # Warm-up uses ConvertDocumentsOptions(ocr_preset="auto"). Upstream "auto" may
+    # resolve to a RapidOCR torch backend that is unavailable in CI/dev images.
+    # Override "auto" to tesseract so integration tests can start without OCR extras.
+    docling_serve_settings.default_ocr_preset = "tesseract"
+    docling_serve_settings.default_ocr_kind = "tesseract"
+    docling_serve_settings.custom_ocr_presets = {"auto": {"kind": "tesseract"}}
     docling_serve_settings.single_use_results = False
+
+    orchestrator = get_async_orchestrator()
     # Increase max message size for tests
     options = [
         ("grpc.max_send_message_length", 50 * 1024 * 1024),
@@ -66,6 +77,9 @@ async def grpc_server():
 
     await service.close()
     docling_serve_settings.single_use_results = original_single_use
+    docling_serve_settings.default_ocr_preset = original_default_ocr_preset
+    docling_serve_settings.default_ocr_kind = original_default_ocr_kind
+    docling_serve_settings.custom_ocr_presets = original_custom_ocr_presets
     get_async_orchestrator.cache_clear()
     await server.stop(grace=1)
 
