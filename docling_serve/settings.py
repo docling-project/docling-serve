@@ -199,6 +199,9 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_gate_status_poll_wait_timeout: float = 5.0
     eng_rq_zombie_reaper_interval: float = 300.0
     eng_rq_zombie_reaper_max_age: float = 3600.0
+    # HTTP source fetch retries (transient failures only)
+    eng_rq_max_task_retries: int = 3
+    eng_rq_retry_delay: float = 5.0
     # Fair Ray engine
     # Redis Configuration
     eng_ray_redis_url: str = ""

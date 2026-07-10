@@ -429,6 +429,8 @@ def rq_worker() -> Any:
         redis_gate_reserved_connections=docling_serve_settings.eng_rq_redis_gate_reserved_connections,
         redis_gate_wait_timeout=docling_serve_settings.eng_rq_redis_gate_wait_timeout,
         redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_rq_redis_gate_status_poll_wait_timeout,
+        max_task_retries=docling_serve_settings.eng_rq_max_task_retries,
+        retry_delay=docling_serve_settings.eng_rq_retry_delay,
         s3_presigned_config=_build_s3_presigned_config(),
     )
 

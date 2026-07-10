@@ -280,6 +280,8 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |
+| `DOCLING_SERVE_ENG_RQ_MAX_TASK_RETRIES` | `3` | Number of additional attempts when fetching an HTTP source URL fails with a transient error (429, 502, 503, 504, or a connection/timeout failure). Permanent failures (401/403/404/413/415/422, oversize) are never retried. Set to `0` to disable retrying. |
+| `DOCLING_SERVE_ENG_RQ_RETRY_DELAY` | `5.0` | Fixed delay, in seconds, between HTTP source fetch retry attempts. |
 
 **Scaling Recommendations for RQ Engine:**
 

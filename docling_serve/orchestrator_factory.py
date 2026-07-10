@@ -145,6 +145,8 @@ def get_async_orchestrator() -> BaseOrchestrator:
             zombie_reaper_interval=docling_serve_settings.eng_rq_zombie_reaper_interval,
             zombie_reaper_max_age=docling_serve_settings.eng_rq_zombie_reaper_max_age,
             result_removal_delay=docling_serve_settings.result_removal_delay,
+            max_task_retries=docling_serve_settings.eng_rq_max_task_retries,
+            retry_delay=docling_serve_settings.eng_rq_retry_delay,
             s3_presigned_config=_build_s3_presigned_config(),
         )
 
