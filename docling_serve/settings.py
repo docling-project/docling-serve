@@ -371,7 +371,8 @@ class DoclingServeSettings(BaseSettings):
     custom_ocr_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_ocr_kinds: Optional[list[str]] = None
 
-    # Target Control
+    # Source / Target Control
+    allowed_source_types: Optional[list[str]] = None
     allowed_target_types: Optional[list[str]] = None
 
     @classmethod
@@ -436,6 +437,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_layout_presets",
         "allowed_ocr_presets",
         "allowed_ocr_kinds",
+        "allowed_source_types",
         "allowed_target_types",
         "allowed_image_export_modes",
         mode="before",

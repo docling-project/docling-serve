@@ -7,6 +7,7 @@ from docling.datamodel.service.requests import (
     AzureBlobSourceRequest,
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
+    FileSourceRequest,
     GoogleCloudStorageSourceRequest,
     GoogleDriveSourceRequest,
     HttpSourceRequest,
@@ -23,6 +24,7 @@ from docling.datamodel.service.targets import (
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
+    ALL_SOURCE_TYPES,
     ALL_TARGET_TYPES,
     build_service_policy,
     normalize_convert_options,
@@ -398,3 +400,62 @@ def test_validate_convert_request_rejects_disallowed_target_type():
 
     with pytest.raises(HTTPException, match="target kind 'inbody' is not allowed"):
         validate_convert_request(request, policy)
+
+
+def test_build_service_policy_allows_all_source_types_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    assert policy.allowed_source_types == ALL_SOURCE_TYPES
+    assert ALL_SOURCE_TYPES == frozenset(
+        {
+            "file",
+            "http",
+            "s3",
+            "azure_blob",
+            "google_cloud_storage",
+            "google_drive",
+        }
+    )
+
+
+def test_allowed_source_types_cannot_extend_beyond_union():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_source_types=["http", "ftp"])
+    )
+
+    assert policy.allowed_source_types == frozenset({"http"})
+
+
+def test_validate_convert_request_rejects_disallowed_source_type():
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(),
+        sources=[FileSourceRequest(base64_string="", filename="a.pdf")],
+        target=InBodyTarget(),
+    )
+
+    with pytest.raises(HTTPException, match="source kind 'file' is not allowed"):
+        validate_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_rejects_disallowed_source_type():
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            )
+        ],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    with pytest.raises(HTTPException, match="source kind 's3' is not allowed"):
+        validate_batch_convert_request(request, policy)

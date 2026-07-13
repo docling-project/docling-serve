@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
@@ -9,7 +10,9 @@ from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
     BatchConvertSourcesRequest,
+    BatchSourceRequestItem,
     ConvertSourcesRequest,
+    SourceRequestItem,
     TargetRequest,
 )
 from docling.datamodel.service.targets import (
@@ -32,6 +35,19 @@ ALL_TARGET_TYPES = frozenset(
         "put",
         "presigned_url",
     }
+)
+
+
+def _source_kinds(annotated: Any) -> frozenset[str]:
+    """Discriminator ``kind`` literals of an ``Annotated[Union[...], ...]`` alias."""
+    union = typing.get_args(annotated)[0]  # strip Annotated -> Union
+    return frozenset(m.model_fields["kind"].default for m in typing.get_args(union))
+
+
+# Derived from the endpoint source unions so it can never drift past what the
+# request models actually accept; allowed_source_types only ever narrows this.
+ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
+    BatchSourceRequestItem
 )
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
@@ -74,6 +90,7 @@ class ServicePolicy:
     max_images_scale: float
     allow_external_plugins: bool
     allowed_ocr_presets: frozenset[str]
+    allowed_source_types: frozenset[str]
     allowed_target_types: frozenset[str]
     callbacks_enabled: bool
     custom_vlm_enabled: bool
@@ -91,6 +108,12 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = registered_ocr_presets
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
+    if settings.allowed_source_types is None:
+        allowed_source_types = ALL_SOURCE_TYPES
+    else:
+        allowed_source_types = (
+            frozenset(settings.allowed_source_types) & ALL_SOURCE_TYPES
+        )
     if settings.allowed_target_types is None:
         allowed_target_types = ALL_TARGET_TYPES
     else:
@@ -114,6 +137,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         max_images_scale=settings.max_images_scale,
         allow_external_plugins=settings.allow_external_plugins,
         allowed_ocr_presets=frozenset(allowed_ocr_presets),
+        allowed_source_types=allowed_source_types,
         allowed_target_types=allowed_target_types,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
@@ -242,10 +266,23 @@ def validate_target_kind(target_kind: str, policy: ServicePolicy) -> None:
     )
 
 
+def validate_source_kinds(sources: Any, policy: ServicePolicy) -> None:
+    for source in sources:
+        if source.kind not in policy.allowed_source_types:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"source kind '{source.kind}' is not allowed. "
+                    f"Allowed values: {sorted(policy.allowed_source_types)}."
+                ),
+            )
+
+
 def validate_convert_request(
     request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
+    validate_source_kinds(request.sources, policy)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
@@ -280,6 +317,7 @@ def validate_batch_convert_request(
     request: BatchConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
+    validate_source_kinds(request.sources, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
         raise HTTPException(
@@ -313,6 +351,7 @@ def validate_chunk_request(
     request: BaseChunkDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.convert_options, policy)
+    validate_source_kinds(request.sources, policy)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
