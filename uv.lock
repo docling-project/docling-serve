@@ -1623,7 +1623,7 @@ wheels = [
 
 [[package]]
 name = "docling-core"
-version = "2.85.0"
+version = "2.87.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
@@ -1640,9 +1640,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/02/f1cd4003d06240aa229acb5074b1dc5bec227580fd82a2dbe40b1cbefc80/docling_core-2.85.0.tar.gz", hash = "sha256:c4f49148ad8ac7cbe58d85cce90d2b3b0741d2b73cbfabb332e2df9e9583b3b4", size = 323268, upload-time = "2026-06-25T16:16:32.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/85/b8587c5a289710593d62f395333caacd6520cf2569ba9336c11d5d252123/docling_core-2.87.0.tar.gz", hash = "sha256:b6518f9ef3c7fb5e19746d3df7a99cda46f20c791ea101c35fc3029a195680c7", size = 333511, upload-time = "2026-07-11T11:36:45.598Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/c9/fe3bca4d1b431a32a7cbbe7afebfa5dae5a8bd0eb6ca4e132473f64239a1/docling_core-2.85.0-py3-none-any.whl", hash = "sha256:7c9e7e77966b91a61bffebb74f043fbecebe6e6e38bcf3790f05bddd5a4e306f", size = 260749, upload-time = "2026-06-25T16:16:30.988Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/5b/c9565a683e946f438d80d175f3e841aa7f453768eeddd01b9a4875ec8078/docling_core-2.87.0-py3-none-any.whl", hash = "sha256:d79e74689bbcd8ec22c72b15e15b230dcfe8900963f2c95322f631fc9ea116a4", size = 279893, upload-time = "2026-07-11T11:36:43.805Z" },
 ]
 
 [package.optional-dependencies]
@@ -1698,7 +1698,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "2.0.0"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure#afad9630ef4a63b712eae110d246d0ce8b01fbb9" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
@@ -1707,10 +1707,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/80/5b15fe982b10aef91598168ba69566a62d42f606896d41aeb416e87214bb/docling_jobkit-2.0.0.tar.gz", hash = "sha256:17a09c1250d2f627eb9613b370e2690b2bd0908dc8a46322918376af3245af05", size = 139975, upload-time = "2026-06-29T08:59:48.329Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/43/56591644c0d7d198b534f7f5e299efce44b9c208ea0a1cf6b2140746f7a4/docling_jobkit-2.0.0-py3-none-any.whl", hash = "sha256:0e5bde6d07f0094eaa6279f005bcf1442cfbf08c6e9f0be9b1da0241737a78d3", size = 172953, upload-time = "2026-06-29T08:59:46.907Z" },
 ]
 
 [package.optional-dependencies]
@@ -1889,9 +1885,9 @@ rocm72 = [
 [package.metadata]
 requires-dist = [
     { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm"], specifier = ">=2.0.0,<3.0.0" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm"], git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
-    { name = "docling-slim", extras = ["standard", "service-client", "models-remote"], specifier = ">=2.104.0,<3.0.0" },
+    { name = "docling-slim", extras = ["standard", "service-client", "models-remote"], git = "https://github.com/docling-project/docling/?branch=cau%2Fmove-connector-types-gcs-gd-azure" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
     { name = "fastapi", extras = ["standard"], specifier = "<0.137.0" },
     { name = "flash-attn", marker = "sys_platform == 'linux' and extra == 'flash-attn'", specifier = "~=2.8.2" },
@@ -1976,8 +1972,8 @@ rocm72 = [
 
 [[package]]
 name = "docling-slim"
-version = "2.107.0"
-source = { registry = "https://pypi.org/simple" }
+version = "2.112.0"
+source = { git = "https://github.com/docling-project/docling/?branch=cau%2Fmove-connector-types-gcs-gd-azure#3205ea05c9ba1943340574274d240e64bcea4f2e" }
 dependencies = [
     { name = "certifi" },
     { name = "docling-core" },
@@ -1987,10 +1983,6 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "requests" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/54/639a7517fcd128d0a488c71e033c194f72e105bc77ca18c50f8ccd3861da/docling_slim-2.107.0.tar.gz", hash = "sha256:bd89476fae7558c68a2f5b61f9afead0afc6797fb7bd74a8a19e2b0e8ec49e07", size = 476596, upload-time = "2026-06-24T13:11:55.64Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/ad/9d52dc9929f3128aee448815e3cbbf3a17601881def3dc8019e6fc1b1a6e/docling_slim-2.107.0-py3-none-any.whl", hash = "sha256:3aabe2dcd3bfec0c12162c9774d29ae17779ef6fc290d7f92a5791f93e94ea61", size = 604722, upload-time = "2026-06-24T13:11:53.611Z" },
 ]
 
 [package.optional-dependencies]
@@ -2020,7 +2012,6 @@ standard = [
     { name = "docling-parse" },
     { name = "httpx" },
     { name = "huggingface-hub" },
-    { name = "lxml" },
     { name = "mail-parser" },
     { name = "marko" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
@@ -7442,7 +7433,7 @@ wheels = [
 
 [[package]]
 name = "rapidocr"
-version = "3.9.0"
+version = "3.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorlog" },
@@ -7459,7 +7450,7 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/e0/3d3c394448c3527aa99b858647b5404110c5e30a5549f9e2bc4c645bb6b8/rapidocr-3.9.0-py3-none-any.whl", hash = "sha256:f9e624d11315aa1ffe8ecf486a9ae7c2f7bef741d25a1e508fc5e25cb75dfed5", size = 27240223, upload-time = "2026-06-23T02:33:55.29Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/23/e8d7251c53137b5b66d89e85cb0bc3e6bcfaec9527f29b477ec04389c8b2/rapidocr-3.9.1-py3-none-any.whl", hash = "sha256:600885e4e94e0b427abad394fccb0ec1d3c9118a215ca435bf7680aeae0e292b", size = 27274755, upload-time = "2026-07-02T13:37:00.827Z" },
 ]
 
 [[package]]

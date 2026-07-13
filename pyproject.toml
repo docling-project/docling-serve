@@ -194,8 +194,8 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
-# docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "main" }
+docling-slim = { git = "https://github.com/docling-project/docling/", branch = "cau/move-connector-types-gcs-gd-azure" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "cau/move-connector-types-gcs-gd-azure" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]

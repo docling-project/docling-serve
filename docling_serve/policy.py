@@ -23,7 +23,18 @@ from docling_core.types.doc import ImageRefMode
 
 from docling_serve.settings import DoclingServeSettings
 
-ALL_TARGET_TYPES = frozenset({"inbody", "zip", "s3", "put", "presigned_url"})
+ALL_TARGET_TYPES = frozenset(
+    {
+        "inbody",
+        "zip",
+        "s3",
+        "azure_blob",
+        "google_cloud_storage",
+        "google_drive",
+        "put",
+        "presigned_url",
+    }
+)
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
 )
