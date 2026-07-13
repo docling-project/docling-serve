@@ -4,12 +4,22 @@ from pydantic import ValidationError
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
+    AzureBlobSourceRequest,
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
+    GoogleCloudStorageSourceRequest,
+    GoogleDriveSourceRequest,
     HttpSourceRequest,
     S3SourceRequest,
 )
-from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, S3Target
+from docling.datamodel.service.targets import (
+    AzureBlobTarget,
+    GoogleCloudStorageTarget,
+    GoogleDriveTarget,
+    InBodyTarget,
+    PresignedUrlTarget,
+    S3Target,
+)
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
@@ -258,7 +268,7 @@ def test_validate_batch_convert_request_rejects_s3_source_with_presigned_target(
         validate_batch_convert_request(request, policy)
 
     assert exc_info.value.status_code == 422
-    assert "S3 sources require an S3 target" in exc_info.value.detail
+    assert "require a storage target" in exc_info.value.detail
 
 
 def test_validate_batch_convert_request_allows_s3_source_with_s3_target():
@@ -272,6 +282,39 @@ def test_validate_batch_convert_request_allows_s3_source_with_s3_target():
                 bucket="bucket",
             )
         ],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        AzureBlobSourceRequest(
+            account_name="acct",
+            container="incoming",
+            connection_string="UseDevelopmentStorage=true",
+        ),
+        GoogleCloudStorageSourceRequest(bucket="incoming"),
+        GoogleDriveSourceRequest(
+            path_id="folder-123",
+            refresh_token="refresh-token",
+            credentials_path="/tmp/client-secret.json",
+        ),
+    ],
+)
+def test_validate_batch_convert_request_allows_new_expandable_sources_with_storage_target(
+    source,
+):
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[source],
         target=S3Target(
             endpoint="s3.example.com",
             access_key="key",
@@ -303,6 +346,32 @@ def test_validate_batch_convert_request_allows_http_source_with_s3_target():
     )
 
     validate_batch_convert_request(request, policy)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        AzureBlobTarget(
+            account_name="acct",
+            container="converted",
+            connection_string="UseDevelopmentStorage=true",
+        ),
+        GoogleCloudStorageTarget(bucket="converted"),
+        GoogleDriveTarget(
+            path_id="folder-123",
+            refresh_token="refresh-token",
+            credentials_path="/tmp/client-secret.json",
+        ),
+    ],
+)
+def test_validate_convert_request_allows_http_source_with_storage_target(target):
+    policy = build_service_policy(DoclingServeSettings())
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=target,
+    )
+
+    validate_convert_request(request, policy)
 
 
 def test_normalize_batch_convert_request_sets_default_timeout():
