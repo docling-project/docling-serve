@@ -49,6 +49,14 @@ def test_allowed_target_types_from_csv(monkeypatch):
     assert settings.allowed_target_types == ["zip", "presigned_url", "inbody"]
 
 
+def test_allowed_source_types_from_csv(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ALLOWED_SOURCE_TYPES", "http, s3")
+
+    settings = DoclingServeSettings()
+
+    assert settings.allowed_source_types == ["http", "s3"]
+
+
 def test_default_values():
     """Test default values for new parameters."""
     settings = DoclingServeSettings()
