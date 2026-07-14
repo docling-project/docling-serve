@@ -223,7 +223,8 @@ class DoclingServeServiceServicer:
 
     def ConvertSourceStream(self, request, context):
         """Streaming document conversion - currently yields a single response when complete.
-        Placeholder for future per-source streaming; extends REST API via gRPC streaming.
+        Deprecated in favor of DoclingStreamingService.StreamDocument (envelope oneof).
+        Kept for existing clients; new work should use StreamDocument.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

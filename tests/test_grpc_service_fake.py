@@ -23,9 +23,12 @@ from docling_jobkit.orchestrators.base_orchestrator import TaskNotFoundError
 from docling_serve.grpc.gen.ai.docling.serve.v1 import (
     docling_serve_pb2,
     docling_serve_pb2_grpc,
+    docling_serve_stream_pb2,
+    docling_serve_stream_pb2_grpc,
     docling_serve_types_pb2,
 )
 from docling_serve.grpc.server import DoclingServeGrpcService, PublicErrorInterceptor
+from docling_serve.grpc.streaming import DoclingStreamingGrpcService
 from docling_serve.policy import build_service_policy
 from docling_serve.settings import docling_serve_settings
 
@@ -121,6 +124,9 @@ async def grpc_server():
     service = DoclingServeGrpcService(orchestrator=orchestrator)
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+    docling_serve_stream_pb2_grpc.add_DoclingStreamingServiceServicer_to_server(
+        DoclingStreamingGrpcService(service), server
+    )
 
     port = server.add_insecure_port("[::]:0")
     await server.start()
@@ -149,6 +155,11 @@ async def grpc_stub(grpc_channel):
     return docling_serve_pb2_grpc.DoclingServeServiceStub(grpc_channel)
 
 
+@pytest_asyncio.fixture
+async def streaming_stub(grpc_channel):
+    return docling_serve_stream_pb2_grpc.DoclingStreamingServiceStub(grpc_channel)
+
+
 @pytest.fixture
 def orchestrator(grpc_server):
     return grpc_server["orchestrator"]
@@ -162,6 +173,52 @@ async def test_health_returns_version(grpc_stub):
     assert response.HasField("version")
     # When installed via uv/pip, version is e.g. "1.12.0"; fallback is "0.0.0"
     assert isinstance(response.version, str) and len(response.version) > 0
+
+
+@pytest.mark.asyncio
+async def test_stream_document_emits_status_and_final(streaming_stub):
+    """Phase-1 StreamDocument: status envelopes then final_document (no fake parts)."""
+    pdf_content = base64.b64encode(b"dummy").decode("utf-8")
+    request = docling_serve_stream_pb2.StreamDocumentRequest(
+        request_id="studio-poc-1",
+        request=docling_serve_types_pb2.ConvertDocumentRequest(
+            sources=[
+                docling_serve_types_pb2.Source(
+                    file=docling_serve_types_pb2.FileSource(
+                        base64_string=pdf_content,
+                        filename="stream.pdf",
+                    )
+                )
+            ]
+        ),
+    )
+
+    envelopes = []
+    async for envelope in streaming_stub.StreamDocument(request):
+        envelopes.append(envelope)
+
+    assert envelopes, "expected at least one envelope"
+    assert envelopes[0].request_id == "studio-poc-1"
+    assert envelopes[0].sequence_number == 1
+    assert envelopes[0].WhichOneof("payload") == "status"
+
+    kinds = [e.WhichOneof("payload") for e in envelopes]
+    assert "status" in kinds
+    assert "source_result" in kinds
+    assert "final_document" in kinds
+    assert "part" not in kinds  # Phase 3 reserved — must not fake item yields
+
+    finals = [e for e in envelopes if e.WhichOneof("payload") == "final_document"]
+    assert len(finals) == 1
+    assert finals[0].final_document.name == "doc"
+
+    sequences = [e.sequence_number for e in envelopes]
+    assert sequences == sorted(sequences)
+    assert sequences == list(range(1, len(sequences) + 1))
+
+    last = envelopes[-1]
+    assert last.WhichOneof("payload") == "status"
+    assert last.status.phase == docling_serve_stream_pb2.StreamStatus.PHASE_COMPLETED
 
 
 @pytest.mark.asyncio
@@ -853,6 +910,9 @@ async def _server_with(policy=None, orchestrator=None, interceptors=None):
     service = DoclingServeGrpcService(orchestrator=orchestrator, policy=policy)
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
+    docling_serve_stream_pb2_grpc.add_DoclingStreamingServiceServicer_to_server(
+        DoclingStreamingGrpcService(service), server
+    )
     port = server.add_insecure_port("[::]:0")
     await server.start()
     try:

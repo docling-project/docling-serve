@@ -893,9 +893,23 @@ async def serve(host: str, port: int) -> None:
     await service.start()
     docling_serve_pb2_grpc.add_DoclingServeServiceServicer_to_server(service, server)
 
+    from .gen.ai.docling.serve.v1 import (
+        docling_serve_stream_pb2,
+        docling_serve_stream_pb2_grpc,
+    )
+    from .streaming import DoclingStreamingGrpcService
+
+    streaming = DoclingStreamingGrpcService(service)
+    docling_serve_stream_pb2_grpc.add_DoclingStreamingServiceServicer_to_server(
+        streaming, server
+    )
+
     # Enable gRPC server reflection for grpcurl / client discovery.
     service_names = (
         docling_serve_pb2.DESCRIPTOR.services_by_name["DoclingServeService"].full_name,
+        docling_serve_stream_pb2.DESCRIPTOR.services_by_name[
+            "DoclingStreamingService"
+        ].full_name,
         reflection.SERVICE_NAME,
     )
     reflection.enable_server_reflection(service_names, server)

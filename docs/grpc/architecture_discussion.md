@@ -24,12 +24,20 @@ Feature parity is preserved because gRPC and REST both execute the same underlyi
 
 ## Future Direction
 
-A next step is deeper streaming support over gRPC, built around incremental pipeline output:
+Streaming is no longer speculative — see [streaming.md](streaming.md).
 
-- page by page yielding during parse and enrichment
-- document part yielding for tables, pictures, and text blocks
-- live status and progress monitoring streams
-- richer partial result streaming for long running jobs
+The fork owns `DoclingStreamingService.StreamDocument` with a
+`StreamDocumentResponse` envelope (`status | source_result | final_document |
+error`, plus reserved `part` / `DocumentNode` for pipeline-incremental
+yields). Phase 1 is live now without pretending page-by-page hydration.
 
-This would let gRPC clients start consuming useful results earlier, rather than waiting for full document completion.
+Still ahead:
+
+- page by page / item yielding once docling/jobkit expose hooks
+- Connect-ES / SSE bridge for Docling Studio live bbox overlay
+- Java gRPC client preferring the stream over poll-shaped `AsyncOperations`
+
+This lets gRPC clients start consuming useful results earlier, rather than
+waiting for full document completion — without coupling Studio to an
+unmerged upstream PR.
 

@@ -100,8 +100,10 @@ policy errors are returned verbatim, matching REST 422 behavior.
 
 Serve proto files are under `proto/ai/docling/serve/v1/`:
 
-- `docling_serve.proto` – Service and RPC definitions
+- `docling_serve.proto` – Service and RPC definitions (REST semantic parity)
 - `docling_serve_types.proto` – Request/response types, enums
+- `docling_serve_stream.proto` – **Fork-owned** `DoclingStreamingService` +
+  DocumentStreamEnvelope (`StreamDocumentResponse` oneof)
 
 The document schema proto, `ai/docling/core/v1/docling_document.proto`, is
 owned by the **docling-core** repository and is imported by the serve protos.
@@ -114,6 +116,13 @@ Regenerate Python stubs with:
 ```sh
 uv run python scripts/gen_grpc.py
 ```
+
+### Document streaming (Studio / live progress)
+
+See [streaming.md](streaming.md). Short version: `StreamDocument` yields a
+typed envelope (`status | source_result | final_document | error`, with
+`part` reserved for future pipeline hooks). This surface is owned by the
+fork and does not wait on upstream merge of the experimental gRPC PRs.
 
 ### Linting and formatting protos
 

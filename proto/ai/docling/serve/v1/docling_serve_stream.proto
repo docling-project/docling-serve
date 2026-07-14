@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package ai.docling.serve.v1;
+
+import "ai/docling/core/v1/docling_document.proto";
+import "ai/docling/serve/v1/docling_serve_types.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "DoclingServeStreamProto";
+option java_package = "ai.docling.serve.v1";
+
+// ============================================================================
+// Document streaming contract (fork-owned)
+// ============================================================================
+//
+// This surface is intentionally gRPC-native. It is not a 1:1 REST mirror.
+// Upstream REST remains submit+poll / WebSocket for async status; this stream
+// is the push channel for live progress and (eventually) incremental document
+// parts.
+//
+// Sync story: every document payload type is imported from
+// ai/docling/core/v1/docling_document.proto. When docling-core's Pydantic model
+// gains a field, regenerate the core proto and this file stays valid — the
+// envelope only wraps core messages, it does not duplicate them.
+//
+// Emission honesty:
+//   Phase 1 (implemented): status + source_result + final_document
+//   Phase 2 (orchestrator hooks): per-source fan-out as documents complete
+//   Phase 3 (pipeline hooks): DocumentNode parts as items hydrate
+// Do not emit DocumentNode until the converter can produce partial items.
+// Faking page yields from a completed DoclingDocument is not streaming.
+
+// StreamDocument converts sources and streams StreamDocumentResponse events
+// (the DocumentStreamEnvelope) until finals are emitted and the stream closes.
+service DoclingStreamingService {
+  rpc StreamDocument(StreamDocumentRequest) returns (stream StreamDocumentResponse);
+}
+
+message StreamDocumentRequest {
+  // Optional client correlation id. Echoed on every envelope so UIs and
+  // bridges (Connect-ES, grpc-web, SSE) can multiplex without guessing.
+  optional string request_id = 1;
+
+  // Same convert request shape used by the unary ConvertSource RPC.
+  ConvertDocumentRequest request = 2;
+}
+
+// StreamDocumentResponse is the DocumentStreamEnvelope: the unit of the live
+// feed. Named for buf RPC response conventions; conceptually the envelope
+// from the Studio streaming design (oneof status | part | final_document).
+message StreamDocumentResponse {
+  // Echo of StreamDocumentRequest.request_id when provided.
+  optional string request_id = 1;
+
+  // Monotonic per-stream sequence. Clients reconstruct order from this, not
+  // from wall-clock arrival (reconnects / buffering can reorder).
+  uint64 sequence_number = 2;
+
+  // Server-side emit time (unix epoch milliseconds). Telemetry only.
+  int64 timestamp_ms = 3;
+
+  // Optional source index into ConvertDocumentRequest.sources when the event
+  // is scoped to one input. Unset for stream-wide status / final aggregation.
+  optional uint32 source_index = 4;
+
+  oneof payload {
+    // Queue / phase / percentage updates for Studio-style progress UI.
+    StreamStatus status = 10;
+
+    // Live document parts as they hydrate (Phase 3 — reserved until pipeline
+    // can emit them). Using core types keeps Studio bbox overlays typed.
+    DocumentNode part = 11;
+
+    // One source finished (success or failure). Phase 2 batch/fan-out.
+    StreamSourceResult source_result = 12;
+
+    // Full converted document for a source (or the sole result). Stream may
+    // emit multiple finals for multi-source requests, then close.
+    ai.docling.core.v1.DoclingDocument final_document = 13;
+
+    // Terminal or recoverable error associated with the stream / source.
+    StreamError error = 14;
+  }
+}
+
+// StreamStatus carries progress without document payloads.
+message StreamStatus {
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    PHASE_QUEUED = 1;
+    PHASE_STARTED = 2;
+    PHASE_PROCESSING = 3;
+    PHASE_EXPORTING = 4;
+    PHASE_COMPLETED = 5;
+    PHASE_FAILED = 6;
+  }
+
+  Phase phase = 1;
+  string message = 2;
+
+  // 0.0–1.0 when known; omit / leave 0 when unknown.
+  float progress_percentage = 3;
+
+  // Batch counters when available (mirrors TaskStatusMetadata fields).
+  optional uint32 num_docs = 4;
+  optional uint32 num_processed = 5;
+  optional uint32 num_succeeded = 6;
+  optional uint32 num_failed = 7;
+
+  // Orchestrator queue position when known.
+  optional uint32 queue_position = 8;
+}
+
+// DocumentNode wraps a single hydrated core item for live UI / embedding.
+// Prefer the existing BaseTextItem oneof for text variants instead of
+// re-listing TitleItem/SectionHeaderItem/... here — that keeps sync with
+// core automatic when new text kinds appear on BaseTextItem.
+message DocumentNode {
+  // Convenience copy of the item's DocItemLabel when known.
+  ai.docling.core.v1.DocItemLabel label = 1;
+
+  // Page number from provenance when available (Studio bbox overlay).
+  optional int32 page_no = 2;
+
+  // Item self_ref (e.g. "#/texts/3") for client-side tree stitching.
+  optional string self_ref = 3;
+
+  oneof node {
+    ai.docling.core.v1.BaseTextItem text = 10;
+    ai.docling.core.v1.TableItem table = 11;
+    ai.docling.core.v1.PictureItem picture = 12;
+    ai.docling.core.v1.KeyValueItem key_value = 13;
+    ai.docling.core.v1.GroupItem group = 14;
+    ai.docling.core.v1.FormItem form = 15;
+  }
+}
+
+// StreamSourceResult reports completion of one input source.
+message StreamSourceResult {
+  uint32 source_index = 1;
+  string filename = 2;
+  bool success = 3;
+  optional string error_message = 4;
+  // Present on success when the document is also (or instead) emitted as
+  // final_document. Keeping it optional avoids double-shipping large docs
+  // when the client only wants the final_document payload.
+  optional string document_name = 5;
+}
+
+message StreamError {
+  string code = 1; // stable machine code, e.g. "INVALID_ARGUMENT", "CONVERT_FAILED"
+  string message = 2;
+  bool terminal = 3; // if true, no further envelopes will follow for this stream
+}

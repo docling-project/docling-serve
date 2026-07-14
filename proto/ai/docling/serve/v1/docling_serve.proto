@@ -55,7 +55,8 @@ service DoclingServeService {
   rpc ClearResults(ClearResultsRequest) returns (ClearResultsResponse);
 
   // Streaming document conversion - currently yields a single response when complete.
-  // Placeholder for future per-source streaming; extends REST API via gRPC streaming.
+  // Deprecated in favor of DoclingStreamingService.StreamDocument (envelope oneof).
+  // Kept for existing clients; new work should use StreamDocument.
   rpc ConvertSourceStream(ConvertSourceStreamRequest) returns (stream ConvertSourceStreamResponse);
 
   // --- Watch RPCs (server-managed polling via streaming) ---
