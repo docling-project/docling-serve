@@ -12,21 +12,30 @@ from docling.datamodel.service.requests import (
     BatchConvertSourcesRequest,
     BatchSourceRequestItem,
     ConvertSourcesRequest,
-    S3SourceRequest,
     SourceRequestItem,
     TargetRequest,
 )
 from docling.datamodel.service.targets import (
     InBodyTarget,
     PresignedUrlTarget,
-    S3Target,
 )
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
 
 from docling_serve.settings import DoclingServeSettings
 
-ALL_TARGET_TYPES = frozenset({"inbody", "zip", "s3", "put", "presigned_url"})
+ALL_TARGET_TYPES = frozenset(
+    {
+        "inbody",
+        "zip",
+        "s3",
+        "azure_blob",
+        "google_cloud_storage",
+        "google_drive",
+        "put",
+        "presigned_url",
+    }
+)
 
 
 def _source_kinds(annotated: Any) -> frozenset[str]:
@@ -43,6 +52,36 @@ ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
 )
+
+# Source kinds that can expand into many documents (bucket/drive traversal). Such
+# a source must write results to a storage target rather than an in-response
+# manifest that would have to list every produced artifact.
+EXPANDABLE_SOURCE_KINDS = frozenset(
+    {"s3", "azure_blob", "google_cloud_storage", "google_drive"}
+)
+# Targets that stream documents out to storage without an in-response manifest.
+STORAGE_TARGET_KINDS = frozenset(
+    {"s3", "azure_blob", "google_cloud_storage", "google_drive"}
+)
+
+
+def validate_source_target_pairing(sources: list[Any], target: Any) -> None:
+    """Reject expandable sources paired with a non-storage target.
+
+    Bucket/drive sources can fan out into many documents, so their results must
+    go to a storage target that writes each document out directly. Non-expandable
+    sources (file/http) may use any target, including storage targets.
+    """
+    expandable = sorted({s.kind for s in sources if s.kind in EXPANDABLE_SOURCE_KINDS})
+    if expandable and target.kind not in STORAGE_TARGET_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"sources of kind {expandable} can expand into multiple documents "
+                f"and require a storage target (one of {sorted(STORAGE_TARGET_KINDS)}); "
+                f"got target kind '{target.kind}'."
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,23 +310,7 @@ def validate_convert_request(
                 ),
             )
 
-    has_s3_source = any(
-        isinstance(source, S3SourceRequest) for source in request.sources
-    )
-    has_s3_target = isinstance(request.target, S3Target)
-
-    if has_s3_source:
-        if not has_s3_target:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail='source kind "s3" requires target kind "s3".',
-            )
-
-    if has_s3_target and not has_s3_source:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail='target kind "s3" requires source kind "s3".',
-        )
+    validate_source_target_pairing(request.sources, request.target)
 
 
 def validate_batch_convert_request(
@@ -321,18 +344,7 @@ def validate_batch_convert_request(
                 ),
             )
 
-    has_s3_source = any(
-        isinstance(source, S3SourceRequest) for source in request.sources
-    )
-    has_s3_target = isinstance(request.target, S3Target)
-
-    # Batch endpoint intentionally allows S3 sources on the Ray engine; only the
-    # S3 source -> S3 target pairing is enforced here.
-    if has_s3_source and not has_s3_target:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="S3 sources require an S3 target on the batch endpoint.",
-        )
+    validate_source_target_pairing(request.sources, request.target)
 
 
 def validate_chunk_request(
@@ -354,20 +366,4 @@ def validate_chunk_request(
             detail="presigned_url target is not supported for chunk endpoints.",
         )
 
-    has_s3_source = any(
-        isinstance(source, S3SourceRequest) for source in request.sources
-    )
-    has_s3_target = isinstance(request.target, S3Target)
-
-    if has_s3_source:
-        if not has_s3_target:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail='source kind "s3" requires target kind "s3".',
-            )
-
-    if has_s3_target and not has_s3_source:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail='target kind "s3" requires source kind "s3".',
-        )
+    validate_source_target_pairing(request.sources, request.target)

@@ -535,6 +535,34 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-core"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/f3/b416179e408990df5db0d516283022dde0f5d0111d98c1a848e41853e81c/azure_core-1.41.0.tar.gz", hash = "sha256:f46ff5dfcd230f25cf1c19e8a34b8dc08a337b2503e268bb600a16c00db8ad5a", size = 381042, upload-time = "2026-05-07T23:30:54.302Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/db/325c6d7312d2200251c52323878281045aaffcb5586612296484e4280eaa/azure_core-1.41.0-py3-none-any.whl", hash = "sha256:522b4011e8180b1a3dcd2024396a4e7fe9ac37fb8597db47163d230b5efe892d", size = 220920, upload-time = "2026-05-07T23:30:56.357Z" },
+]
+
+[[package]]
+name = "azure-storage-blob"
+version = "12.30.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "cryptography" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/48/84a820d898267f662b5c06f7cd76fdb8a9e272b44aa9376cef3ec0f6a294/azure_storage_blob-12.30.0.tar.gz", hash = "sha256:2cd74d4d5731e5eb6b8d5c5056ee115a5e88f8fdf22517b739836fda685018be", size = 618229, upload-time = "2026-06-08T11:45:35.575Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/0b/e106f0fd7fa785867d9ffcc47dc9e6237c0e58f51058473b777487a98edc/azure_storage_blob-12.30.0-py3-none-any.whl", hash = "sha256:d415ac50b67a8da6b3ae7e9f1014b1b55cd7aafa0b8d4ca9b380568dc7360423", size = 435610, upload-time = "2026-06-08T11:45:37.213Z" },
+]
+
+[[package]]
 name = "backports-tarfile"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1623,7 +1651,7 @@ wheels = [
 
 [[package]]
 name = "docling-core"
-version = "2.85.0"
+version = "2.87.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
@@ -1640,9 +1668,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/02/f1cd4003d06240aa229acb5074b1dc5bec227580fd82a2dbe40b1cbefc80/docling_core-2.85.0.tar.gz", hash = "sha256:c4f49148ad8ac7cbe58d85cce90d2b3b0741d2b73cbfabb332e2df9e9583b3b4", size = 323268, upload-time = "2026-06-25T16:16:32.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/85/b8587c5a289710593d62f395333caacd6520cf2569ba9336c11d5d252123/docling_core-2.87.0.tar.gz", hash = "sha256:b6518f9ef3c7fb5e19746d3df7a99cda46f20c791ea101c35fc3029a195680c7", size = 333511, upload-time = "2026-07-11T11:36:45.598Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/c9/fe3bca4d1b431a32a7cbbe7afebfa5dae5a8bd0eb6ca4e132473f64239a1/docling_core-2.85.0-py3-none-any.whl", hash = "sha256:7c9e7e77966b91a61bffebb74f043fbecebe6e6e38bcf3790f05bddd5a4e306f", size = 260749, upload-time = "2026-06-25T16:16:30.988Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/5b/c9565a683e946f438d80d175f3e841aa7f453768eeddd01b9a4875ec8078/docling_core-2.87.0-py3-none-any.whl", hash = "sha256:d79e74689bbcd8ec22c72b15e15b230dcfe8900963f2c95322f631fc9ea116a4", size = 279893, upload-time = "2026-07-11T11:36:43.805Z" },
 ]
 
 [package.optional-dependencies]
@@ -1697,7 +1725,7 @@ wheels = [
 
 [[package]]
 name = "docling-jobkit"
-version = "2.0.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -1708,12 +1736,22 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/80/5b15fe982b10aef91598168ba69566a62d42f606896d41aeb416e87214bb/docling_jobkit-2.0.0.tar.gz", hash = "sha256:17a09c1250d2f627eb9613b370e2690b2bd0908dc8a46322918376af3245af05", size = 139975, upload-time = "2026-06-29T08:59:48.329Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/91/163099f4dec2b6c5041209f43a9b5caeb260551e1865b8c33725df39e9eb/docling_jobkit-2.1.0.tar.gz", hash = "sha256:36d21aea98a7420791e00bae63645ae8f91d617149d6cf622af5714bb3d64341", size = 145385, upload-time = "2026-07-17T11:45:34.265Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/43/56591644c0d7d198b534f7f5e299efce44b9c208ea0a1cf6b2140746f7a4/docling_jobkit-2.0.0-py3-none-any.whl", hash = "sha256:0e5bde6d07f0094eaa6279f005bcf1442cfbf08c6e9f0be9b1da0241737a78d3", size = 172953, upload-time = "2026-06-29T08:59:46.907Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/21/9467c042f8a7d409b1e49bfcb0148818e68abc92da2676f66a584193a4b8/docling_jobkit-2.1.0-py3-none-any.whl", hash = "sha256:954fedf247313497b039bd3660e78e11dfd5433f5b84b85c028b8d788e789bef", size = 183876, upload-time = "2026-07-17T11:45:33.008Z" },
 ]
 
 [package.optional-dependencies]
+azure = [
+    { name = "azure-storage-blob" },
+]
+gcloudstorage = [
+    { name = "google-cloud-storage" },
+]
+gdrive = [
+    { name = "google-api-python-client" },
+    { name = "google-auth-oauthlib" },
+]
 ray = [
     { name = "codeflare-sdk", marker = "(python_full_version >= '3.11' and python_full_version < '3.14') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
     { name = "msgpack" },
@@ -1787,7 +1825,7 @@ version = "1.26.0"
 source = { editable = "." }
 dependencies = [
     { name = "docling-core" },
-    { name = "docling-jobkit", extra = ["ray", "rq", "vlm"] },
+    { name = "docling-jobkit", extra = ["azure", "gcloudstorage", "gdrive", "ray", "rq", "vlm"] },
     { name = "docling-mcp" },
     { name = "docling-slim", extra = ["models-remote", "service-client", "standard"] },
     { name = "fastapi", extra = ["standard"] },
@@ -1889,9 +1927,9 @@ rocm72 = [
 [package.metadata]
 requires-dist = [
     { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm"], specifier = ">=2.0.0,<3.0.0" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=2.1.0,<3.0.0" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
-    { name = "docling-slim", extras = ["standard", "service-client", "models-remote"], specifier = ">=2.104.0,<3.0.0" },
+    { name = "docling-slim", extras = ["standard", "service-client", "models-remote"], specifier = ">=2.113.0,<3.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
     { name = "fastapi", extras = ["standard"], specifier = "<0.137.0" },
     { name = "flash-attn", marker = "sys_platform == 'linux' and extra == 'flash-attn'", specifier = "~=2.8.2" },
@@ -1976,7 +2014,7 @@ rocm72 = [
 
 [[package]]
 name = "docling-slim"
-version = "2.107.0"
+version = "2.113.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -1988,9 +2026,9 @@ dependencies = [
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/54/639a7517fcd128d0a488c71e033c194f72e105bc77ca18c50f8ccd3861da/docling_slim-2.107.0.tar.gz", hash = "sha256:bd89476fae7558c68a2f5b61f9afead0afc6797fb7bd74a8a19e2b0e8ec49e07", size = 476596, upload-time = "2026-06-24T13:11:55.64Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/35/149f23813b0df840945c99a2789f0a749431a23a6846d4da132de4bbda40/docling_slim-2.113.0.tar.gz", hash = "sha256:34135ce73e82cce494483133752f54d97391351d4faa49fbf66c6058eb18329d", size = 522700, upload-time = "2026-07-14T10:44:56.786Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/ad/9d52dc9929f3128aee448815e3cbbf3a17601881def3dc8019e6fc1b1a6e/docling_slim-2.107.0-py3-none-any.whl", hash = "sha256:3aabe2dcd3bfec0c12162c9774d29ae17779ef6fc290d7f92a5791f93e94ea61", size = 604722, upload-time = "2026-06-24T13:11:53.611Z" },
+    { url = "https://files.pythonhosted.org/packages/18/bf/5e284e05b6413bb3318c52eb095a50f37f1dae8c65dcfdde939e5ba04b1b/docling_slim-2.113.0-py3-none-any.whl", hash = "sha256:5a2446c8add5e2af8968387240727a89a1a7c5ebea97d82dab9d7866edfb9e04", size = 656027, upload-time = "2026-07-14T10:44:54.929Z" },
 ]
 
 [package.optional-dependencies]
@@ -2020,7 +2058,6 @@ standard = [
     { name = "docling-parse" },
     { name = "httpx" },
     { name = "huggingface-hub" },
-    { name = "lxml" },
     { name = "mail-parser" },
     { name = "marko" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
@@ -2582,11 +2619,11 @@ name = "google-api-core"
 version = "2.31.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-auth", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "googleapis-common-protos", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "proto-plus", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "protobuf", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "requests", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
+    { name = "google-auth" },
+    { name = "googleapis-common-protos" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+    { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c6/22/155cadf1d49272a9cf48f3168c0f3874fa13397297e611a5ea00cd093880/google_api_core-2.31.0.tar.gz", hash = "sha256:2be84ee0f584c48e6bde1b36766e23348b361fb7e55e56135fc76ce1c397f9c2", size = 176492, upload-time = "2026-06-03T14:52:17.257Z" }
 wheels = [
@@ -2594,16 +2631,135 @@ wheels = [
 ]
 
 [[package]]
+name = "google-api-python-client"
+version = "2.198.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "google-auth" },
+    { name = "google-auth-httplib2" },
+    { name = "httplib2" },
+    { name = "uritemplate" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/53/0cd38e3a29d72ce45e27feba2ce1cd8049d69af9c48cb14fb164f1be9133/google_api_python_client-2.198.0.tar.gz", hash = "sha256:dfe3e16fb241af6e9c460a33f65085b3450e05cea09364f6b5d8997fb7e43e2a", size = 15060142, upload-time = "2026-06-25T14:32:42.953Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/92/0fc9e7a09eb240c31b879bd8d2e43f81ed1f86c4798b79ead4a083921ab3/google_api_python_client-2.198.0-py3-none-any.whl", hash = "sha256:fabac935474e817da5e662ff61bf7139439d6f92b32d332a7318a2d45931e03e", size = 15644203, upload-time = "2026-06-25T14:32:39.963Z" },
+]
+
+[[package]]
 name = "google-auth"
 version = "2.55.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "pyasn1-modules", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
+    { name = "cryptography" },
+    { name = "pyasn1-modules" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/6f/f3f4ac177c67bbee8fe8e88f2ab4f36af88c44a096e165c5217accf6e5d3/google_auth-2.55.1.tar.gz", hash = "sha256:fb2d9b730f2c9b8d326ec8d7222f21aef2ead15bf0513793d6442485d87af0a1", size = 349527, upload-time = "2026-06-25T23:39:27.182Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/1d/f6d3ca1ad0725f2e08a1c6915640748a52de2e66596160a4d53b010cccf0/google_auth-2.55.1-py3-none-any.whl", hash = "sha256:eada68dfd52b3b81191827601e2a0c3fa12540c818534b630ddc5355769c3995", size = 252349, upload-time = "2026-06-25T23:38:52.946Z" },
+]
+
+[[package]]
+name = "google-auth-httplib2"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "httplib2" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1c/b3/f192c8bc7e41e0ebdbd95afcae4783417a34b6a6af62d22daf22c3fd38fc/google_auth_httplib2-0.4.0.tar.gz", hash = "sha256:d5b030a204b7a4b4d553ba9ca701b62481ee2b74419325580be70f7d85ffed35", size = 11161, upload-time = "2026-05-07T08:03:46.878Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/be/954c35a62b9e31de66b0a43c225c9b6bb9e0f98d6b1dc110a2308e3644f5/google_auth_httplib2-0.4.0-py3-none-any.whl", hash = "sha256:8e55cfafa3358cba85f6cad4a886138e88e158d71e7e5c9ee5936a5c1507fb91", size = 9529, upload-time = "2026-05-07T08:02:12.375Z" },
+]
+
+[[package]]
+name = "google-auth-oauthlib"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "requests-oauthlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/70/18/90c7fac516e63cf2058166fce0c88c353647c677b51cc036c09c49bb5cbb/google_auth_oauthlib-1.4.0.tar.gz", hash = "sha256:18b5e28880eb8eba9065c436becdc0ee8e4b59117a73a510679c82f70cd363d2", size = 21675, upload-time = "2026-05-07T08:03:47.816Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/37/d3/d7dff0d58a9e9244b48044bfb6a898bfcc8ecc42e0031d1bebc695344725/google_auth_oauthlib-1.4.0-py3-none-any.whl", hash = "sha256:251314f213a9ee46a5ae73988e84fd7cca8bb68e7ecf4bfd45940f9e7f51d070", size = 19261, upload-time = "2026-05-07T08:02:13.798Z" },
+]
+
+[[package]]
+name = "google-cloud-core"
+version = "2.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "google-auth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/dd/1eef226e470369b26824a505c34482c0b493bc35fe8e0c6b003b5feca21a/google_cloud_core-2.6.0.tar.gz", hash = "sha256:e76149739f90fac1fc6757c09f47eaccb3145b54adbd7759b0f7c4b235f46c83", size = 36001, upload-time = "2026-05-07T08:04:04.124Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/4a/98da8930ab109c73d9a5d13782a9ebb81ea8c111f6d534a567b71d23e52b/google_cloud_core-2.6.0-py3-none-any.whl", hash = "sha256:6d63ac8e5eca6d9e4319d0a1e2265fadcd7f1049904378caecfa01cf52dd869e", size = 29390, upload-time = "2026-05-07T08:02:34.672Z" },
+]
+
+[[package]]
+name = "google-cloud-storage"
+version = "3.13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "google-auth" },
+    { name = "google-cloud-core" },
+    { name = "google-crc32c" },
+    { name = "google-resumable-media" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e3/25/355ed97c1723c787dfaa888808d55db18371f82c38ff862357b1e902cd19/google_cloud_storage-3.13.0.tar.gz", hash = "sha256:d11d8706ea1520fba0f21043bcb7897caf7015d76ce1ad9a4f60237e4d7a9f6c", size = 17340960, upload-time = "2026-07-13T19:10:07.524Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/e8/b3678a0931ee7d4b3fdaf0813e6206d66e0922b2c26d912f308728b5b95a/google_cloud_storage-3.13.0-py3-none-any.whl", hash = "sha256:648af3ef8a6acc674e1359d3c920c67eb89a7a5ab66b336bd3ac43fed6b5ab84", size = 341428, upload-time = "2026-07-13T19:09:52.39Z" },
+]
+
+[[package]]
+name = "google-crc32c"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/41/4b9c02f99e4c5fb477122cd5437403b552873f014616ac1d19ac8221a58d/google_crc32c-1.8.0.tar.gz", hash = "sha256:a428e25fb7691024de47fecfbff7ff957214da51eddded0da0ae0e0f03a2cf79", size = 14192, upload-time = "2025-12-16T00:35:25.142Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/ac/6f7bc93886a823ab545948c2dd48143027b2355ad1944c7cf852b338dc91/google_crc32c-1.8.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:0470b8c3d73b5f4e3300165498e4cf25221c7eb37f1159e221d1825b6df8a7ff", size = 31296, upload-time = "2025-12-16T00:19:07.261Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/97/a5accde175dee985311d949cfcb1249dcbb290f5ec83c994ea733311948f/google_crc32c-1.8.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:119fcd90c57c89f30040b47c211acee231b25a45d225e3225294386f5d258288", size = 30870, upload-time = "2025-12-16T00:29:17.669Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/63/bec827e70b7a0d4094e7476f863c0dbd6b5f0f1f91d9c9b32b76dcdfeb4e/google_crc32c-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:6f35aaffc8ccd81ba3162443fabb920e65b1f20ab1952a31b13173a67811467d", size = 33214, upload-time = "2025-12-16T00:40:19.618Z" },
+    { url = "https://files.pythonhosted.org/packages/63/bc/11b70614df04c289128d782efc084b9035ef8466b3d0a8757c1b6f5cf7ac/google_crc32c-1.8.0-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:864abafe7d6e2c4c66395c1eb0fe12dc891879769b52a3d56499612ca93b6092", size = 33589, upload-time = "2025-12-16T00:40:20.7Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/00/a08a4bc24f1261cc5b0f47312d8aebfbe4b53c2e6307f1b595605eed246b/google_crc32c-1.8.0-cp310-cp310-win_amd64.whl", hash = "sha256:db3fe8eaf0612fc8b20fa21a5f25bd785bc3cd5be69f8f3412b0ac2ffd49e733", size = 34437, upload-time = "2025-12-16T00:35:19.437Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/ef/21ccfaab3d5078d41efe8612e0ed0bfc9ce22475de074162a91a25f7980d/google_crc32c-1.8.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:014a7e68d623e9a4222d663931febc3033c5c7c9730785727de2a81f87d5bab8", size = 31298, upload-time = "2025-12-16T00:20:32.241Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/b8/f8413d3f4b676136e965e764ceedec904fe38ae8de0cdc52a12d8eb1096e/google_crc32c-1.8.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:86cfc00fe45a0ac7359e5214a1704e51a99e757d0272554874f419f79838c5f7", size = 30872, upload-time = "2025-12-16T00:33:58.785Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/fd/33aa4ec62b290477181c55bb1c9302c9698c58c0ce9a6ab4874abc8b0d60/google_crc32c-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:19b40d637a54cb71e0829179f6cb41835f0fbd9e8eb60552152a8b52c36cbe15", size = 33243, upload-time = "2025-12-16T00:40:21.46Z" },
+    { url = "https://files.pythonhosted.org/packages/71/03/4820b3bd99c9653d1a5210cb32f9ba4da9681619b4d35b6a052432df4773/google_crc32c-1.8.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:17446feb05abddc187e5441a45971b8394ea4c1b6efd88ab0af393fd9e0a156a", size = 33608, upload-time = "2025-12-16T00:40:22.204Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/43/acf61476a11437bf9733fb2f70599b1ced11ec7ed9ea760fdd9a77d0c619/google_crc32c-1.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:71734788a88f551fbd6a97be9668a0020698e07b2bf5b3aa26a36c10cdfb27b2", size = 34439, upload-time = "2025-12-16T00:35:20.458Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/5f/7307325b1198b59324c0fa9807cafb551afb65e831699f2ce211ad5c8240/google_crc32c-1.8.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:4b8286b659c1335172e39563ab0a768b8015e88e08329fa5321f774275fc3113", size = 31300, upload-time = "2025-12-16T00:21:56.723Z" },
+    { url = "https://files.pythonhosted.org/packages/21/8e/58c0d5d86e2220e6a37befe7e6a94dd2f6006044b1a33edf1ff6d9f7e319/google_crc32c-1.8.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:2a3dc3318507de089c5384cc74d54318401410f82aa65b2d9cdde9d297aca7cb", size = 30867, upload-time = "2025-12-16T00:38:31.302Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/a9/a780cc66f86335a6019f557a8aaca8fbb970728f0efd2430d15ff1beae0e/google_crc32c-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:14f87e04d613dfa218d6135e81b78272c3b904e2a7053b841481b38a7d901411", size = 33364, upload-time = "2025-12-16T00:40:22.96Z" },
+    { url = "https://files.pythonhosted.org/packages/21/3f/3457ea803db0198c9aaca2dd373750972ce28a26f00544b6b85088811939/google_crc32c-1.8.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:cb5c869c2923d56cb0c8e6bcdd73c009c36ae39b652dbe46a05eb4ef0ad01454", size = 33740, upload-time = "2025-12-16T00:40:23.96Z" },
+    { url = "https://files.pythonhosted.org/packages/df/c0/87c2073e0c72515bb8733d4eef7b21548e8d189f094b5dad20b0ecaf64f6/google_crc32c-1.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:3cc0c8912038065eafa603b238abf252e204accab2a704c63b9e14837a854962", size = 34437, upload-time = "2025-12-16T00:35:21.395Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/db/000f15b41724589b0e7bc24bc7a8967898d8d3bc8caf64c513d91ef1f6c0/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:3ebb04528e83b2634857f43f9bb8ef5b2bbe7f10f140daeb01b58f972d04736b", size = 31297, upload-time = "2025-12-16T00:23:20.709Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/0d/8ebed0c39c53a7e838e2a486da8abb0e52de135f1b376ae2f0b160eb4c1a/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:450dc98429d3e33ed2926fc99ee81001928d63460f8538f21a5d6060912a8e27", size = 30867, upload-time = "2025-12-16T00:43:14.628Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/42/b468aec74a0354b34c8cbf748db20d6e350a68a2b0912e128cabee49806c/google_crc32c-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:3b9776774b24ba76831609ffbabce8cdf6fa2bd5e9df37b594221c7e333a81fa", size = 33344, upload-time = "2025-12-16T00:40:24.742Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/e8/b33784d6fc77fb5062a8a7854e43e1e618b87d5ddf610a88025e4de6226e/google_crc32c-1.8.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:89c17d53d75562edfff86679244830599ee0a48efc216200691de8b02ab6b2b8", size = 33694, upload-time = "2025-12-16T00:40:25.505Z" },
+    { url = "https://files.pythonhosted.org/packages/92/b1/d3cbd4d988afb3d8e4db94ca953df429ed6db7282ed0e700d25e6c7bfc8d/google_crc32c-1.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:57a50a9035b75643996fbf224d6661e386c7162d1dfdab9bc4ca790947d1007f", size = 34435, upload-time = "2025-12-16T00:35:22.107Z" },
+    { url = "https://files.pythonhosted.org/packages/21/88/8ecf3c2b864a490b9e7010c84fd203ec8cf3b280651106a3a74dd1b0ca72/google_crc32c-1.8.0-cp314-cp314-macosx_12_0_arm64.whl", hash = "sha256:e6584b12cb06796d285d09e33f63309a09368b9d806a551d8036a4207ea43697", size = 31301, upload-time = "2025-12-16T00:24:48.527Z" },
+    { url = "https://files.pythonhosted.org/packages/36/c6/f7ff6c11f5ca215d9f43d3629163727a272eabc356e5c9b2853df2bfe965/google_crc32c-1.8.0-cp314-cp314-macosx_12_0_x86_64.whl", hash = "sha256:f4b51844ef67d6cf2e9425983274da75f18b1597bb2c998e1c0a0e8d46f8f651", size = 30868, upload-time = "2025-12-16T00:48:12.163Z" },
+    { url = "https://files.pythonhosted.org/packages/56/15/c25671c7aad70f8179d858c55a6ae8404902abe0cdcf32a29d581792b491/google_crc32c-1.8.0-cp314-cp314-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:b0d1a7afc6e8e4635564ba8aa5c0548e3173e41b6384d7711a9123165f582de2", size = 33381, upload-time = "2025-12-16T00:40:26.268Z" },
+    { url = "https://files.pythonhosted.org/packages/42/fa/f50f51260d7b0ef5d4898af122d8a7ec5a84e2984f676f746445f783705f/google_crc32c-1.8.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:8b3f68782f3cbd1bce027e48768293072813469af6a61a86f6bb4977a4380f21", size = 33734, upload-time = "2025-12-16T00:40:27.028Z" },
+    { url = "https://files.pythonhosted.org/packages/08/a5/7b059810934a09fb3ccb657e0843813c1fee1183d3bc2c8041800374aa2c/google_crc32c-1.8.0-cp314-cp314-win_amd64.whl", hash = "sha256:d511b3153e7011a27ab6ee6bb3a5404a55b994dc1a7322c0b87b29606d9790e2", size = 34878, upload-time = "2025-12-16T00:35:23.142Z" },
+    { url = "https://files.pythonhosted.org/packages/52/c5/c171e4d8c44fec1422d801a6d2e5d7ddabd733eeda505c79730ee9607f07/google_crc32c-1.8.0-pp311-pypy311_pp73-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:87fa445064e7db928226b2e6f0d5304ab4cd0339e664a4e9a25029f384d9bb93", size = 28615, upload-time = "2025-12-16T00:40:29.298Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/97/7d75fe37a7a6ed171a2cf17117177e7aab7e6e0d115858741b41e9dd4254/google_crc32c-1.8.0-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f639065ea2042d5c034bf258a9f085eaa7af0cd250667c0635a3118e8f92c69c", size = 28800, upload-time = "2025-12-16T00:40:30.322Z" },
+]
+
+[[package]]
+name = "google-resumable-media"
+version = "2.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-crc32c" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/f8/1ca5781d6be9cb9f73f7d40f4958c4bd1226a60598e3e39e1d6aaf838c4b/google_resumable_media-2.10.0.tar.gz", hash = "sha256:e324bc9d0fdae4c52a08ae90456edc4e71ece858399e1217ac0eb3a51d6bc6ee", size = 2164570, upload-time = "2026-06-03T16:14:26.103Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/d8/00c6854ac1512bb9eaf13bd3f8f28222f7674947fc510a4ff7616f2efc80/google_resumable_media-2.10.0-py3-none-any.whl", hash = "sha256:88152884bee37b2bf36a0ab81ad8c7fd12212c9803dd981d77c1b35b02d34e7c", size = 81533, upload-time = "2026-06-03T16:13:12.51Z" },
 ]
 
 [[package]]
@@ -2904,6 +3060,18 @@ wheels = [
 ]
 
 [[package]]
+name = "httplib2"
+version = "0.32.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyparsing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/84/f5/ccf58de92d61e3ad921119668f54ed36ca1d0cf5dcc5c1657dfb164fd78b/httplib2-0.32.0.tar.gz", hash = "sha256:48a0ef30a42db65d8f3399045e1d09ab0ba66e3b9efc360d07f80ea55d286025", size = 254283, upload-time = "2026-06-26T10:13:56.265Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/a0/550eec327e5f5c7b732531c489f5307efec41f047b0d703bd4ca1e5ad2db/httplib2-0.32.0-py3-none-any.whl", hash = "sha256:dc6705cacdf3fb0a2aba7629fa33c90fd93e30035db0c157325826be177e4816", size = 93148, upload-time = "2026-06-26T10:13:54.985Z" },
+]
+
+[[package]]
 name = "httptools"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3109,6 +3277,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bd/c6/2a746b6a339c17d81fa40f17f74d13d732ffdc3cca65340ecfdf1eee675c/ipywidgets-8.1.2.tar.gz", hash = "sha256:d0b9b41e49bae926a866e613a39b0f0097745d2b9f1f3dd406641b4a57ec42c9", size = 116492, upload-time = "2024-02-08T15:31:29.801Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/70/1a/7edeedb1c089d63ccd8bd5c0612334774e90cf9337de9fe6c82d90081791/ipywidgets-8.1.2-py3-none-any.whl", hash = "sha256:bbe43850d79fb5e906b14801d6c01402857996864d1e5b6fa62dd2ee35559f60", size = 139411, upload-time = "2024-02-08T15:31:21.503Z" },
+]
+
+[[package]]
+name = "isodate"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/4d/e940025e2ce31a8ce1202635910747e5a87cc3a6a6bb2d00973375014749/isodate-0.7.2.tar.gz", hash = "sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6", size = 29705, upload-time = "2024-10-08T23:04:11.5Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/aa/0aca39a37d3c7eb941ba736ede56d689e7be91cab5d9ca846bde3999eba6/isodate-0.7.2-py3-none-any.whl", hash = "sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15", size = 22320, upload-time = "2024-10-08T23:04:09.501Z" },
 ]
 
 [[package]]
@@ -6475,7 +6652,7 @@ name = "proto-plus"
 version = "1.28.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
+    { name = "protobuf" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/56/e647b0c675392d2da368da7b6f158f7368b18542fd6f7d7400a2f39de000/proto_plus-1.28.0.tar.gz", hash = "sha256:38e5696342835b08fc116f30a25665b29531cda9d5d5643e9b81fc312385abd9", size = 57221, upload-time = "2026-05-07T08:04:50.811Z" }
 wheels = [
@@ -6629,7 +6806,7 @@ name = "pyasn1-modules"
 version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyasn1", marker = "python_full_version < '3.14' or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
+    { name = "pyasn1" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e9/e6/78ebbb10a8c8e4b61a59249394a4a594c1a7af95593dc933a349c8d00964/pyasn1_modules-0.4.2.tar.gz", hash = "sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6", size = 307892, upload-time = "2025-03-28T02:41:22.17Z" }
 wheels = [
@@ -6925,6 +7102,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/48/47/e761c254f410c023a469284a9bc210933e18588ca87706ae93002c05114c/pynacl-1.6.2-cp38-abi3-win32.whl", hash = "sha256:5811c72b473b2f38f7e2a3dc4f8642e3a3e9b5e7317266e4ced1fba85cae41aa", size = 227421, upload-time = "2026-01-01T17:32:33.076Z" },
     { url = "https://files.pythonhosted.org/packages/41/ad/334600e8cacc7d86587fe5f565480fde569dfb487389c8e1be56ac21d8ac/pynacl-1.6.2-cp38-abi3-win_amd64.whl", hash = "sha256:62985f233210dee6548c223301b6c25440852e13d59a8b81490203c3227c5ba0", size = 239754, upload-time = "2026-01-01T17:32:34.557Z" },
     { url = "https://files.pythonhosted.org/packages/29/7d/5945b5af29534641820d3bd7b00962abbbdfee84ec7e19f0d5b3175f9a31/pynacl-1.6.2-cp38-abi3-win_arm64.whl", hash = "sha256:834a43af110f743a754448463e8fd61259cd4ab5bbedcf70f9dabad1d28a394c", size = 184801, upload-time = "2026-01-01T17:32:36.309Z" },
+]
+
+[[package]]
+name = "pyparsing"
+version = "3.3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/91/9c6ee907786a473bf81c5f53cf703ba0957b23ab84c264080fb5a450416f/pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc", size = 6851574, upload-time = "2026-01-21T03:57:59.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", size = 122781, upload-time = "2026-01-21T03:57:55.912Z" },
 ]
 
 [[package]]
@@ -7442,7 +7628,7 @@ wheels = [
 
 [[package]]
 name = "rapidocr"
-version = "3.9.0"
+version = "3.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorlog" },
@@ -7459,7 +7645,7 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/e0/3d3c394448c3527aa99b858647b5404110c5e30a5549f9e2bc4c645bb6b8/rapidocr-3.9.0-py3-none-any.whl", hash = "sha256:f9e624d11315aa1ffe8ecf486a9ae7c2f7bef741d25a1e508fc5e25cb75dfed5", size = 27240223, upload-time = "2026-06-23T02:33:55.29Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/23/e8d7251c53137b5b66d89e85cb0bc3e6bcfaec9527f29b477ec04389c8b2/rapidocr-3.9.1-py3-none-any.whl", hash = "sha256:600885e4e94e0b427abad394fccb0ec1d3c9118a215ca435bf7680aeae0e292b", size = 27274755, upload-time = "2026-07-02T13:37:00.827Z" },
 ]
 
 [[package]]
@@ -7725,8 +7911,8 @@ name = "requests-oauthlib"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "oauthlib", marker = "(python_full_version >= '3.11' and python_full_version < '3.14') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
-    { name = "requests", marker = "(python_full_version >= '3.11' and python_full_version < '3.14') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version < '3.11' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu126') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cpu' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu128') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu126' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-cu130') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu128' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-pypi') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-cu130' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-pypi' and extra == 'group-13-docling-serve-rocm72') or (python_full_version >= '3.14' and extra == 'group-13-docling-serve-rocm' and extra == 'group-13-docling-serve-rocm72')" },
+    { name = "oauthlib" },
+    { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/f2/05f29bc3913aea15eb670be136045bf5c5bbf4b99ecb839da9b422bb2c85/requests-oauthlib-2.0.0.tar.gz", hash = "sha256:b3dffaebd884d8cd778494369603a9e7b58d29111bf6b41bdc2dcd87203af4e9", size = 55650, upload-time = "2024-03-22T20:32:29.939Z" }
 wheels = [
@@ -10779,6 +10965,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ba/19/1b9b0e29f30c6d35cb345486df41110984ea67ae69dddbc0e8a100999493/tzdata-2026.2.tar.gz", hash = "sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10", size = 198254, upload-time = "2026-04-24T15:22:08.651Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/e4/dccd7f47c4b64213ac01ef921a1337ee6e30e8c6466046018326977efd95/tzdata-2026.2-py2.py3-none-any.whl", hash = "sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7", size = 349321, upload-time = "2026-04-24T15:22:05.876Z" },
+]
+
+[[package]]
+name = "uritemplate"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/60/f174043244c5306c9988380d2cb10009f91563fc4b31293d27e17201af56/uritemplate-4.2.0.tar.gz", hash = "sha256:480c2ed180878955863323eea31b0ede668795de182617fef9c6ca09e6ec9d0e", size = 33267, upload-time = "2025-06-02T15:12:06.318Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/99/3ae339466c9183ea5b8ae87b34c0b897eda475d2aec2307cae60e5cd4f29/uritemplate-4.2.0-py3-none-any.whl", hash = "sha256:962201ba1c4edcab02e60f9a0d3821e82dfc5d2d6662a21abd533879bdb8a686", size = 11488, upload-time = "2025-06-02T15:12:03.405Z" },
 ]
 
 [[package]]

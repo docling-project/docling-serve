@@ -10,9 +10,15 @@ from docling.datamodel.service.responses import (
     DocumentArtifactItem,
     PresignedArtifactResult,
 )
+from docling.datamodel.service.sources import (
+    AzureBlobCoordinates,
+    GoogleCloudStorageCoordinates,
+    GoogleDriveCoordinates,
+)
 from docling.datamodel.service.targets import S3Target
 from docling.datamodel.service.tasks import TaskType
 from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task_meta import TaskStatus
 
 
 class _FakeOrchestrator:
@@ -37,6 +43,16 @@ class _FakeOrchestrator:
 
     async def task_outcome(self, task_id: str):
         return await self.task_result(task_id)
+
+    async def task_status(self, task_id: str):
+        del task_id
+        return Task(
+            task_id="task-batch",
+            task_type=TaskType.CONVERT,
+            task_status=TaskStatus.SUCCESS,
+            sources=[],
+            metadata={"tenant_id": "default"},
+        )
 
     async def task_result(self, task_id: str):
         del task_id
@@ -115,7 +131,7 @@ async def test_batch_endpoint_rejects_s3_source_with_presigned_target(app):
         )
 
     assert response.status_code == 422
-    assert "S3 sources require an S3 target" in response.text
+    assert "require a storage target" in response.text
 
 
 @pytest.mark.asyncio
@@ -171,6 +187,64 @@ async def test_batch_endpoint_accepts_http_source_with_presigned_target(
 
     assert response.status_code == 200
     assert len(fake_orchestrator.enqueued[0]["sources"]) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("source_payload", "expected_type"),
+    [
+        (
+            {
+                "kind": "azure_blob",
+                "account_name": "acct",
+                "container": "incoming",
+                "connection_string": "UseDevelopmentStorage=true",
+            },
+            AzureBlobCoordinates,
+        ),
+        (
+            {
+                "kind": "google_cloud_storage",
+                "bucket": "incoming",
+            },
+            GoogleCloudStorageCoordinates,
+        ),
+        (
+            {
+                "kind": "google_drive",
+                "path_id": "folder-123",
+                "refresh_token": "refresh-token",
+                "credentials_path": "/tmp/client-secret.json",
+            },
+            GoogleDriveCoordinates,
+        ),
+    ],
+)
+async def test_batch_endpoint_accepts_new_expandable_sources_with_storage_target(
+    app,
+    fake_orchestrator,
+    source_payload,
+    expected_type,
+):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/source/batch",
+            json={
+                "sources": [source_payload],
+                "target": {
+                    "kind": "s3",
+                    "endpoint": "s3.example.com",
+                    "access_key": "key",
+                    "secret_key": "secret",
+                    "bucket": "converted",
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    assert isinstance(fake_orchestrator.enqueued[-1]["sources"][0], expected_type)
 
 
 @pytest.mark.asyncio

@@ -53,10 +53,13 @@ from docling.datamodel.service.options import (
     ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
 )
 from docling.datamodel.service.requests import (
+    AzureBlobSourceRequest,
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     FileSourceRequest,
     GenericChunkDocumentsRequest,
+    GoogleCloudStorageSourceRequest,
+    GoogleDriveSourceRequest,
     S3SourceRequest,
     TargetName,
     TargetRequest,
@@ -75,7 +78,14 @@ from docling.datamodel.service.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
-from docling.datamodel.service.sources import FileSource, HttpSource, S3Coordinates
+from docling.datamodel.service.sources import (
+    AzureBlobCoordinates,
+    FileSource,
+    GoogleCloudStorageCoordinates,
+    GoogleDriveCoordinates,
+    HttpSource,
+    S3Coordinates,
+)
 from docling.datamodel.service.targets import (
     InBodyTarget,
     PresignedUrlTarget,
@@ -430,7 +440,7 @@ def create_app():  # noqa: C901
     # Async / Sync helpers #
     ########################
 
-    async def _enque_source(
+    async def _enqueue_source(
         orchestrator: BaseOrchestrator,
         request: (
             BatchConvertSourcesRequest
@@ -447,6 +457,16 @@ def create_app():  # noqa: C901
                 sources.append(HttpSource.model_validate(s))
             elif isinstance(s, S3SourceRequest):
                 sources.append(S3Coordinates.model_validate(s))
+            elif isinstance(s, AzureBlobSourceRequest):
+                sources.append(AzureBlobCoordinates.model_validate(s))
+            elif isinstance(s, GoogleCloudStorageSourceRequest):
+                sources.append(GoogleCloudStorageCoordinates.model_validate(s))
+            elif isinstance(s, GoogleDriveSourceRequest):
+                sources.append(GoogleDriveCoordinates.model_validate(s))
+            else:
+                # Guard against a source kind being added to the request union
+                # without a mapping here (would otherwise be silently dropped).
+                raise RuntimeError(f"Unsupported source kind: {type(s).__name__}")
 
         convert_options: ConvertDocumentsRequestOptions
         chunking_options: BaseChunkerOptions | None = None
@@ -493,7 +513,7 @@ def create_app():  # noqa: C901
 
         return task
 
-    async def _enque_file(
+    async def _enqueue_file(
         orchestrator: BaseOrchestrator,
         files: list[UploadFile],
         task_type: TaskType,
@@ -505,7 +525,7 @@ def create_app():  # noqa: C901
         tenant_id: str | None = None,
     ) -> Task:
         _log.info(
-            f"[TENANT_ID] _enque_file called with tenant_id='{tenant_id}', "
+            f"[TENANT_ID] _enqueue_file called with tenant_id='{tenant_id}', "
             f"processing {len(files)} files"
         )
 
@@ -839,7 +859,7 @@ def create_app():  # noqa: C901
         prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_url endpoint received tenant_id='{tenant_id}'")
-        task = await _enque_source(
+        task = await _enqueue_source(
             orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
         )
         completed = await _wait_task_complete(
@@ -899,7 +919,7 @@ def create_app():  # noqa: C901
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = _resolve_file_target(target_type)
-        task = await _enque_file(
+        task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
             files=files,
@@ -954,7 +974,7 @@ def create_app():  # noqa: C901
         _log.info(
             f"[TENANT_ID] process_url_async endpoint received tenant_id='{tenant_id}'"
         )
-        task = await _enque_source(
+        task = await _enqueue_source(
             orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
         )
         task_queue_position = await orchestrator.get_queue_position(
@@ -988,7 +1008,7 @@ def create_app():  # noqa: C901
         _log.info(
             f"[TENANT_ID] process_source_batch endpoint received tenant_id='{tenant_id}'"
         )
-        task = await _enque_source(
+        task = await _enqueue_source(
             orchestrator=orchestrator,
             request=conversion_request,
             tenant_id=tenant_id,
@@ -1033,7 +1053,7 @@ def create_app():  # noqa: C901
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
         )
         target = _resolve_file_target(target_type)
-        task = await _enque_file(
+        task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
             files=files,
@@ -1085,7 +1105,7 @@ def create_app():  # noqa: C901
             _log.info(
                 f"[TENANT_ID] chunk_source_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
-            task = await _enque_source(
+            task = await _enqueue_source(
                 orchestrator=orchestrator, request=request, tenant_id=tenant_id
             )
             task_queue_position = await orchestrator.get_queue_position(
@@ -1157,7 +1177,7 @@ def create_app():  # noqa: C901
                 f"[TENANT_ID] chunk_file_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
-            task = await _enque_file(
+            task = await _enqueue_file(
                 task_type=TaskType.CHUNK,
                 orchestrator=orchestrator,
                 files=files,
@@ -1210,7 +1230,7 @@ def create_app():  # noqa: C901
             _log.info(
                 f"[TENANT_ID] chunk_source ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
-            task = await _enque_source(
+            task = await _enqueue_source(
                 orchestrator=orchestrator, request=request, tenant_id=tenant_id
             )
             completed = await _wait_task_complete(
@@ -1299,7 +1319,7 @@ def create_app():  # noqa: C901
                 f"[TENANT_ID] chunk_file ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
-            task = await _enque_file(
+            task = await _enqueue_file(
                 task_type=TaskType.CHUNK,
                 orchestrator=orchestrator,
                 files=files,
