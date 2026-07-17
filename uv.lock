@@ -1726,7 +1726,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "2.0.0"
-source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure#cc1dcba6370b088cb1fe2dfd9a2932b12bc81a6e" }
+source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure#f90f82ccd5d6676b3e920d776f636a2fd192d628" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
