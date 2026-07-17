@@ -1725,8 +1725,8 @@ wheels = [
 
 [[package]]
 name = "docling-jobkit"
-version = "2.0.0"
-source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure#f90f82ccd5d6676b3e920d776f636a2fd192d628" }
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
@@ -1735,6 +1735,10 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/91/163099f4dec2b6c5041209f43a9b5caeb260551e1865b8c33725df39e9eb/docling_jobkit-2.1.0.tar.gz", hash = "sha256:36d21aea98a7420791e00bae63645ae8f91d617149d6cf622af5714bb3d64341", size = 145385, upload-time = "2026-07-17T11:45:34.265Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/21/9467c042f8a7d409b1e49bfcb0148818e68abc92da2676f66a584193a4b8/docling_jobkit-2.1.0-py3-none-any.whl", hash = "sha256:954fedf247313497b039bd3660e78e11dfd5433f5b84b85c028b8d788e789bef", size = 183876, upload-time = "2026-07-17T11:45:33.008Z" },
 ]
 
 [package.optional-dependencies]
@@ -1923,7 +1927,7 @@ rocm72 = [
 [package.metadata]
 requires-dist = [
     { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fmove-connector-types-gcs-gd-azure" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=2.1.0,<3.0.0" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
     { name = "docling-slim", extras = ["standard", "service-client", "models-remote"], specifier = ">=2.113.0,<3.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
