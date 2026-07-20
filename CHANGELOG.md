@@ -1,3 +1,19 @@
+## [v1.27.0](https://github.com/docling-project/docling-serve/releases/tag/v1.27.0) - 2026-07-20
+
+### Feature
+
+* Accept GCS, Azure Blob, and Google Drive sources/targets ([#652](https://github.com/docling-project/docling-serve/issues/652)) ([`1b430ca`](https://github.com/docling-project/docling-serve/commit/1b430caf9ed0f9ff735433ed19f1a9043f222bd8))
+* Add allowed_source_types policy control ([#651](https://github.com/docling-project/docling-serve/issues/651)) ([`193b7ce`](https://github.com/docling-project/docling-serve/commit/193b7ce2a1b6d26c6ef2fa58c9a71edc0ff53d70))
+
+### Docling libraries included in this release:
+- docling-core 2.87.1
+- docling-ibm-models 3.13.3
+- docling-jobkit 2.1.0
+- docling-mcp 2.1.0
+- docling-parse 7.8.1
+- docling-serve 1.27.0
+- docling-slim 2.113.0
+
 ## [v1.26.0](https://github.com/docling-project/docling-serve/releases/tag/v1.26.0) - 2026-06-29
 
 ### Feature
