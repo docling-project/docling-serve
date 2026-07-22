@@ -1,6 +1,8 @@
+from typing import Annotated, Literal
+
 import pytest
 from fastapi import HTTPException
-from pydantic import ValidationError
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
@@ -21,11 +23,15 @@ from docling.datamodel.service.targets import (
     PresignedUrlTarget,
     S3Target,
 )
+from docling_jobkit.connectors.connector_factory import SourceConnectorFactory
+from docling_jobkit.connectors.source_processor import BaseSourceProcessor
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
     ALL_SOURCE_TYPES,
     ALL_TARGET_TYPES,
+    _source_kinds,
+    build_batch_request_model,
     build_service_policy,
     normalize_convert_options,
     normalize_request,
@@ -147,7 +153,7 @@ def test_validate_convert_options_allows_configured_image_mode():
     )
 
     # Should reject others
-    with pytest.raises(HTTPException, match="image_export_mode.*not allowed"):
+    with pytest.raises(HTTPException, match=r"image_export_mode.*not allowed"):
         validate_convert_options(
             ConvertDocumentsOptions(image_export_mode="referenced"), policy
         )
@@ -418,12 +424,64 @@ def test_build_service_policy_allows_all_source_types_by_default():
     )
 
 
-def test_allowed_source_types_cannot_extend_beyond_union():
+def test_source_kinds_supports_nested_known_and_generic_union():
+    class KnownSource(BaseModel):
+        kind: Literal["known"] = "known"
+
+    class GenericSource(BaseModel):
+        kind: str
+
+    known = Annotated[KnownSource, Field(discriminator="kind")]
+    source = Annotated[known | GenericSource, BeforeValidator(lambda value: value)]
+
+    assert _source_kinds(source) == frozenset({"known"})
+
+
+@pytest.mark.parametrize("source_kind", ["ftp", "local_path"])
+def test_unavailable_allowed_source_type_fails_startup(source_kind):
+    with pytest.raises(ValueError, match=rf"allowed_source_types.*{source_kind}"):
+        build_service_policy(
+            DoclingServeSettings(allowed_source_types=["http", source_kind])
+        )
+
+
+def test_connector_without_json_schema_fails_startup(monkeypatch):
+    from docling_serve import policy as policy_module
+
+    class Unsupported:
+        pass
+
+    class BadSchemaSource(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+
+        kind: Literal["bad_schema"] = "bad_schema"
+        value: Unsupported
+
+    class BadSchemaProcessor(BaseSourceProcessor):
+        @classmethod
+        def get_config_types(cls):
+            return (BadSchemaSource,)
+
+    factory = SourceConnectorFactory()
+    factory.load_from_plugins()
+    factory.register(BadSchemaProcessor, "bad_plugin", __name__)
+    monkeypatch.setattr(
+        policy_module,
+        "get_source_connector_factory",
+        lambda allow_external_plugins=False: factory,
+    )
     policy = build_service_policy(
-        DoclingServeSettings(allowed_source_types=["http", "ftp"])
+        DoclingServeSettings(allowed_source_types=["bad_schema"])
     )
 
-    assert policy.allowed_source_types == frozenset({"http"})
+    with pytest.raises(ValueError, match=r"bad_schema.*JSON Schema"):
+        build_batch_request_model(policy)
+
+
+@pytest.mark.parametrize("target_kind", ["unknown", "local_path"])
+def test_unavailable_allowed_target_type_fails_startup(target_kind):
+    with pytest.raises(ValueError, match=rf"allowed_target_types.*{target_kind}"):
+        build_service_policy(DoclingServeSettings(allowed_target_types=[target_kind]))
 
 
 def test_validate_convert_request_rejects_disallowed_source_type():

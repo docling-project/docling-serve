@@ -1898,7 +1898,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "2.1.0"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fplugin-registry-runtime-extensions#5aa36575c363968ba23b17e2c5d35ab11b361316" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
@@ -1907,10 +1907,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/91/163099f4dec2b6c5041209f43a9b5caeb260551e1865b8c33725df39e9eb/docling_jobkit-2.1.0.tar.gz", hash = "sha256:36d21aea98a7420791e00bae63645ae8f91d617149d6cf622af5714bb3d64341", size = 145385, upload-time = "2026-07-17T11:45:34.265Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/21/9467c042f8a7d409b1e49bfcb0148818e68abc92da2676f66a584193a4b8/docling_jobkit-2.1.0-py3-none-any.whl", hash = "sha256:954fedf247313497b039bd3660e78e11dfd5433f5b84b85c028b8d788e789bef", size = 183876, upload-time = "2026-07-17T11:45:33.008Z" },
 ]
 
 [package.optional-dependencies]
@@ -2104,9 +2100,9 @@ rocm72 = [
 [package.metadata]
 requires-dist = [
     { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=2.1.0,<3.0.0" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fplugin-registry-runtime-extensions" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
-    { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], specifier = ">=2.113.0,<3.0.0" },
+    { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], git = "https://github.com/DS4SD/docling.git?branch=cau%2Fgeneric-source-coordinates-support" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
     { name = "fastapi", extras = ["standard"], specifier = "<0.137.0" },
     { name = "flash-attn", marker = "sys_platform == 'linux' and extra == 'flash-attn'", specifier = "~=2.8.2" },
@@ -2191,8 +2187,8 @@ rocm72 = [
 
 [[package]]
 name = "docling-slim"
-version = "2.113.0"
-source = { registry = "https://pypi.org/simple" }
+version = "2.114.0"
+source = { git = "https://github.com/DS4SD/docling.git?branch=cau%2Fgeneric-source-coordinates-support#9c6c7e598d204acff43bd1f15921e94296d5166e" }
 dependencies = [
     { name = "certifi" },
     { name = "docling-core" },
@@ -2202,10 +2198,6 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "requests" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/22/35/149f23813b0df840945c99a2789f0a749431a23a6846d4da132de4bbda40/docling_slim-2.113.0.tar.gz", hash = "sha256:34135ce73e82cce494483133752f54d97391351d4faa49fbf66c6058eb18329d", size = 522700, upload-time = "2026-07-14T10:44:56.786Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/bf/5e284e05b6413bb3318c52eb095a50f37f1dae8c65dcfdde939e5ba04b1b/docling_slim-2.113.0-py3-none-any.whl", hash = "sha256:5a2446c8add5e2af8968387240727a89a1a7c5ebea97d82dab9d7866edfb9e04", size = 656027, upload-time = "2026-07-14T10:44:54.929Z" },
 ]
 
 [package.optional-dependencies]

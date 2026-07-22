@@ -47,7 +47,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_DEBUG_ERROR_DETAILS` | `false` | If enabled, raw internal exception detail is returned for debugging. When `false`, infrastructure-origin error details are sanitized in public HTTP/task surfaces. |
 |  | `DOCLING_SERVE_ENABLE_REMOTE_SERVICES` | `false` | Allow pipeline components making remote connections. For example, this is needed when using a vision-language model via APIs. |
-|  | `DOCLING_SERVE_ALLOW_EXTERNAL_PLUGINS` | `false` | Allow the selection of third-party plugins. |
+|  | `DOCLING_SERVE_ALLOW_EXTERNAL_PLUGINS` | `false` | Allow registered third-party plugins. Connector packages must be installed in every API and worker process. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Allow users to specify a fully custom VLM pipeline configuration (`vlm_pipeline_custom_config`). When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_DESCRIPTION_CONFIG` | `false` | Allow users to specify a fully custom picture description configuration. When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_CODE_FORMULA_CONFIG` | `false` | Allow users to specify a fully custom code/formula configuration. When `false`, only presets are accepted. |
@@ -56,7 +56,8 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` | `604800` (7 days) | The maximum time for processing a document. |
 |  | `DOCLING_SERVE_MAX_NUM_PAGES` |  | The maximum number of pages for a document to be processed. |
 |  | `DOCLING_SERVE_MAX_FILE_SIZE` |  | The maximum file size for a document to be processed. |
-|  | `DOCLING_SERVE_ALLOWED_TARGET_TYPES` | `null` (all allowed) | List of allowed target kinds. Accepts JSON array or comma-separated string. Use this to block specific response targets such as `inbody`, `zip`, `presigned_url`, `s3`, or `put`. |
+|  | `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` | `null` (built-in API sources) | List of allowed batch source kinds. Accepts a JSON array or comma-separated string. Registered plugin sources require explicit inclusion; `local_path` is never available remotely. |
+|  | `DOCLING_SERVE_ALLOWED_TARGET_TYPES` | `null` (built-in API targets) | List of allowed target kinds. Accepts a JSON array or comma-separated string. Registered plugin targets require explicit inclusion and artifact result mode; `local_path` is never available remotely. |
 |  | `DOCLING_SERVE_SYNC_POLL_INTERVAL` | `2` | Number of seconds to sleep between polling the task status in the sync endpoints. |
 |  | `DOCLING_SERVE_MAX_SYNC_WAIT` | `120` | Max number of seconds a synchronous endpoint is waiting for the task completion. |
 |  | `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` | `True` | If enabled, the models for the default options will be loaded at boot. |

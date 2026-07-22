@@ -194,8 +194,8 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
-# docling-slim = { git = "https://github.com/docling-project/docling/", branch = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
+docling-slim = { git = "https://github.com/DS4SD/docling.git", branch = "cau/generic-source-coordinates-support" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit.git", branch = "cau/plugin-registry-runtime-extensions" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]

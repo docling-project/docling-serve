@@ -27,6 +27,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (
     get_redoc_html,
@@ -53,14 +54,10 @@ from docling.datamodel.service.options import (
     ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
 )
 from docling.datamodel.service.requests import (
-    AzureBlobSourceRequest,
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
     FileSourceRequest,
     GenericChunkDocumentsRequest,
-    GoogleCloudStorageSourceRequest,
-    GoogleDriveSourceRequest,
-    S3SourceRequest,
     TargetName,
     TargetRequest,
     make_request_model,
@@ -78,20 +75,17 @@ from docling.datamodel.service.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
-from docling.datamodel.service.sources import (
-    AzureBlobCoordinates,
-    FileSource,
-    GoogleCloudStorageCoordinates,
-    GoogleDriveCoordinates,
-    HttpSource,
-    S3Coordinates,
-)
+from docling.datamodel.service.sources import FileSource, HttpSource
 from docling.datamodel.service.targets import (
     InBodyTarget,
     PresignedUrlTarget,
     ZipTarget,
 )
 from docling.datamodel.service.tasks import TaskType
+from docling_jobkit.connectors.errors import (
+    SourceConnectorConfigError,
+    TargetConnectorConfigError,
+)
 from docling_jobkit.datamodel.chunking import ChunkingExportOptions
 from docling_jobkit.datamodel.stored_outcome import (
     StoredFailureOutcome,
@@ -115,6 +109,7 @@ from docling_serve.otel_instrumentation import (
     setup_otel_instrumentation,
 )
 from docling_serve.policy import (
+    build_batch_request_model,
     build_service_policy,
     normalize_convert_options,
     normalize_request,
@@ -272,6 +267,7 @@ def create_app():  # noqa: C901
         __base__=ConvertSourcesRequest,
         target=(TargetRequest, default_target),
     )
+    BatchConvertSourcesRequestModel = build_batch_request_model(service_policy)
 
     app = FastAPI(
         title="Docling Serve",
@@ -290,6 +286,24 @@ def create_app():  # noqa: C901
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "Server is busy, please try again shortly."},
             headers={"Retry-After": "1"},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        del request
+        errors = [
+            {
+                key: value
+                for key, value in error.items()
+                if key in {"loc", "msg", "type"}
+            }
+            for error in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"detail": errors},
         )
 
     if docling_serve_settings.eng_kind == AsyncEngine.RAY:
@@ -449,24 +463,31 @@ def create_app():  # noqa: C901
         ),
         tenant_id: str | None = None,
     ) -> Task:
-        sources: list[TaskSource] = []
-        for s in request.sources:
-            if isinstance(s, FileSourceRequest):
-                sources.append(FileSource.model_validate(s))
-            elif isinstance(s, HttpSource):
-                sources.append(HttpSource.model_validate(s))
-            elif isinstance(s, S3SourceRequest):
-                sources.append(S3Coordinates.model_validate(s))
-            elif isinstance(s, AzureBlobSourceRequest):
-                sources.append(AzureBlobCoordinates.model_validate(s))
-            elif isinstance(s, GoogleCloudStorageSourceRequest):
-                sources.append(GoogleCloudStorageCoordinates.model_validate(s))
-            elif isinstance(s, GoogleDriveSourceRequest):
-                sources.append(GoogleDriveCoordinates.model_validate(s))
+        target = request.target
+        sources: list[TaskSource]
+        try:
+            if isinstance(request, BatchConvertSourcesRequest):
+                sources = [
+                    service_policy.source_factory.validate_config(source)
+                    for source in request.sources
+                ]
+                target = service_policy.target_factory.validate_config(request.target)
             else:
-                # Guard against a source kind being added to the request union
-                # without a mapping here (would otherwise be silently dropped).
-                raise RuntimeError(f"Unsupported source kind: {type(s).__name__}")
+                sources = []
+                for source in request.sources:
+                    if isinstance(source, FileSourceRequest):
+                        sources.append(FileSource.model_validate(source))
+                    elif isinstance(source, HttpSource):
+                        sources.append(HttpSource.model_validate(source))
+                    else:
+                        raise RuntimeError(
+                            f"Unsupported source kind: {type(source).__name__}"
+                        )
+        except (SourceConnectorConfigError, TargetConnectorConfigError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
 
         convert_options: ConvertDocumentsRequestOptions
         chunking_options: BaseChunkerOptions | None = None
@@ -502,7 +523,7 @@ def create_app():  # noqa: C901
             convert_options=convert_options,
             chunking_options=chunking_options,
             chunking_export_options=chunking_export_options,
-            target=request.target,
+            target=target,
             callbacks=request.callbacks,
             metadata=task_metadata,
         )
@@ -710,6 +731,8 @@ def create_app():  # noqa: C901
     def downgrade_openapi31_to_30(spec):
         def strip_unsupported(obj):
             if isinstance(obj, dict):
+                if "const" in obj and "enum" not in obj:
+                    obj = {**obj, "enum": [obj["const"]]}
                 obj = {
                     k: strip_unsupported(v)
                     for k, v in obj.items()
@@ -998,7 +1021,7 @@ def create_app():  # noqa: C901
     async def process_source_batch(
         auth: Annotated[AuthenticationResult, Depends(require_auth)],
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        conversion_request: BatchConvertSourcesRequest,
+        conversion_request: BatchConvertSourcesRequestModel,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
