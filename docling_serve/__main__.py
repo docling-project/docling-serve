@@ -32,7 +32,7 @@ def version_callback(value: bool) -> None:
     if value:
         docling_serve_version = importlib.metadata.version("docling-serve")
         docling_jobkit_version = importlib.metadata.version("docling-jobkit")
-        docling_version = importlib.metadata.version("docling")
+        docling_version = importlib.metadata.version("docling-slim")
         docling_core_version = importlib.metadata.version("docling-core")
         docling_ibm_models_version = importlib.metadata.version("docling-ibm-models")
         docling_parse_version = importlib.metadata.version("docling-parse")
