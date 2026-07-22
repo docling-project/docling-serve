@@ -56,7 +56,6 @@ from docling.datamodel.service.options import (
 from docling.datamodel.service.requests import (
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
-    FileSourceRequest,
     GenericChunkDocumentsRequest,
     TargetName,
     TargetRequest,
@@ -75,7 +74,6 @@ from docling.datamodel.service.responses import (
     TaskStatusResponse,
     WebsocketMessage,
 )
-from docling.datamodel.service.sources import FileSource, HttpSource
 from docling.datamodel.service.targets import (
     InBodyTarget,
     PresignedUrlTarget,
@@ -466,23 +464,19 @@ def create_app():  # noqa: C901
         target = request.target
         sources: list[TaskSource]
         try:
+            # Normalize every source to its concrete, kind-bearing registry model so
+            # it survives the internal Task resolver the orchestrator runs at enqueue.
+            # Non-batch file/http requests are registered connectors too, so they take
+            # the same path — stripping them to kind-less FileSource/HttpSource here
+            # would make that resolver reject them. InBody/Zip targets are left as-is
+            # (the Task resolver handles those); only batch normalizes its storage
+            # target through the registry.
+            sources = [
+                service_policy.source_factory.validate_config(source)
+                for source in request.sources
+            ]
             if isinstance(request, BatchConvertSourcesRequest):
-                sources = [
-                    service_policy.source_factory.validate_config(source)
-                    for source in request.sources
-                ]
                 target = service_policy.target_factory.validate_config(request.target)
-            else:
-                sources = []
-                for source in request.sources:
-                    if isinstance(source, FileSourceRequest):
-                        sources.append(FileSource.model_validate(source))
-                    elif isinstance(source, HttpSource):
-                        sources.append(HttpSource.model_validate(source))
-                    else:
-                        raise RuntimeError(
-                            f"Unsupported source kind: {type(source).__name__}"
-                        )
         except (SourceConnectorConfigError, TargetConnectorConfigError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

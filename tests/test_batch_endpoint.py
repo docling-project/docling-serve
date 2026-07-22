@@ -25,7 +25,7 @@ from docling_jobkit.connectors.connector_factory import (
 )
 from docling_jobkit.connectors.source_processor import BaseSourceProcessor
 from docling_jobkit.connectors.target_processor import BaseTargetProcessor
-from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task import Task, validate_task
 from docling_jobkit.datamodel.task_meta import TaskStatus
 
 
@@ -646,3 +646,29 @@ async def test_default_schema_excludes_plugins_and_local_path(app):
     assert "plugin_source" not in schema
     assert "plugin_artifact" not in schema
     assert "local_path" not in schema
+
+
+@pytest.mark.asyncio
+async def test_non_batch_convert_enqueues_kind_bearing_sources(app, fake_orchestrator):
+    # The fake orchestrator bypasses validate_task, so assert the enqueued sources
+    # survive the real Task resolver the local/RQ/Ray orchestrators run at enqueue.
+    # A kind-less FileSource/HttpSource (the pre-fix output) fails that resolver.
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/source/async",
+            json={
+                "sources": [
+                    {"kind": "http", "url": "https://example.com/a.pdf"},
+                    {"kind": "file", "base64_string": "aGVsbG8=", "filename": "a.pdf"},
+                ],
+                "target": {"kind": "inbody"},
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    sources = fake_orchestrator.enqueued[0]["sources"]
+    assert [getattr(s, "kind", None) for s in sources] == ["http", "file"]
+    # Reconstructs without raising "requires a non-empty string `kind`".
+    validate_task({"task_id": "t", "sources": sources, "target": {"kind": "inbody"}})
