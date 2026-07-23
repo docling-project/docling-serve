@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import typing
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Annotated, Any, TypeVar, Union, get_args
 
 from fastapi import HTTPException, status
+from pydantic import BaseModel, Field, create_model
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
@@ -12,6 +12,8 @@ from docling.datamodel.service.requests import (
     BatchConvertSourcesRequest,
     BatchSourceRequestItem,
     ConvertSourcesRequest,
+    KnownBatchSourceRequestItem,
+    KnownBatchTargetRequest,
     SourceRequestItem,
     TargetRequest,
 )
@@ -21,27 +23,33 @@ from docling.datamodel.service.targets import (
 )
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
+from docling_jobkit.connectors.connector_factory import (
+    SourceConnectorFactory,
+    TargetConnectorFactory,
+    get_source_connector_factory,
+    get_target_connector_factory,
+)
 
 from docling_serve.settings import DoclingServeSettings
 
-ALL_TARGET_TYPES = frozenset(
-    {
-        "inbody",
-        "zip",
-        "s3",
-        "azure_blob",
-        "google_cloud_storage",
-        "google_drive",
-        "put",
-        "presigned_url",
-    }
-)
+
+def _models_by_kind(annotation: Any) -> dict[str, type[BaseModel]]:
+    """Concrete discriminator models from a possibly nested annotation."""
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        kind = annotation.model_fields.get("kind")
+        return (
+            {kind.default: annotation} if kind and isinstance(kind.default, str) else {}
+        )
+
+    models: dict[str, type[BaseModel]] = {}
+    for member in get_args(annotation):
+        models.update(_models_by_kind(member))
+    return models
 
 
-def _source_kinds(annotated: Any) -> frozenset[str]:
-    """Discriminator ``kind`` literals of an ``Annotated[Union[...], ...]`` alias."""
-    union = typing.get_args(annotated)[0]  # strip Annotated -> Union
-    return frozenset(m.model_fields["kind"].default for m in typing.get_args(union))
+def _source_kinds(annotation: Any) -> frozenset[str]:
+    """Discriminator kinds from nested source unions."""
+    return frozenset(_models_by_kind(annotation))
 
 
 # Derived from the endpoint source unions so it can never drift past what the
@@ -49,36 +57,42 @@ def _source_kinds(annotated: Any) -> frozenset[str]:
 ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
     BatchSourceRequestItem
 )
+ALL_TARGET_TYPES = _source_kinds(TargetRequest)
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
 )
 
-# Source kinds that can expand into many documents (bucket/drive traversal). Such
-# a source must write results to a storage target rather than an in-response
-# manifest that would have to list every produced artifact.
-EXPANDABLE_SOURCE_KINDS = frozenset(
-    {"s3", "azure_blob", "google_cloud_storage", "google_drive"}
-)
-# Targets that stream documents out to storage without an in-response manifest.
-STORAGE_TARGET_KINDS = frozenset(
-    {"s3", "azure_blob", "google_cloud_storage", "google_drive"}
-)
+_REMOTE_EXCLUDED_SOURCE_KINDS = frozenset({"local_path"})
+_REMOTE_EXCLUDED_TARGET_KINDS = frozenset({"local_path"})
 
 
-def validate_source_target_pairing(sources: list[Any], target: Any) -> None:
+def validate_source_target_pairing(
+    sources: list[Any], target: Any, policy: ServicePolicy
+) -> None:
     """Reject expandable sources paired with a non-storage target.
 
     Bucket/drive sources can fan out into many documents, so their results must
     go to a storage target that writes each document out directly. Non-expandable
     sources (file/http) may use any target, including storage targets.
     """
-    expandable = sorted({s.kind for s in sources if s.kind in EXPANDABLE_SOURCE_KINDS})
-    if expandable and target.kind not in STORAGE_TARGET_KINDS:
+    expandable = sorted(
+        {
+            source.kind
+            for source in sources
+            if policy.source_factory.supports(source.kind)
+            and policy.source_factory.is_expandable(source)
+        }
+    )
+    is_artifact_target = (
+        policy.target_factory.supports(target)
+        and policy.target_factory.result_mode(target) == "artifacts"
+    )
+    if expandable and not is_artifact_target:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"sources of kind {expandable} can expand into multiple documents "
-                f"and require a storage target (one of {sorted(STORAGE_TARGET_KINDS)}); "
+                "and require a storage target with artifact result mode; "
                 f"got target kind '{target.kind}'."
             ),
         )
@@ -97,6 +111,99 @@ class ServicePolicy:
     artifact_storage_enabled: bool
     max_sources_per_request: int
     allowed_image_export_modes: frozenset[str]
+    source_factory: SourceConnectorFactory
+    target_factory: TargetConnectorFactory
+
+
+def _configured_types(
+    configured: list[str] | None,
+    *,
+    defaults: frozenset[str],
+    available: frozenset[str],
+    setting: str,
+) -> frozenset[str]:
+    if configured is None:
+        return defaults
+
+    requested = frozenset(configured)
+    unavailable = requested - available
+    if unavailable:
+        raise ValueError(f"{setting} contains unavailable kinds: {sorted(unavailable)}")
+    return requested
+
+
+def _artifact_target_models(
+    factory: TargetConnectorFactory,
+) -> dict[str, type[BaseModel]]:
+    return {
+        kind: model
+        for kind, model in factory.registered_config_types_by_kind.items()
+        if kind not in _REMOTE_EXCLUDED_TARGET_KINDS
+        and factory.result_mode_for_kind(kind) == "artifacts"
+    }
+
+
+def _closed_union(models: dict[str, type[BaseModel]]) -> Any:
+    members = tuple(models.values())
+    if not members:
+        return type(None)
+    if len(members) == 1:
+        return members[0]
+    return Annotated[Union[members], Field(discriminator="kind")]  # type: ignore[valid-type]
+
+
+def build_batch_request_model(
+    policy: ServicePolicy,
+) -> type[BatchConvertSourcesRequest]:
+    """Build the closed batch request model advertised by this deployment."""
+    known_batch_sources = _models_by_kind(KnownBatchSourceRequestItem)
+    all_known_sources = _models_by_kind(SourceRequestItem) | known_batch_sources
+    source_models = {
+        kind: model
+        for kind, model in known_batch_sources.items()
+        if kind in policy.allowed_source_types
+    }
+    source_models.update(
+        {
+            kind: model
+            for kind, model in policy.source_factory.registered_config_types_by_kind.items()
+            if kind in policy.allowed_source_types
+            and kind not in all_known_sources
+            and kind not in _REMOTE_EXCLUDED_SOURCE_KINDS
+        }
+    )
+
+    known_batch_targets = _models_by_kind(KnownBatchTargetRequest)
+    target_models = {
+        kind: model
+        for kind, model in known_batch_targets.items()
+        if kind in policy.allowed_target_types
+    }
+    target_models.update(
+        {
+            kind: model
+            for kind, model in _artifact_target_models(policy.target_factory).items()
+            if kind in policy.allowed_target_types and kind not in ALL_TARGET_TYPES
+        }
+    )
+    for kind, connector_model in (source_models | target_models).items():
+        try:
+            connector_model.model_json_schema()
+        except Exception as exc:
+            raise ValueError(
+                f"Connector kind {kind!r} cannot produce JSON Schema."
+            ) from exc
+
+    source_union = _closed_union(source_models)
+    target_union = _closed_union(target_models)
+    model = create_model(
+        "BatchConvertSourcesRequest",
+        __base__=BatchConvertSourcesRequest,
+        sources=(list[source_union], Field(min_length=1)),  # type: ignore[valid-type]
+        target=(target_union, ...),
+    )
+    model.model_json_schema()
+    return model
 
 
 def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
@@ -108,18 +215,26 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = registered_ocr_presets
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
-    if settings.allowed_source_types is None:
-        allowed_source_types = ALL_SOURCE_TYPES
-    else:
-        allowed_source_types = (
-            frozenset(settings.allowed_source_types) & ALL_SOURCE_TYPES
-        )
-    if settings.allowed_target_types is None:
-        allowed_target_types = ALL_TARGET_TYPES
-    else:
-        allowed_target_types = (
-            frozenset(settings.allowed_target_types) & ALL_TARGET_TYPES
-        )
+    source_factory = get_source_connector_factory(settings.allow_external_plugins)
+    target_factory = get_target_connector_factory(settings.allow_external_plugins)
+    available_source_types = (
+        ALL_SOURCE_TYPES | frozenset(source_factory.registered_kinds)
+    ) - _REMOTE_EXCLUDED_SOURCE_KINDS
+    available_target_types = (
+        ALL_TARGET_TYPES | frozenset(_artifact_target_models(target_factory))
+    ) - _REMOTE_EXCLUDED_TARGET_KINDS
+    allowed_source_types = _configured_types(
+        settings.allowed_source_types,
+        defaults=ALL_SOURCE_TYPES,
+        available=available_source_types,
+        setting="allowed_source_types",
+    )
+    allowed_target_types = _configured_types(
+        settings.allowed_target_types,
+        defaults=ALL_TARGET_TYPES,
+        available=available_target_types,
+        setting="allowed_target_types",
+    )
 
     # Determine allowed image export modes
     if settings.allowed_image_export_modes is None:
@@ -144,6 +259,8 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
+        source_factory=source_factory,
+        target_factory=target_factory,
     )
 
 
@@ -310,7 +427,7 @@ def validate_convert_request(
                 ),
             )
 
-    validate_source_target_pairing(request.sources, request.target)
+    validate_source_target_pairing(request.sources, request.target, policy)
 
 
 def validate_batch_convert_request(
@@ -344,7 +461,7 @@ def validate_batch_convert_request(
                 ),
             )
 
-    validate_source_target_pairing(request.sources, request.target)
+    validate_source_target_pairing(request.sources, request.target, policy)
 
 
 def validate_chunk_request(
@@ -366,4 +483,4 @@ def validate_chunk_request(
             detail="presigned_url target is not supported for chunk endpoints.",
         )
 
-    validate_source_target_pairing(request.sources, request.target)
+    validate_source_target_pairing(request.sources, request.target, policy)

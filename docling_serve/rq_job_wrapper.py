@@ -11,7 +11,7 @@ from opentelemetry.trace import SpanKind, Status, StatusCode
 from rq import get_current_job
 
 from docling_jobkit.convert.manager import DoclingConverterManager
-from docling_jobkit.datamodel.task import Task
+from docling_jobkit.datamodel.task import Task, validate_task
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestratorConfig
 from docling_jobkit.orchestrators.rq.worker import _run_docling_task
 
@@ -37,7 +37,10 @@ def instrumented_docling_task(
     job = get_current_job()
     assert job is not None
 
-    task = Task.model_validate(task_data)
+    task = validate_task(
+        task_data,
+        allow_external_plugins=orchestrator_config.allow_external_plugins,
+    )
     task_id = task.task_id
 
     # Extract parent trace context from job metadata
