@@ -1898,7 +1898,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "2.1.0"
-source = { git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fplugin-registry-runtime-extensions#5aa36575c363968ba23b17e2c5d35ab11b361316" }
+source = { git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fplugin-registry-runtime-extensions#e9ade1f44e520482667a46a4726b1c83a3ea1855" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
