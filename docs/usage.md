@@ -11,8 +11,8 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `pptx`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `mets_gbs`, `json_docling`, `audio`, `vtt`, `latex`, `email`, `epub`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`. Optional, defaults to Markdown. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`. Optional, defaults to all formats. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
@@ -81,8 +81,9 @@ On top of the source of file (see below), both endpoints support the same parame
 | `api_overrides` | Dict[VlmEngineType, ApiModelConfig] | API-specific configuration overrides |
 | `trust_remote_code` | bool | Whether to trust remote code for this model |
 | `stop_strings` | List[str] | Stop strings for generation |
+| `temperature` | float | Sampling temperature for generation |
 | `max_new_tokens` | int | Maximum number of new tokens to generate |
-| `temperature` | float | Sampling temperature for generation. 0.0 uses greedy decoding. |
+| `extra_generation_config` | Dict[str, Any] | Additional generation configuration |
 
 <h4>BaseVlmEngineOptions</h4>
 
@@ -173,6 +174,43 @@ On top of the source of file (see below), both endpoints support the same parame
 ### Authentication
 
 When authentication is activated (see the parameter `DOCLING_SERVE_API_KEY` in [configuration.md](./configuration.md)), all the API requests **must** provide the header `X-Api-Key` with the correct secret key.
+
+### Batch connector plugins
+
+`DoclingServiceClient.submit_batch()` accepts mappings for connector source and
+artifact-target kinds that the installed SDK does not know:
+
+```python
+job = client.submit_batch(
+    sources=[
+        {
+            "kind": "filenet",
+            "base_url": "https://filenet.example.com/graphql",
+            "username": "user",
+            "api_key": "secret",
+            "repository_id": "OS1",
+            "folder_id": "/incoming",
+        }
+    ],
+    target={
+        "kind": "plugin_artifact_store",
+        "bucket": "converted",
+        "prefix": "results/",
+        "api_key": "secret",
+    },
+)
+```
+
+The SDK's generic models only preserve and serialize these mappings. The running
+server validates them against the concrete connector models installed in that
+deployment. Configure both `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` and
+`DOCLING_SERVE_ALLOWED_TARGET_TYPES`; third-party connectors also require
+`DOCLING_SERVE_ALLOW_EXTERNAL_PLUGINS=true`.
+
+Install the same connector package versions in every API and Local, RQ, or Ray
+worker process, and keep their Docling, Jobkit, and Serve versions aligned. The
+running deployment's `/openapi.json` lists its enabled concrete connector
+schemas. Plugin installation or policy changes appear there only after restart.
 
 ## Convert endpoints
 

@@ -11,7 +11,6 @@ import uvicorn
 from rich.console import Console
 
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
-from docling_serve.storage import get_scratch
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
 warnings.filterwarnings(action="ignore", category=FutureWarning, module="easyocr")
@@ -32,7 +31,7 @@ def version_callback(value: bool) -> None:
     if value:
         docling_serve_version = importlib.metadata.version("docling-serve")
         docling_jobkit_version = importlib.metadata.version("docling-jobkit")
-        docling_version = importlib.metadata.version("docling")
+        docling_version = importlib.metadata.version("docling-slim")
         docling_core_version = importlib.metadata.version("docling-core")
         docling_ibm_models_version = importlib.metadata.version("docling-ibm-models")
         docling_parse_version = importlib.metadata.version("docling-parse")
@@ -388,13 +387,10 @@ def rq_worker() -> Any:
     from docling_jobkit.convert.manager import (
         DoclingConverterManagerConfig,
     )
-    from docling_jobkit.orchestrators.rq.orchestrator import (
-        RQOrchestrator,
-        RQOrchestratorConfig,
-    )
+    from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
     from docling_serve.logging_config import setup_logging
-    from docling_serve.orchestrator_factory import _build_s3_presigned_config
+    from docling_serve.orchestrator_factory import _build_rq_config
     from docling_serve.rq_instrumentation import setup_rq_worker_instrumentation
     from docling_serve.rq_worker_instrumented import InstrumentedRQWorker
 
@@ -414,23 +410,7 @@ def rq_worker() -> Any:
     if docling_serve_settings.otel_enable_traces:
         setup_rq_worker_instrumentation()
 
-    rq_config = RQOrchestratorConfig(
-        redis_url=docling_serve_settings.eng_rq_redis_url,
-        queue_name=docling_serve_settings.eng_rq_queue_name,
-        results_prefix=docling_serve_settings.eng_rq_results_prefix,
-        sub_channel=docling_serve_settings.eng_rq_sub_channel,
-        scratch_dir=get_scratch(),
-        results_ttl=docling_serve_settings.eng_rq_results_ttl,
-        failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
-        redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
-        redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
-        redis_socket_connect_timeout=docling_serve_settings.eng_rq_redis_socket_connect_timeout,
-        redis_gate_concurrency=docling_serve_settings.eng_rq_redis_gate_concurrency,
-        redis_gate_reserved_connections=docling_serve_settings.eng_rq_redis_gate_reserved_connections,
-        redis_gate_wait_timeout=docling_serve_settings.eng_rq_redis_gate_wait_timeout,
-        redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_rq_redis_gate_status_poll_wait_timeout,
-        s3_presigned_config=_build_s3_presigned_config(),
-    )
+    rq_config = _build_rq_config()
 
     cm_config = DoclingConverterManagerConfig(
         artifacts_path=docling_serve_settings.artifacts_path,

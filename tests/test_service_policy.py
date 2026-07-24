@@ -1,19 +1,37 @@
+from typing import Annotated, Literal
+
 import pytest
 from fastapi import HTTPException
-from pydantic import ValidationError
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
+    AzureBlobSourceRequest,
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
+    FileSourceRequest,
+    GoogleCloudStorageSourceRequest,
+    GoogleDriveSourceRequest,
     HttpSourceRequest,
     S3SourceRequest,
 )
-from docling.datamodel.service.targets import InBodyTarget, PresignedUrlTarget, S3Target
+from docling.datamodel.service.targets import (
+    AzureBlobTarget,
+    GoogleCloudStorageTarget,
+    GoogleDriveTarget,
+    InBodyTarget,
+    PresignedUrlTarget,
+    S3Target,
+)
+from docling_jobkit.connectors.connector_factory import SourceConnectorFactory
+from docling_jobkit.connectors.source_processor import BaseSourceProcessor
 
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
+    ALL_SOURCE_TYPES,
     ALL_TARGET_TYPES,
+    _source_kinds,
+    build_batch_request_model,
     build_service_policy,
     normalize_convert_options,
     normalize_request,
@@ -135,7 +153,7 @@ def test_validate_convert_options_allows_configured_image_mode():
     )
 
     # Should reject others
-    with pytest.raises(HTTPException, match="image_export_mode.*not allowed"):
+    with pytest.raises(HTTPException, match=r"image_export_mode.*not allowed"):
         validate_convert_options(
             ConvertDocumentsOptions(image_export_mode="referenced"), policy
         )
@@ -258,7 +276,7 @@ def test_validate_batch_convert_request_rejects_s3_source_with_presigned_target(
         validate_batch_convert_request(request, policy)
 
     assert exc_info.value.status_code == 422
-    assert "S3 sources require an S3 target" in exc_info.value.detail
+    assert "require a storage target" in exc_info.value.detail
 
 
 def test_validate_batch_convert_request_allows_s3_source_with_s3_target():
@@ -272,6 +290,39 @@ def test_validate_batch_convert_request_allows_s3_source_with_s3_target():
                 bucket="bucket",
             )
         ],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        AzureBlobSourceRequest(
+            account_name="acct",
+            container="incoming",
+            connection_string="UseDevelopmentStorage=true",
+        ),
+        GoogleCloudStorageSourceRequest(bucket="incoming"),
+        GoogleDriveSourceRequest(
+            path_id="folder-123",
+            refresh_token="refresh-token",
+            credentials_path="/tmp/client-secret.json",
+        ),
+    ],
+)
+def test_validate_batch_convert_request_allows_new_expandable_sources_with_storage_target(
+    source,
+):
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[source],
         target=S3Target(
             endpoint="s3.example.com",
             access_key="key",
@@ -305,6 +356,32 @@ def test_validate_batch_convert_request_allows_http_source_with_s3_target():
     validate_batch_convert_request(request, policy)
 
 
+@pytest.mark.parametrize(
+    "target",
+    [
+        AzureBlobTarget(
+            account_name="acct",
+            container="converted",
+            connection_string="UseDevelopmentStorage=true",
+        ),
+        GoogleCloudStorageTarget(bucket="converted"),
+        GoogleDriveTarget(
+            path_id="folder-123",
+            refresh_token="refresh-token",
+            credentials_path="/tmp/client-secret.json",
+        ),
+    ],
+)
+def test_validate_convert_request_allows_http_source_with_storage_target(target):
+    policy = build_service_policy(DoclingServeSettings())
+    request = ConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})],
+        target=target,
+    )
+
+    validate_convert_request(request, policy)
+
+
 def test_normalize_batch_convert_request_sets_default_timeout():
     policy = build_service_policy(DoclingServeSettings())
     request = BatchConvertSourcesRequest(
@@ -329,3 +406,114 @@ def test_validate_convert_request_rejects_disallowed_target_type():
 
     with pytest.raises(HTTPException, match="target kind 'inbody' is not allowed"):
         validate_convert_request(request, policy)
+
+
+def test_build_service_policy_allows_all_source_types_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    assert policy.allowed_source_types == ALL_SOURCE_TYPES
+    assert ALL_SOURCE_TYPES == frozenset(
+        {
+            "file",
+            "http",
+            "s3",
+            "azure_blob",
+            "google_cloud_storage",
+            "google_drive",
+        }
+    )
+
+
+def test_source_kinds_supports_nested_known_and_generic_union():
+    class KnownSource(BaseModel):
+        kind: Literal["known"] = "known"
+
+    class GenericSource(BaseModel):
+        kind: str
+
+    known = Annotated[KnownSource, Field(discriminator="kind")]
+    source = Annotated[known | GenericSource, BeforeValidator(lambda value: value)]
+
+    assert _source_kinds(source) == frozenset({"known"})
+
+
+@pytest.mark.parametrize("source_kind", ["ftp", "local_path"])
+def test_unavailable_allowed_source_type_fails_startup(source_kind):
+    with pytest.raises(ValueError, match=rf"allowed_source_types.*{source_kind}"):
+        build_service_policy(
+            DoclingServeSettings(allowed_source_types=["http", source_kind])
+        )
+
+
+def test_connector_without_json_schema_fails_startup(monkeypatch):
+    from docling_serve import policy as policy_module
+
+    class Unsupported:
+        pass
+
+    class BadSchemaSource(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+
+        kind: Literal["bad_schema"] = "bad_schema"
+        value: Unsupported
+
+    class BadSchemaProcessor(BaseSourceProcessor):
+        @classmethod
+        def get_config_types(cls):
+            return (BadSchemaSource,)
+
+    factory = SourceConnectorFactory()
+    factory.load_from_plugins()
+    factory.register(BadSchemaProcessor, "bad_plugin", __name__)
+    monkeypatch.setattr(
+        policy_module,
+        "get_source_connector_factory",
+        lambda allow_external_plugins=False: factory,
+    )
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_source_types=["bad_schema"])
+    )
+
+    with pytest.raises(ValueError, match=r"bad_schema.*JSON Schema"):
+        build_batch_request_model(policy)
+
+
+@pytest.mark.parametrize("target_kind", ["unknown", "local_path"])
+def test_unavailable_allowed_target_type_fails_startup(target_kind):
+    with pytest.raises(ValueError, match=rf"allowed_target_types.*{target_kind}"):
+        build_service_policy(DoclingServeSettings(allowed_target_types=[target_kind]))
+
+
+def test_validate_convert_request_rejects_disallowed_source_type():
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
+    request = ConvertSourcesRequest(
+        options=ConvertDocumentsOptions(),
+        sources=[FileSourceRequest(base64_string="", filename="a.pdf")],
+        target=InBodyTarget(),
+    )
+
+    with pytest.raises(HTTPException, match="source kind 'file' is not allowed"):
+        validate_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_rejects_disallowed_source_type():
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="bucket",
+            )
+        ],
+        target=S3Target(
+            endpoint="s3.example.com",
+            access_key="key",
+            secret_key="secret",
+            bucket="converted",
+        ),
+    )
+
+    with pytest.raises(HTTPException, match="source kind 's3' is not allowed"):
+        validate_batch_convert_request(request, policy)
