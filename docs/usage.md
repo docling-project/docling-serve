@@ -28,6 +28,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
+| `heading_hierarchy_options` | HeadingHierarchyOptions | Options for inferring section-header levels, for PDF and image inputs processed by the standard pipeline. Disabled by default, in which case every detected heading stays at level 1 and the document hierarchy is flat. When enabled, levels are inferred from the PDF bookmarks / table of contents, from outline numbering and from font style. |
 | `include_images` | bool | If enabled, picture element images are generated and included in the output. Boolean. Optional, defaults to true. |
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
@@ -168,6 +169,18 @@ On top of the source of file (see below), both endpoints support the same parame
 | `classification_allow` | List[PictureClassificationLabel] or NoneType | Only describe pictures whose predicted class is in this allow-list. |
 | `classification_deny` | List[PictureClassificationLabel] or NoneType | Do not describe pictures whose predicted class is in this deny-list. |
 | `classification_min_confidence` | float | Minimum classification confidence required before a picture can be described. |
+
+<h4>HeadingHierarchyOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `enabled` | bool | Enable inference of section-header levels for the PDF/image pipeline. When disabled (default), all detected headings remain at level 1 (unchanged behavior). |
+| `use_bookmarks` | bool | Use the PDF bookmarks / table-of-contents (when present) as the authoritative heading signal. Bookmarks are fuzzily matched to detected headings by title and page; confident matches win over numbering and style, and a confidently matched list-item is promoted to a heading. Unmatched entries fall back to numbering/style. |
+| `use_numbering` | bool | Use legal/outline numbering (e.g. PART I -> 1. -> 1.1 -> (a) -> (i), Roman vs Arabic numerals) as the primary signal for headings without a bookmark match. |
+| `use_style` | bool | Use font size (approximated from parsed PDF cell heights) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
+| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
+| `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
+| `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
 
 <!-- end: parameters-docs -->
 
