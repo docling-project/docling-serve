@@ -484,16 +484,18 @@ def test_unavailable_allowed_target_type_fails_startup(target_kind):
         build_service_policy(DoclingServeSettings(allowed_target_types=[target_kind]))
 
 
-def test_validate_convert_request_rejects_disallowed_source_type():
-    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
+def test_validate_convert_request_always_accepts_inline_source_kinds():
+    # file and http are inline kinds intrinsic to the convert endpoint schema;
+    # allowed_source_types must not block them even when they are absent from
+    # the configured list (which is intended to gate storage connectors).
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["s3"]))
     request = ConvertSourcesRequest(
         options=ConvertDocumentsOptions(),
         sources=[FileSourceRequest(base64_string="", filename="a.pdf")],
         target=InBodyTarget(),
     )
-
-    with pytest.raises(HTTPException, match="source kind 'file' is not allowed"):
-        validate_convert_request(request, policy)
+    # Must not raise — file is always allowed on the convert endpoint.
+    validate_convert_request(request, policy)
 
 
 def test_validate_batch_convert_request_rejects_disallowed_source_type():

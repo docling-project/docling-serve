@@ -57,6 +57,10 @@ def _source_kinds(annotation: Any) -> frozenset[str]:
 ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
     BatchSourceRequestItem
 )
+# Inline kinds live only in the convert-endpoint schema (SourceRequestItem).
+# They carry their payload in the request body and have no storage connector
+# equivalent, so they must never be blocked by allowed_source_types.
+_INLINE_SOURCE_KINDS = _source_kinds(SourceRequestItem)
 ALL_TARGET_TYPES = _source_kinds(TargetRequest)
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
@@ -157,11 +161,10 @@ def build_batch_request_model(
 ) -> type[BatchConvertSourcesRequest]:
     """Build the closed batch request model advertised by this deployment."""
     known_batch_sources = _models_by_kind(KnownBatchSourceRequestItem)
-    simple_convert_sources = _models_by_kind(SourceRequestItem)
-    all_known_sources = simple_convert_sources | known_batch_sources
+    all_known_sources = _models_by_kind(SourceRequestItem) | known_batch_sources
     source_models = {
         kind: model
-        for kind, model in (simple_convert_sources | known_batch_sources).items()
+        for kind, model in known_batch_sources.items()
         if kind in policy.allowed_source_types
     }
     source_models.update(
@@ -384,8 +387,12 @@ def validate_target_kind(target_kind: str, policy: ServicePolicy) -> None:
     )
 
 
-def validate_source_kinds(sources: Any, policy: ServicePolicy) -> None:
+def validate_source_kinds(
+    sources: Any, policy: ServicePolicy, *, skip_kinds: frozenset[str] = frozenset()
+) -> None:
     for source in sources:
+        if source.kind in skip_kinds:
+            continue
         if source.kind not in policy.allowed_source_types:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -400,7 +407,9 @@ def validate_convert_request(
     request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
-    validate_source_kinds(request.sources, policy)
+    # Inline kinds (file, http) are intrinsic to the convert endpoint schema and
+    # must not be blocked by allowed_source_types, which governs storage connectors.
+    validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
@@ -469,7 +478,9 @@ def validate_chunk_request(
     request: BaseChunkDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.convert_options, policy)
-    validate_source_kinds(request.sources, policy)
+    # Chunk endpoints share the same SourceRequestItem union as the convert endpoint;
+    # inline kinds must not be blocked by allowed_source_types here either.
+    validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
