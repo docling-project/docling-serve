@@ -484,17 +484,17 @@ def test_unavailable_allowed_target_type_fails_startup(target_kind):
         build_service_policy(DoclingServeSettings(allowed_target_types=[target_kind]))
 
 
-def test_validate_convert_request_always_accepts_inline_source_kinds():
-    # file and http are inline kinds intrinsic to the convert endpoint schema;
-    # allowed_source_types must not block them even when they are absent from
-    # the configured list (which is intended to gate storage connectors).
-    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["s3"]))
+def test_validate_convert_request_accepts_file_even_when_excluded_from_allowed_source_types():
+    # allowed_source_types governs storage connectors on the batch endpoint;
+    # inline kinds (file, http) are always accepted on the convert endpoint.
+    policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
     request = ConvertSourcesRequest(
         options=ConvertDocumentsOptions(),
         sources=[FileSourceRequest(base64_string="", filename="a.pdf")],
         target=InBodyTarget(),
     )
-    # Must not raise — file is always allowed on the convert endpoint.
+
+    # Must not raise even though "file" is absent from allowed_source_types.
     validate_convert_request(request, policy)
 
 
