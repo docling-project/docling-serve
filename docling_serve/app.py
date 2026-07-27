@@ -511,13 +511,14 @@ def create_app():  # noqa: C901
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
 
+        assert target is not None, "target must be set before enqueueing"
         task = await orchestrator.enqueue(
             task_type=task_type,
             sources=sources,
             convert_options=convert_options,
             chunking_options=chunking_options,
             chunking_export_options=chunking_export_options,
-            target=target,
+            targets=[target],
             callbacks=request.callbacks,
             metadata=task_metadata,
         )
@@ -572,7 +573,7 @@ def create_app():  # noqa: C901
             convert_options=convert_options,
             chunking_options=chunking_options,
             chunking_export_options=chunking_export_options,
-            target=target,
+            targets=[target],
             callbacks=callbacks or [],
             metadata=metadata,
         )

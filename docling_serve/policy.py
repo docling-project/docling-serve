@@ -89,11 +89,16 @@ def validate_source_target_pairing(
             and policy.source_factory.is_expandable(source)
         }
     )
-    is_artifact_target = (
-        policy.target_factory.supports(target)
-        and policy.target_factory.result_mode(target) == "artifacts"
+    result_mode = (
+        policy.target_factory.result_mode(target)
+        if policy.target_factory.supports(target)
+        else None
     )
-    if expandable and not is_artifact_target:
+    # Expandable sources require a target that can write one artifact per
+    # document ("artifacts" mode). Database targets accumulate rows rather than
+    # individual artifact files and do not support fan-out from expandable
+    # sources.
+    if expandable and result_mode != "artifacts":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
@@ -141,12 +146,32 @@ def _configured_types(
 def _artifact_target_models(
     factory: TargetConnectorFactory,
 ) -> dict[str, type[BaseModel]]:
+    """Return registered target kinds with 'artifacts' result mode."""
     return {
         kind: model
         for kind, model in factory.registered_config_types_by_kind.items()
         if kind not in _REMOTE_EXCLUDED_TARGET_KINDS
         and factory.result_mode_for_kind(kind) == "artifacts"
     }
+
+
+def _database_target_models(
+    factory: TargetConnectorFactory,
+) -> dict[str, type[BaseModel]]:
+    """Return registered target kinds with 'database' result mode."""
+    return {
+        kind: model
+        for kind, model in factory.registered_config_types_by_kind.items()
+        if kind not in _REMOTE_EXCLUDED_TARGET_KINDS
+        and factory.result_mode_for_kind(kind) == "database"
+    }
+
+
+def _storage_target_models(
+    factory: TargetConnectorFactory,
+) -> dict[str, type[BaseModel]]:
+    """Return all registered non-local target kinds (artifacts + database)."""
+    return _artifact_target_models(factory) | _database_target_models(factory)
 
 
 def _closed_union(models: dict[str, type[BaseModel]]) -> Any:
@@ -188,7 +213,7 @@ def build_batch_request_model(
     target_models.update(
         {
             kind: model
-            for kind, model in _artifact_target_models(policy.target_factory).items()
+            for kind, model in _storage_target_models(policy.target_factory).items()
             if kind in policy.allowed_target_types and kind not in ALL_TARGET_TYPES
         }
     )
@@ -227,7 +252,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         ALL_SOURCE_TYPES | frozenset(source_factory.registered_kinds)
     ) - _REMOTE_EXCLUDED_SOURCE_KINDS
     available_target_types = (
-        ALL_TARGET_TYPES | frozenset(_artifact_target_models(target_factory))
+        ALL_TARGET_TYPES | frozenset(_storage_target_models(target_factory))
     ) - _REMOTE_EXCLUDED_TARGET_KINDS
     allowed_source_types = _configured_types(
         settings.allowed_source_types,

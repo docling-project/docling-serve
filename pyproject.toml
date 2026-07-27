@@ -194,6 +194,10 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
+docling-slim = { git = "https://github.com/docling-project/docling/", rev = "feat-chunking-options-and-target" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "feat-chunk-db-targets-opensearch" }
+# docling-jobkit = { path = "../docling-jobkit", editable = true }
+
 [[tool.uv.index]]
 name = "pytorch-pypi"
 url = "https://pypi.org/simple"

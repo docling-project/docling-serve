@@ -371,6 +371,11 @@ class DoclingServeSettings(BaseSettings):
     custom_ocr_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_ocr_kinds: Optional[list[str]] = None
 
+    # Chunking Control
+    default_chunking_preset: str = "granite_embedding_278m"
+    allowed_chunking_presets: Optional[list[str]] = None
+    custom_chunking_presets: dict[str, Any] = Field(default_factory=dict)
+
     # Source / Target Control
     allowed_source_types: Optional[list[str]] = None
     allowed_target_types: Optional[list[str]] = None
@@ -404,6 +409,7 @@ class DoclingServeSettings(BaseSettings):
         "custom_table_structure_presets",
         "custom_layout_presets",
         "custom_ocr_presets",
+        "custom_chunking_presets",
         mode="before",
     )
     @classmethod
@@ -437,6 +443,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_layout_presets",
         "allowed_ocr_presets",
         "allowed_ocr_kinds",
+        "allowed_chunking_presets",
         "allowed_source_types",
         "allowed_target_types",
         "allowed_image_export_modes",
