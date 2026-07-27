@@ -484,7 +484,9 @@ def test_unavailable_allowed_target_type_fails_startup(target_kind):
         build_service_policy(DoclingServeSettings(allowed_target_types=[target_kind]))
 
 
-def test_validate_convert_request_rejects_disallowed_source_type():
+def test_validate_convert_request_accepts_file_even_when_excluded_from_allowed_source_types():
+    # allowed_source_types governs storage connectors on the batch endpoint;
+    # inline kinds (file, http) are always accepted on the convert endpoint.
     policy = build_service_policy(DoclingServeSettings(allowed_source_types=["http"]))
     request = ConvertSourcesRequest(
         options=ConvertDocumentsOptions(),
@@ -492,8 +494,8 @@ def test_validate_convert_request_rejects_disallowed_source_type():
         target=InBodyTarget(),
     )
 
-    with pytest.raises(HTTPException, match="source kind 'file' is not allowed"):
-        validate_convert_request(request, policy)
+    # Must not raise even though "file" is absent from allowed_source_types.
+    validate_convert_request(request, policy)
 
 
 def test_validate_batch_convert_request_rejects_disallowed_source_type():

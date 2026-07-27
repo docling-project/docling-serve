@@ -57,6 +57,12 @@ def _source_kinds(annotation: Any) -> frozenset[str]:
 ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
     BatchSourceRequestItem
 )
+# Kinds that are only reachable via the convert/chunk endpoint schema
+# (SourceRequestItem). They carry their payload inline in the request body and
+# have no storage-connector equivalent, so allowed_source_types — which is
+# intended to gate storage connectors on the batch endpoint — must not block
+# them on the convert/chunk endpoints.
+_INLINE_SOURCE_KINDS = _source_kinds(SourceRequestItem)
 ALL_TARGET_TYPES = _source_kinds(TargetRequest)
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
@@ -383,8 +389,15 @@ def validate_target_kind(target_kind: str, policy: ServicePolicy) -> None:
     )
 
 
-def validate_source_kinds(sources: Any, policy: ServicePolicy) -> None:
+def validate_source_kinds(
+    sources: Any,
+    policy: ServicePolicy,
+    *,
+    skip_kinds: frozenset[str] = frozenset(),
+) -> None:
     for source in sources:
+        if source.kind in skip_kinds:
+            continue
         if source.kind not in policy.allowed_source_types:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -399,7 +412,10 @@ def validate_convert_request(
     request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.options, policy)
-    validate_source_kinds(request.sources, policy)
+    # Inline kinds (file, http) are intrinsic to the convert/chunk endpoint
+    # schemas and must always be accepted there; allowed_source_types governs
+    # storage connectors on the batch endpoint.
+    validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
@@ -468,7 +484,7 @@ def validate_chunk_request(
     request: BaseChunkDocumentsRequest, policy: ServicePolicy
 ) -> None:
     validate_convert_options(request.convert_options, policy)
-    validate_source_kinds(request.sources, policy)
+    validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
     if request.callbacks and not policy.callbacks_enabled:
