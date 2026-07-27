@@ -672,3 +672,38 @@ async def test_non_batch_convert_enqueues_kind_bearing_sources(app, fake_orchest
     assert [getattr(s, "kind", None) for s in sources] == ["http", "file"]
     # Reconstructs without raising "requires a non-empty string `kind`".
     validate_task({"task_id": "t", "sources": sources, "target": {"kind": "inbody"}})
+
+
+@pytest.mark.asyncio
+async def test_batch_endpoint_accepts_file_source_with_s3_target(
+    app, fake_orchestrator
+):
+    # file kind (base64 inline) must now be accepted by the batch endpoint schema
+    # so that callers can submit inline documents alongside storage sources.
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/source/batch",
+            json={
+                "sources": [
+                    {
+                        "kind": "file",
+                        "base64_string": "aGVsbG8=",
+                        "filename": "a.pdf",
+                    }
+                ],
+                "target": {
+                    "kind": "s3",
+                    "endpoint": "s3.example.com",
+                    "access_key": "key",
+                    "secret_key": "secret",
+                    "bucket": "converted",
+                },
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    sources = fake_orchestrator.enqueued[0]["sources"]
+    assert len(sources) == 1
+    assert getattr(sources[0], "kind", None) == "file"

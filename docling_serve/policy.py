@@ -157,10 +157,11 @@ def build_batch_request_model(
 ) -> type[BatchConvertSourcesRequest]:
     """Build the closed batch request model advertised by this deployment."""
     known_batch_sources = _models_by_kind(KnownBatchSourceRequestItem)
-    all_known_sources = _models_by_kind(SourceRequestItem) | known_batch_sources
+    simple_convert_sources = _models_by_kind(SourceRequestItem)
+    all_known_sources = simple_convert_sources | known_batch_sources
     source_models = {
         kind: model
-        for kind, model in known_batch_sources.items()
+        for kind, model in (simple_convert_sources | known_batch_sources).items()
         if kind in policy.allowed_source_types
     }
     source_models.update(
