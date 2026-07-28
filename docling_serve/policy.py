@@ -94,11 +94,10 @@ def validate_source_target_pairing(
         if policy.target_factory.supports(target)
         else None
     )
-    # Expandable sources require a target that can write one artifact per
-    # document ("artifacts" mode). Database targets accumulate rows rather than
-    # individual artifact files and do not support fan-out from expandable
-    # sources.
-    if expandable and result_mode != "artifacts":
+    # Expandable sources require a storage-style target that can handle one or
+    # more outputs per discovered document. Both artifact storage targets and
+    # database targets satisfy that requirement.
+    if expandable and result_mode not in {"artifacts", "database"}:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(

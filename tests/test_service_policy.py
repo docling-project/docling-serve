@@ -38,6 +38,7 @@ from docling_serve.policy import (
     validate_batch_convert_request,
     validate_convert_options,
     validate_convert_request,
+    validate_source_target_pairing,
     validate_target_kind,
 )
 from docling_serve.settings import DoclingServeSettings
@@ -443,6 +444,23 @@ def test_unavailable_allowed_source_type_fails_startup(source_kind):
         build_service_policy(
             DoclingServeSettings(allowed_source_types=["http", source_kind])
         )
+
+
+def test_validate_source_target_pairing_allows_expandable_source_with_database_target():
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        options=ConvertDocumentsOptions(),
+        sources=[
+            AzureBlobSourceRequest(
+                connection_string="UseDevelopmentStorage=true", container="docs"
+            )
+        ],
+        target=AzureBlobTarget(
+            connection_string="UseDevelopmentStorage=true", container="results"
+        ),
+    )
+
+    validate_source_target_pairing(request.sources, request.target, policy)
 
 
 def test_connector_without_json_schema_fails_startup(monkeypatch):
