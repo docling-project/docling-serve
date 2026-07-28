@@ -36,7 +36,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import create_model
+from pydantic import TypeAdapter, ValidationError, create_model
 from scalar_fastapi import get_scalar_api_reference
 
 from docling.datamodel.base_models import DocumentStream
@@ -76,7 +76,6 @@ from docling.datamodel.service.responses import (
 )
 from docling.datamodel.service.targets import (
     InBodyTarget,
-    PresignedUrlTarget,
     ZipTarget,
 )
 from docling.datamodel.service.tasks import TaskType
@@ -158,6 +157,44 @@ _models_ready = asyncio.Event()
 # push delivery while polling still succeeds, which is otherwise very hard to
 # detect.
 _queue_processor_failed = asyncio.Event()
+
+_TARGET_REQUEST_ADAPTER: TypeAdapter[TargetRequest] = TypeAdapter(TargetRequest)
+
+
+def _parse_multipart_target(
+    *,
+    target: str | None,
+    target_type: str | None,
+    default_target: TargetRequest,
+) -> TargetRequest:
+    """Build a typed target from the multipart compatibility fields."""
+    if target is None:
+        target_payload: str | dict[str, str] = {
+            "kind": target_type or default_target.kind
+        }
+    else:
+        target_payload = target
+
+    try:
+        if isinstance(target_payload, str):
+            parsed_target = _TARGET_REQUEST_ADAPTER.validate_json(target_payload)
+        else:
+            parsed_target = _TARGET_REQUEST_ADAPTER.validate_python(target_payload)
+    except ValidationError as exc:
+        # Target payloads can contain credentials. Do not expose Pydantic's input
+        # rendering in the public response.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Invalid multipart target configuration.",
+        ) from exc
+
+    if target_type is not None and target_type != parsed_target.kind:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Multipart target_type must match target.kind.",
+        )
+
+    return parsed_target
 
 
 def _supervise_queue_processor(task: asyncio.Task, failed_event: asyncio.Event) -> None:
@@ -259,7 +296,6 @@ def create_app():  # noqa: C901
     # a concrete value it also flows into the OpenAPI schema automatically. The
     # subclass keeps the public "ConvertSourcesRequest" schema name.
     default_target = resolve_default_target(service_policy)
-    default_target_name = TargetName(default_target.kind)
     ConvertSourcesRequestModel = create_model(
         "ConvertSourcesRequest",
         __base__=ConvertSourcesRequest,
@@ -659,10 +695,13 @@ def create_app():  # noqa: C901
         validate_convert_options(normalized_options, service_policy)
         return normalized_options
 
+    def _validate_multipart_target(target: TargetRequest) -> None:
+        validate_target_kind(target.kind, service_policy)
+
     def _validate_multipart_target_type(target_type: TargetName) -> None:
         validate_target_kind(target_type.value, service_policy)
 
-    def _check_file_upload(files: list[UploadFile], target_type: TargetName) -> None:
+    def _check_file_upload(files: list[UploadFile], target: TargetRequest) -> None:
         if len(files) > service_policy.max_sources_per_request:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -672,7 +711,7 @@ def create_app():  # noqa: C901
                 ),
             )
         if (
-            target_type == TargetName.PRESIGNED_URL
+            target.kind == TargetName.PRESIGNED_URL.value
             and not service_policy.artifact_storage_enabled
         ):
             raise HTTPException(
@@ -682,13 +721,6 @@ def create_app():  # noqa: C901
                     "and enabled on the server."
                 ),
             )
-
-    def _resolve_file_target(target_type: TargetName) -> TargetRequest:
-        if target_type == TargetName.PRESIGNED_URL:
-            return PresignedUrlTarget()
-        if target_type == TargetName.ZIP:
-            return ZipTarget()
-        return InBodyTarget()
 
     ##########################################
     # Downgrade openapi 3.1 to 3.0.x helpers #
@@ -925,17 +957,38 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = default_target_name,
+        target: Annotated[
+            str | None,
+            Form(
+                description=(
+                    "Complete output target as JSON. When target_type is also "
+                    "provided, it must match this object's kind."
+                )
+            ),
+        ] = None,
+        target_type: Annotated[
+            str | None,
+            Form(
+                description=(
+                    "Legacy output target discriminator. Structured storage "
+                    "targets also require the target JSON field."
+                )
+            ),
+        ] = None,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        _check_file_upload(files, target_type)
+        resolved_target = _parse_multipart_target(
+            target=target,
+            target_type=target_type,
+            default_target=default_target,
+        )
+        _check_file_upload(files, resolved_target)
         options = _prepare_convert_options(options)
-        _validate_multipart_target_type(target_type)
+        _validate_multipart_target(resolved_target)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
-        target = _resolve_file_target(target_type)
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -943,7 +996,7 @@ def create_app():  # noqa: C901
             convert_options=options,
             chunking_options=None,
             chunking_export_options=None,
-            target=target,
+            target=resolved_target,
             callbacks=[],
             tenant_id=tenant_id,
         )
@@ -1057,19 +1110,40 @@ def create_app():  # noqa: C901
         options: Annotated[
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
-        target_type: Annotated[TargetName, Form()] = default_target_name,
+        target: Annotated[
+            str | None,
+            Form(
+                description=(
+                    "Complete output target as JSON. When target_type is also "
+                    "provided, it must match this object's kind."
+                )
+            ),
+        ] = None,
+        target_type: Annotated[
+            str | None,
+            Form(
+                description=(
+                    "Legacy output target discriminator. Structured storage "
+                    "targets also require the target JSON field."
+                )
+            ),
+        ] = None,
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
-        _check_file_upload(files, target_type)
+        resolved_target = _parse_multipart_target(
+            target=target,
+            target_type=target_type,
+            default_target=default_target,
+        )
+        _check_file_upload(files, resolved_target)
         options = _prepare_convert_options(options)
-        _validate_multipart_target_type(target_type)
+        _validate_multipart_target(resolved_target)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
         )
-        target = _resolve_file_target(target_type)
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -1077,7 +1151,7 @@ def create_app():  # noqa: C901
             convert_options=options,
             chunking_options=None,
             chunking_export_options=None,
-            target=target,
+            target=resolved_target,
             callbacks=[],
             tenant_id=tenant_id,
         )

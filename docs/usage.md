@@ -368,6 +368,21 @@ curl -X POST "localhost:5001/v1/convert/source" \
 
 The endpoint is: `/v1/convert/file`, listening for POST requests of Form payloads (necessary as the files are sent as multipart/form data). You can send one or multiple files.
 
+The `target` form field accepts the complete output target as a JSON object.
+This is required for storage targets such as S3 because their coordinates and
+credentials cannot be represented by the legacy `target_type` discriminator
+alone. If both fields are present, `target_type` must match `target.kind`.
+
+```sh
+curl -X POST 'http://127.0.0.1:5001/v1/convert/file/async' \
+  -F 'files=@document.pdf;type=application/pdf' \
+  -F 'target_type=s3' \
+  -F 'target={"kind":"s3","endpoint":"s3.example.com","access_key":"ACCESS_KEY","secret_key":"SECRET_KEY","bucket":"converted","key_prefix":"results/"}'
+```
+
+For compatibility, `target_type` can still be used by itself for the
+coordinate-free `inbody`, `zip`, and `presigned_url` targets.
+
 <details>
 <summary>CURL example:</summary>
 

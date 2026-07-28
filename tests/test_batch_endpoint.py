@@ -1,3 +1,4 @@
+import json
 from typing import Literal
 from unittest.mock import patch
 
@@ -17,7 +18,16 @@ from docling.datamodel.service.responses import (
     DocumentArtifactItem,
     PresignedArtifactResult,
 )
-from docling.datamodel.service.targets import S3Target
+from docling.datamodel.service.targets import (
+    AzureBlobTarget,
+    GoogleCloudStorageTarget,
+    GoogleDriveTarget,
+    InBodyTarget,
+    PresignedUrlTarget,
+    PutTarget,
+    S3Target,
+    ZipTarget,
+)
 from docling.datamodel.service.tasks import TaskType
 from docling_jobkit.connectors.connector_factory import (
     SourceConnectorFactory,
@@ -329,6 +339,183 @@ async def test_batch_endpoint_accepts_s3_source_with_s3_target(app, fake_orchest
     assert response.json()["task_type"] == TaskType.CONVERT
     assert len(fake_orchestrator.enqueued[0]["sources"]) == 1
     assert isinstance(fake_orchestrator.enqueued[0]["target"], S3Target)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("target", "expected_type"),
+    [
+        ({"kind": "inbody"}, InBodyTarget),
+        ({"kind": "zip"}, ZipTarget),
+        ({"kind": "presigned_url"}, PresignedUrlTarget),
+        ({"kind": "put", "url": "https://example.com/result"}, PutTarget),
+        (
+            {
+                "kind": "s3",
+                "endpoint": "s3.example.com",
+                "access_key": "access-key",
+                "secret_key": "secret-key",
+                "bucket": "converted",
+                "key_prefix": "results/",
+            },
+            S3Target,
+        ),
+        (
+            {
+                "kind": "azure_blob",
+                "account_name": "account",
+                "container": "converted",
+                "connection_string": "UseDevelopmentStorage=true",
+                "blob_prefix": "results/",
+            },
+            AzureBlobTarget,
+        ),
+        (
+            {
+                "kind": "google_cloud_storage",
+                "bucket": "converted",
+                "key_prefix": "results/",
+            },
+            GoogleCloudStorageTarget,
+        ),
+        (
+            {
+                "kind": "google_drive",
+                "path_id": "folder-123",
+                "refresh_token": "refresh-token",
+                "credentials_path": "/run/secrets/google-drive.json",
+            },
+            GoogleDriveTarget,
+        ),
+    ],
+)
+async def test_file_async_accepts_complete_multipart_target(
+    app, fake_orchestrator, target, expected_type
+):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={
+                "target_type": target["kind"],
+                "target": json.dumps(target),
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert isinstance(fake_orchestrator.enqueued[-1]["target"], expected_type)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("target_type", "expected_type"),
+    [
+        ("inbody", InBodyTarget),
+        ("zip", ZipTarget),
+        ("presigned_url", PresignedUrlTarget),
+    ],
+)
+async def test_file_async_preserves_legacy_target_type(
+    app, fake_orchestrator, target_type, expected_type
+):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={"target_type": target_type},
+        )
+
+    assert response.status_code == 200, response.text
+    assert isinstance(fake_orchestrator.enqueued[-1]["target"], expected_type)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["/v1/convert/file", "/v1/convert/file/async"])
+async def test_file_endpoints_accept_target_without_legacy_target_type(
+    app, fake_orchestrator, endpoint
+):
+    target = {
+        "kind": "s3",
+        "endpoint": "s3.example.com",
+        "access_key": "access-key",
+        "secret_key": "secret-key",
+        "bucket": "converted",
+    }
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            endpoint,
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={"target": json.dumps(target)},
+        )
+
+    assert response.status_code == 200, response.text
+    assert isinstance(fake_orchestrator.enqueued[-1]["target"], S3Target)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["/v1/convert/file", "/v1/convert/file/async"])
+async def test_file_endpoints_reject_conflicting_multipart_target_fields(app, endpoint):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            endpoint,
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={
+                "target_type": "zip",
+                "target": json.dumps({"kind": "inbody"}),
+            },
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Multipart target_type must match target.kind."
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "target",
+    [
+        "not-json",
+        json.dumps({"kind": "unknown", "token": "must-not-leak"}),
+        json.dumps({"kind": "s3", "secret_key": "must-not-leak"}),
+    ],
+)
+async def test_file_async_rejects_invalid_target_without_echoing_payload(app, target):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={"target": target},
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Invalid multipart target configuration."}
+    assert "must-not-leak" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_file_async_rejects_storage_target_type_without_coordinates(app):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("input.md", b"# Test", "text/markdown")},
+            data={"target_type": "s3"},
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Invalid multipart target configuration."}
 
 
 @pytest.mark.asyncio
