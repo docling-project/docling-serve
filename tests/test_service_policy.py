@@ -467,6 +467,18 @@ def test_validate_source_target_pairing_allows_expandable_source_with_database_t
     validate_source_target_pairing(request.sources, request.target, policy)
 
 
+def test_build_batch_request_model_keeps_target_and_targets_optional():
+    policy = build_service_policy(DoclingServeSettings())
+
+    model = build_batch_request_model(policy)
+
+    assert model.model_fields["target"].is_required() is False
+    assert model.model_fields["target"].default is None
+    assert model.model_fields["targets"].is_required() is False
+    assert model.model_fields["targets"].default is None
+    assert model.model_json_schema().get("required") == ["sources"]
+
+
 def test_connector_without_json_schema_fails_startup(monkeypatch):
     from docling_serve import policy as policy_module
 
