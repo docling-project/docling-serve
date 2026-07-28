@@ -452,11 +452,15 @@ def test_validate_source_target_pairing_allows_expandable_source_with_database_t
         options=ConvertDocumentsOptions(),
         sources=[
             AzureBlobSourceRequest(
-                connection_string="UseDevelopmentStorage=true", container="docs"
+                account_name="devstoreaccount1",
+                connection_string="UseDevelopmentStorage=true",
+                container="docs",
             )
         ],
         target=AzureBlobTarget(
-            connection_string="UseDevelopmentStorage=true", container="results"
+            account_name="devstoreaccount1",
+            connection_string="UseDevelopmentStorage=true",
+            container="results",
         ),
     )
 
