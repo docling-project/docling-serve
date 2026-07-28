@@ -10,7 +10,7 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Any
 
 import psutil
 from fastapi import (
@@ -461,8 +461,8 @@ def create_app():  # noqa: C901
         ),
         tenant_id: str | None = None,
     ) -> Task:
-        target = request.target
         sources: list[TaskSource]
+        enqueue_targets: list[Any]
         try:
             # Normalize every source to its concrete, kind-bearing registry model so
             # it survives the internal Task resolver the orchestrator runs at enqueue.
@@ -476,7 +476,20 @@ def create_app():  # noqa: C901
                 for source in request.sources
             ]
             if isinstance(request, BatchConvertSourcesRequest):
-                target = service_policy.target_factory.validate_config(request.target)
+                # Resolve effective targets: `targets` list takes precedence over the
+                # singular `target` convenience field.
+                raw_targets = request.targets or (
+                    [request.target] if request.target is not None else []
+                )
+                enqueue_targets = [
+                    service_policy.target_factory.validate_config(t)
+                    for t in raw_targets
+                ]
+            else:
+                assert request.target is not None, (
+                    "target must be set before enqueueing"
+                )
+                enqueue_targets = [request.target]
         except (SourceConnectorConfigError, TargetConnectorConfigError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -511,14 +524,13 @@ def create_app():  # noqa: C901
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
 
-        assert target is not None, "target must be set before enqueueing"
         task = await orchestrator.enqueue(
             task_type=task_type,
             sources=sources,
             convert_options=convert_options,
             chunking_options=chunking_options,
             chunking_export_options=chunking_export_options,
-            targets=[target],
+            targets=enqueue_targets,
             callbacks=request.callbacks,
             metadata=task_metadata,
         )

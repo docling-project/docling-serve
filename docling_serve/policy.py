@@ -98,12 +98,13 @@ def validate_source_target_pairing(
     # more outputs per discovered document. Both artifact storage targets and
     # database targets satisfy that requirement.
     if expandable and result_mode not in {"artifacts", "database"}:
+        target_kind = target.kind if target is not None else None
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"sources of kind {expandable} can expand into multiple documents "
                 "and require a storage target with artifact result mode; "
-                f"got target kind '{target.kind}'."
+                f"got target kind '{target_kind}'."
             ),
         )
 
@@ -492,17 +493,25 @@ def validate_batch_convert_request(
             ),
         )
 
-    if isinstance(request.target, PresignedUrlTarget):
-        if not policy.artifact_storage_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=(
-                    "Presigned URL target requires artifact storage to be configured "
-                    "and enabled on the server."
-                ),
-            )
+    # Resolve the effective target list: `targets` takes precedence over the
+    # singular `target` convenience field; fall back to a single-item list.
+    effective_targets: list[Any] = request.targets or (
+        [request.target] if request.target is not None else []
+    )
 
-    validate_source_target_pairing(request.sources, request.target, policy)
+    for t in effective_targets:
+        if isinstance(t, PresignedUrlTarget):
+            if not policy.artifact_storage_enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=(
+                        "Presigned URL target requires artifact storage to be configured "
+                        "and enabled on the server."
+                    ),
+                )
+
+    for t in effective_targets:
+        validate_source_target_pairing(request.sources, t, policy)
 
 
 def validate_chunk_request(
