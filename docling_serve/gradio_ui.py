@@ -16,7 +16,6 @@ import httpx
 
 from docling.datamodel.base_models import FormatToExtensions
 from docling.datamodel.pipeline_options import (
-    HeadingHierarchyOptions,
     PdfBackend,
     ProcessingPipeline,
     TableFormerMode,
@@ -390,7 +389,7 @@ def process_url(
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
             "table_mode": table_mode,
-            "heading_hierarchy_options": {"enabled": heading_hierarchy},
+            "do_pdf_heading_hierarchy": heading_hierarchy,
             "abort_on_error": abort_on_error,
             "do_code_enrichment": do_code_enrichment,
             "do_formula_enrichment": do_formula_enrichment,
@@ -480,7 +479,7 @@ def process_file(
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
             "table_mode": table_mode,
-            "heading_hierarchy_options": {"enabled": heading_hierarchy},
+            "do_pdf_heading_hierarchy": heading_hierarchy,
             "abort_on_error": abort_on_error,
             "return_as_file": return_as_file,
             "do_code_enrichment": do_code_enrichment,
@@ -749,7 +748,7 @@ with gr.Blocks(
                         "numbering and font style instead of leaving every heading "
                         "at level 1."
                     ),
-                    value=HeadingHierarchyOptions().enabled,
+                    value=False,
                 )
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)

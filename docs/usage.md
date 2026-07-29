@@ -28,7 +28,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
-| `heading_hierarchy_options` | HeadingHierarchyOptions | Options for inferring section-header levels, for PDF and image inputs processed by the standard pipeline. Disabled by default, in which case every detected heading stays at level 1 and the document hierarchy is flat. When enabled, levels are inferred from the PDF bookmarks / table of contents, from outline numbering and from font style. |
+| `do_pdf_heading_hierarchy` | bool | If enabled, section-header levels are inferred for PDF and image inputs processed by the standard pipeline, from the PDF bookmarks / table of contents, from outline numbering and from font style. When disabled, every detected heading stays at level 1 and the document hierarchy is flat. Boolean. Optional, defaults to false. |
+| `pdf_heading_hierarchy_options` | HeadingHierarchyOptions | Fine-tuning of the section-header level inference, applied when do_pdf_heading_hierarchy is enabled. The nested enabled flag is set automatically from do_pdf_heading_hierarchy and does not need to be provided. |
 | `include_images` | bool | If enabled, picture element images are generated and included in the output. Boolean. Optional, defaults to true. |
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |

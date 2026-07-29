@@ -27,7 +27,12 @@ def form_app() -> FastAPI:
             ConvertDocumentsOptions, FormDepends(ConvertDocumentsOptions)
         ],
     ):
-        return options.heading_hierarchy_options.model_dump()
+        return {
+            "do_pdf_heading_hierarchy": options.do_pdf_heading_hierarchy,
+            "pdf_heading_hierarchy_options": (
+                options.pdf_heading_hierarchy_options.model_dump()
+            ),
+        }
 
     return app
 
@@ -42,7 +47,24 @@ async def test_defaults_to_disabled(client: AsyncClient):
     response = await client.post("/options", data={"to_formats": ["md"]})
 
     assert response.status_code == 200
-    assert response.json()["enabled"] is False
+    body = response.json()
+    assert body["do_pdf_heading_hierarchy"] is False
+    assert body["pdf_heading_hierarchy_options"]["enabled"] is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_drives_nested_enabled(client: AsyncClient):
+    response = await client.post(
+        "/options",
+        data={"to_formats": ["md"], "do_pdf_heading_hierarchy": "true"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["do_pdf_heading_hierarchy"] is True
+    # Callers only ever set the toggle; the nested flag the pipeline reads is
+    # derived from it, so it has to survive the form round-trip too.
+    assert body["pdf_heading_hierarchy_options"]["enabled"] is True
 
 
 @pytest.mark.asyncio
@@ -51,15 +73,16 @@ async def test_nested_options_decoded_from_form_field(client: AsyncClient):
         "/options",
         data={
             "to_formats": ["md"],
-            "heading_hierarchy_options": (
-                '{"enabled": true, "use_style": false, "max_level": 3,'
+            "do_pdf_heading_hierarchy": "true",
+            "pdf_heading_hierarchy_options": (
+                '{"use_style": false, "max_level": 3,'
                 ' "numbering_schemes": ["part", "arabic"]}'
             ),
         },
     )
 
     assert response.status_code == 200
-    heading_options = response.json()
+    heading_options = response.json()["pdf_heading_hierarchy_options"]
     assert heading_options["enabled"] is True
     assert heading_options["use_style"] is False
     assert heading_options["max_level"] == 3
