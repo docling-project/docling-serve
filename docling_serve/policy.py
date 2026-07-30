@@ -89,17 +89,22 @@ def validate_source_target_pairing(
             and policy.source_factory.is_expandable(source)
         }
     )
-    is_artifact_target = (
-        policy.target_factory.supports(target)
-        and policy.target_factory.result_mode(target) == "artifacts"
+    result_mode = (
+        policy.target_factory.result_mode(target)
+        if policy.target_factory.supports(target)
+        else None
     )
-    if expandable and not is_artifact_target:
+    # Expandable sources require a storage-style target that can handle one or
+    # more outputs per discovered document. Both artifact storage targets and
+    # database targets satisfy that requirement.
+    if expandable and result_mode not in {"artifacts", "database"}:
+        target_kind = target.kind if target is not None else None
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"sources of kind {expandable} can expand into multiple documents "
                 "and require a storage target with artifact result mode; "
-                f"got target kind '{target.kind}'."
+                f"got target kind '{target_kind}'."
             ),
         )
 
@@ -141,12 +146,32 @@ def _configured_types(
 def _artifact_target_models(
     factory: TargetConnectorFactory,
 ) -> dict[str, type[BaseModel]]:
+    """Return registered target kinds with 'artifacts' result mode."""
     return {
         kind: model
         for kind, model in factory.registered_config_types_by_kind.items()
         if kind not in _REMOTE_EXCLUDED_TARGET_KINDS
         and factory.result_mode_for_kind(kind) == "artifacts"
     }
+
+
+def _database_target_models(
+    factory: TargetConnectorFactory,
+) -> dict[str, type[BaseModel]]:
+    """Return registered target kinds with 'database' result mode."""
+    return {
+        kind: model
+        for kind, model in factory.registered_config_types_by_kind.items()
+        if kind not in _REMOTE_EXCLUDED_TARGET_KINDS
+        and factory.result_mode_for_kind(kind) == "database"
+    }
+
+
+def _storage_target_models(
+    factory: TargetConnectorFactory,
+) -> dict[str, type[BaseModel]]:
+    """Return all registered non-local target kinds (artifacts + database)."""
+    return _artifact_target_models(factory) | _database_target_models(factory)
 
 
 def _closed_union(models: dict[str, type[BaseModel]]) -> Any:
@@ -188,7 +213,7 @@ def build_batch_request_model(
     target_models.update(
         {
             kind: model
-            for kind, model in _artifact_target_models(policy.target_factory).items()
+            for kind, model in _storage_target_models(policy.target_factory).items()
             if kind in policy.allowed_target_types and kind not in ALL_TARGET_TYPES
         }
     )
@@ -206,7 +231,8 @@ def build_batch_request_model(
         "BatchConvertSourcesRequest",
         __base__=BatchConvertSourcesRequest,
         sources=(list[source_union], Field(min_length=1)),  # type: ignore[valid-type]
-        target=(target_union, ...),
+        target=(target_union | None, None),
+        targets=(list[target_union] | None, None),  # type: ignore[valid-type]
     )
     model.model_json_schema()
     return model
@@ -227,7 +253,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         ALL_SOURCE_TYPES | frozenset(source_factory.registered_kinds)
     ) - _REMOTE_EXCLUDED_SOURCE_KINDS
     available_target_types = (
-        ALL_TARGET_TYPES | frozenset(_artifact_target_models(target_factory))
+        ALL_TARGET_TYPES | frozenset(_storage_target_models(target_factory))
     ) - _REMOTE_EXCLUDED_TARGET_KINDS
     allowed_source_types = _configured_types(
         settings.allowed_source_types,
@@ -467,17 +493,25 @@ def validate_batch_convert_request(
             ),
         )
 
-    if isinstance(request.target, PresignedUrlTarget):
-        if not policy.artifact_storage_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=(
-                    "Presigned URL target requires artifact storage to be configured "
-                    "and enabled on the server."
-                ),
-            )
+    # Resolve the effective target list: `targets` takes precedence over the
+    # singular `target` convenience field; fall back to a single-item list.
+    effective_targets: list[Any] = request.targets or (
+        [request.target] if request.target is not None else []
+    )
 
-    validate_source_target_pairing(request.sources, request.target, policy)
+    for t in effective_targets:
+        if isinstance(t, PresignedUrlTarget):
+            if not policy.artifact_storage_enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=(
+                        "Presigned URL target requires artifact storage to be configured "
+                        "and enabled on the server."
+                    ),
+                )
+
+    for t in effective_targets:
+        validate_source_target_pairing(request.sources, t, policy)
 
 
 def validate_chunk_request(

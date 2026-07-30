@@ -33,9 +33,9 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling-slim[standard,service-client,models-remote,format-opendocument]>=2.113.0,<3.0.0",
+    "docling-slim[standard,service-client,models-remote,format-opendocument]>=2.117.0,<3.0.0",
     "docling-core>=2.79.0",
-    "docling-jobkit[rq,ray,vlm,azure,gcloudstorage,gdrive]>=3,<4",
+    "docling-jobkit[rq,ray,vlm,azure,gcloudstorage,gdrive]>=3.2.0,<4",
     "fastapi[standard]<0.137.0",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -194,6 +194,10 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
+# docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
+# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
+# docling-jobkit = { path = "../docling-jobkit", editable = true }
+
 [[tool.uv.index]]
 name = "pytorch-pypi"
 url = "https://pypi.org/simple"
@@ -331,10 +335,17 @@ module = [
     "mlx_vlm.*",
     "mlx.*",
     "scalar_fastapi.*",
-    "gradio.*",
     "msgpack.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "gradio",
+    "gradio.*",
+]
+ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
