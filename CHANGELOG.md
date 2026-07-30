@@ -1,3 +1,18 @@
+## [v1.29.0](https://github.com/docling-project/docling-serve/releases/tag/v1.29.0) - 2026-07-30
+
+### Feature
+
+* Support for new chunking options and multiple targets ([#664](https://github.com/docling-project/docling-serve/issues/664)) ([`8bc09de`](https://github.com/docling-project/docling-serve/commit/8bc09deeeaa919923d33ab67ff27705ce4ce492a))
+
+### Docling libraries included in this release:
+- docling-core 2.88.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 3.2.0
+- docling-mcp 2.2.1
+- docling-parse 7.8.1
+- docling-serve 1.29.0
+- docling-slim 2.117.0
+
 ## [v1.28.0](https://github.com/docling-project/docling-serve/releases/tag/v1.28.0) - 2026-07-27
 
 ### Feature
