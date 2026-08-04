@@ -10,7 +10,7 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import psutil
 from fastapi import (
@@ -47,8 +47,6 @@ from docling.datamodel.service.callbacks import (
 )
 from docling.datamodel.service.chunking import (
     BaseChunkerOptions,
-    HierarchicalChunkerOptions,
-    HybridChunkerOptions,
 )
 from docling.datamodel.service.options import (
     ConvertDocumentsOptions as ConvertDocumentsRequestOptions,
@@ -62,9 +60,9 @@ from docling.datamodel.service.requests import (
     make_request_model,
 )
 from docling.datamodel.service.responses import (
-    ChunkDocumentResponse,
     ClearResponse,
     ConvertDocumentResponse,
+    DoclingTaskResult,
     HealthCheckResponse,
     MessageKind,
     PresignedUrlConvertDocumentResponse,
@@ -80,6 +78,7 @@ from docling.datamodel.service.targets import (
     ZipTarget,
 )
 from docling.datamodel.service.tasks import TaskType
+from docling_core.types.doc.document import ImageRefMode
 from docling_jobkit.connectors.errors import (
     SourceConnectorConfigError,
     TargetConnectorConfigError,
@@ -99,6 +98,12 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
+from docling_serve.datamodel.chunking import (
+    ChunkDocumentResponseModel,
+    HierarchicalChunkerOptionsWithProvenance,
+    HybridChunkerOptionsWithProvenance,
+    ProvenanceChunkerOptions,
+)
 from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
 from docling_serve.logging_config import setup_logging
 from docling_serve.orchestrator_factory import get_async_orchestrator
@@ -119,7 +124,10 @@ from docling_serve.policy import (
     validate_target_kind,
 )
 from docling_serve.public_errors import build_public_http_detail
-from docling_serve.response_preparation import prepare_response
+from docling_serve.response_preparation import (
+    ChunkProvenanceResolutionError,
+    prepare_response,
+)
 from docling_serve.settings import AsyncEngine, docling_serve_settings
 from docling_serve.storage import get_scratch
 from docling_serve.websocket_notifier import WebsocketNotifier
@@ -146,6 +154,8 @@ setup_logging(
 )
 
 _log = logging.getLogger(__name__)
+
+_CHUNK_PROVENANCE_KEEP_CONVERTED_DOC = "chunk_provenance_keep_converted_doc"
 
 # Tracks whether warm_up_caches() has completed.  Meaningful only for the
 # LocalOrchestrator (which eagerly loads ML models); the RQ orchestrator's
@@ -460,6 +470,7 @@ def create_app():  # noqa: C901
             | GenericChunkDocumentsRequest
         ),
         tenant_id: str | None = None,
+        provenance_keep_converted_doc: bool | None = None,
     ) -> Task:
         sources: list[TaskSource]
         enqueue_targets: list[Any]
@@ -509,13 +520,14 @@ def create_app():  # noqa: C901
             chunking_options = request.chunking_options
             chunking_export_options.include_converted_doc = (
                 request.include_converted_doc
+                or provenance_keep_converted_doc is not None
             )
         else:
             raise RuntimeError("Uknown request type.")
 
         # Prepare metadata with tenant_id BEFORE enqueueing
         # This is critical because ray orchestrator reads tenant_id during enqueue()
-        task_metadata: dict[str, str] = {}
+        task_metadata: dict[str, Any] = {}
         if tenant_id:
             task_metadata["tenant_id"] = tenant_id
             _log.info(
@@ -523,6 +535,10 @@ def create_app():  # noqa: C901
             )
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
+        if provenance_keep_converted_doc is not None:
+            task_metadata[_CHUNK_PROVENANCE_KEEP_CONVERTED_DOC] = (
+                provenance_keep_converted_doc
+            )
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -534,6 +550,10 @@ def create_app():  # noqa: C901
             callbacks=request.callbacks,
             metadata=task_metadata,
         )
+        if provenance_keep_converted_doc is not None:
+            task.metadata[_CHUNK_PROVENANCE_KEEP_CONVERTED_DOC] = (
+                provenance_keep_converted_doc
+            )
 
         _log.info(
             f"[TENANT_ID] Task {task.task_id} created with tenant_id='{tenant_id or 'default'}'"
@@ -551,6 +571,7 @@ def create_app():  # noqa: C901
         target: TargetRequest,
         callbacks: list[CallbackSpec] | None = None,
         tenant_id: str | None = None,
+        provenance_keep_converted_doc: bool | None = None,
     ) -> Task:
         _log.info(
             f"[TENANT_ID] _enqueue_file called with tenant_id='{tenant_id}', "
@@ -575,9 +596,15 @@ def create_app():  # noqa: C901
             file_sources.append(DocumentStream(name=name, stream=buf))
 
         # Prepare metadata with tenant_id BEFORE enqueueing
-        metadata = {}
+        metadata: dict[str, Any] = {}
         if tenant_id:
             metadata["tenant_id"] = tenant_id
+        if provenance_keep_converted_doc is not None:
+            metadata[_CHUNK_PROVENANCE_KEEP_CONVERTED_DOC] = (
+                provenance_keep_converted_doc
+            )
+            if chunking_export_options is not None:
+                chunking_export_options.include_converted_doc = True
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -589,6 +616,10 @@ def create_app():  # noqa: C901
             callbacks=callbacks or [],
             metadata=metadata,
         )
+        if provenance_keep_converted_doc is not None:
+            task.metadata[_CHUNK_PROVENANCE_KEEP_CONVERTED_DOC] = (
+                provenance_keep_converted_doc
+            )
 
         _log.info(
             f"[TENANT_ID] File task {task.task_id} created with tenant_id='{tenant_id or 'default'}'"
@@ -674,6 +705,56 @@ def create_app():  # noqa: C901
 
     def _validate_multipart_target_type(target_type: TargetName) -> None:
         validate_target_kind(target_type.value, service_policy)
+
+    def _validate_chunk_provenance_request(
+        include_provenance: bool,
+        target: TargetRequest,
+        convert_options: ConvertDocumentsRequestOptions,
+    ) -> None:
+        if not include_provenance:
+            return
+        if docling_serve_settings.eng_kind == AsyncEngine.RAY:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="include_provenance is not supported with the ray engine.",
+            )
+        if not isinstance(target, InBodyTarget):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="include_provenance is only supported with the inbody target.",
+            )
+        if convert_options.image_export_mode == ImageRefMode.REFERENCED:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    "include_provenance is not supported with referenced image exports."
+                ),
+            )
+
+    async def _prepare_public_response(
+        task_id: str,
+        task_result: DoclingTaskResult,
+        orchestrator: BaseOrchestrator,
+        background_tasks: BackgroundTasks,
+        provenance_keep_converted_doc: bool | None = None,
+    ):
+        try:
+            return await prepare_response(
+                task_id=task_id,
+                task_result=task_result,
+                orchestrator=orchestrator,
+                background_tasks=background_tasks,
+                provenance_keep_converted_doc=provenance_keep_converted_doc,
+            )
+        except ChunkProvenanceResolutionError as err:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=build_public_http_detail(
+                    exc=err,
+                    debug_enabled=docling_serve_settings.debug_error_details,
+                    fallback_message="Cannot resolve chunk provenance.",
+                ),
+            ) from err
 
     def _check_file_upload(files: list[UploadFile], target_type: TargetName) -> None:
         if len(files) > service_policy.max_sources_per_request:
@@ -909,7 +990,7 @@ def create_app():  # noqa: C901
                 status_code=404,
                 detail="Task result not found. Please wait for a completion status.",
             )
-        response = await prepare_response(
+        response = await _prepare_public_response(
             task_id=task.task_id,
             task_result=task_result,
             orchestrator=orchestrator,
@@ -977,7 +1058,7 @@ def create_app():  # noqa: C901
                 status_code=404,
                 detail="Task result not found. Please wait for a completion status.",
             )
-        response = await prepare_response(
+        response = await _prepare_public_response(
             task_id=task.task_id,
             task_result=task_result,
             orchestrator=orchestrator,
@@ -1109,8 +1190,12 @@ def create_app():  # noqa: C901
 
     # Chunking endpoints
     for display_name, path_name, opt_cls in (
-        ("HybridChunker", "hybrid", HybridChunkerOptions),
-        ("HierarchicalChunker", "hierarchical", HierarchicalChunkerOptions),
+        ("HybridChunker", "hybrid", HybridChunkerOptionsWithProvenance),
+        (
+            "HierarchicalChunker",
+            "hierarchical",
+            HierarchicalChunkerOptionsWithProvenance,
+        ),
     ):
         req_cls = make_request_model(opt_cls)
 
@@ -1131,12 +1216,23 @@ def create_app():  # noqa: C901
             ] = None,
         ):
             request = _prepare_chunk_request(request)
+            include_provenance = request.chunking_options.include_provenance
+            _validate_chunk_provenance_request(
+                include_provenance,
+                request.target,
+                request.convert_options,
+            )
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_source_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             task = await _enqueue_source(
-                orchestrator=orchestrator, request=request, tenant_id=tenant_id
+                orchestrator=orchestrator,
+                request=request,
+                tenant_id=tenant_id,
+                provenance_keep_converted_doc=(
+                    request.include_converted_doc if include_provenance else None
+                ),
             )
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
@@ -1207,6 +1303,14 @@ def create_app():  # noqa: C901
                 f"[TENANT_ID] chunk_file_async ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+            include_provenance = cast(
+                ProvenanceChunkerOptions, chunking_options
+            ).include_provenance
+            _validate_chunk_provenance_request(
+                include_provenance,
+                target,
+                convert_options,
+            )
             task = await _enqueue_file(
                 task_type=TaskType.CHUNK,
                 orchestrator=orchestrator,
@@ -1219,6 +1323,9 @@ def create_app():  # noqa: C901
                 target=target,
                 callbacks=[],
                 tenant_id=tenant_id,
+                provenance_keep_converted_doc=(
+                    include_converted_doc if include_provenance else None
+                ),
             )
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
@@ -1237,7 +1344,7 @@ def create_app():  # noqa: C901
             f"/v1/chunk/{path_name}/source",
             name=f"Chunk sources with {display_name}",
             tags=["chunk"],
-            response_model=ChunkDocumentResponse,
+            response_model=ChunkDocumentResponseModel,
             responses={
                 200: {
                     "content": {"application/zip": {}},
@@ -1256,12 +1363,24 @@ def create_app():  # noqa: C901
             ] = None,
         ):
             request = _prepare_chunk_request(request)
+            include_provenance = request.chunking_options.include_provenance
+            keep_converted_doc = request.include_converted_doc
+            _validate_chunk_provenance_request(
+                include_provenance,
+                request.target,
+                request.convert_options,
+            )
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
             _log.info(
                 f"[TENANT_ID] chunk_source ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             task = await _enqueue_source(
-                orchestrator=orchestrator, request=request, tenant_id=tenant_id
+                orchestrator=orchestrator,
+                request=request,
+                tenant_id=tenant_id,
+                provenance_keep_converted_doc=(
+                    keep_converted_doc if include_provenance else None
+                ),
             )
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id
@@ -1280,11 +1399,14 @@ def create_app():  # noqa: C901
                     status_code=404,
                     detail="Task result not found. Please wait for a completion status.",
                 )
-            response = await prepare_response(
+            response = await _prepare_public_response(
                 task_id=task.task_id,
                 task_result=task_result,
                 orchestrator=orchestrator,
                 background_tasks=background_tasks,
+                provenance_keep_converted_doc=(
+                    keep_converted_doc if include_provenance else None
+                ),
             )
             return response
 
@@ -1292,7 +1414,7 @@ def create_app():  # noqa: C901
             f"/v1/chunk/{path_name}/file",
             name=f"Chunk files with {display_name}",
             tags=["chunk"],
-            response_model=ChunkDocumentResponse,
+            response_model=ChunkDocumentResponseModel,
             responses={
                 200: {
                     "content": {"application/zip": {}},
@@ -1349,6 +1471,14 @@ def create_app():  # noqa: C901
                 f"[TENANT_ID] chunk_file ({path_name}) endpoint received tenant_id='{tenant_id}'"
             )
             target = InBodyTarget() if target_type == TargetName.INBODY else ZipTarget()
+            include_provenance = cast(
+                ProvenanceChunkerOptions, chunking_options
+            ).include_provenance
+            _validate_chunk_provenance_request(
+                include_provenance,
+                target,
+                convert_options,
+            )
             task = await _enqueue_file(
                 task_type=TaskType.CHUNK,
                 orchestrator=orchestrator,
@@ -1361,6 +1491,9 @@ def create_app():  # noqa: C901
                 target=target,
                 callbacks=[],
                 tenant_id=tenant_id,
+                provenance_keep_converted_doc=(
+                    include_converted_doc if include_provenance else None
+                ),
             )
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id
@@ -1379,11 +1512,14 @@ def create_app():  # noqa: C901
                     status_code=404,
                     detail="Task result not found. Please wait for a completion status.",
                 )
-            response = await prepare_response(
+            response = await _prepare_public_response(
                 task_id=task.task_id,
                 task_result=task_result,
                 orchestrator=orchestrator,
                 background_tasks=background_tasks,
+                provenance_keep_converted_doc=(
+                    include_converted_doc if include_provenance else None
+                ),
             )
             return response
 
@@ -1551,7 +1687,7 @@ def create_app():  # noqa: C901
         response_model=ConvertDocumentResponse
         | PresignedUrlConvertDocumentResponse
         | PresignedUrlConvertResponse
-        | ChunkDocumentResponse
+        | ChunkDocumentResponseModel
         | TaskFailureResult,
         responses={
             200: {
@@ -1584,11 +1720,17 @@ def create_app():  # noqa: C901
                 task_result = outcome.result
             else:
                 task_result = outcome
-            response = await prepare_response(
+            provenance_keep_converted_doc = (task.metadata or {}).get(
+                _CHUNK_PROVENANCE_KEEP_CONVERTED_DOC
+            )
+            if not isinstance(provenance_keep_converted_doc, bool):
+                provenance_keep_converted_doc = None
+            response = await _prepare_public_response(
                 task_id=task_id,
                 task_result=task_result,
                 orchestrator=orchestrator,
                 background_tasks=background_tasks,
+                provenance_keep_converted_doc=provenance_keep_converted_doc,
             )
             return response
         except TaskNotFoundError:
