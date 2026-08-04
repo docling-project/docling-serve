@@ -1,3 +1,39 @@
+## [v1.29.0](https://github.com/docling-project/docling-serve/releases/tag/v1.29.0) - 2026-07-30
+
+### Feature
+
+* Support for new chunking options and multiple targets ([#664](https://github.com/docling-project/docling-serve/issues/664)) ([`8bc09de`](https://github.com/docling-project/docling-serve/commit/8bc09deeeaa919923d33ab67ff27705ce4ce492a))
+
+### Docling libraries included in this release:
+- docling-core 2.88.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 3.2.0
+- docling-mcp 2.2.1
+- docling-parse 7.8.1
+- docling-serve 1.29.0
+- docling-slim 2.117.0
+
+## [v1.28.0](https://github.com/docling-project/docling-serve/releases/tag/v1.28.0) - 2026-07-27
+
+### Feature
+
+* Support plugin-defined connector sources and targets ([#660](https://github.com/docling-project/docling-serve/issues/660)) ([`a62ec9b`](https://github.com/docling-project/docling-serve/commit/a62ec9b0e89f8e5e06e53b73e8314401d069f4d1))
+
+### Fix
+
+* Support for file inputs in single convert endpoints ([#663](https://github.com/docling-project/docling-serve/issues/663)) ([`f70eb06`](https://github.com/docling-project/docling-serve/commit/f70eb06e157043721816e4ed2a49bc1b65bb5aca))
+* **CLI:** Docling version resolution ([#659](https://github.com/docling-project/docling-serve/issues/659)) ([`cc3fca4`](https://github.com/docling-project/docling-serve/commit/cc3fca47490762c5f674c498a6621bd22a40c4bd))
+* Add missing format-opendocument extra for OpenDocument support ([#658](https://github.com/docling-project/docling-serve/issues/658)) ([`36a5f07`](https://github.com/docling-project/docling-serve/commit/36a5f07d5286bd1bc7bb1dee89d46cb8ee4be882))
+
+### Docling libraries included in this release:
+- docling-core 2.87.1
+- docling-ibm-models 3.13.3
+- docling-jobkit 3.0.0
+- docling-mcp 2.1.0
+- docling-parse 7.8.1
+- docling-serve 1.28.0
+- docling-slim 2.115.0
+
 ## [v1.27.0](https://github.com/docling-project/docling-serve/releases/tag/v1.27.0) - 2026-07-20
 
 ### Feature

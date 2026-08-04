@@ -34,6 +34,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
 | `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `chunking_options` | HybridChunkerOptions or HierarchicalChunkerOptions or NoneType | Chunker configuration. |
+| `chunking_preset` | str or NoneType | Preset ID for chunking (e.g. "granite_embedding_278m"). Mutually exclusive with chunking_options. |
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
@@ -65,7 +67,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
 | `scale` | float | Image scaling factor for preprocessing |
-| `max_size` | int or NoneType | Maximum image dimension (width or height) |
+| `max_size` | int | None | Maximum image dimension (width or height) |
 | `extract_code` | bool | Extract code blocks |
 | `extract_formulas` | bool | Extract mathematical formulas |
 
@@ -100,8 +102,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `batch_size` | int | Number of images to process in a single batch during picture description. Higher values improve throughput but increase memory usage. Adjust based on available GPU/CPU memory. |
 | `scale` | float | Scaling factor for image resolution before processing. Higher values (e.g., 2.0) provide more detail for the vision model but increase processing time and memory. Range: 0.5-4.0 typical. |
 | `picture_area_threshold` | float | Minimum picture area as fraction of page area (0.0-1.0) to trigger description. Pictures smaller than this threshold are skipped. Use lower values (e.g., 0.01) to describe small images. |
-| `classification_allow` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to allow for description. Only pictures classified with these labels will be processed. If None, all picture types are allowed unless explicitly denied. Use to focus description on specific image types (e.g., diagrams, charts). |
-| `classification_deny` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to exclude from description. Pictures classified with these labels will be skipped. If None, no picture types are denied unless not in allow list. Use to exclude unwanted image types (e.g., decorative images, logos). |
+| `classification_allow` | list[docling_core.types.doc.labels.PictureClassificationLabel] | None | List of picture classification labels to allow for description. Only pictures classified with these labels will be processed. If None, all picture types are allowed unless explicitly denied. Use to focus description on specific image types (e.g., diagrams, charts). |
+| `classification_deny` | list[docling_core.types.doc.labels.PictureClassificationLabel] | None | List of picture classification labels to exclude from description. Pictures classified with these labels will be skipped. If None, no picture types are denied unless not in allow list. Use to exclude unwanted image types (e.g., decorative images, logos). |
 | `classification_min_confidence` | float | Minimum classification confidence score (0.0-1.0) required for a picture to be processed. Pictures with classification confidence below this threshold are skipped. Higher values ensure only confidently classified images are described. Range: 0.0 (no filtering) to 1.0 (maximum confidence). |
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
@@ -115,7 +117,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
 | `scale` | float | Image scaling factor for preprocessing |
-| `max_size` | int or NoneType | Maximum image dimension (width or height) |
+| `max_size` | int | None | Maximum image dimension (width or height) |
 | `batch_size` | int | Batch size for processing multiple pages |
 | `force_backend_text` | bool | Force use of backend text extraction instead of VLM |
 
@@ -182,6 +184,28 @@ On top of the source of file (see below), both endpoints support the same parame
 | `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
 | `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
 | `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
+<h4>HierarchicalChunkerOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `chunker` | Literal | No description provided. |
+| `use_markdown_tables` | bool | Use markdown table format instead of triplets for table serialization. |
+| `use_markdown_images` | bool | Enable image serialization and image references inside chunks. Also adds a `has_image` field to chunk metadata to make image-containing chunks easier to identify. |
+| `image_placeholder` | str | Placeholder text used inside chunks to reference an image when markdown image serialization is disabled. |
+| `include_raw_text` | bool | Include both raw_text and text (contextualized) in response. If False, only text is included. |
+
+<h4>HybridChunkerOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `chunker` | Literal | No description provided. |
+| `use_markdown_tables` | bool | Use markdown table format instead of triplets for table serialization. |
+| `use_markdown_images` | bool | Enable image serialization and image references inside chunks. Also adds a `has_image` field to chunk metadata to make image-containing chunks easier to identify. |
+| `image_placeholder` | str | Placeholder text used inside chunks to reference an image when markdown image serialization is disabled. |
+| `include_raw_text` | bool | Include both raw_text and text (contextualized) in response. If False, only text is included. |
+| `max_tokens` | int or NoneType | Maximum number of tokens per chunk. When left to none, the value is automatically extracted from the tokenizer. |
+| `tokenizer` | str | HuggingFace model name for custom tokenization. If not specified, uses 'sentence-transformers/all-MiniLM-L6-v2' as default. |
+| `merge_peers` | bool | Merge undersized successive chunks with same headings. |
 
 <!-- end: parameters-docs -->
 

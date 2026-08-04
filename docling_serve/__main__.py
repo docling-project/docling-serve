@@ -468,6 +468,10 @@ def rq_worker() -> Any:
         custom_ocr_presets=docling_serve_settings.custom_ocr_presets,
         allowed_ocr_kinds=docling_serve_settings.allowed_ocr_kinds,
         allow_custom_ocr_config=docling_serve_settings.allow_custom_ocr_config,
+        # Chunking Control
+        default_chunking_preset=docling_serve_settings.default_chunking_preset,
+        allowed_chunking_presets=docling_serve_settings.allowed_chunking_presets,
+        custom_chunking_presets=docling_serve_settings.custom_chunking_presets,
     )
 
     # Create worker with instrumentation

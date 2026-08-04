@@ -672,3 +672,57 @@ async def test_non_batch_convert_enqueues_kind_bearing_sources(app, fake_orchest
     assert [getattr(s, "kind", None) for s in sources] == ["http", "file"]
     # Reconstructs without raising "requires a non-empty string `kind`".
     validate_task({"task_id": "t", "sources": sources, "target": {"kind": "inbody"}})
+
+
+@pytest.mark.asyncio
+async def test_convert_source_accepts_file_when_file_excluded_from_allowed_source_types(
+    fake_orchestrator, monkeypatch
+):
+    # When allowed_source_types excludes 'file', the batch endpoint must reject
+    # it (schema-level, no 'file' in discriminated union), but the convert
+    # endpoint must still accept it because inline kinds are always valid there.
+    from unittest.mock import patch
+
+    from docling_serve import app as app_module
+
+    monkeypatch.setattr(
+        app_module.docling_serve_settings, "allowed_source_types", ["http", "s3"]
+    )
+    with patch.object(app_module, "setup_otel_instrumentation"):
+        restricted_app = app_module.create_app()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=restricted_app), base_url="http://app.io"
+    ) as client:
+        # Batch endpoint must reject file (schema-level 422).
+        batch_resp = await client.post(
+            "/v1/convert/source/batch",
+            json={
+                "sources": [
+                    {"kind": "file", "base64_string": "aGVsbG8=", "filename": "a.pdf"}
+                ],
+                "target": {
+                    "kind": "s3",
+                    "endpoint": "s3.example.com",
+                    "access_key": "key",
+                    "secret_key": "secret",
+                    "bucket": "converted",
+                },
+            },
+        )
+        assert batch_resp.status_code == 422, batch_resp.text
+
+        # Convert endpoint must accept file regardless.
+        convert_resp = await client.post(
+            "/v1/convert/source/async",
+            json={
+                "sources": [
+                    {"kind": "file", "base64_string": "aGVsbG8=", "filename": "a.pdf"}
+                ],
+                "target": {"kind": "inbody"},
+            },
+        )
+        assert convert_resp.status_code == 200, convert_resp.text
+
+    sources = fake_orchestrator.enqueued[0]["sources"]
+    assert getattr(sources[0], "kind", None) == "file"
