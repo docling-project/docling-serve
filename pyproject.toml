@@ -195,7 +195,7 @@ triton-rocm = [
 ]
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "feat/astradb-connector-refactor" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 [[tool.uv.index]]
