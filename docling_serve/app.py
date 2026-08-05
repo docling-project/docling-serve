@@ -947,7 +947,6 @@ def create_app():  # noqa: C901
             list[str],
             Form(
                 alias="callbacks",
-                default=[],
                 description=(
                     "Callback endpoint(s). Repeat the field for multiple callbacks. "
                     "Each value is either a bare URL (e.g. https://hook.example.com/done) "
@@ -1092,7 +1091,6 @@ def create_app():  # noqa: C901
             list[str],
             Form(
                 alias="callbacks",
-                default=[],
                 description=(
                     "Callback endpoint(s). Repeat the field for multiple callbacks. "
                     "Each value is either a bare URL (e.g. https://hook.example.com/done) "
