@@ -7,7 +7,7 @@ import sys
 from typing import Union, get_args, get_origin
 
 from fastapi import Depends, Form
-from pydantic import BaseModel, TypeAdapter
+from pydantic import AnyUrl, BaseModel, TypeAdapter, ValidationError
 
 DOCLING_VERSIONS = {
     "docling-serve": importlib.metadata.version("docling-serve"),
@@ -147,6 +147,29 @@ def FormDepends(
     as_form_func.__signature__ = sig  # type: ignore
 
     return Depends(as_form_func)
+
+
+def parse_callback_item(value: str):
+    """Decode one ``callbacks`` multipart form field value into a ``CallbackSpec``.
+
+    Two accepted formats:
+
+    * **Full JSON object** - ``{"url": "https://...", "headers": {...}, "ca_cert": "..."}``
+    * **Bare URL** - ``https://hook.example.com/done``  (shortcut; headers and ca_cert
+      default to their ``CallbackSpec`` defaults)
+
+    The full-JSON path is tried first; a parse failure falls through to the bare-URL
+    interpretation so callers never need to JSON-encode a plain URL.
+    """
+    # Import here to avoid a hard dependency at module level when callbacks are unused.
+    from docling.datamodel.service.callbacks import CallbackSpec
+
+    value = value.strip()
+    try:
+        return CallbackSpec.model_validate_json(value)
+    except (ValueError, ValidationError):
+        # Treat the raw string as the callback URL.
+        return CallbackSpec(url=AnyUrl(value))
 
 
 def _to_list_of_strings(input_value: Union[str, list[str]]) -> list[str]:
