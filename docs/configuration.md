@@ -41,7 +41,19 @@ THe following table describes the options to configure the Docling Serve app.
 | `--artifacts-path` | `DOCLING_SERVE_ARTIFACTS_PATH` | unset | If set to a valid directory, the model weights will be loaded from this path |
 |  | `DOCLING_SERVE_STATIC_PATH` | unset | If set to a valid directory, the static assets for the docs and UI will be loaded from this path |
 |  | `DOCLING_SERVE_SCRATCH_PATH` |  | If set, this directory will be used as scratch workspace, e.g. storing the results before they get requested. If unset, a temporary created is created for this purpose. |
-|  | `DOCLING_SERVE_ARTIFACT_STORAGE_VERIFY_SSL` | `true` | Whether the server-managed artifact storage verifies TLS certificates. Set this to `false` for local HTTP or self-signed MinIO setups. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ENABLED` | `false` | Enable server-managed artifact storage for `PresignedUrlTarget`. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_BACKEND` | `s3` | Managed artifact-storage backend: `s3` or `azure`. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ENDPOINT` |  | S3 endpoint without protocol. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_VERIFY_SSL` | `true` | Whether the S3 artifact-storage connection verifies TLS certificates. Set this to `false` for local HTTP or self-signed MinIO setups. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_BUCKET` |  | S3 bucket for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ACCESS_KEY` |  | S3 access key. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_SECRET_KEY` |  | S3 secret key. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_KEY_PREFIX` | `converted/` | S3 object-key prefix for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONNECTION_STRING` |  | Azure Storage connection string. It must contain `AccountName` and `AccountKey`; managed identity, SAS-only connection strings, and `UseDevelopmentStorage=true` are not supported for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONTAINER` |  | Azure Blob container for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME` |  | Azure Storage account name. It must match `AccountName` in the connection string. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_BLOB_PREFIX` | `converted/` | Azure blob-name prefix for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_PRESIGN_TTL_SECONDS` | `3600` | Lifetime of returned S3 presigned URLs or Azure Blob SAS URLs. Valid range: 60–604800 seconds. |
 | `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
 |  | `DOCLING_SERVE_ENABLE_MANAGEMENT_ENDPOINTS` | `false` | If enabled, the `/v1/memory` endpoints will provide memory statistics, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
