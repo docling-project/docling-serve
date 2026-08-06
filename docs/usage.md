@@ -67,7 +67,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
 | `scale` | float | Image scaling factor for preprocessing |
-| `max_size` | int | None | Maximum image dimension (width or height) |
+| `max_size` | int or NoneType | Maximum image dimension (width or height) |
 | `extract_code` | bool | Extract code blocks |
 | `extract_formulas` | bool | Extract mathematical formulas |
 
@@ -102,8 +102,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `batch_size` | int | Number of images to process in a single batch during picture description. Higher values improve throughput but increase memory usage. Adjust based on available GPU/CPU memory. |
 | `scale` | float | Scaling factor for image resolution before processing. Higher values (e.g., 2.0) provide more detail for the vision model but increase processing time and memory. Range: 0.5-4.0 typical. |
 | `picture_area_threshold` | float | Minimum picture area as fraction of page area (0.0-1.0) to trigger description. Pictures smaller than this threshold are skipped. Use lower values (e.g., 0.01) to describe small images. |
-| `classification_allow` | list[docling_core.types.doc.labels.PictureClassificationLabel] | None | List of picture classification labels to allow for description. Only pictures classified with these labels will be processed. If None, all picture types are allowed unless explicitly denied. Use to focus description on specific image types (e.g., diagrams, charts). |
-| `classification_deny` | list[docling_core.types.doc.labels.PictureClassificationLabel] | None | List of picture classification labels to exclude from description. Pictures classified with these labels will be skipped. If None, no picture types are denied unless not in allow list. Use to exclude unwanted image types (e.g., decorative images, logos). |
+| `classification_allow` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to allow for description. Only pictures classified with these labels will be processed. If None, all picture types are allowed unless explicitly denied. Use to focus description on specific image types (e.g., diagrams, charts). |
+| `classification_deny` | List[PictureClassificationLabel] or NoneType | List of picture classification labels to exclude from description. Pictures classified with these labels will be skipped. If None, no picture types are denied unless not in allow list. Use to exclude unwanted image types (e.g., decorative images, logos). |
 | `classification_min_confidence` | float | Minimum classification confidence score (0.0-1.0) required for a picture to be processed. Pictures with classification confidence below this threshold are skipped. Higher values ensure only confidently classified images are described. Range: 0.0 (no filtering) to 1.0 (maximum confidence). |
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
@@ -117,7 +117,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `engine_options` | BaseVlmEngineOptions | Runtime configuration (transformers, mlx, api, etc.) |
 | `model_spec` | VlmModelSpec | Model specification with runtime-specific overrides |
 | `scale` | float | Image scaling factor for preprocessing |
-| `max_size` | int | None | Maximum image dimension (width or height) |
+| `max_size` | int or NoneType | Maximum image dimension (width or height) |
 | `batch_size` | int | Batch size for processing multiple pages |
 | `force_backend_text` | bool | Force use of backend text extraction instead of VLM |
 
@@ -204,7 +204,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `use_bookmarks` | bool | Use the PDF bookmarks / table-of-contents (when present) as the authoritative heading signal. Bookmarks are fuzzily matched to detected headings by title and page; confident matches win over numbering and style, and a confidently matched list-item is promoted to a heading. Unmatched entries fall back to numbering/style. |
 | `use_numbering` | bool | Use legal/outline numbering (e.g. PART I -> 1. -> 1.1 -> (a) -> (i), Roman vs Arabic numerals) as the primary signal for headings without a bookmark match. |
 | `use_style` | bool | Use font size (approximated from parsed PDF cell heights) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
-| `numbering_schemes` | list[str] | None | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
+| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
 | `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
 | `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
 

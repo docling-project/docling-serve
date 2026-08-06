@@ -1,5 +1,6 @@
 import inspect
 import re
+import types
 from typing import Annotated, Any, Union, get_args, get_origin
 
 from pydantic import BaseModel
@@ -82,6 +83,11 @@ def _format_type(type_hint: Any) -> str:
     if get_origin(type_hint) is Annotated:
         base_type = get_args(type_hint)[0]
         return _format_type(base_type)
+
+    # `X | None` carries no `__origin__`, so it would otherwise be rendered via
+    # `str()` and its pipe would split the surrounding markdown table row.
+    if get_origin(type_hint) is types.UnionType:
+        return " or ".join(_format_type(arg) for arg in get_args(type_hint))
 
     if hasattr(type_hint, "__origin__"):
         origin = type_hint.__origin__

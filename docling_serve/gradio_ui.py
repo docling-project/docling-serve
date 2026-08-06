@@ -366,6 +366,7 @@ def process_url(
     ocr_lang,
     pdf_backend,
     table_mode,
+    heading_hierarchy,
     abort_on_error,
     return_as_file,
     do_code_enrichment,
@@ -388,6 +389,7 @@ def process_url(
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
             "table_mode": table_mode,
+            "do_pdf_heading_hierarchy": heading_hierarchy,
             "abort_on_error": abort_on_error,
             "do_code_enrichment": do_code_enrichment,
             "do_formula_enrichment": do_formula_enrichment,
@@ -448,6 +450,7 @@ def process_file(
     ocr_lang,
     pdf_backend,
     table_mode,
+    heading_hierarchy,
     abort_on_error,
     return_as_file,
     do_code_enrichment,
@@ -476,6 +479,7 @@ def process_file(
             "ocr_lang": _to_list_of_strings(ocr_lang),
             "pdf_backend": pdf_backend,
             "table_mode": table_mode,
+            "do_pdf_heading_hierarchy": heading_hierarchy,
             "abort_on_error": abort_on_error,
             "return_as_file": return_as_file,
             "do_code_enrichment": do_code_enrichment,
@@ -736,6 +740,16 @@ with gr.Blocks(
                     label="Table Mode",
                     value=TableStructureOptions().mode.value,
                 )
+            with gr.Column(scale=2):
+                heading_hierarchy = gr.Checkbox(
+                    label="Infer heading levels",
+                    info=(
+                        "Assign section-header levels from the PDF bookmarks, "
+                        "numbering and font style instead of leaving every heading "
+                        "at level 1."
+                    ),
+                    value=False,
+                )
             with gr.Column(scale=1):
                 abort_on_error = gr.Checkbox(label="Abort on Error", value=False)
                 return_as_file = gr.Checkbox(label="Return as File", value=False)
@@ -842,6 +856,7 @@ with gr.Blocks(
             ocr_lang,
             pdf_backend,
             table_mode,
+            heading_hierarchy,
             abort_on_error,
             return_as_file,
             do_code_enrichment,
@@ -930,6 +945,7 @@ with gr.Blocks(
             ocr_lang,
             pdf_backend,
             table_mode,
+            heading_hierarchy,
             abort_on_error,
             return_as_file,
             do_code_enrichment,
