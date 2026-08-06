@@ -99,7 +99,11 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
-from docling_serve.helper_functions import DOCLING_VERSIONS, FormDepends
+from docling_serve.helper_functions import (
+    DOCLING_VERSIONS,
+    FormDepends,
+    parse_callback_item,
+)
 from docling_serve.logging_config import setup_logging
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.otel_instrumentation import (
@@ -939,6 +943,17 @@ def create_app():  # noqa: C901
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
         target_type: Annotated[TargetName, Form()] = default_target_name,
+        callbacks_raw: Annotated[
+            list[str],
+            Form(
+                alias="callbacks",
+                description=(
+                    "Callback endpoint(s). Repeat the field for multiple callbacks. "
+                    "Each value is either a bare URL (e.g. https://hook.example.com/done) "
+                    'or a JSON-encoded CallbackSpec object (e.g. {"url":"https://…","headers":{"X-Token":"abc"}}).'
+                ),
+            ),
+        ] = [],
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
@@ -949,6 +964,7 @@ def create_app():  # noqa: C901
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = _resolve_file_target(target_type)
+        callbacks = [parse_callback_item(v) for v in callbacks_raw]
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -957,7 +973,7 @@ def create_app():  # noqa: C901
             chunking_options=None,
             chunking_export_options=None,
             target=target,
-            callbacks=[],
+            callbacks=callbacks,
             tenant_id=tenant_id,
         )
         completed = await _wait_task_complete(
@@ -1071,6 +1087,17 @@ def create_app():  # noqa: C901
             ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
         ],
         target_type: Annotated[TargetName, Form()] = default_target_name,
+        callbacks_raw: Annotated[
+            list[str],
+            Form(
+                alias="callbacks",
+                description=(
+                    "Callback endpoint(s). Repeat the field for multiple callbacks. "
+                    "Each value is either a bare URL (e.g. https://hook.example.com/done) "
+                    'or a JSON-encoded CallbackSpec object (e.g. {"url":"https://…","headers":{"X-Token":"abc"}}).'
+                ),
+            ),
+        ] = [],
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
@@ -1083,6 +1110,7 @@ def create_app():  # noqa: C901
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
         )
         target = _resolve_file_target(target_type)
+        callbacks = [parse_callback_item(v) for v in callbacks_raw]
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -1091,7 +1119,7 @@ def create_app():  # noqa: C901
             chunking_options=None,
             chunking_export_options=None,
             target=target,
-            callbacks=[],
+            callbacks=callbacks,
             tenant_id=tenant_id,
         )
         task_queue_position = await orchestrator.get_queue_position(

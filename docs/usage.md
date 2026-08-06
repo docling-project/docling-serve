@@ -469,6 +469,75 @@ data = response.json()
 
 </details>
 
+#### Callbacks
+
+Both `/v1/convert/file` and `/v1/convert/file/async` accept an optional `callbacks` field.
+Repeat the field once per endpoint you want notified when the conversion completes.
+
+Each value is either a **bare URL** (shortcut) or a **JSON-encoded `CallbackSpec` object** with optional headers and a CA certificate:
+
+| Format | Example value |
+|--------|---------------|
+| Bare URL | `https://hook.example.com/done` |
+| JSON object | `{"url":"https://hook.example.com/done","headers":{"Authorization":"Bearer tok"},"ca_cert":""}` |
+
+The bare-URL format is the easiest way to register a webhook. Use the JSON-object format when you need custom request headers (e.g. an auth token) or a non-default CA certificate for TLS verification.
+
+<details>
+<summary>CURL example — bare URL callback:</summary>
+
+```sh
+curl -X 'POST' \
+  'http://127.0.0.1:5001/v1/convert/file' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'files=@document.pdf;type=application/pdf' \
+  -F 'callbacks=https://hook.example.com/done'
+```
+
+</details>
+
+<details>
+<summary>CURL example — multiple callbacks, one with custom headers:</summary>
+
+```sh
+curl -X 'POST' \
+  'http://127.0.0.1:5001/v1/convert/file' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'files=@document.pdf;type=application/pdf' \
+  -F 'callbacks=https://hook.example.com/done' \
+  -F 'callbacks={"url":"https://secure.example.com/notify","headers":{"Authorization":"Bearer my-token"}}'
+```
+
+</details>
+
+<details>
+<summary>Python example — callbacks with httpx:</summary>
+
+```python
+import httpx
+
+async_client = httpx.AsyncClient(timeout=60.0)
+url = "http://localhost:5001/v1/convert/file"
+
+with open("document.pdf", "rb") as f:
+    response = await async_client.post(
+        url,
+        files={"files": ("document.pdf", f, "application/pdf")},
+        data={
+            "callbacks": [
+                "https://hook.example.com/done",
+                '{"url":"https://secure.example.com/notify","headers":{"Authorization":"Bearer my-token"}}',
+            ]
+        },
+    )
+
+data = response.json()
+```
+
+</details>
+
 ### Picture description options
 
 When the picture description enrichment is activated, users may specify which model and which execution mode to use for this task. There are two choices for the execution mode: _local_ will run the vision-language model directly, _api_ will invoke an external API endpoint.
