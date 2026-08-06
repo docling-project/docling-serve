@@ -11,7 +11,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `ebcdic`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
@@ -28,6 +28,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
 | `do_table_structure` | bool | If enabled, the table structure will be extracted. Boolean. Optional, defaults to true. |
+| `do_pdf_heading_hierarchy` | bool | If enabled, section-header levels are inferred for PDF and image inputs processed by the standard pipeline, from the PDF bookmarks / table of contents, from outline numbering and from font style. When disabled, every detected heading stays at level 1 and the document hierarchy is flat. Boolean. Optional, defaults to false. |
+| `pdf_heading_hierarchy_options` | HeadingHierarchyOptions | Fine-tuning of the section-header level inference, applied when do_pdf_heading_hierarchy is enabled. The nested enabled flag is set automatically from do_pdf_heading_hierarchy and does not need to be provided. |
 | `include_images` | bool | If enabled, picture element images are generated and included in the output. Boolean. Optional, defaults to true. |
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
@@ -193,6 +195,18 @@ On top of the source of file (see below), both endpoints support the same parame
 | `max_tokens` | int or NoneType | Maximum number of tokens per chunk. When left to none, the value is automatically extracted from the tokenizer. |
 | `tokenizer` | str | HuggingFace model name for custom tokenization. If not specified, uses 'sentence-transformers/all-MiniLM-L6-v2' as default. |
 | `merge_peers` | bool | Merge undersized successive chunks with same headings. |
+
+<h4>HeadingHierarchyOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `enabled` | bool | Enable inference of section-header levels for the PDF/image pipeline. When disabled (default), all detected headings remain at level 1 (unchanged behavior). |
+| `use_bookmarks` | bool | Use the PDF bookmarks / table-of-contents (when present) as the authoritative heading signal. Bookmarks are fuzzily matched to detected headings by title and page; confident matches win over numbering and style, and a confidently matched list-item is promoted to a heading. Unmatched entries fall back to numbering/style. |
+| `use_numbering` | bool | Use legal/outline numbering (e.g. PART I -> 1. -> 1.1 -> (a) -> (i), Roman vs Arabic numerals) as the primary signal for headings without a bookmark match. |
+| `use_style` | bool | Use font size (approximated from parsed PDF cell heights) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
+| `numbering_schemes` | list[str] | None | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
+| `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
+| `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
 
 <!-- end: parameters-docs -->
 
