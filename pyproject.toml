@@ -91,6 +91,11 @@ dev = [
     "types-pyyaml>=6.0.12.20250915",
 ]
 
+constraints  = [
+  'transformers>=4.42.0,<5.9.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.* ; sys_platform == "darwin"',
+  'transformers>=5.9.0,<6.0.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.* ; sys_platform != "darwin"',
+]
+
 pypi = [
   "torch>=2.7.1",
   "torchvision>=0.22.1",
