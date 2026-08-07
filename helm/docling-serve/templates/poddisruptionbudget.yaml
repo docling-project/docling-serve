@@ -1,0 +1,43 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "docling-serve.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "docling-serve.fullname" . }}
+    component: {{ include "docling-serve.fullname" . }}-api
+spec:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "docling-serve.fullname" . }}
+      component: {{ include "docling-serve.fullname" . }}-api
+{{- end }}
+{{- if and .Values.podDisruptionBudget.enabled (eq .Values.engine.kind "rq") }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-rq-workers
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "docling-serve.fullname" . }}-rq-workers
+    component: {{ include "docling-serve.fullname" . }}-rq-worker
+spec:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "docling-serve.fullname" . }}-rq-workers
+      component: {{ include "docling-serve.fullname" . }}-rq-worker
+{{- end }}
