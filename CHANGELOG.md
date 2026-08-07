@@ -1,3 +1,25 @@
+## [v1.30.0](https://github.com/docling-project/docling-serve/releases/tag/v1.30.0) - 2026-08-07
+
+### Feature
+
+* **UI:** Expose PDF heading-level inference ([#662](https://github.com/docling-project/docling-serve/issues/662)) ([`870dfbb`](https://github.com/docling-project/docling-serve/commit/870dfbb514d403aa3025ea46b26606d8f68293b0))
+* **deps:** Docling v2.118.0 (new backends, new options for headers hierarchy and fixes), docling-jobkit v3.3.0 (new connectors) ([#669](https://github.com/docling-project/docling-serve/issues/669)) ([`f49ba1c`](https://github.com/docling-project/docling-serve/commit/f49ba1cbaf638685d849c3c46c6e1ca088df0acd))
+* Add callbacks for file formdata ([#668](https://github.com/docling-project/docling-serve/issues/668)) ([`6c49d95`](https://github.com/docling-project/docling-serve/commit/6c49d956c023556115b07e03778341083d413922))
+
+### Fix
+
+* Correct document counter from connectors ([#671](https://github.com/docling-project/docling-serve/issues/671)) ([`7a1d643`](https://github.com/docling-project/docling-serve/commit/7a1d643486180a5a65e764b5a21170519743714f))
+* New transformers for linux ([#670](https://github.com/docling-project/docling-serve/issues/670)) ([`ca4d676`](https://github.com/docling-project/docling-serve/commit/ca4d67600b3e42a3e912f1489a78117f6ccadf00))
+
+### Docling libraries included in this release:
+- docling-core 2.91.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 3.3.0
+- docling-mcp 3.0.0
+- docling-parse 7.10.0
+- docling-serve 1.30.0
+- docling-slim 2.118.0
+
 ## [v1.29.0](https://github.com/docling-project/docling-serve/releases/tag/v1.29.0) - 2026-07-30
 
 ### Feature
