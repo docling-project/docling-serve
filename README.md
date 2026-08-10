@@ -31,6 +31,8 @@ docling-serve run --enable-ui
 podman run -p 5001:5001 -e DOCLING_SERVE_ENABLE_UI=1 quay.io/docling-project/docling-serve
 ```
 
+You can also run a managed Docling Serve instance on [Zenith](https://zenith.hosting/host/docling?ref=gh), with no setup required.
+
 The server is available at
 
 - API <http://127.0.0.1:5001>
