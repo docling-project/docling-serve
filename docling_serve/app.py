@@ -5,6 +5,7 @@ import hashlib
 import importlib.metadata
 import logging
 import os
+import re
 import shutil
 import time
 from collections import Counter
@@ -80,6 +81,7 @@ from docling.datamodel.service.targets import (
     ZipTarget,
 )
 from docling.datamodel.service.tasks import TaskType
+from docling_core.types.doc.common.constants import FIRST_SUPPORTED_MINOR
 from docling_jobkit.connectors.errors import (
     SourceConnectorConfigError,
     TargetConnectorConfigError,
@@ -464,6 +466,7 @@ def create_app():  # noqa: C901
             | GenericChunkDocumentsRequest
         ),
         tenant_id: str | None = None,
+        target_document_version: str | None = None,
     ) -> Task:
         sources: list[TaskSource]
         enqueue_targets: list[Any]
@@ -527,6 +530,8 @@ def create_app():  # noqa: C901
             )
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
+        if target_document_version:
+            task_metadata["target_document_version"] = target_document_version
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -555,6 +560,7 @@ def create_app():  # noqa: C901
         target: TargetRequest,
         callbacks: list[CallbackSpec] | None = None,
         tenant_id: str | None = None,
+        target_document_version: str | None = None,
     ) -> Task:
         _log.info(
             f"[TENANT_ID] _enqueue_file called with tenant_id='{tenant_id}', "
@@ -582,6 +588,8 @@ def create_app():  # noqa: C901
         metadata = {}
         if tenant_id:
             metadata["tenant_id"] = tenant_id
+        if target_document_version:
+            metadata["target_document_version"] = target_document_version
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -599,6 +607,36 @@ def create_app():  # noqa: C901
         )
 
         return task
+
+    def _validate_accept_doc_version(accept_doc_version: str | None) -> None:
+        """Reject an Accept-Docling-Document-Version below the projector floor.
+
+        Fails fast with a clean 422 for the unambiguous case (target below every
+        projector path). The worker's ``project_to`` raise is the backstop for
+        the rare cross-version deployment where the target sits between floor and
+        the server's native version.
+        """
+        if not accept_doc_version:
+            return
+        m = re.match(r"^(\d+)\.(\d+)", accept_doc_version)
+        if m is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"unparseable Accept-Docling-Document-Version "
+                    f"'{accept_doc_version}'"
+                ),
+            )
+        major, minor = int(m.group(1)), int(m.group(2))
+        if (major, minor) < (1, FIRST_SUPPORTED_MINOR):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"unsupported Accept-Docling-Document-Version "
+                    f"'{accept_doc_version}'; oldest supported is "
+                    f"1.{FIRST_SUPPORTED_MINOR}.0"
+                ),
+            )
 
     def _get_tenant_id_from_header(tenant_id_header: str | None) -> str:
         """Extract tenant_id from header or return default."""
@@ -889,12 +927,19 @@ def create_app():  # noqa: C901
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
+        accept_doc_version: Annotated[
+            str | None, Header(alias="Accept-Docling-Document-Version")
+        ] = None,
     ):
         prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _validate_accept_doc_version(accept_doc_version)
         _log.info(f"[TENANT_ID] process_url endpoint received tenant_id='{tenant_id}'")
         task = await _enqueue_source(
-            orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
+            orchestrator=orchestrator,
+            request=prepared_request,
+            tenant_id=tenant_id,
+            target_document_version=accept_doc_version,
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -957,11 +1002,15 @@ def create_app():  # noqa: C901
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
+        accept_doc_version: Annotated[
+            str | None, Header(alias="Accept-Docling-Document-Version")
+        ] = None,
     ):
         _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
         _validate_multipart_target_type(target_type)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _validate_accept_doc_version(accept_doc_version)
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = _resolve_file_target(target_type)
         callbacks = [parse_callback_item(v) for v in callbacks_raw]
@@ -975,6 +1024,7 @@ def create_app():  # noqa: C901
             target=target,
             callbacks=callbacks,
             tenant_id=tenant_id,
+            target_document_version=accept_doc_version,
         )
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
@@ -1014,14 +1064,21 @@ def create_app():  # noqa: C901
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
+        accept_doc_version: Annotated[
+            str | None, Header(alias="Accept-Docling-Document-Version")
+        ] = None,
     ):
         prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _validate_accept_doc_version(accept_doc_version)
         _log.info(
             f"[TENANT_ID] process_url_async endpoint received tenant_id='{tenant_id}'"
         )
         task = await _enqueue_source(
-            orchestrator=orchestrator, request=prepared_request, tenant_id=tenant_id
+            orchestrator=orchestrator,
+            request=prepared_request,
+            tenant_id=tenant_id,
+            target_document_version=accept_doc_version,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -1048,9 +1105,13 @@ def create_app():  # noqa: C901
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
+        accept_doc_version: Annotated[
+            str | None, Header(alias="Accept-Docling-Document-Version")
+        ] = None,
     ):
         conversion_request = _prepare_batch_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _validate_accept_doc_version(accept_doc_version)
         _log.info(
             f"[TENANT_ID] process_source_batch endpoint received tenant_id='{tenant_id}'"
         )
@@ -1058,6 +1119,7 @@ def create_app():  # noqa: C901
             orchestrator=orchestrator,
             request=conversion_request,
             tenant_id=tenant_id,
+            target_document_version=accept_doc_version,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
@@ -1101,11 +1163,15 @@ def create_app():  # noqa: C901
         x_tenant_id: Annotated[
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
+        accept_doc_version: Annotated[
+            str | None, Header(alias="Accept-Docling-Document-Version")
+        ] = None,
     ):
         _check_file_upload(files, target_type)
         options = _prepare_convert_options(options)
         _validate_multipart_target_type(target_type)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        _validate_accept_doc_version(accept_doc_version)
         _log.info(
             f"[TENANT_ID] process_file_async endpoint received tenant_id='{tenant_id}'"
         )
@@ -1121,6 +1187,7 @@ def create_app():  # noqa: C901
             target=target,
             callbacks=callbacks,
             tenant_id=tenant_id,
+            target_document_version=accept_doc_version,
         )
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
