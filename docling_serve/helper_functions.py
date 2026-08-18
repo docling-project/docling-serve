@@ -4,7 +4,7 @@ import json
 import platform
 import re
 import sys
-from typing import Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 from fastapi import Depends, Form
 from pydantic import AnyUrl, BaseModel, TypeAdapter, ValidationError
@@ -65,6 +65,9 @@ def FormDepends(
     cls: type[BaseModel], prefix: str = "", excluded_fields: list[str] = []
 ):
     new_parameters = []
+    # Value FastAPI substitutes for each field when the client omits it. Used
+    # below to tell an omitted field from one the client actually sent.
+    form_defaults: dict[str, Any] = {}
 
     for field_name, model_field in cls.model_fields.items():
         if field_name in excluded_fields:
@@ -82,13 +85,20 @@ def FormDepends(
             )
         )
 
+        if not model_field.is_required():
+            form_defaults[field_name] = model_field.default
+
         # Flatten nested Pydantic models and dict/list fields by accepting them as JSON strings
         if is_pydantic_model(annotation):
             annotation = str
-            default = Form(
+            form_default = (
                 None
                 if model_field.default is None
-                else json.dumps(model_field.default.model_dump(mode="json")),
+                else json.dumps(model_field.default.model_dump(mode="json"))
+            )
+            form_defaults[field_name] = form_default
+            default = Form(
+                form_default,
                 description=description,
                 examples=None
                 if not model_field.examples
@@ -99,10 +109,12 @@ def FormDepends(
             )
         elif is_json_field(annotation):
             annotation = str
+            form_default = (
+                None if model_field.default is None else json.dumps(model_field.default)
+            )
+            form_defaults[field_name] = form_default
             default = Form(
-                None
-                if model_field.default is None
-                else json.dumps(model_field.default),
+                form_default,
                 description=description,
                 examples=None
                 if not model_field.examples
@@ -124,6 +136,12 @@ def FormDepends(
             if field_name in excluded_fields:
                 continue
             value = data.get(f"{prefix}{field_name}")
+            if field_name in form_defaults and value == form_defaults[field_name]:
+                # The client did not send this field: leave it out so the model
+                # applies its own default and model_fields_set stays truthful.
+                # Validators that key on which fields were set (e.g. syncing a
+                # deprecated option onto its replacement) depend on this.
+                continue
             newdata[field_name] = value
             annotation = model_field.annotation
 
