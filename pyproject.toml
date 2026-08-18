@@ -199,9 +199,13 @@ triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
 
-# docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
+# TEMPORARY: consume the unreleased down-projection work from git. All three are
+# direct deps of docling-serve, so [tool.uv.sources] binds to them (uv sources do
+# not propagate transitively). Revert once docling-core with compat ships to PyPI.
+docling-slim = { git = "https://github.com/docling-project/docling/", branch = "cau/document-downprojection-support" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "cau/document-downprojection-support" }
+docling-core = { git = "https://github.com/docling-project/docling-core/", rev = "main" }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
