@@ -200,10 +200,8 @@ triton-rocm = [
 ]
 
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
-# TEMPORARY: consume the unreleased down-projection work from git. All three are
-# direct deps of docling-serve, so [tool.uv.sources] binds to them (uv sources do
-# not propagate transitively). Revert once docling-core with compat ships to PyPI.
-docling-slim = { git = "https://github.com/docling-project/docling/", branch = "cau/document-downprojection-support" }
+# TEMPORARY: consume the unreleased server-side down-projection work from git.
+# Remove these overrides once the corresponding releases ship to PyPI.
 docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "cau/document-downprojection-support" }
 docling-core = { git = "https://github.com/docling-project/docling-core/", rev = "main" }
 

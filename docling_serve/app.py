@@ -618,7 +618,7 @@ def create_app():  # noqa: C901
         """
         if not accept_doc_version:
             return
-        m = re.match(r"^(\d+)\.(\d+)", accept_doc_version)
+        m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", accept_doc_version)
         if m is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
