@@ -98,7 +98,7 @@ class _FakeOrchestrator:
             task_id="task-batch",
             task_type=kwargs["task_type"],
             sources=kwargs["sources"],
-            target=kwargs["target"],
+            targets=kwargs["targets"],
             convert_options=kwargs["convert_options"],
             callbacks=kwargs["callbacks"],
             metadata=kwargs["metadata"],
@@ -328,7 +328,7 @@ async def test_batch_endpoint_accepts_s3_source_with_s3_target(app, fake_orchest
     assert response.status_code == 200
     assert response.json()["task_type"] == TaskType.CONVERT
     assert len(fake_orchestrator.enqueued[0]["sources"]) == 1
-    assert isinstance(fake_orchestrator.enqueued[0]["target"], S3Target)
+    assert isinstance(fake_orchestrator.enqueued[0]["targets"][0], S3Target)
 
 
 @pytest.mark.asyncio
@@ -351,6 +351,47 @@ async def test_batch_endpoint_accepts_http_source_with_presigned_target(
 
     assert response.status_code == 200
     assert len(fake_orchestrator.enqueued[0]["sources"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_batch_endpoint_forwards_target_document_version(app, fake_orchestrator):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/source/batch",
+            headers={"Accept-Docling-Document-Version": "1.5.0"},
+            json={
+                "sources": [{"kind": "http", "url": "https://example.com/a.pdf"}],
+                "target": {"kind": "presigned_url"},
+            },
+        )
+
+    assert response.status_code == 200
+    assert (
+        fake_orchestrator.enqueued[0]["metadata"]["target_document_version"] == "1.5.0"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("version", ["1.5", "1.10junk"])
+async def test_batch_endpoint_rejects_malformed_document_version(
+    app, fake_orchestrator, version
+):
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://app.io"
+    ) as client:
+        response = await client.post(
+            "/v1/convert/source/batch",
+            headers={"Accept-Docling-Document-Version": version},
+            json={
+                "sources": [{"kind": "http", "url": "https://example.com/a.pdf"}],
+                "target": {"kind": "presigned_url"},
+            },
+        )
+
+    assert response.status_code == 422
+    assert fake_orchestrator.enqueued == []
 
 
 @pytest.mark.asyncio
@@ -476,7 +517,7 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
     assert response.status_code == 200
     assert type(fake_orchestrator.enqueued[-1]["sources"][0]) is TaskFileNetSource
     assert type(fake_orchestrator.enqueued[-1]["sources"][1]) is PluginSource
-    assert type(fake_orchestrator.enqueued[-1]["target"]) is PluginArtifactTarget
+    assert type(fake_orchestrator.enqueued[-1]["targets"][0]) is PluginArtifactTarget
     schemas = openapi["components"]["schemas"]
     assert "TaskFileNetSource" in schemas
     assert "PluginSource" in schemas
