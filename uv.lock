@@ -1899,7 +1899,7 @@ wheels = [
 
 [[package]]
 name = "docling-jobkit"
-version = "3.3.0"
+version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -1910,9 +1910,9 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/23/23/4420de4ae6074fdfc28fe4ba7d9326162a6ce29fa91259ef22fb726440ca/docling_jobkit-3.3.0.tar.gz", hash = "sha256:578469290d524e21d1cdbaacc4b5acad5f2d929ba490db740f70d3b86b7329b4", size = 180062, upload-time = "2026-08-06T12:17:42.85Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/c9/697f8b8ee16a6e5d1f326485cbf5a37f63c06b28ad6e635d656cb9f1a627/docling_jobkit-3.4.0.tar.gz", hash = "sha256:05fcf41698ef7c0d6f46df261d9bd8f7245b9740a9bdeef7d869abf733e9cfeb", size = 188047, upload-time = "2026-08-20T08:54:15.988Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/5a/ca508db4e6e1dacc611502594396e91367f6ae08d298965e427eb2884afc/docling_jobkit-3.3.0-py3-none-any.whl", hash = "sha256:8804eb773ed2114cd14169628dd16c0b69da0e3abcc9dae33a939f09af4dff68", size = 229660, upload-time = "2026-08-06T12:17:41.329Z" },
+    { url = "https://files.pythonhosted.org/packages/77/22/d0365e568df0c82fb1f4fbf8da6d4c33fd088a749bf9ec1eda0dce40eb17/docling_jobkit-3.4.0-py3-none-any.whl", hash = "sha256:14bbab1e8f3e7d9fc2d992c2f2b0da0344732268eb0a5a1814567b60de273e6d", size = 240199, upload-time = "2026-08-20T08:54:14.279Z" },
 ]
 
 [package.optional-dependencies]
@@ -2109,7 +2109,7 @@ rocm72 = [
 [package.metadata]
 requires-dist = [
     { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=3.3.0,<4" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=3.4.0,<4" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
     { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], specifier = ">=2.118.0,<3.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },

@@ -113,6 +113,7 @@ def _build_rq_config():
         debug_error_details=docling_serve_settings.debug_error_details,
         results_ttl=docling_serve_settings.eng_rq_results_ttl,
         failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
+        job_timeout=docling_serve_settings.eng_rq_job_timeout,
         redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
         redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
         redis_socket_connect_timeout=(
