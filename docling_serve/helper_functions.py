@@ -76,9 +76,9 @@ def _jsonable(value: Any) -> Any:
     ``ctx``; either can be a model instance or an exception object, which would
     either blow up or bloat the error response.
     """
-    if isinstance(value, (str, int, float, bool, type(None))):
+    if isinstance(value, str | int | float | bool | type(None)):
         return value
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return [_jsonable(item) for item in value]
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}

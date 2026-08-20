@@ -158,7 +158,7 @@ async def test_prefixed_form_fields_keep_their_prefix_in_the_error(client: Async
 @pytest.mark.parametrize(
     "annotation",
     [
-        Optional[NestedOptions],  # noqa: UP045 - the old spelling is what is under test
+        Optional[NestedOptions],
         Union[NestedOptions, None],
         NestedOptions | None,
     ],
@@ -170,7 +170,7 @@ def test_optional_nested_models_are_detected_in_both_union_spellings(annotation)
 @pytest.mark.parametrize(
     "annotation",
     [
-        Optional[dict[str, str]],  # noqa: UP045 - the old spelling is what is under test
+        Optional[dict[str, str]],
         Union[dict[str, str], None],
         dict[str, str] | None,
     ],
