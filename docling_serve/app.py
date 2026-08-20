@@ -1015,6 +1015,9 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
+        from rich.pretty import pprint
+
+        pprint(conversion_request)
         prepared_request = _prepare_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
@@ -1049,6 +1052,9 @@ def create_app():  # noqa: C901
             str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
         ] = None,
     ):
+        from rich.pretty import pprint
+
+        pprint(conversion_request)
         conversion_request = _prepare_batch_convert_request(conversion_request)
         tenant_id = _get_tenant_id_from_header(x_tenant_id)
         _log.info(
