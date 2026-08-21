@@ -1,0 +1,260 @@
+# Default values for docling-serve.
+# This is a YAML-formatted file.
+
+# Docling Serve image configuration
+images:
+  api:
+    repository: ghcr.io/docling-project/docling-serve-cpu
+    tag: latest
+    pullPolicy: Always
+  rqWorker:
+    repository: ghcr.io/docling-project/docling-serve-cpu
+    tag: latest
+    pullPolicy: Always
+  redis:
+    repository: redis
+    tag: 7.2
+    pullPolicy: Always
+
+# Number of API replicas
+replicaCount: 1
+
+# Horizontal Pod Autoscaler configuration for API
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 10
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 10
+      selectPolicy: Max
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Deployment strategy
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+  minReadySeconds: 0
+
+# Affinity configuration for pod scheduling
+affinity: {}
+
+# Pod Anti-Affinity for spreading pods across nodes
+podAntiAffinity:
+  enabled: false
+  type: "soft"  # "hard" or "soft"
+
+# Health checks configuration
+healthChecks:
+  api:
+    enabled: false
+    startupProbe:
+      path: /health
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+    livenessProbe:
+      path: /health
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+# Resource requests and limits
+resources:
+  api:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+  rqWorker:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      memory: 4Gi
+  redis:
+    requests:
+      cpu: 250m
+      memory: 100Mi
+    limits:
+      memory: 1Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  api:
+    port: 5001
+  rqWorker:
+    port: 5001
+  redis:
+    port: 6379
+    type: ClusterIP
+
+# RQ Worker configuration
+rqWorker:
+  replicas: 2
+  deploymentStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    minReadySeconds: 0
+
+# KEDA queue-length autoscaling for RQ workers
+kedaScaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  pollingInterval: 5
+  cooldownPeriod: 300
+  listName: "rq:queue:convert"
+  listLength: 1
+  unsafeSsl: "false"
+  hpaScaleDownStabilizationWindow: 600
+  hpaScaleDownPolicyPods: 1
+  hpaScaleDownPolicyPeriod: 180
+  hpaScaleUpStabilizationWindow: 30
+  hpaScaleUpPolicyPods: 1
+  hpaScaleUpPolicyPeriod: 60
+
+# Engine configuration (local or rq)
+engine:
+  kind: "local"  # Options: "local", "rq"
+  local:
+    numWorkers: 4
+  rq:
+    resultsTtl: "3600"
+    failureTtl: "3600"
+
+# Redis configuration
+redis:
+  type: "internal"  # Options: "internal", "external"
+  replicas: 1
+  volume:
+    medium: Memory
+    sizeLimit: 2Gi
+  external:
+    host: ""
+    port: 6379
+    database: 0
+    tls:
+      enabled: false
+  pool:
+    maxConnections: "50"
+    socketTimeout: "5.0"
+    socketConnectTimeout: "10.0"
+
+# Secret configuration
+secrets:
+  rqRedis:
+    name: docling-serve-rq-secrets
+    redisUrlKey: RQ_REDIS_URL
+    redisPasswordKey: REDIS_PASSWORD
+    redisUsernameKey: REDIS_USERNAME
+  externalSecret:
+    enabled: false
+    name: docling-serve-redis-external-secret
+    secretStore:
+      name: aws-secrets-manager
+      kind: ClusterSecretStore
+      create: false
+      roleArn: ""
+      region: us-east-1
+    remoteSecretName: ""
+    refreshInterval: 1h
+    dataFrom:
+      enabled: false
+    data:
+      - secretKey: REDIS_PASSWORD
+        remoteKey: password
+      - secretKey: REDIS_USERNAME
+        remoteKey: username
+      - secretKey: REDIS_HOST
+        remoteKey: host
+      - secretKey: REDIS_PORT
+        remoteKey: port
+
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+# Gateway configuration (optional, for Kubernetes Gateway API)
+gateway:
+  enabled: false
+  className: ""
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+
+# Docling Serve configuration
+doclingServe:
+  maxFileSize: ""
+  maxNumPages: ""
+  scratchPath: ""
+  singleUseResults: ""
+  enableUI: true
+  enableRemoteServices: false
+  allowCustomVlmConfig: false
+
+# Docling debug configuration
+doclingDebug:
+  profilePipelineTimings: false
+
+# OpenTelemetry configuration
+opentelemetry:
+  enabled: false
+  traces:
+    enabled: true
+  metrics:
+    enabled: true
+  exporter:
+    endpoint: ""
+    protocol: "grpc"
+  serviceName:
+    api: "docling-serve-api"
+    worker: "docling-serve-worker"
+  excludedUrls: "/health,/metrics,/healthz,/readyz,/livez"
+  resourceAttributes: ""
