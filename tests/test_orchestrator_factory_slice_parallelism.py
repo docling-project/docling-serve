@@ -102,7 +102,7 @@ def test_ray_config_omits_presigned_storage_when_disabled(monkeypatch):
         max_page_slice_parallelism=None,
     )
 
-    assert orchestrator.config.s3_presigned_config is None
+    assert orchestrator.config.presigned_config is None
 
 
 def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
@@ -182,7 +182,7 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
     ):
         orchestrator = factory_module.get_async_orchestrator()
 
-    config = orchestrator.config.s3_presigned_config
+    config = orchestrator.config.presigned_config
     assert config is not None
     assert config.s3_coords.endpoint == "s3.example.com"
     assert config.s3_coords.verify_ssl is False
