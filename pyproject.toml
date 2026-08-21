@@ -94,7 +94,7 @@ dev = [
 
 constraints  = [
   'transformers>=4.42.0,<5.9.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.* ; sys_platform == "darwin"',
-  'transformers>=5.9.0,<6.0.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.* ; sys_platform != "darwin"',
+  'transformers>=5.9.0,<5.15.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.* ; sys_platform != "darwin"',
 ]
 
 pypi = [
@@ -167,6 +167,7 @@ override-dependencies = [
   "xgrammar>=0.1.24",
   "grpcio>=1.75.1",
   "cryptography>=46.0.7",
+  "transformers>=5.9.0,<=5.14.1",
 ]
 
 [tool.uv.sources]
