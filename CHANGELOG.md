@@ -1,3 +1,45 @@
+## [v1.31.0](https://github.com/docling-project/docling-serve/releases/tag/v1.31.0) - 2026-08-20
+
+### Feature
+
+* Expose the RQ job timeout as DOCLING_SERVE_ENG_RQ_JOB_TIMEOUT ([#681](https://github.com/docling-project/docling-serve/issues/681)) ([`9b0ac2f`](https://github.com/docling-project/docling-serve/commit/9b0ac2f9c72419d7a02a848c93738fcdb910dad3))
+
+### Fix
+
+* Return 422 instead of 500 for invalid options on the multipart endpoints ([#672](https://github.com/docling-project/docling-serve/issues/672)) ([`02016c5`](https://github.com/docling-project/docling-serve/commit/02016c52ab966315a7f5d28a481b48bca1605f80))
+* Update locked deps ([#683](https://github.com/docling-project/docling-serve/issues/683)) ([`51a07ed`](https://github.com/docling-project/docling-serve/commit/51a07ed1ac54c4f36ea66a59ef39a0f2345ede6b))
+
+### Docling libraries included in this release:
+- docling-core 2.92.0
+- docling-ibm-models 3.14.0
+- docling-jobkit 3.4.0
+- docling-mcp 3.1.0
+- docling-parse 7.15.0
+- docling-serve 1.31.0
+- docling-slim 2.121.0
+
+## [v1.30.0](https://github.com/docling-project/docling-serve/releases/tag/v1.30.0) - 2026-08-07
+
+### Feature
+
+* **UI:** Expose PDF heading-level inference ([#662](https://github.com/docling-project/docling-serve/issues/662)) ([`870dfbb`](https://github.com/docling-project/docling-serve/commit/870dfbb514d403aa3025ea46b26606d8f68293b0))
+* **deps:** Docling v2.118.0 (new backends, new options for headers hierarchy and fixes), docling-jobkit v3.3.0 (new connectors) ([#669](https://github.com/docling-project/docling-serve/issues/669)) ([`f49ba1c`](https://github.com/docling-project/docling-serve/commit/f49ba1cbaf638685d849c3c46c6e1ca088df0acd))
+* Add callbacks for file formdata ([#668](https://github.com/docling-project/docling-serve/issues/668)) ([`6c49d95`](https://github.com/docling-project/docling-serve/commit/6c49d956c023556115b07e03778341083d413922))
+
+### Fix
+
+* Correct document counter from connectors ([#671](https://github.com/docling-project/docling-serve/issues/671)) ([`7a1d643`](https://github.com/docling-project/docling-serve/commit/7a1d643486180a5a65e764b5a21170519743714f))
+* New transformers for linux ([#670](https://github.com/docling-project/docling-serve/issues/670)) ([`ca4d676`](https://github.com/docling-project/docling-serve/commit/ca4d67600b3e42a3e912f1489a78117f6ccadf00))
+
+### Docling libraries included in this release:
+- docling-core 2.91.0
+- docling-ibm-models 3.13.3
+- docling-jobkit 3.3.0
+- docling-mcp 3.0.0
+- docling-parse 7.10.0
+- docling-serve 1.30.0
+- docling-slim 2.118.0
+
 ## [v1.29.0](https://github.com/docling-project/docling-serve/releases/tag/v1.29.0) - 2026-07-30
 
 ### Feature
