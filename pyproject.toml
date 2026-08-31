@@ -197,7 +197,7 @@ triton-rocm = [
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
-docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "fix/redis-tenant-limits-bookkeeping-race" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "fix-callback-failures" }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
