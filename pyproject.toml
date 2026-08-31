@@ -164,8 +164,6 @@ override-dependencies = [
 ]
 
 [tool.uv.sources]
-docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "cau/azure-blob-presigned-storage" }
-
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
@@ -199,6 +197,7 @@ triton-rocm = [
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
 # docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "fix/redis-tenant-limits-bookkeeping-race" }
 
 [[tool.uv.index]]
 name = "pytorch-pypi"
