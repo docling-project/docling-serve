@@ -1,5 +1,6 @@
 import importlib.metadata
 import logging
+import os
 import platform
 import sys
 import warnings
@@ -106,19 +107,15 @@ def _run(
         and uvicorn_settings.ssl_keyfile is not None
     )
 
-    if run_subprocess and docling_serve_settings.artifacts_path != artifacts_path:
-        err_console.print(
-            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
-            "The argument [bold]--artifacts-path[/bold] will be ignored, please set the value \n"
-            "using the environment variable [bold]DOCLING_SERVE_ARTIFACTS_PATH[/bold].[/yellow]"
-        )
-
-    if run_subprocess and docling_serve_settings.enable_ui != enable_ui:
-        err_console.print(
-            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
-            "The argument [bold]--enable-ui[/bold] will be ignored, please set the value \n"
-            "using the environment variable [bold]DOCLING_SERVE_ENABLE_UI[/bold].[/yellow]"
-        )
+    if run_subprocess:
+        # With reload or multiple workers, uvicorn starts the server through
+        # multiprocessing "spawn". The child re-imports docling_serve.settings
+        # and rebuilds the settings from the environment, so the assignments
+        # below never reach it. Hand the CLI values over through the very
+        # environment variables the settings model reads.
+        if artifacts_path is not None:
+            os.environ["DOCLING_SERVE_ARTIFACTS_PATH"] = str(artifacts_path)
+        os.environ["DOCLING_SERVE_ENABLE_UI"] = str(enable_ui).lower()
 
     # Propagate the settings to the app settings
     docling_serve_settings.artifacts_path = artifacts_path
