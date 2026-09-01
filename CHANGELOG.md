@@ -1,3 +1,22 @@
+## [v1.32.0](https://github.com/docling-project/docling-serve/releases/tag/v1.32.0) - 2026-09-01
+
+### Feature
+
+* Add Azure Blob presigned artifact storage ([#655](https://github.com/docling-project/docling-serve/issues/655)) ([`b2d1aea`](https://github.com/docling-project/docling-serve/commit/b2d1aea3f2a7a512f91e0b99257373f6ab333934))
+
+### Fix
+
+* **cli:** Let --artifacts-path/--enable-ui reach the uvicorn subprocess ([#686](https://github.com/docling-project/docling-serve/issues/686)) ([`bcc5624`](https://github.com/docling-project/docling-serve/commit/bcc562419d3222a1ae5b64a6adac0fa2cf896a93))
+
+### Docling libraries included in this release:
+- docling-core 2.93.0
+- docling-ibm-models 4.0.1
+- docling-jobkit 3.5.0
+- docling-mcp 3.2.0
+- docling-parse 7.16.0
+- docling-serve 1.32.0
+- docling-slim 2.124.0
+
 ## [v1.31.0](https://github.com/docling-project/docling-serve/releases/tag/v1.31.0) - 2026-08-20
 
 ### Feature
