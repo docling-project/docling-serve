@@ -75,7 +75,7 @@ def _build_cm_config():
     )
 
 
-def _build_s3_presigned_config():
+def _build_presigned_config():
     """Build presigned artifact storage config, or return None when disabled.
 
     The managed storage prefix and URL TTL are owned by docling-serve settings and
@@ -83,6 +83,41 @@ def _build_s3_presigned_config():
     """
     if not docling_serve_settings.artifact_storage_enabled:
         return None
+
+    if docling_serve_settings.artifact_storage_backend == "azure":
+        from docling.datamodel.service.sources import AzureBlobCoordinates
+        from docling_jobkit.config.target_config import AzurePresignedConfig
+
+        required_settings = {
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONNECTION_STRING": (
+                docling_serve_settings.artifact_storage_azure_connection_string
+            ),
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONTAINER": (
+                docling_serve_settings.artifact_storage_azure_container
+            ),
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME": (
+                docling_serve_settings.artifact_storage_azure_account_name
+            ),
+        }
+        missing = [name for name, value in required_settings.items() if not value]
+        if missing:
+            raise ValueError(
+                "Azure managed artifact storage requires: " + ", ".join(missing)
+            )
+
+        return AzurePresignedConfig(
+            azure_coords=AzureBlobCoordinates(
+                account_name=docling_serve_settings.artifact_storage_azure_account_name,
+                container=docling_serve_settings.artifact_storage_azure_container,
+                connection_string=(
+                    docling_serve_settings.artifact_storage_azure_connection_string
+                ),
+                blob_prefix=docling_serve_settings.artifact_storage_azure_blob_prefix,
+            ),
+            url_expiration=(
+                docling_serve_settings.artifact_storage_presign_ttl_seconds
+            ),
+        )
 
     from docling.datamodel.service.sources import S3Coordinates
     from docling_jobkit.config.target_config import S3PresignedConfig
@@ -130,7 +165,7 @@ def _build_rq_config():
         zombie_reaper_interval=docling_serve_settings.eng_rq_zombie_reaper_interval,
         zombie_reaper_max_age=docling_serve_settings.eng_rq_zombie_reaper_max_age,
         result_removal_delay=docling_serve_settings.result_removal_delay,
-        s3_presigned_config=_build_s3_presigned_config(),
+        presigned_config=_build_presigned_config(),
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
     )
 
@@ -149,7 +184,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             shared_models=docling_serve_settings.eng_loc_share_models,
             scratch_dir=get_scratch(),
             result_removal_delay=docling_serve_settings.result_removal_delay,
-            s3_presigned_config=_build_s3_presigned_config(),
+            presigned_config=_build_presigned_config(),
         )
 
         cm = DoclingConverterManager(config=_build_cm_config())
@@ -188,7 +223,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         # Create Fair Ray orchestrator config
         ray_config = RayOrchestratorConfig(
-            s3_presigned_config=_build_s3_presigned_config(),
+            presigned_config=_build_presigned_config(),
             # Redis Configuration
             redis_url=docling_serve_settings.eng_ray_redis_url,
             redis_max_connections=docling_serve_settings.eng_ray_redis_max_connections,

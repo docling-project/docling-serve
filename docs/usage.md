@@ -12,7 +12,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | Field Name | Type | Description |
 |------------|------|-------------|
 | `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `ebcdic`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`. Optional, defaults to Markdown. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`, `latex`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
@@ -20,7 +20,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
 | `ocr_custom_config` | Dict[str, Any] or NoneType | Custom configuration for OCR engine. Use this to specify engine-specific options beyond `ocr_lang`. Each OCR engine kind has its own configuration schema. |
-| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `threaded_docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `docling_parse`. |
+| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `threaded_docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to threaded_docling_parse. |
 | `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
@@ -34,6 +34,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
 | `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `md_compact_tables` | bool | Whether to use compact table format without column padding in the markdown output. When False (default), tables use padded columns for better visual formatting. When True, tables use minimal whitespace, which is better for large tables and downstream processing. |
 | `chunking_options` | HybridChunkerOptions or HierarchicalChunkerOptions or NoneType | Chunker configuration. |
 | `chunking_preset` | str or NoneType | Preset ID for chunking (e.g. "granite_embedding_278m"). Mutually exclusive with chunking_options. |
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
