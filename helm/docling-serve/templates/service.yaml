@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docling-serve.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "docling-serve.fullname" . }}
+    component: {{ include "docling-serve.fullname" . }}-api
+spec:
+  ports:
+  - name: http
+    port: {{ .Values.service.api.port }}
+    targetPort: {{ .Values.service.api.port }}
+  selector:
+    app: {{ include "docling-serve.fullname" . }}
+    component: {{ include "docling-serve.fullname" . }}-api
+{{- if eq .Values.engine.kind "rq" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-rq-workers
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "docling-serve.fullname" . }}-rq-workers
+    component: {{ include "docling-serve.fullname" . }}-rq-worker
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.service.rqWorker.port }}
+      targetPort: {{ .Values.service.rqWorker.port }}
+  selector:
+    app: {{ include "docling-serve.fullname" . }}-rq-workers
+    component: {{ include "docling-serve.fullname" . }}-rq-worker
+{{- end }}
+{{- if and (eq .Values.engine.kind "rq") (eq .Values.redis.type "internal") }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "docling-serve.redisLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.redis.type | default "ClusterIP" }}
+  ports:
+    - name: redis-service
+      protocol: TCP
+      port: {{ .Values.service.redis.port }}
+      targetPort: {{ .Values.service.redis.port }}
+  selector:
+    {{- include "docling-serve.redisLabels" . | nindent 4 }}
+{{- end }}
