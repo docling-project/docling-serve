@@ -11,8 +11,8 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `ebcdic`. Optional, defaults to all formats. |
-| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`. Optional, defaults to Markdown. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `pptx`, `ppt`, `html`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `ebcdic`. Optional, defaults to all formats. |
+| `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`, `latex`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
 | `force_ocr` | bool | If enabled, replace existing text with OCR-generated text over content. Boolean. Optional, defaults to false. |
@@ -20,7 +20,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `ocr_lang` | List[str] or NoneType | List of languages used by the OCR engine. Note that each OCR engine has different values for the language names. String or list of strings. Optional, defaults to empty. |
 | `ocr_preset` | str | Preset ID for OCR engine. |
 | `ocr_custom_config` | Dict[str, Any] or NoneType | Custom configuration for OCR engine. Use this to specify engine-specific options beyond `ocr_lang`. Each OCR engine kind has its own configuration schema. |
-| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `threaded_docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `docling_parse`. |
+| `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `threaded_docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to threaded_docling_parse. |
 | `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
 | `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
@@ -34,6 +34,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `include_page_images` | bool | If enabled, full-page images are generated and included in the output. Boolean. Optional, defaults to false. |
 | `images_scale` | float | Scale factor for images. Float. Optional, defaults to 2.0. |
 | `md_page_break_placeholder` | str | Add this placeholder between pages in the markdown output. |
+| `md_compact_tables` | bool | Whether to use compact table format without column padding in the markdown output. When False (default), tables use padded columns for better visual formatting. When True, tables use minimal whitespace, which is better for large tables and downstream processing. |
 | `chunking_options` | HybridChunkerOptions or HierarchicalChunkerOptions or NoneType | Chunker configuration. |
 | `chunking_preset` | str or NoneType | Preset ID for chunking (e.g. "granite_embedding_278m"). Mutually exclusive with chunking_options. |
 | `do_code_enrichment` | bool | If enabled, perform OCR code enrichment. Boolean. Optional, defaults to false. |
@@ -203,7 +204,9 @@ On top of the source of file (see below), both endpoints support the same parame
 | `enabled` | bool | Enable inference of section-header levels for the PDF/image pipeline. When disabled (default), all detected headings remain at level 1 (unchanged behavior). |
 | `use_bookmarks` | bool | Use the PDF bookmarks / table-of-contents (when present) as the authoritative heading signal. Bookmarks are fuzzily matched to detected headings by title and page; confident matches win over numbering and style, and a confidently matched list-item is promoted to a heading. Unmatched entries fall back to numbering/style. |
 | `use_numbering` | bool | Use legal/outline numbering (e.g. PART I -> 1. -> 1.1 -> (a) -> (i), Roman vs Arabic numerals) as the primary signal for headings without a bookmark match. |
-| `use_style` | bool | Use font size (approximated from parsed PDF cell heights) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
+| `use_style` | bool | Use the visual style of the heading (font size, and with `use_font_style` also weight, slant and letter case) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
+| `use_font_style` | bool | Refine the style fallback with the font weight and slant read from the embedded PDF font names, plus all-caps detection, so that headings sharing a font size are still ranked (bold above regular, upright above italic, all-caps above mixed case). Ignored when `use_style` is disabled; font names that carry no recognizable styling fall back to font size alone. |
+| `style_size_tolerance` | float | Relative difference below which two heading font sizes are treated as one size by the style fallback. The size of a heading is measured from its cells, so the same font measures a little taller on a heading that has descenders; without this tolerance such headings would land on different levels. Higher = more sizes collapse into one level. |
 | `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
 | `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
 | `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |

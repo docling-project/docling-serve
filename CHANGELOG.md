@@ -1,3 +1,42 @@
+## [v1.32.0](https://github.com/docling-project/docling-serve/releases/tag/v1.32.0) - 2026-09-01
+
+### Feature
+
+* Add Azure Blob presigned artifact storage ([#655](https://github.com/docling-project/docling-serve/issues/655)) ([`b2d1aea`](https://github.com/docling-project/docling-serve/commit/b2d1aea3f2a7a512f91e0b99257373f6ab333934))
+
+### Fix
+
+* **cli:** Let --artifacts-path/--enable-ui reach the uvicorn subprocess ([#686](https://github.com/docling-project/docling-serve/issues/686)) ([`bcc5624`](https://github.com/docling-project/docling-serve/commit/bcc562419d3222a1ae5b64a6adac0fa2cf896a93))
+
+### Docling libraries included in this release:
+- docling-core 2.93.0
+- docling-ibm-models 4.0.1
+- docling-jobkit 3.5.0
+- docling-mcp 3.2.0
+- docling-parse 7.16.0
+- docling-serve 1.32.0
+- docling-slim 2.124.0
+
+## [v1.31.0](https://github.com/docling-project/docling-serve/releases/tag/v1.31.0) - 2026-08-20
+
+### Feature
+
+* Expose the RQ job timeout as DOCLING_SERVE_ENG_RQ_JOB_TIMEOUT ([#681](https://github.com/docling-project/docling-serve/issues/681)) ([`9b0ac2f`](https://github.com/docling-project/docling-serve/commit/9b0ac2f9c72419d7a02a848c93738fcdb910dad3))
+
+### Fix
+
+* Return 422 instead of 500 for invalid options on the multipart endpoints ([#672](https://github.com/docling-project/docling-serve/issues/672)) ([`02016c5`](https://github.com/docling-project/docling-serve/commit/02016c52ab966315a7f5d28a481b48bca1605f80))
+* Update locked deps ([#683](https://github.com/docling-project/docling-serve/issues/683)) ([`51a07ed`](https://github.com/docling-project/docling-serve/commit/51a07ed1ac54c4f36ea66a59ef39a0f2345ede6b))
+
+### Docling libraries included in this release:
+- docling-core 2.92.0
+- docling-ibm-models 3.14.0
+- docling-jobkit 3.4.0
+- docling-mcp 3.1.0
+- docling-parse 7.15.0
+- docling-serve 1.31.0
+- docling-slim 2.121.0
+
 ## [v1.30.0](https://github.com/docling-project/docling-serve/releases/tag/v1.30.0) - 2026-08-07
 
 ### Feature

@@ -41,7 +41,19 @@ THe following table describes the options to configure the Docling Serve app.
 | `--artifacts-path` | `DOCLING_SERVE_ARTIFACTS_PATH` | unset | If set to a valid directory, the model weights will be loaded from this path |
 |  | `DOCLING_SERVE_STATIC_PATH` | unset | If set to a valid directory, the static assets for the docs and UI will be loaded from this path |
 |  | `DOCLING_SERVE_SCRATCH_PATH` |  | If set, this directory will be used as scratch workspace, e.g. storing the results before they get requested. If unset, a temporary created is created for this purpose. |
-|  | `DOCLING_SERVE_ARTIFACT_STORAGE_VERIFY_SSL` | `true` | Whether the server-managed artifact storage verifies TLS certificates. Set this to `false` for local HTTP or self-signed MinIO setups. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ENABLED` | `false` | Enable server-managed artifact storage for `PresignedUrlTarget`. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_BACKEND` | `s3` | Managed artifact-storage backend: `s3` or `azure`. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ENDPOINT` |  | S3 endpoint without protocol. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_VERIFY_SSL` | `true` | Whether the S3 artifact-storage connection verifies TLS certificates. Set this to `false` for local HTTP or self-signed MinIO setups. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_BUCKET` |  | S3 bucket for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_ACCESS_KEY` |  | S3 access key. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_SECRET_KEY` |  | S3 secret key. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_KEY_PREFIX` | `converted/` | S3 object-key prefix for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONNECTION_STRING` |  | Azure Storage connection string. It must contain `AccountName` and `AccountKey`; managed identity, SAS-only connection strings, and `UseDevelopmentStorage=true` are not supported for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONTAINER` |  | Azure Blob container for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME` |  | Azure Storage account name. It must match `AccountName` in the connection string. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_BLOB_PREFIX` | `converted/` | Azure blob-name prefix for managed artifacts. |
+|  | `DOCLING_SERVE_ARTIFACT_STORAGE_PRESIGN_TTL_SECONDS` | `3600` | Lifetime of returned S3 presigned URLs or Azure Blob SAS URLs. Valid range: 60–604800 seconds. |
 | `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
 |  | `DOCLING_SERVE_ENABLE_MANAGEMENT_ENDPOINTS` | `false` | If enabled, the `/v1/memory` endpoints will provide memory statistics, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
@@ -278,6 +290,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
 | `DOCLING_SERVE_ENG_RQ_SUB_CHANNEL` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_TTL` | `14400` (4 hours) | Time To Live (in seconds) for RQ job results in Redis. This controls how long job results are kept before being automatically deleted. |
+| `DOCLING_SERVE_ENG_RQ_JOB_TIMEOUT` | `14400` (4 hours) | Maximum runtime (in seconds) of a single RQ job before the worker aborts it with a `JobTimeoutException`. Raise it for long conversions (large documents, CPU-only inference, enrichments), or set `-1` to disable the limit and rely on `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` / the request's `document_timeout` instead. The value is baked into each job when it is enqueued, so it must be set on the instances serving the API, not on the RQ workers, and jobs already in the queue keep the value they were enqueued with. Do not set `0` — RQ treats it as unset and falls back to its own 180 s default. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |

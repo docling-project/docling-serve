@@ -4,9 +4,12 @@ import json
 import platform
 import re
 import sys
+import types
+from collections.abc import Callable
 from typing import Any, Union, get_args, get_origin
 
 from fastapi import Depends, Form
+from fastapi.exceptions import RequestValidationError
 from pydantic import AnyUrl, BaseModel, TypeAdapter, ValidationError
 
 DOCLING_VERSIONS = {
@@ -21,13 +24,21 @@ DOCLING_VERSIONS = {
 }
 
 
+def is_union(type_) -> bool:
+    """Match both spellings of a union: ``Optional[X]``/``Union[X, Y]`` and ``X | Y``.
+
+    They do not share an origin: `get_origin` returns `typing.Union` for the former
+    and `types.UnionType` for the latter.
+    """
+    return get_origin(type_) in (Union, types.UnionType)
+
+
 def is_pydantic_model(type_):
     try:
         if inspect.isclass(type_) and issubclass(type_, BaseModel):
             return True
 
-        origin = get_origin(type_)
-        if origin is Union:
+        if is_union(type_):
             args = get_args(type_)
             return any(
                 inspect.isclass(arg) and issubclass(arg, BaseModel)
@@ -45,10 +56,9 @@ def is_json_field(type_):
     """Return True for dict fields (including Optional[dict]) that
     must be accepted as JSON strings from multipart form data."""
     try:
-        origin = get_origin(type_)
-        if origin is dict:
+        if get_origin(type_) is dict:
             return True
-        if origin is Union:
+        if is_union(type_):
             for arg in get_args(type_):
                 if arg is type(None):
                     continue
@@ -57,6 +67,108 @@ def is_json_field(type_):
     except Exception:
         pass
     return False
+
+
+def _jsonable(value: Any) -> Any:
+    """Reduce a pydantic error payload to something the 422 response can carry.
+
+    Pydantic puts the offending value in ``input`` and validator internals in
+    ``ctx``; either can be a model instance or an exception object, which would
+    either blow up or bloat the error response.
+    """
+    if isinstance(value, str | int | float | bool | type(None)):
+        return value
+    if isinstance(value, list | tuple):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    return str(value)
+
+
+def _as_validation_errors(
+    exc: ValidationError, loc_for: Callable[[tuple[Any, ...]], tuple[Any, ...]]
+) -> list[dict[str, Any]]:
+    """Re-anchor pydantic errors onto the multipart form field that carried them."""
+    errors: list[dict[str, Any]] = []
+    for error in exc.errors(include_url=False):
+        loc = ("body", *loc_for(tuple(error.get("loc", ()))))
+        new_error: dict[str, Any] = {
+            "type": error.get("type", "value_error"),
+            "loc": loc,
+            "msg": error.get("msg", str(exc)),
+        }
+        # Model-level errors carry the whole options object as their input, which on
+        # the form path is every field including the defaults the caller never sent.
+        if "input" in error and loc != ("body",):
+            new_error["input"] = _jsonable(error["input"])
+        if error.get("ctx"):
+            new_error["ctx"] = _jsonable(error["ctx"])
+        errors.append(new_error)
+    return errors
+
+
+def _build_form_parameter(
+    field_name: str,
+    model_field: Any,
+    prefix: str,
+    form_defaults: dict[str, Any],
+) -> inspect.Parameter:
+    """Build a single :class:`inspect.Parameter` for *field_name* and record its
+    default in *form_defaults* (mutated in place)."""
+    annotation = model_field.annotation
+    description = model_field.description
+
+    default = (
+        Form(..., description=description, examples=model_field.examples)
+        if model_field.is_required()
+        else Form(
+            model_field.default,
+            examples=model_field.examples,
+            description=description,
+        )
+    )
+
+    if not model_field.is_required():
+        form_defaults[field_name] = model_field.default
+
+    # Flatten nested Pydantic models by accepting them as JSON strings
+    if is_pydantic_model(annotation):
+        annotation = str
+        form_default = (
+            None
+            if model_field.default is None
+            else json.dumps(model_field.default.model_dump(mode="json"))
+        )
+        form_defaults[field_name] = form_default
+        default = Form(
+            form_default,
+            description=description,
+            examples=None
+            if not model_field.examples
+            else [
+                json.dumps(ex.model_dump(mode="json")) for ex in model_field.examples
+            ],
+        )
+    elif is_json_field(annotation):
+        annotation = str
+        form_default = (
+            None if model_field.default is None else json.dumps(model_field.default)
+        )
+        form_defaults[field_name] = form_default
+        default = Form(
+            form_default,
+            description=description,
+            examples=None
+            if not model_field.examples
+            else [json.dumps(ex) for ex in model_field.examples],
+        )
+
+    return inspect.Parameter(
+        name=f"{prefix}{field_name}",
+        kind=inspect.Parameter.POSITIONAL_ONLY,
+        default=default,
+        annotation=annotation,
+    )
 
 
 # Adapted from
@@ -72,70 +184,18 @@ def FormDepends(
     for field_name, model_field in cls.model_fields.items():
         if field_name in excluded_fields:
             continue
-
-        annotation = model_field.annotation
-        description = model_field.description
-        default = (
-            Form(..., description=description, examples=model_field.examples)
-            if model_field.is_required()
-            else Form(
-                model_field.default,
-                examples=model_field.examples,
-                description=description,
-            )
-        )
-
-        if not model_field.is_required():
-            form_defaults[field_name] = model_field.default
-
-        # Flatten nested Pydantic models and dict/list fields by accepting them as JSON strings
-        if is_pydantic_model(annotation):
-            annotation = str
-            form_default = (
-                None
-                if model_field.default is None
-                else json.dumps(model_field.default.model_dump(mode="json"))
-            )
-            form_defaults[field_name] = form_default
-            default = Form(
-                form_default,
-                description=description,
-                examples=None
-                if not model_field.examples
-                else [
-                    json.dumps(ex.model_dump(mode="json"))
-                    for ex in model_field.examples
-                ],
-            )
-        elif is_json_field(annotation):
-            annotation = str
-            form_default = (
-                None if model_field.default is None else json.dumps(model_field.default)
-            )
-            form_defaults[field_name] = form_default
-            default = Form(
-                form_default,
-                description=description,
-                examples=None
-                if not model_field.examples
-                else [json.dumps(ex) for ex in model_field.examples],
-            )
-
         new_parameters.append(
-            inspect.Parameter(
-                name=f"{prefix}{field_name}",
-                kind=inspect.Parameter.POSITIONAL_ONLY,
-                default=default,
-                annotation=annotation,
-            )
+            _build_form_parameter(field_name, model_field, prefix, form_defaults)
         )
 
     async def as_form_func(**data):
         newdata = {}
+        errors: list[dict[str, Any]] = []
         for field_name, model_field in cls.model_fields.items():
             if field_name in excluded_fields:
                 continue
-            value = data.get(f"{prefix}{field_name}")
+            form_field = f"{prefix}{field_name}"
+            value = data.get(form_field)
             if field_name in form_defaults and value == form_defaults[field_name]:
                 # The client did not send this field: leave it out so the model
                 # applies its own default and model_fields_set stays truthful.
@@ -150,15 +210,39 @@ def FormDepends(
                 try:
                     validator = TypeAdapter(annotation)
                     newdata[field_name] = validator.validate_json(value)
-                except Exception as e:
-                    raise ValueError(f"Invalid JSON for field '{field_name}': {e}")
+                except ValidationError as e:
+                    errors.extend(
+                        _as_validation_errors(
+                            e, lambda loc, name=form_field: (name, *loc)
+                        )
+                    )
             elif value is not None and is_json_field(annotation):
                 try:
                     newdata[field_name] = json.loads(value)
-                except Exception as e:
-                    raise ValueError(f"Invalid JSON for field '{field_name}': {e}")
+                except ValueError as e:
+                    errors.append(
+                        {
+                            "type": "json_invalid",
+                            "loc": ("body", form_field),
+                            "msg": f"Invalid JSON: {e}",
+                            "input": value,
+                        }
+                    )
 
-        return cls(**newdata)
+        if errors:
+            raise RequestValidationError(errors)
+
+        try:
+            return cls(**newdata)
+        except ValidationError as e:
+            # Field, cross-field and model validators all land here; their locations
+            # are model field names, which must be mapped back to form field names.
+            raise RequestValidationError(
+                _as_validation_errors(
+                    e,
+                    lambda loc: (f"{prefix}{loc[0]}", *loc[1:]) if loc else (),
+                )
+            ) from e
 
     sig = inspect.signature(as_form_func)
     sig = sig.replace(parameters=new_parameters)
@@ -187,7 +271,12 @@ def parse_callback_item(value: str):
         return CallbackSpec.model_validate_json(value)
     except (ValueError, ValidationError):
         # Treat the raw string as the callback URL.
-        return CallbackSpec(url=AnyUrl(value))
+        try:
+            return CallbackSpec(url=AnyUrl(value))
+        except ValidationError as e:
+            raise RequestValidationError(
+                _as_validation_errors(e, lambda loc: ("callbacks", *loc))
+            ) from e
 
 
 def _to_list_of_strings(input_value: Union[str, list[str]]) -> list[str]:

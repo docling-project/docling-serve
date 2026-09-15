@@ -3,7 +3,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import yaml
 from pydantic import (
@@ -154,12 +154,17 @@ class DoclingServeSettings(BaseSettings):
 
     # Artifact storage (required for PresignedUrlTarget)
     artifact_storage_enabled: bool = False
+    artifact_storage_backend: Literal["s3", "azure"] = "s3"
     artifact_storage_endpoint: str = ""
     artifact_storage_verify_ssl: bool = True
     artifact_storage_bucket: str = ""
     artifact_storage_access_key: str = ""
     artifact_storage_secret_key: str = ""
     artifact_storage_key_prefix: str = "converted/"
+    artifact_storage_azure_connection_string: str = ""
+    artifact_storage_azure_container: str = ""
+    artifact_storage_azure_account_name: str = ""
+    artifact_storage_azure_blob_prefix: str = "converted/"
     artifact_storage_presign_ttl_seconds: int = 3600
 
     # Threading pipeline
@@ -188,6 +193,7 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_sub_channel: str = "docling:updates"
     eng_rq_results_ttl: int = 3_600 * 4  # 4 hours default
     eng_rq_failure_ttl: int = 3_600 * 4  # 4 hours default
+    eng_rq_job_timeout: int = 3_600 * 4  # 4 hours default; -1 disables it
     eng_rq_redis_max_connections: int = 50
     eng_rq_redis_socket_timeout: Optional[float] = None  # Socket timeout in seconds
     eng_rq_redis_socket_connect_timeout: Optional[float] = (
