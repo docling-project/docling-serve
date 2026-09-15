@@ -17,6 +17,9 @@ jobs:
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v6
         with:
+          # pinned: uv 0.12.14 broke `uv lock` resolution for this project
+          # https://github.com/astral-sh/uv/pull/21672
+          version: "0.12.13"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --only-dev
@@ -47,6 +50,9 @@ jobs:
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v6
         with:
+          # pinned: uv 0.12.14 broke `uv lock` resolution for this project
+          # https://github.com/astral-sh/uv/pull/21672
+          version: "0.12.13"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --only-dev
