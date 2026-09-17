@@ -1,3 +1,22 @@
+## [v1.34.0](https://github.com/docling-project/docling-serve/releases/tag/v1.34.0) - 2026-09-17
+
+### Feature
+
+* Adds ray application level metrics support ([#688](https://github.com/docling-project/docling-serve/issues/688)) ([`c3becab`](https://github.com/docling-project/docling-serve/commit/c3becab066875874abf896f25e8bc59835fab19e))
+
+### Fix
+
+* **notifier:** Drop tasks the orchestrator no longer tracks ([#700](https://github.com/docling-project/docling-serve/issues/700)) ([`0207eb9`](https://github.com/docling-project/docling-serve/commit/0207eb9497c7d3b1b0bbf8cf3ad89c31a4e6ac35))
+
+### Docling libraries included in this release:
+- docling-core 2.97.0
+- docling-ibm-models 4.0.2
+- docling-jobkit 3.7.0
+- docling-mcp 3.2.0
+- docling-parse 7.20.0
+- docling-serve 1.34.0
+- docling-slim 2.128.0
+
 ## [v1.33.0](https://github.com/docling-project/docling-serve/releases/tag/v1.33.0) - 2026-09-15
 
 ### Feature
