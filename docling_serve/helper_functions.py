@@ -107,63 +107,85 @@ def _as_validation_errors(
     return errors
 
 
+def _build_form_parameter(
+    field_name: str,
+    model_field: Any,
+    prefix: str,
+    form_defaults: dict[str, Any],
+) -> inspect.Parameter:
+    """Build a single :class:`inspect.Parameter` for *field_name* and record its
+    default in *form_defaults* (mutated in place)."""
+    annotation = model_field.annotation
+    description = model_field.description
+
+    default = (
+        Form(..., description=description, examples=model_field.examples)
+        if model_field.is_required()
+        else Form(
+            model_field.default,
+            examples=model_field.examples,
+            description=description,
+        )
+    )
+
+    if not model_field.is_required():
+        form_defaults[field_name] = model_field.default
+
+    # Flatten nested Pydantic models by accepting them as JSON strings
+    if is_pydantic_model(annotation):
+        annotation = str
+        form_default = (
+            None
+            if model_field.default is None
+            else json.dumps(model_field.default.model_dump(mode="json"))
+        )
+        form_defaults[field_name] = form_default
+        default = Form(
+            form_default,
+            description=description,
+            examples=None
+            if not model_field.examples
+            else [
+                json.dumps(ex.model_dump(mode="json")) for ex in model_field.examples
+            ],
+        )
+    elif is_json_field(annotation):
+        annotation = str
+        form_default = (
+            None if model_field.default is None else json.dumps(model_field.default)
+        )
+        form_defaults[field_name] = form_default
+        default = Form(
+            form_default,
+            description=description,
+            examples=None
+            if not model_field.examples
+            else [json.dumps(ex) for ex in model_field.examples],
+        )
+
+    return inspect.Parameter(
+        name=f"{prefix}{field_name}",
+        kind=inspect.Parameter.POSITIONAL_ONLY,
+        default=default,
+        annotation=annotation,
+    )
+
+
 # Adapted from
 # https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
 def FormDepends(
     cls: type[BaseModel], prefix: str = "", excluded_fields: list[str] = []
 ):
     new_parameters = []
+    # Value FastAPI substitutes for each field when the client omits it. Used
+    # below to tell an omitted field from one the client actually sent.
+    form_defaults: dict[str, Any] = {}
 
     for field_name, model_field in cls.model_fields.items():
         if field_name in excluded_fields:
             continue
-
-        annotation = model_field.annotation
-        description = model_field.description
-        default = (
-            Form(..., description=description, examples=model_field.examples)
-            if model_field.is_required()
-            else Form(
-                model_field.default,
-                examples=model_field.examples,
-                description=description,
-            )
-        )
-
-        # Flatten nested Pydantic models and dict/list fields by accepting them as JSON strings
-        if is_pydantic_model(annotation):
-            annotation = str
-            default = Form(
-                None
-                if model_field.default is None
-                else json.dumps(model_field.default.model_dump(mode="json")),
-                description=description,
-                examples=None
-                if not model_field.examples
-                else [
-                    json.dumps(ex.model_dump(mode="json"))
-                    for ex in model_field.examples
-                ],
-            )
-        elif is_json_field(annotation):
-            annotation = str
-            default = Form(
-                None
-                if model_field.default is None
-                else json.dumps(model_field.default),
-                description=description,
-                examples=None
-                if not model_field.examples
-                else [json.dumps(ex) for ex in model_field.examples],
-            )
-
         new_parameters.append(
-            inspect.Parameter(
-                name=f"{prefix}{field_name}",
-                kind=inspect.Parameter.POSITIONAL_ONLY,
-                default=default,
-                annotation=annotation,
-            )
+            _build_form_parameter(field_name, model_field, prefix, form_defaults)
         )
 
     async def as_form_func(**data):
@@ -174,6 +196,12 @@ def FormDepends(
                 continue
             form_field = f"{prefix}{field_name}"
             value = data.get(form_field)
+            if field_name in form_defaults and value == form_defaults[field_name]:
+                # The client did not send this field: leave it out so the model
+                # applies its own default and model_fields_set stays truthful.
+                # Validators that key on which fields were set (e.g. syncing a
+                # deprecated option onto its replacement) depend on this.
+                continue
             newdata[field_name] = value
             annotation = model_field.annotation
 

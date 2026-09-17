@@ -1,3 +1,23 @@
+## [v1.33.0](https://github.com/docling-project/docling-serve/releases/tag/v1.33.0) - 2026-09-15
+
+### Feature
+
+* Adds support for 'region' in s3 coordinates ([#694](https://github.com/docling-project/docling-serve/issues/694)) ([`db76b6f`](https://github.com/docling-project/docling-serve/commit/db76b6fad767110012fd99e128331b2c0b27e492))
+
+### Fix
+
+* **form:** Keep model_fields_set truthful on the multipart endpoints (#674) ([#680](https://github.com/docling-project/docling-serve/issues/680)) ([`dba2122`](https://github.com/docling-project/docling-serve/commit/dba2122371fc96d37136b0943e7711ad1b9accf7))
+* **ui:** Preserve the Enable OCR selection in conversion requests ([#691](https://github.com/docling-project/docling-serve/issues/691)) ([`773be82`](https://github.com/docling-project/docling-serve/commit/773be82ee84d564ded1b0205a099031c0a54c40b))
+
+### Docling libraries included in this release:
+- docling-core 2.96.1
+- docling-ibm-models 4.0.2
+- docling-jobkit 3.6.0
+- docling-mcp 3.2.0
+- docling-parse 7.19.1
+- docling-serve 1.33.0
+- docling-slim 2.127.0
+
 ## [v1.32.0](https://github.com/docling-project/docling-serve/releases/tag/v1.32.0) - 2026-09-01
 
 ### Feature
