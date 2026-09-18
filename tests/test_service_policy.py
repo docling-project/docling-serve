@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
+from docling.datamodel.extraction import ExtractionTarget, ExtractionTemplate
 from docling.datamodel.extraction_options import ExtractionVlmOptions
 from docling.datamodel.service.options import (
     ConvertDocumentsOptions,
@@ -590,7 +591,12 @@ def test_extract_policy_rejects_disallowed_preset():
     )
     request = ExtractSourcesRequest(
         options=ExtractDocumentsOptions(
-            template="x", extraction_preset="granite_vision_4_1"
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            ),
+            extraction_preset="granite_vision_4_1",
         ),
         sources=[HttpSourceRequest(url="https://example.com/test.pdf")],
     )
@@ -603,7 +609,12 @@ def test_extract_policy_rejects_custom_config():
     policy = build_service_policy(DoclingServeSettings())
     request = ExtractSourcesRequest(
         options=ExtractDocumentsOptions(
-            template="x", extraction_custom_config={"model_spec": {}}
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            ),
+            extraction_custom_config={"model_spec": {}},
         ),
         sources=[HttpSourceRequest(url="https://example.com/test.pdf")],
     )
@@ -620,7 +631,14 @@ def test_extract_policy_rejects_remote_engine_when_remote_services_are_disabled(
         DoclingServeSettings(allow_custom_extraction_config=True)
     )
     request = ExtractSourcesRequest(
-        options=ExtractDocumentsOptions(template="x", extraction_custom_config=custom),
+        options=ExtractDocumentsOptions(
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            ),
+            extraction_custom_config=custom,
+        ),
         sources=[HttpSourceRequest(url="https://example.com/test.pdf")],
     )
 
@@ -638,7 +656,13 @@ def test_extract_policy_rejects_known_disallowed_format():
         DoclingServeSettings(allowed_extraction_formats=["image"])
     )
     request = ExtractSourcesRequest(
-        options=ExtractDocumentsOptions(template="x"),
+        options=ExtractDocumentsOptions(
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            )
+        ),
         sources=[HttpSourceRequest(url="https://example.com/test.pdf")],
     )
 
@@ -649,7 +673,13 @@ def test_extract_policy_rejects_known_disallowed_format():
 def test_extract_policy_rejects_expandable_inbody():
     policy = build_service_policy(DoclingServeSettings())
     request = ExtractSourcesRequest(
-        options=ExtractDocumentsOptions(template="x"),
+        options=ExtractDocumentsOptions(
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            )
+        ),
         sources=[
             S3SourceRequest(
                 endpoint="s3.example.com",
@@ -667,7 +697,13 @@ def test_extract_policy_rejects_expandable_inbody():
 def test_extract_policy_allows_expandable_presigned_target():
     policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
     request = ExtractSourcesRequest(
-        options=ExtractDocumentsOptions(template="x"),
+        options=ExtractDocumentsOptions(
+            target=ExtractionTarget(
+                template=ExtractionTemplate(
+                    format="nuextract", value={"total": "number"}
+                )
+            )
+        ),
         sources=[
             S3SourceRequest(
                 endpoint="s3.example.com",
@@ -692,7 +728,9 @@ def test_openapi_only_exposes_async_source_extraction():
 
 
 @pytest.mark.asyncio
-async def test_ray_extract_endpoint_enqueues_one_target_with_dict_template(monkeypatch):
+async def test_ray_extract_endpoint_enqueues_one_destination_with_tagged_template(
+    monkeypatch,
+):
     orchestrator = SimpleNamespace(
         enqueue=AsyncMock(
             return_value=Task(task_id="extract-1", task_type=TaskType.EXTRACT)
@@ -710,7 +748,12 @@ async def test_ray_extract_endpoint_enqueues_one_target_with_dict_template(monke
             "/v1/extract/source/async",
             json={
                 "options": {
-                    "template": {"invoice": {"total": "number"}},
+                    "target": {
+                        "template": {
+                            "format": "nuextract",
+                            "value": {"invoice": {"total": "number"}},
+                        }
+                    },
                     "extraction_preset": "nuextract_2b",
                     "input_channels": "text",
                 },
@@ -721,7 +764,9 @@ async def test_ray_extract_endpoint_enqueues_one_target_with_dict_template(monke
     assert response.status_code == 200
     request = orchestrator.enqueue.await_args.kwargs
     assert request["task_type"] == TaskType.EXTRACT
-    assert request["extract_options"].template == {"invoice": {"total": "number"}}
+    assert request["extract_options"].target.template.value == {
+        "invoice": {"total": "number"}
+    }
     assert [target.kind for target in request["targets"]] == ["inbody"]
 
 
@@ -741,7 +786,14 @@ async def test_unsupported_engine_rejects_extraction_before_enqueue(
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "options": {"template": "x"},
+                "options": {
+                    "target": {
+                        "template": {
+                            "format": "nuextract",
+                            "value": {"total": "number"},
+                        }
+                    }
+                },
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },
         )

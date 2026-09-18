@@ -8,9 +8,10 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, create_model
 
 from docling.datamodel.base_models import FormatToExtensions
+from docling.datamodel.extraction_options import ChannelSelection
+from docling.datamodel.pipeline_options import VlmExtractionPipelineOptions
 from docling.datamodel.service.options import (
     ConvertDocumentsOptions,
-    ExtractDocumentsOptions,
 )
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
@@ -27,6 +28,12 @@ from docling.datamodel.service.requests import (
 from docling.datamodel.service.targets import (
     InBodyTarget,
     PresignedUrlTarget,
+)
+from docling.datamodel.vlm_engine_options import ApiVlmEngineOptions
+from docling.models.extraction.prompt_utils import (
+    prepare_api_request_options,
+    prepare_output_target,
+    prepare_target,
 )
 from docling.models.factories import get_ocr_factory
 from docling_core.types.doc import ImageRefMode
@@ -352,7 +359,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
             allowed_extraction_engines=settings.allowed_extraction_engines,
         )
     )
-    extraction_manager.resolve_extraction_model(ExtractDocumentsOptions(template={}))
+    extraction_manager.resolve_extraction_model()
 
     return ServicePolicy(
         max_document_timeout=settings.max_document_timeout,
@@ -655,7 +662,20 @@ def validate_extract_request(
             detail="Database/vector targets are not supported for extraction.",
         )
     try:
-        policy.extraction_manager.resolve_extraction_model(request.options)
+        resolved = policy.extraction_manager.resolve_extraction_model(request.options)
+        VlmExtractionPipelineOptions(
+            vlm_options=resolved,
+            input_channels=request.options.input_channels or ChannelSelection.AUTO,
+        )
+        prepared = prepare_output_target(
+            prepare_target(request.options.target, resolved.model_spec),
+            resolved.output_mode,
+            resolved.engine_options.engine_type,
+        )
+        if isinstance(resolved.engine_options, ApiVlmEngineOptions):
+            prepare_api_request_options(
+                prepared, resolved.model_spec, resolved.engine_options
+            )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
