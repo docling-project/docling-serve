@@ -201,7 +201,7 @@ triton-rocm = [
 ]
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", rev = "a2532b512a89e89c05d1284c73a6562e3110091d" }
+docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "feat-chart-extraction-engines" }
 # docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 
