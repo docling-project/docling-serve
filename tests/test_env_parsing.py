@@ -64,11 +64,15 @@ def test_default_values():
     assert settings.default_vlm_preset == "granite_docling"
     assert settings.default_picture_description_preset == "smolvlm"
     assert settings.default_code_formula_preset == "default"
+    assert settings.default_chart_extraction_preset == "granite_vision_v4"
     assert settings.default_table_structure_kind == "docling_tableformer"
     assert settings.default_layout_kind == "docling_layout_default"
 
     assert settings.allowed_vlm_presets is None
     assert settings.custom_vlm_presets == {}
+    assert settings.allowed_chart_extraction_presets is None
+    assert settings.custom_chart_extraction_presets == {}
+    assert settings.allowed_chart_extraction_engines is None
     assert settings.debug_error_details is False
 
 
@@ -136,3 +140,51 @@ def test_ray_metrics_from_env(monkeypatch):
     settings = DoclingServeSettings()
     assert settings.eng_ray_generate_metrics is True
     assert settings.eng_ray_metrics_port == 9090
+
+
+def test_chart_extraction_list_from_json(monkeypatch):
+    """Test allowed_chart_extraction_presets parses from JSON array."""
+    import json as _json
+
+    presets = ["granite_vision_v4", "granite_vision"]
+    monkeypatch.setenv(
+        "DOCLING_SERVE_ALLOWED_CHART_EXTRACTION_PRESETS", _json.dumps(presets)
+    )
+    settings = DoclingServeSettings()
+    assert settings.allowed_chart_extraction_presets == presets
+
+
+def test_chart_extraction_list_from_csv(monkeypatch):
+    """Test allowed_chart_extraction_presets parses from comma-separated string."""
+    monkeypatch.setenv(
+        "DOCLING_SERVE_ALLOWED_CHART_EXTRACTION_PRESETS",
+        "granite_vision_v4,granite_vision",
+    )
+    settings = DoclingServeSettings()
+    assert settings.allowed_chart_extraction_presets == [
+        "granite_vision_v4",
+        "granite_vision",
+    ]
+
+
+def test_chart_extraction_engines_from_csv(monkeypatch):
+    """Test allowed_chart_extraction_engines parses from comma-separated string."""
+    monkeypatch.setenv(
+        "DOCLING_SERVE_ALLOWED_CHART_EXTRACTION_ENGINES", "transformers,api_openai"
+    )
+    settings = DoclingServeSettings()
+    assert settings.allowed_chart_extraction_engines == ["transformers", "api_openai"]
+
+
+def test_custom_chart_extraction_presets_from_json(monkeypatch):
+    """Test custom_chart_extraction_presets parses from JSON string."""
+    import json as _json
+
+    preset_config = {
+        "my_chart_preset": {"engine_options": {"engine_type": "api_openai"}}
+    }
+    monkeypatch.setenv(
+        "DOCLING_SERVE_CUSTOM_CHART_EXTRACTION_PRESETS", _json.dumps(preset_config)
+    )
+    settings = DoclingServeSettings()
+    assert settings.custom_chart_extraction_presets == preset_config
