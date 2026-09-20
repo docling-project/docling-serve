@@ -12,7 +12,11 @@ import uvicorn
 from rich.console import Console
 
 from docling_serve.rq_instrumentation import setup_rq_worker_metrics
-from docling_serve.settings import docling_serve_settings, uvicorn_settings
+from docling_serve.settings import (
+    LogLevel,
+    docling_serve_settings,
+    uvicorn_settings,
+)
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
 warnings.filterwarnings(action="ignore", category=FutureWarning, module="easyocr")
@@ -69,21 +73,18 @@ def callback(
 ) -> None:
     from docling_serve.logging_config import setup_logging
 
-    # Priority: CLI flag > ENV variable > default (WARNING)
+    # Priority: CLI flag > ENV variable > default (WARNING). The flag is written
+    # into the settings so that the app module, which configures logging again
+    # when uvicorn imports it, and the rq worker apply the same level.
     if verbose > 0:
-        # CLI flag takes precedence
-        log_level = "INFO" if verbose == 1 else "DEBUG"
-    elif docling_serve_settings.log_level:
-        # Use ENV variable if CLI flag not provided
-        log_level = docling_serve_settings.log_level.value
-    else:
-        # Default to WARNING
-        log_level = "WARNING"
+        docling_serve_settings.log_level = (
+            LogLevel.INFO if verbose == 1 else LogLevel.DEBUG
+        )
 
     # Setup logging with configured format
     setup_logging(
         log_format=docling_serve_settings.log_format.value,
-        log_level=log_level,
+        log_level=docling_serve_settings.log_level.value,
         header_prefix=docling_serve_settings.log_header_prefix,
     )
 
@@ -117,6 +118,7 @@ def _run(
         if artifacts_path is not None:
             os.environ["DOCLING_SERVE_ARTIFACTS_PATH"] = str(artifacts_path)
         os.environ["DOCLING_SERVE_ENABLE_UI"] = str(enable_ui).lower()
+        os.environ["DOCLING_SERVE_LOG_LEVEL"] = docling_serve_settings.log_level.value
 
     # Propagate the settings to the app settings
     docling_serve_settings.artifacts_path = artifacts_path
@@ -393,15 +395,10 @@ def rq_worker() -> Any:
     from docling_serve.rq_instrumentation import setup_rq_worker_instrumentation
     from docling_serve.rq_worker_instrumented import InstrumentedRQWorker
 
-    # Configure logging for RQ worker
-    log_level = (
-        docling_serve_settings.log_level.value
-        if docling_serve_settings.log_level
-        else "WARNING"
-    )
+    # Configure logging for RQ worker (same level the CLI callback applied)
     setup_logging(
         log_format=docling_serve_settings.log_format.value,
-        log_level=log_level,
+        log_level=docling_serve_settings.log_level.value,
         header_prefix=docling_serve_settings.log_header_prefix,
     )
 
