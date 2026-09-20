@@ -252,7 +252,7 @@ deployment. Configure both `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` and
 Install the same connector package versions in every API and Local, RQ, or Ray
 worker process, and keep their Docling, Jobkit, and Serve versions aligned. The
 running deployment's `/openapi.json` lists its enabled concrete connector
-schemas. Plugin installation or policy changes appear there only after restart.
+schemas (unless `DOCLING_SERVE_ENABLE_API_DOCS=false`). Plugin installation or policy changes appear there only after restart.
 
 ## Convert endpoints
 

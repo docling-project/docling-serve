@@ -118,6 +118,7 @@ class DoclingServeSettings(BaseSettings):
     config_file: Optional[Path] = None
 
     enable_ui: bool = False
+    enable_api_docs: bool = True
     api_host: str = "localhost"
     log_level: Optional[LogLevel] = None
     log_format: LogFormat = LogFormat.TEXT

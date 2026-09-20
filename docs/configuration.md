@@ -56,6 +56,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_BLOB_PREFIX` | `converted/` | Azure blob-name prefix for managed artifacts. |
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_PRESIGN_TTL_SECONDS` | `3600` | Lifetime of returned S3 presigned URLs or Azure Blob SAS URLs. Valid range: 60–604800 seconds. |
 | `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
+|  | `DOCLING_SERVE_ENABLE_API_DOCS` | `true` | Serve the API reference pages (`/openapi.json`, `/openapi-3.0.json`, `/swagger`, `/docs`, `/docs/oauth2-redirect`, `/scalar`). These routes need no API key; disable them on deployments where the schema must not be readable by anonymous clients. |
 |  | `DOCLING_SERVE_ENABLE_MANAGEMENT_ENDPOINTS` | `false` | If enabled, the `/v1/memory` endpoints will provide memory statistics, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_DEBUG_ERROR_DETAILS` | `false` | If enabled, raw internal exception detail is returned for debugging. When `false`, infrastructure-origin error details are sanitized in public HTTP/task surfaces. |
@@ -319,7 +320,7 @@ ENV | Default | Description |
 |-----|---------|-------------|
 | `DOCLING_SERVE_OTEL_ENABLE_METRICS` | true | Enable metrics collection. |
 | `DOCLING_SERVE_OTEL_ENABLE_TRACES` | false | Enable trace collection. Requires a valid value for `OTEL_EXPORTER_OTLP_ENDPOINT`. |
-| `DOCLING_SERVE_OTEL_ENABLE_PROMETHEUS` | true | Enable Prometheus /metrics endpoint. |
+| `DOCLING_SERVE_OTEL_ENABLE_PROMETHEUS` | true | Enable the Prometheus exporter and the `/metrics` endpoint on the API port. When `false`, `/metrics` is not registered and answers 404. |
 | `DOCLING_SERVE_OTEL_ENABLE_OTLP_METRICS` | `false` | Enable OTLP metrics export. |
 | `DOCLING_SERVE_OTEL_SERVICE_NAME` | docling-serve | Service identification. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` |  | OTLP endpoint (for traces and optional metrics). |

@@ -271,8 +271,12 @@ def create_app():  # noqa: C901
     )
     BatchConvertSourcesRequestModel = build_batch_request_model(service_policy)
 
+    # Without an openapi_url FastAPI registers neither the schema nor its Swagger
+    # UI and ReDoc pages; the reference routes added below follow the same flag.
+    api_docs_enabled = docling_serve_settings.enable_api_docs
     app = FastAPI(
         title="Docling Serve",
+        openapi_url="/openapi.json" if api_docs_enabled else None,
         docs_url=None if offline_docs_assets else "/swagger",
         redoc_url=None if offline_docs_assets else "/docs",
         lifespan=lifespan,
@@ -421,6 +425,8 @@ def create_app():  # noqa: C901
             name="static",
         )
 
+    if offline_docs_assets and api_docs_enabled:
+
         @app.get("/swagger", include_in_schema=False)
         async def custom_swagger_ui_html():
             return get_swagger_ui_html(
@@ -443,14 +449,16 @@ def create_app():  # noqa: C901
                 redoc_js_url="/static/redoc.standalone.js",
             )
 
-    @app.get("/scalar", include_in_schema=False)
-    async def scalar_html():
-        return get_scalar_api_reference(
-            openapi_url=app.openapi_url,
-            title=app.title,
-            scalar_favicon_url="https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
-            # hide_client_button=True,  # not yet released but in main
-        )
+    if api_docs_enabled:
+
+        @app.get("/scalar", include_in_schema=False)
+        async def scalar_html():
+            return get_scalar_api_reference(
+                openapi_url=app.openapi_url,
+                title=app.title,
+                scalar_favicon_url="https://raw.githubusercontent.com/docling-project/docling/refs/heads/main/docs/assets/logo.svg",
+                # hide_client_button=True,  # not yet released but in main
+            )
 
     ########################
     # Async / Sync helpers #
@@ -775,12 +783,14 @@ def create_app():  # noqa: C901
     # API Endpoints definitions #
     #############################
 
-    @app.get("/openapi-3.0.json")
-    def openapi_30():
-        spec = app.openapi()
-        downgraded = downgrade_openapi31_to_30(spec)
-        downgraded["openapi"] = "3.0.3"
-        return JSONResponse(downgraded)
+    if api_docs_enabled:
+
+        @app.get("/openapi-3.0.json")
+        def openapi_30():
+            spec = app.openapi()
+            downgraded = downgrade_openapi31_to_30(spec)
+            downgraded["openapi"] = "3.0.3"
+            return JSONResponse(downgraded)
 
     # Favicon
     @app.get("/favicon.ico", include_in_schema=False)
@@ -857,15 +867,18 @@ def create_app():  # noqa: C901
             )
         return DOCLING_VERSIONS
 
-    # Prometheus metrics endpoint
-    @app.get("/metrics", tags=["health"], include_in_schema=False)
-    def metrics():
-        from fastapi.responses import PlainTextResponse
+    # Prometheus metrics endpoint. Registered only while the Prometheus export is
+    # enabled, so a deployment that turns it off exposes no key-less route.
+    if docling_serve_settings.otel_enable_prometheus:
 
-        return PlainTextResponse(
-            content=get_metrics_endpoint_content(),
-            media_type="text/plain; version=0.0.4",
-        )
+        @app.get("/metrics", tags=["health"], include_in_schema=False)
+        def metrics():
+            from fastapi.responses import PlainTextResponse
+
+            return PlainTextResponse(
+                content=get_metrics_endpoint_content(),
+                media_type="text/plain; version=0.0.4",
+            )
 
     # Convert a document from URL(s)
     @app.post(
