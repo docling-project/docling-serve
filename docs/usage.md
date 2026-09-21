@@ -41,6 +41,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
 | `do_chart_extraction` | bool | If enabled, extract numeric data from charts. Boolean. Optional, defaults to false. |
+| `chart_extraction_preset` | str or NoneType | Preset ID for chart extraction. Use "default" for the admin-controlled default, or a specific preset such as "granite_vision_v4" or "granite_vision". |
+| `chart_extraction_custom_config` | ChartExtractionVlmEngineOptions or dict or NoneType | Custom chart extraction configuration including model spec and engine options. Only available if the admin allows it. Accepts a ChartExtractionVlmEngineOptions object or an equivalent dict with '`model_spec`', '`engine_options`', and optional output flags (chart2csv, chart2summary, chart2code). |
 | `do_picture_description` | bool | If enabled, describe pictures in documents. Boolean. Optional, defaults to false. |
 | `picture_description_area_threshold` | float | Minimum percentage of the area for a picture to be processed with the models. |
 | `picture_description_local` | PictureDescriptionLocal or NoneType | DEPRECATED: Options for running a local vision-language model in the picture description. The parameters refer to a model hosted on Hugging Face. This parameter is mutually exclusive with `picture_description_api`. Please migrate to `picture_description_preset` or `picture_description_custom_config`. |
