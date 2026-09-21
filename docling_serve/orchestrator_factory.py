@@ -142,7 +142,7 @@ def _build_rq_config():
 
     return RQOrchestratorConfig(
         redis_url=docling_serve_settings.eng_rq_redis_url,
-        queue_name=docling_serve_settings.eng_rq_queue_name,
+        queue_name=docling_serve_settings.eng_rq_queue_names[0],
         results_prefix=docling_serve_settings.eng_rq_results_prefix,
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
