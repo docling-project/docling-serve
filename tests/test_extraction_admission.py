@@ -281,7 +281,7 @@ async def test_valid_targets_forward_unchanged_and_isolated(
     "engine, mode, schema, message",
     [
         ("api", "schema_constrained", SCHEMA, None),
-        ("api", "schema_constrained", None, "requires an output schema"),
+        ("api", "schema_constrained", None, "requires extraction_target.output_schema"),
         (
             "api",
             "schema_constrained",
