@@ -475,9 +475,15 @@ def rq_worker() -> Any:
     # Create worker with instrumentation
     scratch_dir = rq_config.scratch_dir or Path(tempfile.mkdtemp(prefix="docling_"))
     redis_conn, rq_queue = RQOrchestrator.make_rq_queue(rq_config)
+    rq_queues = [rq_queue]
+    for extra_queue_name in docling_serve_settings.eng_rq_queue_names[1:]:
+        _, extra_queue = RQOrchestrator.make_rq_queue(
+            rq_config.model_copy(update={"queue_name": extra_queue_name})
+        )
+        rq_queues.append(extra_queue)
 
     worker = InstrumentedRQWorker(
-        [rq_queue],
+        rq_queues,
         connection=redis_conn,
         orchestrator_config=rq_config,
         cm_config=cm_config,

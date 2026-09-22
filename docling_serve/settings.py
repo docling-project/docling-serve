@@ -524,6 +524,18 @@ class DoclingServeSettings(BaseSettings):
 
         return self
 
+    @property
+    def eng_rq_queue_names(self) -> list[str]:
+        """`eng_rq_queue_name` parsed as a comma-separated list of queue names.
+
+        API instances enqueue to the first entry; RQ workers drain the queues
+        in the listed order. Falls back to ["convert"] when empty.
+        """
+        names = [
+            name.strip() for name in self.eng_rq_queue_name.split(",") if name.strip()
+        ]
+        return names or ["convert"]
+
 
 uvicorn_settings = UvicornSettings()
 docling_serve_settings = DoclingServeSettings()
