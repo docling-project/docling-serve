@@ -11,6 +11,7 @@ import typer
 import uvicorn
 from rich.console import Console
 
+from docling_serve.rq_instrumentation import setup_rq_worker_metrics
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
@@ -482,8 +483,17 @@ def rq_worker() -> Any:
         cm_config=cm_config,
         scratch_dir=scratch_dir,
     )
-
-    worker.work()
+    meter_provider = setup_rq_worker_metrics(
+        service_name=f"{docling_serve_settings.otel_service_name}-worker",
+        service_instance_id=worker.name,
+        enable_metrics=docling_serve_settings.otel_enable_metrics,
+        enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
+    )
+    try:
+        worker.work()
+    finally:
+        if meter_provider is not None:
+            meter_provider.shutdown()
 
 
 def main() -> None:
