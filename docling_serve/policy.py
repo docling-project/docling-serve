@@ -141,6 +141,7 @@ class ServicePolicy:
     allowed_target_types: frozenset[str]
     callbacks_enabled: bool
     custom_vlm_enabled: bool
+    custom_extraction_enabled: bool
     artifact_storage_enabled: bool
     max_sources_per_request: int
     allowed_image_export_modes: frozenset[str]
@@ -371,6 +372,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_target_types=allowed_target_types,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
+        custom_extraction_enabled=settings.allow_custom_extraction_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
@@ -603,6 +605,13 @@ def validate_extract_request(
 ) -> None:
     validate_source_kinds(request.sources, policy)
     validate_target_kind(request.target.kind, policy)
+    if request.options.extraction_custom_config is not None and (
+        not policy.custom_extraction_enabled
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Custom extraction configuration is disabled by server policy.",
+        )
     allowed_formats = policy.extraction_manager.config.allowed_formats
     if allowed_formats is not None:
         for source in request.sources:
