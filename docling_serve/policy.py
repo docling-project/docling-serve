@@ -669,7 +669,7 @@ def validate_extract_request(
             input_channels=request.options.input_channels or ChannelSelection.AUTO,
         )
         prepared = prepare_output_target(
-            prepare_target(request.options.target, resolved.model_spec),
+            prepare_target(request.extraction_target, resolved.model_spec),
             resolved.output_mode,
             resolved.engine_options.engine_type,
         )

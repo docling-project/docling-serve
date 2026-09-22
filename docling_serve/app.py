@@ -643,6 +643,7 @@ def create_app():  # noqa: C901
         return await orchestrator.enqueue(
             task_type=TaskType.EXTRACT,
             sources=sources,
+            extract_target=request.extraction_target,
             extract_options=request.options,
             targets=[target],
             callbacks=request.callbacks,

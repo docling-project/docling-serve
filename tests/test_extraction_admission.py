@@ -95,8 +95,10 @@ def test_startup_rejects_invalid_operator_default(settings, message):
 def test_openapi_advertises_tagged_guidance_mode_and_canonical_items():
     schema = create_app().openapi()
     models = schema["components"]["schemas"]
+    request = models["ExtractSourcesRequest"]
+    assert "extraction_target" in request["required"]
     options = models["ExtractDocumentsOptions"]
-    assert "target" in options["required"]
+    assert "target" not in options["properties"]
     assert "template" not in options["properties"]
     assert options["properties"]["output_mode"]["enum"] == [
         "prompt_only",
@@ -200,16 +202,20 @@ async def test_incompatible_requests_fail_before_queue(
     extraction_app, options, message
 ):
     app, orchestrator = extraction_app
+    options = dict(options)
+    body: dict = {
+        "options": options,
+        "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
+    }
+    if "target" in options:
+        body["extraction_target"] = options.pop("target")
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         response = await client.post(
             "/v1/extract/source/async",
             headers={"X-Api-Key": "stage10-key"},
-            json={
-                "options": options,
-                "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
-            },
+            json=body,
         )
     assert response.status_code == 422, response.text
     assert message in response.text
@@ -231,8 +237,8 @@ async def test_valid_targets_forward_unchanged_and_isolated(
 ):
     app, orchestrator = extraction_app
     payload = {
+        "extraction_target": deepcopy(target),
         "options": {
-            "target": deepcopy(target),
             "extraction_preset": preset,
             "input_channels": channels,
             "page_range": [2, 5],
@@ -244,7 +250,7 @@ async def test_valid_targets_forward_unchanged_and_isolated(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         for instructions in ("First request.", "Second request."):
-            payload["options"]["target"]["instructions"] = instructions
+            payload["extraction_target"]["instructions"] = instructions
             response = await client.post(
                 "/v1/extract/source/async",
                 headers={
@@ -256,10 +262,8 @@ async def test_valid_targets_forward_unchanged_and_isolated(
             assert response.status_code == 200, response.text
             forwarded = orchestrator.enqueue.await_args.kwargs
             assert (
-                forwarded["extract_options"].target.model_dump(
-                    mode="json", exclude_none=True
-                )
-                == payload["options"]["target"]
+                forwarded["extract_target"].model_dump(mode="json", exclude_none=True)
+                == payload["extraction_target"]
             )
             assert forwarded["extract_options"].page_range == (2, 5)
             assert forwarded["metadata"] == {"tenant_id": "tenant-a"}
@@ -267,10 +271,10 @@ async def test_valid_targets_forward_unchanged_and_isolated(
             assert str(forwarded["sources"][0].url) == "https://example.com/test.pdf"
             assert forwarded["callbacks"] == []
     first, second = [
-        call.kwargs["extract_options"] for call in orchestrator.enqueue.await_args_list
+        call.kwargs["extract_target"] for call in orchestrator.enqueue.await_args_list
     ]
-    assert first.target.instructions == "First request."
-    assert second.target.instructions == "Second request."
+    assert first.instructions == "First request."
+    assert second.instructions == "Second request."
 
 
 @pytest.mark.parametrize(
@@ -320,8 +324,8 @@ async def test_custom_decoder_mode_preflight(
         response = await client.post(
             "/v1/extract/source/async",
             json={
+                "extraction_target": target,
                 "options": {
-                    "target": target,
                     "extraction_custom_config": custom,
                     "output_mode": mode,
                 },
@@ -348,7 +352,8 @@ async def test_extraction_requires_authentication_before_queue(extraction_app):
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "options": {"target": NATIVE},
+                "extraction_target": NATIVE,
+                "options": {},
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },
         )
@@ -394,7 +399,7 @@ async def test_extraction_result_unions_preserve_tenant_and_durable_shape(
                             "extracted_data": {"total": 5},
                             "raw_text": '{"total":5}',
                             "validation_status": "passed",
-                            "usage": {"total_tokens": 9},
+                            "inference_metadata": {"usage": {"total_tokens": 9}},
                         }
                     ],
                 },
@@ -407,7 +412,14 @@ async def test_extraction_result_unions_preserve_tenant_and_durable_shape(
                         {
                             "scope": {"kind": "page", "page_no": 5},
                             "raw_text": "invalid",
-                            "errors": ["schema mismatch"],
+                            "errors": [
+                                {
+                                    "component_type": "model",
+                                    "module_name": "ExtractionVlmPipeline",
+                                    "error_message": "schema mismatch",
+                                    "category": "inference_failure",
+                                }
+                            ],
                             "validation_status": "failed",
                         },
                         {
@@ -528,7 +540,8 @@ async def test_api_transport_incompatibility_fails_before_queue(
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "options": {"target": NATIVE, "extraction_custom_config": custom},
+                "extraction_target": NATIVE,
+                "options": {"extraction_custom_config": custom},
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },
         )
