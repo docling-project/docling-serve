@@ -130,8 +130,9 @@ def _run(
 
     console.print("")
     console.print(f"Server started at [link={url}]{url}[/]")
-    console.print(f"Documentation at [link={url_docs}]{url_docs}[/]")
-    console.print(f"Scalar docs at [link={url_docs}]{url_scalar}[/]")
+    if docling_serve_settings.enable_api_docs:
+        console.print(f"Documentation at [link={url_docs}]{url_docs}[/]")
+        console.print(f"Scalar docs at [link={url_scalar}]{url_scalar}[/]")
     if docling_serve_settings.enable_ui:
         console.print(f"UI at [link={url_ui}]{url_ui}[/]")
 
