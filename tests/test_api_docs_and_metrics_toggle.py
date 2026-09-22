@@ -18,7 +18,6 @@ from docling_serve.settings import docling_serve_settings
 # offline branch of create_app registers its own copy under the same path.
 API_DOCS_ROUTES = (
     "/openapi.json",
-    "/openapi-3.0.json",
     "/swagger",
     "/docs",
     "/docs/oauth2-redirect",
