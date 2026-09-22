@@ -98,7 +98,7 @@ class _FakeOrchestrator:
             task_id="task-batch",
             task_type=kwargs["task_type"],
             sources=kwargs["sources"],
-            target=kwargs["target"],
+            targets=kwargs["targets"],
             convert_options=kwargs["convert_options"],
             callbacks=kwargs["callbacks"],
             metadata=kwargs["metadata"],
@@ -328,7 +328,7 @@ async def test_batch_endpoint_accepts_s3_source_with_s3_target(app, fake_orchest
     assert response.status_code == 200
     assert response.json()["task_type"] == TaskType.CONVERT
     assert len(fake_orchestrator.enqueued[0]["sources"]) == 1
-    assert isinstance(fake_orchestrator.enqueued[0]["target"], S3Target)
+    assert isinstance(fake_orchestrator.enqueued[0]["targets"][0], S3Target)
 
 
 @pytest.mark.asyncio
@@ -476,7 +476,7 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
     assert response.status_code == 200
     assert type(fake_orchestrator.enqueued[-1]["sources"][0]) is TaskFileNetSource
     assert type(fake_orchestrator.enqueued[-1]["sources"][1]) is PluginSource
-    assert type(fake_orchestrator.enqueued[-1]["target"]) is PluginArtifactTarget
+    assert type(fake_orchestrator.enqueued[-1]["targets"][0]) is PluginArtifactTarget
     schemas = openapi["components"]["schemas"]
     assert "TaskFileNetSource" in schemas
     assert "PluginSource" in schemas
@@ -488,7 +488,7 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
     assert batch_schema["sources"]["items"]["discriminator"]["mapping"][
         "filenet"
     ].endswith("/TaskFileNetSource")
-    assert batch_schema["target"]["discriminator"]["mapping"][
+    assert batch_schema["target"]["anyOf"][0]["discriminator"]["mapping"][
         "plugin_artifact"
     ].endswith("/PluginArtifactTarget")
     api_key_schema = schemas["TaskFileNetSource"]["properties"]["api_key"]
