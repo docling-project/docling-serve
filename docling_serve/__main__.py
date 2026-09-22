@@ -430,6 +430,7 @@ def rq_worker() -> Any:
         # Extraction Control
         default_extraction_preset=docling_serve_settings.default_extraction_preset,
         allowed_extraction_presets=docling_serve_settings.allowed_extraction_presets,
+        custom_extraction_presets=docling_serve_settings.custom_extraction_presets,
         allowed_extraction_engines=docling_serve_settings.allowed_extraction_engines,
         allowed_extraction_formats=docling_serve_settings.allowed_extraction_formats,
         allow_custom_extraction_config=docling_serve_settings.allow_custom_extraction_config,

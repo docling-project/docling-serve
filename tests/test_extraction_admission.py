@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from docling.datamodel.extraction_options import ExtractionVlmOptions
 from docling.datamodel.service.responses import (
     DoclingTaskResult,
     PublicFailureInfo,
@@ -61,6 +62,21 @@ def test_startup_validates_stable_default_without_target_or_extractor(preset):
         DoclingServeSettings(default_extraction_preset=preset)
     )
     assert policy.extraction_manager._get_extractor.cache_info().currsize == 0
+
+
+def test_startup_resolves_operator_defined_default():
+    custom = ExtractionVlmOptions.from_preset("nuextract_2b").model_copy(
+        update={"scale": 1.25}
+    )
+    policy = build_service_policy(
+        DoclingServeSettings(
+            default_extraction_preset="server_model",
+            allowed_extraction_presets=["server_model"],
+            custom_extraction_presets={"server_model": custom.model_dump(mode="json")},
+        )
+    )
+
+    assert policy.extraction_manager.resolve_extraction_model().scale == 1.25
 
 
 @pytest.mark.parametrize(

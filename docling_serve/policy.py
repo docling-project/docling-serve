@@ -355,6 +355,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
             allowed_formats=settings.allowed_extraction_formats,
             default_extraction_preset=settings.default_extraction_preset,
             allowed_extraction_presets=settings.allowed_extraction_presets,
+            custom_extraction_presets=settings.custom_extraction_presets,
             allow_custom_extraction_config=settings.allow_custom_extraction_config,
             allowed_extraction_engines=settings.allowed_extraction_engines,
         )

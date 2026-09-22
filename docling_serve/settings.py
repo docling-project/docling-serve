@@ -348,6 +348,7 @@ class DoclingServeSettings(BaseSettings):
     # Extraction Control
     default_extraction_preset: str = "nuextract_2b"
     allowed_extraction_presets: list[str] | None = None
+    custom_extraction_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_extraction_engines: list[str] | None = None
     allowed_extraction_formats: list[str] | None = None
 
@@ -421,6 +422,7 @@ class DoclingServeSettings(BaseSettings):
 
     @field_validator(
         "custom_vlm_presets",
+        "custom_extraction_presets",
         "custom_picture_description_presets",
         "custom_code_formula_presets",
         "custom_picture_classification_presets",
