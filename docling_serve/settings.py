@@ -134,6 +134,7 @@ class DoclingServeSettings(BaseSettings):
     allow_custom_vlm_config: bool = False
     allow_custom_picture_description_config: bool = False
     allow_custom_code_formula_config: bool = False
+    allow_custom_chart_extraction_config: bool = False
     allow_custom_table_structure_config: bool = False
     allow_custom_layout_config: bool = False
     allow_custom_picture_classification_config: bool = False
@@ -357,6 +358,12 @@ class DoclingServeSettings(BaseSettings):
     custom_code_formula_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_code_formula_engines: Optional[list[str]] = None
 
+    # Chart Extraction Control
+    default_chart_extraction_preset: str = "granite_vision_v4"
+    allowed_chart_extraction_presets: Optional[list[str]] = None
+    custom_chart_extraction_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_chart_extraction_engines: Optional[list[str]] = None
+
     # Picture Classification Control
     default_picture_classification_preset: str = "document_figure_classifier_v2"
     allowed_picture_classification_presets: Optional[list[str]] = None
@@ -417,6 +424,7 @@ class DoclingServeSettings(BaseSettings):
         "custom_vlm_presets",
         "custom_picture_description_presets",
         "custom_code_formula_presets",
+        "custom_chart_extraction_presets",
         "custom_picture_classification_presets",
         "custom_table_structure_presets",
         "custom_layout_presets",
@@ -448,6 +456,8 @@ class DoclingServeSettings(BaseSettings):
         "allowed_picture_description_engines",
         "allowed_code_formula_presets",
         "allowed_code_formula_engines",
+        "allowed_chart_extraction_presets",
+        "allowed_chart_extraction_engines",
         "allowed_picture_classification_presets",
         "allowed_table_structure_kinds",
         "allowed_table_structure_presets",

@@ -42,6 +42,12 @@ def _build_cm_config():
         custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
         allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
         allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Chart Extraction Control
+        default_chart_extraction_preset=docling_serve_settings.default_chart_extraction_preset,
+        allowed_chart_extraction_presets=docling_serve_settings.allowed_chart_extraction_presets,
+        custom_chart_extraction_presets=docling_serve_settings.custom_chart_extraction_presets,
+        allowed_chart_extraction_engines=docling_serve_settings.allowed_chart_extraction_engines,
+        allow_custom_chart_extraction_config=docling_serve_settings.allow_custom_chart_extraction_config,
         # Picture Classification Control
         default_picture_classification_preset=docling_serve_settings.default_picture_classification_preset,
         allowed_picture_classification_presets=docling_serve_settings.allowed_picture_classification_presets,
