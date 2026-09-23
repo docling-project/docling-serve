@@ -55,8 +55,9 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME` |  | Azure Storage account name. It must match `AccountName` in the connection string. |
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_BLOB_PREFIX` | `converted/` | Azure blob-name prefix for managed artifacts. |
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_PRESIGN_TTL_SECONDS` | `3600` | Lifetime of returned S3 presigned URLs or Azure Blob SAS URLs. Valid range: 60–604800 seconds. |
-| `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
+| `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Serve the web UI at `/ui` (and redirect `/` to it). See [Web UI](#web-ui). |
 |  | `DOCLING_SERVE_ENABLE_API_DOCS` | `true` | Serve the API reference pages (`/openapi.json`, `/swagger`, `/docs`, `/docs/oauth2-redirect`, `/scalar`). These routes need no API key; disable them on deployments where the schema must not be readable by anonymous clients. |
+|  | `DOCLING_SERVE_ENABLE_CAPABILITIES_ENDPOINT` | `true` | Serve `/v1/capabilities`, the public description of the presets, targets and limits this deployment accepts. It needs no API key and lists custom presets by id only, never their configuration. |
 |  | `DOCLING_SERVE_ENABLE_MANAGEMENT_ENDPOINTS` | `false` | If enabled, the `/v1/memory` endpoints will provide memory statistics, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_DEBUG_ERROR_DETAILS` | `false` | If enabled, raw internal exception detail is returned for debugging. When `false`, infrastructure-origin error details are sanitized in public HTTP/task surfaces. |
@@ -305,12 +306,13 @@ The following table describes the options to configure the Docling Serve RQ engi
 - **Timeout settings:** Only set if experiencing connection issues. Start with 5.0 seconds for both timeouts.
 - Ensure your Redis server's `maxclients` setting can accommodate all connections from all docling-serve instances and RQ workers
 
-### Gradio UI
+### Web UI
 
-When using Gradio UI and using the option to output conversion as file, Gradio uses cache to prevent files to be overwritten ([more info here](https://www.gradio.app/guides/file-access#the-gradio-cache)), and we defined the cache clean frequency of one hour to clean files older than 10hours. For situations that files need to be available to download from UI older than 10 hours, there is two options:
+With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` for trying conversions. It is a static bundle shipped inside the package and talks to the public API like any other client, with the same API key and policies.
 
-- Increase the older age of files to clean [here](https://github.com/docling-project/docling-serve/blob/main/docling_serve/gradio_ui.py#L483) to suffice the age desired;
-- Or set the clean up manually by defining the temporary dir of Gradio to use the same as `DOCLING_SERVE_SCRATCH_PATH` absolute path. This can be achieved by setting the environment variable `GRADIO_TEMP_DIR`, that can be done via command line `export GRADIO_TEMP_DIR="<same_path_as_scratch>"` or in `Dockerfile` using `ENV GRADIO_TEMP_DIR="<same_path_as_scratch>"`. After this, set the clean of cache to `None` [here](https://github.com/docling-project/docling-serve/blob/main/docling_serve/gradio_ui.py#L483). Now, the clean up of `DOCLING_SERVE_SCRATCH_PATH` will also clean the Gradio temporary dir. (If you use this option, please remember when reversing changes to remove the environment variable `GRADIO_TEMP_DIR`, otherwise may lead to files not be available to download).
+- The options form is built from `/openapi.json` (deprecated options are hidden) and `/v1/capabilities`, so it only offers the presets, output formats, image export modes and targets the deployment allows. Without the capabilities endpoint, preset fields become free text; without the API docs, conversions run with the server defaults.
+- Results are fetched with the first available target among presigned URLs (when artifact storage is enabled), zip archive and inline JSON. The `.dclx` archive is only available with the first two.
+- With presigned URLs, downloads are plain links, but in-browser previews fetch the files from object storage. Allow the UI origin in the bucket CORS rules (`GET` with any header) for previews to work; otherwise the UI falls back to download buttons.
 
 ### Telemetry
 

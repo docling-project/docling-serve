@@ -449,3 +449,5 @@ cookies.txt
 
 # Examples
 /examples/splitted_pdf/*
+# Web UI build output (built from ui/)
+docling_serve/ui_static/

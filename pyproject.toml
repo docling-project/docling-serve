@@ -36,7 +36,7 @@ dependencies = [
     "docling-slim[standard,service-client,models-remote,format-opendocument]>=2.129.0,<3.0.0",
     "docling-core>=2.79.0",
     "docling-jobkit[rq,ray,vlm,azure,gcloudstorage,gdrive]>=3.8.0,<4",
-    "fastapi[standard]<0.137.0",
+    "fastapi[standard]>=0.138.0,<1.0.0",
     "httpx~=0.28",
     "pydantic~=2.10",
     "pydantic-settings~=2.4",
@@ -55,9 +55,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ui = [
-    "gradio>=6.0.0,<7.0.0",
-]
+# Kept for backwards compatibility: the web UI is now bundled in the package.
+ui = []
 tesserocr = [
     "tesserocr~=2.7"
 ]
@@ -249,6 +248,10 @@ explicit = true
 include = ["docling_serve*"]
 namespaces = true
 
+[tool.setuptools.package-data]
+# Web UI bundle, built from ui/ with `npm --prefix ui run build`.
+docling_serve = ["ui_static/**/*"]
+
 [project.scripts]
 docling-serve = "docling_serve.__main__:main"
 
@@ -345,14 +348,6 @@ module = [
     "msgpack.*",
 ]
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = [
-    "gradio",
-    "gradio.*",
-]
-ignore_missing_imports = true
-follow_imports = "skip"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

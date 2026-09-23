@@ -21,13 +21,13 @@ For GPU support use the following command:
 uv sync
 ```
 
-### Gradio UI and different OCR backends
+### Different OCR backends
 
-`/ui` endpoint using `gradio` and different OCR backends can be enabled via package extras:
+Different OCR backends can be enabled via package extras:
 
 ```sh
-# Enable ui and rapidocr
-uv sync --extra ui --extra rapidocr
+# Enable rapidocr
+uv sync --extra rapidocr
 ```
 
 ```sh
@@ -36,6 +36,22 @@ uv sync --extra tesserocr
 ```
 
 See `[project.optional-dependencies]` section in `pyproject.toml` for full list of options and runtime options with `uv run docling-serve --help`.
+
+### Web UI
+
+The web UI in `ui/` is a React + Vite + TypeScript app styled with Tailwind CSS and shadcn/ui. It uses [`@docling/docling-client`](https://github.com/docling-project/docling-ts) to talk to the API. The production build is written to `docling_serve/ui_static/`, which is included in the wheel and served at `/ui`. Python-only installs never need Node; CI and the container build create the bundle.
+
+```sh
+# Build the bundle served by `docling-serve dev` / `docling-serve run --enable-ui`
+npm --prefix ui ci
+npm --prefix ui run build
+
+# Or develop with hot reload on http://localhost:5173, proxying the API of a
+# running docling-serve (default http://localhost:5001, override with DOCLING_SERVE_URL)
+npm --prefix ui run dev
+```
+
+The UI components in `ui/src/components/ui/` come from shadcn/ui; add more with `npx shadcn@latest add <component>` from the `ui/` directory. The Docling theme colours live in `ui/src/index.css`.
 
 ### Run the server
 

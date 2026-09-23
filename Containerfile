@@ -6,6 +6,8 @@ ARG UV_SYNC_EXTRA_ARGS=""
 
 ARG MIMALLOC_VERSION=v3.2.8
 
+ARG NODE_IMAGE=docker.io/library/node:24-alpine
+
 
 ###################################################################################################
 # Build mimalloc                                                                                  #
@@ -27,6 +29,22 @@ RUN mkdir -p out/release
 
 WORKDIR /opt/app-root/src/mimalloc/out/release
 RUN cmake ../.. && make
+
+
+###################################################################################################
+# Build the web UI                                                                                #
+###################################################################################################
+
+# The bundle is plain static files, so it is built once on the build platform.
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS ui
+
+WORKDIR /ui
+
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY ui/ ./
+RUN npm run build -- --outDir /ui/dist
 
 
 FROM ${BASE_IMAGE} AS docling-base
@@ -94,6 +112,7 @@ RUN echo "Downloading models..." && \
     chmod -R g=u ${DOCLING_SERVE_ARTIFACTS_PATH}
 
 COPY --chown=1001:0 ./docling_serve ./docling_serve
+COPY --from=ui --chown=1001:0 /ui/dist ./docling_serve/ui_static
 
 RUN --mount=from=uv_stage,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/opt/app-root/src/.cache/uv,uid=1001 \

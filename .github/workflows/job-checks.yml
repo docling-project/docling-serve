@@ -33,6 +33,21 @@ jobs:
       - name: Run styling check
         run: uv run pre-commit run --all-files
 
+  ui-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Install dependencies
+        run: npm --prefix ui ci
+      - name: Typecheck and build
+        run: npm --prefix ui run build
+
   build-package:
     uses: ./.github/workflows/job-build.yml
 
@@ -63,6 +78,14 @@ jobs:
         run: uv pip install dist/*.whl
       - name: Create the server
         run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
+      - name: Serve the web UI from the installed package
+        run: |
+          DOCLING_SERVE_ENABLE_UI=true .venv/bin/python -c '
+          from fastapi.testclient import TestClient
+          from docling_serve.app import create_app
+          response = TestClient(create_app()).get("/ui/")
+          assert response.status_code == 200 and "<div id=\"root\">" in response.text, response.text
+          '
 
   # markdown-lint:
   #   runs-on: ubuntu-latest
