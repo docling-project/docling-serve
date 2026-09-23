@@ -94,8 +94,6 @@ def validate_source_target_pairing(
     sources: list[Any],
     target: Any,
     policy: ServicePolicy,
-    *,
-    storage_modes: frozenset[str] = frozenset({"artifacts", "database"}),
 ) -> None:
     """Reject expandable sources paired with a non-storage target.
 
@@ -119,7 +117,7 @@ def validate_source_target_pairing(
     # Expandable sources require a storage-style target that can handle one or
     # more outputs per discovered document. Both artifact storage targets and
     # database targets satisfy that requirement.
-    if expandable and result_mode not in storage_modes:
+    if expandable and result_mode not in {"artifacts", "database"}:
         target_kind = target.kind if target is not None else None
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -690,12 +688,7 @@ def validate_extract_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
-    validate_source_target_pairing(
-        request.sources,
-        request.target,
-        policy,
-        storage_modes=frozenset({"artifacts", "presigned"}),
-    )
+    validate_source_target_pairing(request.sources, request.target, policy)
 
 
 def validate_chunk_request(

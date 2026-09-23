@@ -682,7 +682,7 @@ def test_extract_policy_rejects_expandable_inbody():
         validate_extract_request(request, policy)
 
 
-def test_extract_policy_allows_expandable_presigned_target():
+def test_extract_policy_rejects_expandable_presigned_target():
     policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
     request = ExtractSourcesRequest(
         extraction_target=ExtractionTarget(
@@ -700,7 +700,8 @@ def test_extract_policy_allows_expandable_presigned_target():
         target=PresignedUrlTarget(),
     )
 
-    validate_extract_request(request, policy)
+    with pytest.raises(HTTPException, match="require a storage target"):
+        validate_extract_request(request, policy)
 
 
 def test_openapi_only_exposes_async_source_extraction():
