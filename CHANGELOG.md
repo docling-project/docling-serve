@@ -1,3 +1,25 @@
+## [v1.35.0](https://github.com/docling-project/docling-serve/releases/tag/v1.35.0) - 2026-09-23
+
+### Feature
+
+* Chart extraction runtimes ([#706](https://github.com/docling-project/docling-serve/issues/706)) ([`d28827d`](https://github.com/docling-project/docling-serve/commit/d28827d02a0cc18192491f98966da6ced4a66903))
+* **metrics:** Expose RQ queue waiting time via OTLP ([#711](https://github.com/docling-project/docling-serve/issues/711)) ([`98ebc9e`](https://github.com/docling-project/docling-serve/commit/98ebc9ed40321e7c67f9dabe1c79ea8b4e23ada8))
+* Allow RQ workers to drain multiple queues in priority order ([#710](https://github.com/docling-project/docling-serve/issues/710)) ([`6f6efe2`](https://github.com/docling-project/docling-serve/commit/6f6efe2d008397327aefe322525b3118e3835459))
+* Add enable_api_docs and serve /metrics only with the Prometheus export ([#707](https://github.com/docling-project/docling-serve/issues/707)) ([`96c78d7`](https://github.com/docling-project/docling-serve/commit/96c78d70205314163fff966625c048b6adf5a6f5))
+
+### Fix
+
+* Remove deprecated openapi-3 endpoint ([#712](https://github.com/docling-project/docling-serve/issues/712)) ([`14202bf`](https://github.com/docling-project/docling-serve/commit/14202bf58e72d9ef6cb0609a41e6f00f8e439792))
+
+### Docling libraries included in this release:
+- docling-core 2.98.0
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.0
+- docling-mcp 3.2.0
+- docling-parse 7.21.0
+- docling-serve 1.35.0
+- docling-slim 2.130.0
+
 ## [v1.34.0](https://github.com/docling-project/docling-serve/releases/tag/v1.34.0) - 2026-09-17
 
 ### Feature
