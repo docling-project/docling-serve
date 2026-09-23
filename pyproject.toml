@@ -172,8 +172,8 @@ override-dependencies = [
 ]
 
 [tool.uv.sources]
-docling-slim = { git = "git+ssh://git@github.com/docling-project/docling.git", branch = "cau/extraction-api-service-models" }
-docling-jobkit = { git = "git+ssh://git@github.com/docling-project/docling-jobkit.git", branch = "cau/extract-endpoint" }
+docling-slim = { git = "git+https://github.com/docling-project/docling.git", branch = "cau/extraction-api-service-models" }
+docling-jobkit = { git = "git+https://github.com/docling-project/docling-jobkit.git", branch = "cau/extract-endpoint" }
 
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
