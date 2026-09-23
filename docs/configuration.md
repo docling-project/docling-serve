@@ -193,6 +193,16 @@ The following options control the behavior of the Docling converter, including p
 | `DOCLING_SERVE_ALLOWED_VLM_ENGINES` | `null` (all allowed) | List of allowed VLM engine types. Accepts JSON array or comma-separated string. |
 | `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Whether users can specify fully custom VLM engine configurations. |
 
+#### Extraction Control
+
+| ENV | Default | Description |
+| ----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_EXTRACTION_PRESET` | `nuextract_2b` | Extraction preset used when a request does not select one. |
+| `DOCLING_SERVE_ALLOWED_EXTRACTION_PRESETS` | `null` (all allowed) | Allow-list of built-in and operator-defined extraction preset IDs. |
+| `DOCLING_SERVE_CUSTOM_EXTRACTION_PRESETS` | `{}` | JSON object mapping operator-defined preset IDs to complete `ExtractionVlmOptions`. Operator presets override built-ins with the same ID. |
+| `DOCLING_SERVE_ALLOWED_EXTRACTION_ENGINES` | `null` (all allowed) | Allow-list of extraction engine types. |
+| `DOCLING_SERVE_ALLOW_CUSTOM_EXTRACTION_CONFIG` | `false` | Whether clients may submit raw extraction configurations. This does not control operator-defined presets. |
+
 #### Picture Description Control
 
 | ENV | Default | Description |

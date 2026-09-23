@@ -14,6 +14,16 @@ def test_dict_from_json(monkeypatch):
     assert settings.custom_vlm_presets == preset_config
 
 
+def test_custom_extraction_presets_from_json(monkeypatch):
+    preset_config = {"server_model": {"scale": 1.25}}
+    monkeypatch.setenv(
+        "DOCLING_SERVE_CUSTOM_EXTRACTION_PRESETS", json.dumps(preset_config)
+    )
+
+    settings = DoclingServeSettings()
+    assert settings.custom_extraction_presets == preset_config
+
+
 def test_list_from_json_array(monkeypatch):
     """Test parsing list from JSON array."""
     presets = ["preset1", "preset2"]

@@ -138,6 +138,7 @@ class DoclingServeSettings(BaseSettings):
     allow_custom_layout_config: bool = False
     allow_custom_picture_classification_config: bool = False
     allow_custom_ocr_config: bool = False
+    allow_custom_extraction_config: bool = False
     show_version_info: bool = True
     enable_management_endpoints: bool = False
     debug_error_details: bool = False
@@ -345,6 +346,13 @@ class DoclingServeSettings(BaseSettings):
     custom_vlm_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_vlm_engines: Optional[list[str]] = None
 
+    # Extraction Control
+    default_extraction_preset: str = "nuextract_2b"
+    allowed_extraction_presets: list[str] | None = None
+    custom_extraction_presets: dict[str, Any] = Field(default_factory=dict)
+    allowed_extraction_engines: list[str] | None = None
+    allowed_extraction_formats: list[str] | None = None
+
     # Picture Description Control
     default_picture_description_preset: str = "smolvlm"
     allowed_picture_description_presets: Optional[list[str]] = None
@@ -415,6 +423,7 @@ class DoclingServeSettings(BaseSettings):
 
     @field_validator(
         "custom_vlm_presets",
+        "custom_extraction_presets",
         "custom_picture_description_presets",
         "custom_code_formula_presets",
         "custom_picture_classification_presets",
