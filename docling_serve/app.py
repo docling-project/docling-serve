@@ -9,6 +9,7 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 from io import BytesIO
+from pathlib import Path
 from typing import Annotated, Any
 
 import psutil
@@ -98,6 +99,7 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
+from docling_serve.capabilities import CapabilitiesResponse, build_capabilities
 from docling_serve.helper_functions import (
     DOCLING_VERSIONS,
     FormDepends,
@@ -149,6 +151,8 @@ setup_logging(
 )
 
 _log = logging.getLogger(__name__)
+
+UI_STATIC_PATH = Path(__file__).parent / "ui_static"
 
 # Tracks whether warm_up_caches() has completed.  Meaningful only for the
 # LocalOrchestrator (which eagerly loads ML models); the RQ orchestrator's
@@ -381,37 +385,34 @@ def create_app():  # noqa: C901
         allow_headers=headers,
     )
 
-    # Mount the Gradio app
+    # Serve the web UI. The bundle is built from `ui/` and shipped in the package.
     if docling_serve_settings.enable_ui:
-        try:
-            import gradio as gr
+        if (UI_STATIC_PATH / "index.html").is_file():
+            app.frontend("/ui", directory=UI_STATIC_PATH, check_dir=False)
 
-            from docling_serve.gradio_ui import ui as gradio_ui
-            from docling_serve.settings import uvicorn_settings
+            @app.get("/", include_in_schema=False)
+            def ui_redirect() -> RedirectResponse:
+                # Relative, so it also works behind a proxy root path.
+                return RedirectResponse(url="ui/")
 
-            tmp_output_dir = get_scratch() / "gradio"
-            tmp_output_dir.mkdir(exist_ok=True, parents=True)
-            gradio_ui.gradio_output_dir = tmp_output_dir
-
-            # Build the root_path for Gradio, accounting for UVICORN_ROOT_PATH
-            gradio_root_path = (
-                f"{uvicorn_settings.root_path}/ui"
-                if uvicorn_settings.root_path
-                else "/ui"
-            )
-
-            app = gr.mount_gradio_app(
-                app,
-                gradio_ui,
-                path="/ui",
-                allowed_paths=["./logo.png", tmp_output_dir],
-                root_path=gradio_root_path,
-            )
-        except ImportError:
+            @app.middleware("http")
+            async def ui_cache_headers(request: Request, call_next):
+                response = await call_next(request)
+                path = request.url.path
+                if "/ui/assets/" in path:
+                    # Vite puts a content hash in every asset file name.
+                    response.headers.setdefault(
+                        "Cache-Control", "public, max-age=31536000, immutable"
+                    )
+                elif path.endswith("/ui") or "/ui/" in path:
+                    # index.html must be revalidated to pick up new releases.
+                    response.headers.setdefault("Cache-Control", "no-cache")
+                return response
+        else:
             _log.warning(
-                "Docling Serve enable_ui is activated, but gradio is not installed. "
-                "Install it with `pip install docling-serve[ui]` "
-                "or `pip install gradio`"
+                "Docling Serve enable_ui is activated, but the UI bundle was not "
+                "found in %s. Build it with `npm --prefix ui run build`.",
+                UI_STATIC_PATH,
             )
 
     #############################
@@ -782,6 +783,16 @@ def create_app():  # noqa: C901
     @app.get("/api", include_in_schema=False)
     def api_check() -> HealthCheckResponse:
         return HealthCheckResponse()
+
+    if docling_serve_settings.enable_capabilities_endpoint:
+
+        @app.get("/v1/capabilities", tags=["health"])
+        def capabilities() -> CapabilitiesResponse:
+            return build_capabilities(
+                settings=docling_serve_settings,
+                policy=service_policy,
+                versions=DOCLING_VERSIONS,
+            )
 
     # Docling versions
     @app.get("/version", tags=["health"])

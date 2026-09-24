@@ -24,7 +24,7 @@ Install the `docling-serve` package and run the server.
 
 ```bash
 # Using the python package
-pip install "docling-serve[ui]"
+pip install docling-serve
 docling-serve run --enable-ui
 
 # Using container images, e.g. with Podman

@@ -256,6 +256,16 @@ worker process, and keep their Docling, Jobkit, and Serve versions aligned. The
 running deployment's `/openapi.json` lists its enabled concrete connector
 schemas (unless `DOCLING_SERVE_ENABLE_API_DOCS=false`). Plugin installation or policy changes appear there only after restart.
 
+### Deployment capabilities
+
+`GET /v1/capabilities` describes what the running deployment accepts, so clients can offer only valid choices:
+
+- `stages`: for each model stage (OCR, layout, table structure, VLM pipeline, picture description and classification, code/formula, chart extraction, chunking), the request option that selects the preset, the allowed presets with their name and description, the preset `default` resolves to, and whether a custom config is allowed (`custom_config_option`).
+- `sources`, `targets` (with the default target), `output_formats` and `image_export_modes`.
+- `limits` (for example `max_file_size` and `max_images_scale`) and `features` (for example whether an API key is required and whether artifact storage is enabled).
+
+The endpoint needs no API key. Custom presets are listed by id only, never with their configuration. Disable it with `DOCLING_SERVE_ENABLE_CAPABILITIES_ENDPOINT=false`.
+
 ## Convert endpoints
 
 ### Source endpoint
