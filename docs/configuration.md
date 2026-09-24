@@ -312,6 +312,8 @@ With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` fo
 
 - The options form is built from `/openapi.json` (deprecated options are hidden) and `/v1/capabilities`, so it only offers the presets, output formats, image export modes and targets the deployment allows. Without the capabilities endpoint, preset fields become free text; without the API docs, conversions run with the server defaults.
 - Results are fetched with the first available target among presigned URLs (when artifact storage is enabled), zip archive and inline JSON. The `.dclx` archive is only available with the first two.
+- "Open in viewer" opens the [DocLang viewer](https://doclang.ai/viewer/) in a new window and sends it the `.dclx` archive with `postMessage`, since zip and inline results have no URL the viewer could fetch. The viewer page is opened with `?source=opener`, answers `{type: "doclang-viewer:ready"}` to `window.opener` when it receives `{type: "doclang-viewer:ping"}`, and then receives `{type: "doclang-viewer:open", name, mimeType, buffer}` with the archive as an `ArrayBuffer`.
+- The UI requests page images (`include_page_images`) and the `referenced` image mode by default, so the `.dclx` archive contains the page and picture images the viewer displays.
 - With presigned URLs, downloads are plain links, but in-browser previews fetch the files from object storage. Allow the UI origin in the bucket CORS rules (`GET` with any header) for previews to work; otherwise the UI falls back to download buttons.
 
 ### Telemetry

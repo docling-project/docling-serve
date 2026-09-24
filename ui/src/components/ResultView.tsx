@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Clock, Download, FileArchive, Package } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, Clock, Download, ExternalLink, FileArchive, Package } from "lucide-react";
+import { useMemo, useState } from "react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 
 import { DclxInspector } from "@/components/DclxInspector";
 import { JsonTree } from "@/components/JsonTree";
@@ -13,11 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   decodeText,
   downloadBytes,
+  inlineResources,
   downloadFile,
   type ConversionOutcome,
   type ResultDocument,
   type ResultFile,
 } from "@/lib/results";
+import { openInDclxViewer } from "@/lib/viewer";
 
 const FORMAT_LABELS: Record<string, string> = {
   dclx: "DCLX",
@@ -105,7 +108,7 @@ export function ResultView({ outcome, requestedFormats }: Props) {
           </TabsList>
           {files.map((file) => (
             <TabsContent key={file.name} value={file.name} className="mt-3">
-              <FileViewer file={file} />
+              <FileViewer file={file} resources={outcome.resources} />
             </TabsContent>
           ))}
         </Tabs>
@@ -170,9 +173,21 @@ function Downloads({ outcome, files }: { outcome: ConversionOutcome; files: Resu
     <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
       <div className="flex flex-wrap items-center gap-2">
         {dclx && (
-          <Button onClick={() => void downloadFile(dclx)}>
-            <Download className="size-4" /> Download .dclx
-          </Button>
+          <>
+            <Button onClick={() => void downloadFile(dclx)}>
+              <Download className="size-4" /> Download .dclx
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                openInDclxViewer(dclx).catch((error: Error) =>
+                  toast.error("Could not open the viewer", { description: error.message }),
+                )
+              }
+            >
+              <ExternalLink className="size-4" /> Open in viewer
+            </Button>
+          </>
         )}
         {others.map((file) => (
           <Button key={file.name} variant="outline" size="sm" onClick={() => void downloadFile(file)}>
@@ -198,18 +213,24 @@ function Downloads({ outcome, files }: { outcome: ConversionOutcome; files: Resu
   );
 }
 
-function FileViewer({ file }: { file: ResultFile }) {
+type Resources = ConversionOutcome["resources"];
+
+function FileViewer({ file, resources }: { file: ResultFile; resources: Resources }) {
   if (file.format === "dclx") return <DclxInspector file={file} />;
-  return <TextViewer file={file} />;
+  return <TextViewer file={file} resources={resources} />;
 }
 
-function TextViewer({ file }: { file: ResultFile }) {
+function TextViewer({ file, resources }: { file: ResultFile; resources: Resources }) {
   const [raw, setRaw] = useState(false);
   const query = useQuery({
     queryKey: ["result-file", file.key],
     queryFn: async () => decodeText(await file.bytes()),
     staleTime: Infinity,
   });
+  const rendered = useMemo(
+    () => (query.data !== undefined ? inlineResources(query.data, resources) : undefined),
+    [query.data, resources],
+  );
 
   if (query.isPending) return <p className="p-4 text-sm text-muted-foreground">Loading…</p>;
   if (query.isError) {
@@ -242,12 +263,12 @@ function TextViewer({ file }: { file: ResultFile }) {
         {!raw && file.format === "md" ? (
           <div className="markdown p-5">
             <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={markdownUrl}>
-              {text}
+              {rendered}
             </ReactMarkdown>
           </div>
         ) : !raw && file.format === "html" ? (
           // Sandboxed: no scripts, no same-origin access.
-          <iframe title={file.name} sandbox="" srcDoc={text} className="h-[70vh] w-full bg-white" />
+          <iframe title={file.name} sandbox="" srcDoc={rendered} className="h-[70vh] w-full bg-white" />
         ) : !raw && file.format === "json" ? (
           <div className="p-3">
             <JsonView text={text} />

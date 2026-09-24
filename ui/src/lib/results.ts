@@ -39,6 +39,8 @@ export interface ConversionOutcome {
   documents: ResultDocument[];
   /** The raw zip, when the server returned one (for "download all"). */
   archive?: { name: string; bytes: Uint8Array };
+  /** Images referenced by the Markdown/HTML outputs (`artifacts/…`), by zip path. */
+  resources?: Record<string, Uint8Array>;
 }
 
 const EXTENSION_FORMATS: Record<string, string> = {
@@ -95,9 +97,44 @@ function stem(filename: string): string {
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
+function extensionOf(path: string): string {
+  return path.split(".").pop()?.toLowerCase() ?? "";
+}
+
 function formatOfPath(path: string): string | undefined {
-  const extension = path.split(".").pop()?.toLowerCase() ?? "";
-  return EXTENSION_FORMATS[extension];
+  return EXTENSION_FORMATS[extensionOf(path)];
+}
+
+const IMAGE_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+};
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Replaces references to zip resources (e.g. `artifacts/image_000.png` from
+ * the "referenced" image mode) with data URLs, so previews show the images.
+ */
+export function inlineResources(text: string, resources?: Record<string, Uint8Array>): string {
+  if (!resources) return text;
+  let result = text;
+  for (const [path, bytes] of Object.entries(resources)) {
+    if (!result.includes(path)) continue;
+    const dataUrl = `data:${IMAGE_MIME[extensionOf(path)]};base64,${toBase64(bytes)}`;
+    result = result.split(path).join(dataUrl);
+  }
+  return result;
 }
 
 function staticFile(name: string, format: string, bytes: Uint8Array): ResultFile {
@@ -144,11 +181,15 @@ export function fromInBody(response: ConvertDocumentResponse): ConversionOutcome
 export function fromZip(result: RawServiceResult, sourceName: string): ConversionOutcome {
   const entries = unzipSync(result.content);
   const byDocument = new Map<string, ResultFile[]>();
+  const resources: Record<string, Uint8Array> = {};
 
   for (const [path, bytes] of Object.entries(entries)) {
     if (path.endsWith("/")) continue;
     const format = formatOfPath(path);
-    if (!format) continue; // images and other resources stay in the archive
+    if (!format) {
+      if (IMAGE_MIME[extensionOf(path)]) resources[path] = bytes;
+      continue;
+    }
     const fileName = path.split("/").pop() ?? path;
     const key = stem(fileName);
     const files = byDocument.get(key) ?? [];
@@ -171,6 +212,7 @@ export function fromZip(result: RawServiceResult, sourceName: string): Conversio
       name: result.filename ?? `${stem(sourceName)}.zip`,
       bytes: result.content,
     },
+    resources,
   };
 }
 

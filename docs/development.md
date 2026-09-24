@@ -51,6 +51,8 @@ npm --prefix ui run build
 npm --prefix ui run dev
 ```
 
+To point "Open in viewer" at another DocLang viewer, for example a local one, set `VITE_DCLX_VIEWER_URL` when building (`VITE_DCLX_VIEWER_URL=http://localhost:8000/viewer/ npm --prefix ui run build`).
+
 The UI components in `ui/src/components/ui/` come from shadcn/ui; add more with `npx shadcn@latest add <component>` from the `ui/` directory. The Docling theme colours live in `ui/src/index.css`.
 
 ### Run the server

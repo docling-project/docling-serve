@@ -148,6 +148,11 @@ export function buildFormModel(fields: FieldSpec[], capabilities: Capabilities |
     defaults[stage.capabilities.option] = hasDefault ? "default" : serverDefault;
   }
   const imageModes = output.find((field) => field.name === "image_export_mode")?.options;
+  // The DocLang viewer shows the page images stored in the .dclx, which the
+  // server only adds with page images on and a non-placeholder image mode.
+  // "referenced" keeps the images out of the Markdown/HTML text.
+  if (imageModes?.includes("referenced")) defaults.image_export_mode = "referenced";
+  if (byName.has("include_page_images")) defaults.include_page_images = true;
   if (imageModes && !imageModes.includes(String(defaults.image_export_mode))) {
     defaults.image_export_mode = imageModes[0];
   }
