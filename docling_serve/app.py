@@ -137,16 +137,12 @@ except (ImportError, Exception):
     pass
 
 
-# Configure logging based on settings
-# This will be called early, but can be reconfigured in __main__.py
-log_level = (
-    docling_serve_settings.log_level.value
-    if docling_serve_settings.log_level
-    else "INFO"
-)
+# Configure logging based on settings. uvicorn imports this module after the
+# CLI callback (`__main__.py`) ran, which has already applied `-v`/`-vv` to the
+# settings, so this call re-applies the level the CLI chose.
 setup_logging(
     log_format=docling_serve_settings.log_format.value,
-    log_level=log_level,
+    log_level=docling_serve_settings.log_level.value,
     header_prefix=docling_serve_settings.log_header_prefix,
 )
 

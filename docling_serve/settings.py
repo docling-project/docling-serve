@@ -121,7 +121,7 @@ class DoclingServeSettings(BaseSettings):
     enable_api_docs: bool = True
     enable_capabilities_endpoint: bool = True
     api_host: str = "localhost"
-    log_level: Optional[LogLevel] = None
+    log_level: LogLevel = LogLevel.WARNING
     log_format: LogFormat = LogFormat.TEXT
     log_header_prefix: str = "X-Docling-Log-"
     artifacts_path: Optional[Path] = None
@@ -494,10 +494,15 @@ class DoclingServeSettings(BaseSettings):
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def validate_log_level(cls, v: Optional[str]) -> Optional[str]:
-        """Validate and normalize log level to uppercase for case-insensitive support."""
-        if v is None:
-            return v
+    def validate_log_level(cls, v: Any) -> Any:
+        """Normalize the log level: case-insensitive, and an empty value means the default.
+
+        ``env_parse_none_str=""`` turns ``DOCLING_SERVE_LOG_LEVEL=""`` (common in
+        container templates) into ``None``; keep treating that as "not set" and
+        fall back to the field's default so the default is declared only once.
+        """
+        if v is None or v == "":
+            return cls.model_fields["log_level"].default
         if isinstance(v, str):
             return v.upper()
         return v
