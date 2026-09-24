@@ -181,6 +181,7 @@ def _build_rq_config():
 @lru_cache
 def get_async_orchestrator() -> BaseOrchestrator:
     if docling_serve_settings.eng_kind == AsyncEngine.LOCAL:
+        from docling.datamodel.settings import settings as docling_settings
         from docling_jobkit.convert.manager import DoclingConverterManager
         from docling_jobkit.orchestrators.local.orchestrator import (
             LocalOrchestrator,
@@ -195,6 +196,10 @@ def get_async_orchestrator() -> BaseOrchestrator:
             presigned_config=_build_presigned_config(),
         )
 
+        # Let docling's model-backend clients include raw transport errors.
+        docling_settings.debug.error_details = (
+            docling_serve_settings.debug_error_details
+        )
         cm = DoclingConverterManager(config=_build_cm_config())
 
         return LocalOrchestrator(config=local_config, converter_manager=cm)
