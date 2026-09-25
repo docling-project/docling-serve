@@ -57,6 +57,23 @@ def test_allowed_source_types_from_csv(monkeypatch):
     assert settings.allowed_source_types == ["http", "s3"]
 
 
+def test_pipeline_settings_from_env(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ALLOWED_PIPELINES", "vlm, standard")
+    monkeypatch.setenv("DOCLING_SERVE_DEFAULT_PIPELINE", "vlm")
+
+    settings = DoclingServeSettings()
+
+    assert settings.allowed_pipelines == ["vlm", "standard"]
+    assert settings.default_pipeline == "vlm"
+
+
+def test_pipeline_settings_defaults():
+    settings = DoclingServeSettings()
+
+    assert settings.allowed_pipelines is None
+    assert settings.default_pipeline == "standard"
+
+
 def test_default_values():
     """Test default values for new parameters."""
     settings = DoclingServeSettings()
