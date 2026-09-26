@@ -400,6 +400,10 @@ class DoclingServeSettings(BaseSettings):
     allowed_source_types: Optional[list[str]] = None
     allowed_target_types: Optional[list[str]] = None
 
+    # Pipeline Control
+    default_pipeline: str = "standard"
+    allowed_pipelines: Optional[list[str]] = None
+
     @classmethod
     def settings_customise_sources(
         cls,
@@ -469,6 +473,7 @@ class DoclingServeSettings(BaseSettings):
         "allowed_chunking_presets",
         "allowed_source_types",
         "allowed_target_types",
+        "allowed_pipelines",
         "allowed_image_export_modes",
         mode="before",
     )
