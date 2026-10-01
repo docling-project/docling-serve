@@ -112,6 +112,7 @@ from docling_serve.otel_instrumentation import (
     setup_otel_instrumentation,
 )
 from docling_serve.policy import (
+    SERVER_DEFAULT_OPTIONS,
     build_batch_request_model,
     build_service_policy,
     normalize_convert_options,
@@ -890,7 +891,11 @@ def create_app():  # noqa: C901
         orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
         files: list[UploadFile],
         options: Annotated[
-            ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
+            ConvertDocumentsRequestOptions,
+            FormDepends(
+                ConvertDocumentsRequestOptions,
+                server_default_fields=SERVER_DEFAULT_OPTIONS,
+            ),
         ],
         target_type: Annotated[TargetName, Form()] = default_target_name,
         callbacks_raw: Annotated[
@@ -1034,7 +1039,11 @@ def create_app():  # noqa: C901
         background_tasks: BackgroundTasks,
         files: list[UploadFile],
         options: Annotated[
-            ConvertDocumentsRequestOptions, FormDepends(ConvertDocumentsRequestOptions)
+            ConvertDocumentsRequestOptions,
+            FormDepends(
+                ConvertDocumentsRequestOptions,
+                server_default_fields=SERVER_DEFAULT_OPTIONS,
+            ),
         ],
         target_type: Annotated[TargetName, Form()] = default_target_name,
         callbacks_raw: Annotated[
@@ -1148,6 +1157,7 @@ def create_app():  # noqa: C901
                     excluded_fields=[
                         "to_formats",
                     ],
+                    server_default_fields=SERVER_DEFAULT_OPTIONS,
                 ),
             ],
             chunking_options: Annotated[
@@ -1290,6 +1300,7 @@ def create_app():  # noqa: C901
                     excluded_fields=[
                         "to_formats",
                     ],
+                    server_default_fields=SERVER_DEFAULT_OPTIONS,
                 ),
             ],
             chunking_options: Annotated[

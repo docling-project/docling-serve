@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
+from docling.datamodel.pipeline_options import ProcessingPipeline
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     AzureBlobSourceRequest,
@@ -26,8 +27,10 @@ from docling.datamodel.service.targets import (
 from docling_jobkit.connectors.connector_factory import SourceConnectorFactory
 from docling_jobkit.connectors.source_processor import BaseSourceProcessor
 
+from docling_serve.capabilities import build_capabilities
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
+    ALL_PIPELINES,
     ALL_SOURCE_TYPES,
     ALL_TARGET_TYPES,
     _source_kinds,
@@ -164,6 +167,91 @@ def test_validate_convert_options_allows_images_scale_at_policy_cap():
     policy = build_service_policy(DoclingServeSettings(max_images_scale=2.0))
 
     validate_convert_options(ConvertDocumentsOptions(images_scale=2.0), policy)
+
+
+def test_build_service_policy_allows_all_pipelines_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    assert policy.allowed_pipelines == ALL_PIPELINES
+    assert policy.default_pipeline == "standard"
+
+
+def test_default_pipeline_outside_allowed_pipelines_fails_startup():
+    with pytest.raises(ValueError, match=r"default_pipeline 'standard'.*\['vlm'\]"):
+        build_service_policy(DoclingServeSettings(allowed_pipelines=["vlm"]))
+
+
+@pytest.mark.parametrize("pipeline", ["VLM", "unknown"])
+def test_unknown_allowed_pipeline_fails_startup(pipeline):
+    with pytest.raises(ValueError, match=rf"allowed_pipelines.*{pipeline}"):
+        build_service_policy(
+            DoclingServeSettings(allowed_pipelines=[pipeline], default_pipeline="vlm")
+        )
+
+
+def test_unknown_default_pipeline_fails_startup():
+    with pytest.raises(ValueError, match="default_pipeline 'unknown'"):
+        build_service_policy(DoclingServeSettings(default_pipeline="unknown"))
+
+
+def test_normalize_convert_options_applies_default_pipeline_when_omitted():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+
+    normalized = normalize_convert_options(ConvertDocumentsOptions(), policy)
+
+    assert normalized.pipeline == ProcessingPipeline.VLM
+    validate_convert_options(normalized, policy)
+
+
+def test_normalize_convert_options_keeps_explicit_pipeline():
+    policy = build_service_policy(DoclingServeSettings(default_pipeline="vlm"))
+
+    normalized = normalize_convert_options(
+        ConvertDocumentsOptions(pipeline="standard"), policy
+    )
+
+    assert normalized.pipeline == ProcessingPipeline.STANDARD
+    validate_convert_options(normalized, policy)
+
+
+def test_validate_convert_options_rejects_disallowed_pipeline():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+    normalized = normalize_convert_options(
+        ConvertDocumentsOptions(pipeline="standard"), policy
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_options(normalized, policy)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "pipeline 'standard' is not allowed. Allowed values: ['vlm']."
+    )
+
+
+def test_validate_convert_options_allows_configured_pipeline():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+
+    validate_convert_options(ConvertDocumentsOptions(pipeline="vlm"), policy)
+
+
+def test_capabilities_report_allowed_and_default_pipeline():
+    settings = DoclingServeSettings(
+        allowed_pipelines=["vlm", "standard"], default_pipeline="vlm"
+    )
+
+    capabilities = build_capabilities(
+        settings, build_service_policy(settings), manager=object()
+    )
+
+    assert capabilities.pipelines.allowed == ["standard", "vlm"]
+    assert capabilities.pipelines.default == "vlm"
 
 
 def test_convert_sources_request_rejects_s3_inputs_at_model_layer():

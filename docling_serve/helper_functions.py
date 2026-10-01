@@ -112,6 +112,7 @@ def _build_form_parameter(
     model_field: Any,
     prefix: str,
     form_defaults: dict[str, Any],
+    server_default: bool = False,
 ) -> inspect.Parameter:
     """Build a single :class:`inspect.Parameter` for *field_name* and record its
     default in *form_defaults* (mutated in place)."""
@@ -131,8 +132,15 @@ def _build_form_parameter(
     if not model_field.is_required():
         form_defaults[field_name] = model_field.default
 
+    if server_default:
+        # The server fills in this field when it is omitted, so the form default
+        # must not be a real value: a client explicitly sending the model
+        # default would otherwise be indistinguishable from one omitting it.
+        annotation = annotation | None
+        form_defaults[field_name] = None
+        default = Form(None, description=description, examples=model_field.examples)
     # Flatten nested Pydantic models by accepting them as JSON strings
-    if is_pydantic_model(annotation):
+    elif is_pydantic_model(annotation):
         annotation = str
         form_default = (
             None
@@ -174,7 +182,10 @@ def _build_form_parameter(
 # Adapted from
 # https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
 def FormDepends(
-    cls: type[BaseModel], prefix: str = "", excluded_fields: list[str] = []
+    cls: type[BaseModel],
+    prefix: str = "",
+    excluded_fields: list[str] = [],
+    server_default_fields: list[str] = [],
 ):
     new_parameters = []
     # Value FastAPI substitutes for each field when the client omits it. Used
@@ -185,7 +196,13 @@ def FormDepends(
         if field_name in excluded_fields:
             continue
         new_parameters.append(
-            _build_form_parameter(field_name, model_field, prefix, form_defaults)
+            _build_form_parameter(
+                field_name,
+                model_field,
+                prefix,
+                form_defaults,
+                server_default=field_name in server_default_fields,
+            )
         )
 
     async def as_form_func(**data):
