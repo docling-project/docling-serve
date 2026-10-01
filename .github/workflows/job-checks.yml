@@ -78,8 +78,7 @@ jobs:
       - name: Install package
         run: |
           uv export --locked --no-dev --no-emit-project --output-file /tmp/package-dependencies.txt
-          # The export contains the complete graph; do not re-resolve branch metadata.
-          uv pip install --no-deps -r /tmp/package-dependencies.txt dist/*.whl
+          uv pip install -r /tmp/package-dependencies.txt dist/*.whl
       - name: Create the server
         run: .venv/bin/python -I -c 'from docling_serve.app import create_app; create_app()'
       - name: Serve the web UI from the installed package

@@ -1783,7 +1783,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "3.8.1"
-source = { git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fextract-endpoint#6308522eb2dc3d10606dcc01218f4af7f05dce81" }
+source = { git = "https://github.com/docling-project/docling-jobkit.git?branch=cau%2Fextract-endpoint#10f5b5741fba4c07a01e62d56f5226445ede9c56" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-slim", extra = ["standard"] },
@@ -2069,7 +2069,7 @@ rocm72 = [
 [[package]]
 name = "docling-slim"
 version = "2.132.0"
-source = { git = "https://github.com/docling-project/docling.git?branch=cau%2Fextraction-api-service-models#b4d9be5d2b528791747d80358ae40468349e4a17" }
+source = { git = "https://github.com/docling-project/docling.git?branch=cau%2Fextraction-api-service-models#76a0dd99c05bc211a7dc971d048bf8123e8f47f8" }
 dependencies = [
     { name = "certifi" },
     { name = "docling-core" },
