@@ -55,7 +55,9 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME` |  | Azure Storage account name. It must match `AccountName` in the connection string. |
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_BLOB_PREFIX` | `converted/` | Azure blob-name prefix for managed artifacts. |
 |  | `DOCLING_SERVE_ARTIFACT_STORAGE_PRESIGN_TTL_SECONDS` | `3600` | Lifetime of returned S3 presigned URLs or Azure Blob SAS URLs. Valid range: 60–604800 seconds. |
-| `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Enable the demonstrator UI. |
+| `--enable-ui` | `DOCLING_SERVE_ENABLE_UI` | `false` | Serve the web UI at `/ui` (and redirect `/` to it). See [Web UI](#web-ui). |
+|  | `DOCLING_SERVE_ENABLE_API_DOCS` | `true` | Serve the API reference pages (`/openapi.json`, `/swagger`, `/docs`, `/docs/oauth2-redirect`, `/scalar`). These routes need no API key; disable them on deployments where the schema must not be readable by anonymous clients. |
+|  | `DOCLING_SERVE_ENABLE_CAPABILITIES_ENDPOINT` | `true` | Serve `/v1/capabilities`, the public description of the presets, targets and limits this deployment accepts. It needs no API key and lists custom presets by id only, never their configuration. |
 |  | `DOCLING_SERVE_ENABLE_MANAGEMENT_ENDPOINTS` | `false` | If enabled, the `/v1/memory` endpoints will provide memory statistics, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_SHOW_VERSION_INFO` | `true` | If enabled, the `/version` endpoint will provide the Docling package versions, otherwise it will return a forbidden 403 error. |
 |  | `DOCLING_SERVE_DEBUG_ERROR_DETAILS` | `false` | If enabled, raw internal exception detail is returned for debugging. When `false`, infrastructure-origin error details are sanitized in public HTTP/task surfaces. |
@@ -297,7 +299,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | ENV | Default | Description |
 |-----|---------|-------------|
 | `DOCLING_SERVE_ENG_RQ_REDIS_URL` | (required) | The connection Redis url, e.g. `redis://localhost:6373/` |
-| `DOCLING_SERVE_ENG_RQ_QUEUE_NAME` | `convert` | The RQ queue name used by API instances and workers. Set this to route jobs to a non-default queue. |
+| `DOCLING_SERVE_ENG_RQ_QUEUE_NAME` | `convert` | The RQ queue name used by API instances and workers. Set this to route jobs to a non-default queue. Accepts a comma-separated list (e.g. `convert-interactive,convert-background`): API instances enqueue to the first name, while `rq-worker` processes drain the queues in the listed order, so every dequeue prefers the first non-empty queue. |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
 | `DOCLING_SERVE_ENG_RQ_SUB_CHANNEL` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_TTL` | `14400` (4 hours) | Time To Live (in seconds) for RQ job results in Redis. This controls how long job results are kept before being automatically deleted. |
@@ -314,12 +316,16 @@ The following table describes the options to configure the Docling Serve RQ engi
 - **Timeout settings:** Only set if experiencing connection issues. Start with 5.0 seconds for both timeouts.
 - Ensure your Redis server's `maxclients` setting can accommodate all connections from all docling-serve instances and RQ workers
 
-### Gradio UI
+### Web UI
 
-When using Gradio UI and using the option to output conversion as file, Gradio uses cache to prevent files to be overwritten ([more info here](https://www.gradio.app/guides/file-access#the-gradio-cache)), and we defined the cache clean frequency of one hour to clean files older than 10hours. For situations that files need to be available to download from UI older than 10 hours, there is two options:
+With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` for trying conversions. It is a static bundle shipped inside the package and talks to the public API like any other client, with the same API key and policies.
 
-- Increase the older age of files to clean [here](https://github.com/docling-project/docling-serve/blob/main/docling_serve/gradio_ui.py#L483) to suffice the age desired;
-- Or set the clean up manually by defining the temporary dir of Gradio to use the same as `DOCLING_SERVE_SCRATCH_PATH` absolute path. This can be achieved by setting the environment variable `GRADIO_TEMP_DIR`, that can be done via command line `export GRADIO_TEMP_DIR="<same_path_as_scratch>"` or in `Dockerfile` using `ENV GRADIO_TEMP_DIR="<same_path_as_scratch>"`. After this, set the clean of cache to `None` [here](https://github.com/docling-project/docling-serve/blob/main/docling_serve/gradio_ui.py#L483). Now, the clean up of `DOCLING_SERVE_SCRATCH_PATH` will also clean the Gradio temporary dir. (If you use this option, please remember when reversing changes to remove the environment variable `GRADIO_TEMP_DIR`, otherwise may lead to files not be available to download).
+- The options form is built from `/openapi.json` (deprecated options are hidden) and `/v1/capabilities`, so it only offers the presets, output formats, image export modes and targets the deployment allows. Without the capabilities endpoint, preset fields become free text; without the API docs, conversions run with the server defaults.
+- Results are fetched with the first available target among presigned URLs (when artifact storage is enabled), zip archive and inline JSON. The `.dclx` archive is only available with the first two.
+- When the result includes the JSON output, the **Document** tab renders the DoclingDocument with [`@docling/docling-components`](https://github.com/docling-project/docling-ts): every item as a box on the original page images (with a tooltip showing the parsed content), or as a list of parsed items next to their crops from the page. It can be filtered to text, tables or pictures. Page images come from the zip result, so they need "Include page images", a non-placeholder image mode and the zip delivery.
+- "Open in viewer" opens the [DocLang viewer](https://doclang.ai/viewer/) in a new window and sends it the `.dclx` archive with `postMessage`, since zip and inline results have no URL the viewer could fetch. The viewer page is opened with `?source=opener`, answers `{type: "doclang-viewer:ready"}` to `window.opener` when it receives `{type: "doclang-viewer:ping"}`, and then receives `{type: "doclang-viewer:open", name, mimeType, buffer}` with the archive as an `ArrayBuffer`.
+- The UI requests page images (`include_page_images`) and the `referenced` image mode by default, so the `.dclx` archive contains the page and picture images the viewer displays.
+- With presigned URLs, downloads are plain links, but in-browser previews fetch the files from object storage. Allow the UI origin in the bucket CORS rules (`GET` with any header) for previews to work; otherwise the UI falls back to download buttons.
 
 ### Telemetry
 
@@ -329,7 +335,7 @@ ENV | Default | Description |
 |-----|---------|-------------|
 | `DOCLING_SERVE_OTEL_ENABLE_METRICS` | true | Enable metrics collection. |
 | `DOCLING_SERVE_OTEL_ENABLE_TRACES` | false | Enable trace collection. Requires a valid value for `OTEL_EXPORTER_OTLP_ENDPOINT`. |
-| `DOCLING_SERVE_OTEL_ENABLE_PROMETHEUS` | true | Enable Prometheus /metrics endpoint. |
+| `DOCLING_SERVE_OTEL_ENABLE_PROMETHEUS` | true | Enable the Prometheus exporter and the `/metrics` endpoint on the API port. When `false`, `/metrics` is not registered and answers 404. |
 | `DOCLING_SERVE_OTEL_ENABLE_OTLP_METRICS` | `false` | Enable OTLP metrics export. |
 | `DOCLING_SERVE_OTEL_SERVICE_NAME` | docling-serve | Service identification. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` |  | OTLP endpoint (for traces and optional metrics). |

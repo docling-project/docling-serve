@@ -34,3 +34,31 @@ def test_queue_name_is_loaded_from_config_file(monkeypatch, tmp_path):
     settings = DoclingServeSettings(eng_rq_redis_url="redis://localhost:6379/")
 
     assert settings.eng_rq_queue_name == "stage-convert"
+
+
+def test_queue_names_single_name():
+    settings = DoclingServeSettings(eng_rq_redis_url="redis://localhost:6379/")
+
+    assert settings.eng_rq_queue_names == ["convert"]
+
+
+def test_queue_names_comma_separated():
+    settings = DoclingServeSettings(
+        eng_rq_redis_url="redis://localhost:6379/",
+        eng_rq_queue_name="convert-interactive, convert-background",
+    )
+
+    assert settings.eng_rq_queue_name == "convert-interactive, convert-background"
+    assert settings.eng_rq_queue_names == [
+        "convert-interactive",
+        "convert-background",
+    ]
+
+
+def test_queue_names_empty_falls_back_to_convert():
+    settings = DoclingServeSettings(
+        eng_rq_redis_url="redis://localhost:6379/",
+        eng_rq_queue_name=" , ",
+    )
+
+    assert settings.eng_rq_queue_names == ["convert"]

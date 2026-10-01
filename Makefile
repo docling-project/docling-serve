@@ -101,6 +101,12 @@ action-lint: .action-lint ##      Lint GitHub Action workflows
 	$(CMD_PREFIX) actionlint -color
 	$(CMD_PREFIX) touch $@
 
+.PHONY: ui
+ui: ##      Build the web UI bundle into docling_serve/ui_static
+	$(ECHO_PREFIX) printf "  %-12s ui/\n" "[UI BUILD]"
+	$(CMD_PREFIX) npm --prefix ui ci
+	$(CMD_PREFIX) npm --prefix ui run build
+
 .PHONY: md-lint
 md-lint: .md-lint ##      Lint markdown files
 .md-lint: $(wildcard */**/*.md) | md-lint-file

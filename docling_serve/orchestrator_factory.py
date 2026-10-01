@@ -49,6 +49,12 @@ def _build_cm_config():
         custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
         allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
         allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Chart Extraction Control
+        default_chart_extraction_preset=docling_serve_settings.default_chart_extraction_preset,
+        allowed_chart_extraction_presets=docling_serve_settings.allowed_chart_extraction_presets,
+        custom_chart_extraction_presets=docling_serve_settings.custom_chart_extraction_presets,
+        allowed_chart_extraction_engines=docling_serve_settings.allowed_chart_extraction_engines,
+        allow_custom_chart_extraction_config=docling_serve_settings.allow_custom_chart_extraction_config,
         # Picture Classification Control
         default_picture_classification_preset=docling_serve_settings.default_picture_classification_preset,
         allowed_picture_classification_presets=docling_serve_settings.allowed_picture_classification_presets,
@@ -149,7 +155,7 @@ def _build_rq_config():
 
     return RQOrchestratorConfig(
         redis_url=docling_serve_settings.eng_rq_redis_url,
-        queue_name=docling_serve_settings.eng_rq_queue_name,
+        queue_name=docling_serve_settings.eng_rq_queue_names[0],
         results_prefix=docling_serve_settings.eng_rq_results_prefix,
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),

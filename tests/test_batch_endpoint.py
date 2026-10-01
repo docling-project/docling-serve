@@ -469,7 +469,6 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
             },
         )
         openapi = (await client.get("/openapi.json")).json()
-        openapi_30 = (await client.get("/openapi-3.0.json")).json()
 
     from docling_jobkit.connectors.filenet.models import TaskFileNetSource
 
@@ -494,9 +493,6 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
     api_key_schema = schemas["TaskFileNetSource"]["properties"]["api_key"]
     assert api_key_schema["format"] == "password"
     assert api_key_schema["writeOnly"] is True
-    assert openapi_30["components"]["schemas"]["PluginArtifactTarget"]["properties"][
-        "kind"
-    ]["enum"] == ["plugin_artifact"]
 
 
 @pytest.mark.asyncio

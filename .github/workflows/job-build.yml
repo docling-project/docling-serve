@@ -19,12 +19,24 @@ jobs:
           version: "0.12.13"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Build the web UI
+        run: |
+          npm --prefix ui ci
+          npm --prefix ui run build
       - name: Install dependencies
         run: uv sync --all-extras --no-extra flash-attn
       - name: Build package
         run: uv build
       - name: Check content of wheel
-        run: unzip -l dist/*.whl
+        run: |
+          unzip -l dist/*.whl
+          unzip -l dist/*.whl | grep -q "docling_serve/ui_static/index.html"
       - name: Store the distribution packages
         uses: actions/upload-artifact@v4
         with:

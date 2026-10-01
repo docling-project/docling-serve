@@ -5,9 +5,13 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from opentelemetry import trace
+from opentelemetry import metrics, trace
 from opentelemetry.context import Context
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.propagate import extract, inject
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import SERVICE_INSTANCE_ID, SERVICE_NAME, Resource
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
 logger = logging.getLogger(__name__)
@@ -127,6 +131,27 @@ def instrument_rq_job(func: Callable) -> Callable:
                 raise
 
     return wrapper
+
+
+def setup_rq_worker_metrics(
+    *,
+    service_name: str,
+    service_instance_id: str,
+    enable_metrics: bool,
+    enable_otlp_metrics: bool,
+) -> MeterProvider | None:
+    if not enable_metrics or not enable_otlp_metrics:
+        return None
+
+    resource = Resource.create({SERVICE_NAME: service_name})
+    if SERVICE_INSTANCE_ID not in resource.attributes:
+        resource = resource.merge(Resource({SERVICE_INSTANCE_ID: service_instance_id}))
+    provider = MeterProvider(
+        resource=resource,
+        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter())],
+    )
+    metrics.set_meter_provider(provider)
+    return provider
 
 
 def setup_rq_worker_instrumentation():

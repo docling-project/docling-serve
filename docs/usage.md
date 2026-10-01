@@ -11,7 +11,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `ebcdic`, `afp`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `iwork_keynote`, `ebcdic`, `afp`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`, `latex`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
@@ -254,7 +254,17 @@ deployment. Configure both `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` and
 Install the same connector package versions in every API and Local, RQ, or Ray
 worker process, and keep their Docling, Jobkit, and Serve versions aligned. The
 running deployment's `/openapi.json` lists its enabled concrete connector
-schemas. Plugin installation or policy changes appear there only after restart.
+schemas (unless `DOCLING_SERVE_ENABLE_API_DOCS=false`). Plugin installation or policy changes appear there only after restart.
+
+### Deployment capabilities
+
+`GET /v1/capabilities` describes what the running deployment accepts, so clients can offer only valid choices:
+
+- `stages`: for each model stage (OCR, layout, table structure, VLM pipeline, picture description and classification, code/formula, chart extraction, chunking), the request option that selects the preset, the allowed presets with their name and description, the preset `default` resolves to, and whether a custom config is allowed (`custom_config_option`).
+- `sources`, `targets` (with the default target), `output_formats` and `image_export_modes`.
+- `limits` (for example `max_file_size` and `max_images_scale`) and `features` (for example whether an API key is required and whether artifact storage is enabled).
+
+The endpoint needs no API key. Custom presets are listed by id only, never with their configuration. Disable it with `DOCLING_SERVE_ENABLE_CAPABILITIES_ENDPOINT=false`.
 
 ## Convert endpoints
 

@@ -140,6 +140,7 @@ class ServicePolicy:
     callbacks_enabled: bool
     custom_vlm_enabled: bool
     custom_extraction_enabled: bool
+    custom_chart_extraction_enabled: bool
     artifact_storage_enabled: bool
     max_sources_per_request: int
     allowed_image_export_modes: frozenset[str]
@@ -371,6 +372,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
         custom_extraction_enabled=settings.allow_custom_extraction_config,
+        custom_chart_extraction_enabled=settings.allow_custom_chart_extraction_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
@@ -483,6 +485,15 @@ def validate_convert_options(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Custom VLM configuration is disabled by server policy.",
+        )
+
+    if (
+        options.chart_extraction_custom_config
+        and not policy.custom_chart_extraction_enabled
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Custom chart extraction configuration is disabled by server policy.",
         )
 
 

@@ -27,3 +27,11 @@ class TestAllowCustomConfigSettings:
     def test_allow_custom_code_formula_config_is_configurable(self):
         settings = DoclingServeSettings(allow_custom_code_formula_config=True)
         assert settings.allow_custom_code_formula_config is True
+
+    def test_allow_custom_chart_extraction_config_defaults_false(self):
+        settings = DoclingServeSettings()
+        assert settings.allow_custom_chart_extraction_config is False
+
+    def test_allow_custom_chart_extraction_config_is_configurable(self):
+        settings = DoclingServeSettings(allow_custom_chart_extraction_config=True)
+        assert settings.allow_custom_chart_extraction_config is True

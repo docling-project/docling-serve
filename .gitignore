@@ -233,8 +233,6 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -411,8 +409,6 @@ tags
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 [Bb]in
 [Ii]nclude
-[Ll]ib
-[Ll]ib64
 [Ll]ocal
 pyvenv.cfg
 pip-selfcheck.json
@@ -449,3 +445,5 @@ cookies.txt
 
 # Examples
 /examples/splitted_pdf/*
+# Web UI build output (built from ui/)
+docling_serve/ui_static/
