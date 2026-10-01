@@ -4,7 +4,7 @@ Updated 2026-10-01. Error-handling fixes are implemented; deployment verificatio
 
 ## Error handling: verify on the service
 
-Transport redaction landed in Docling `7f237215`, with debug propagation in Jobkit `af845006` and Serve `b85ead7`. Docling `c8bccb025f` also gates HTTP error bodies and includes scoped item reasons in SDK exceptions; Jobkit `0065e095cb` carries those reasons into callbacks. Focused regressions pass.
+Published Docling `b4d9be5d` includes transport/HTTP-body redaction, wrapped-timeout classification and scoped SDK item reasons; Jobkit `0065e095cb` carries the reasons into callbacks. Focused regressions pass. Main conflicts are resolved, branch updates and refreshed locks are pushed, and DCO is green. Serve package/UI/lint CI passes at `3df7c583`. Extraction-branch CI reruns cover code and package checks; image builds are excluded.
 
 Confirm the deployed image includes these fixes and `debug_error_details=false`. Public errors should retain safe context/status without backend addresses/bodies; internal logs retain detail, and debug opt-in exposes it. Rerun the formerly slow schema at the server's 60-second timeout using [docling-extractbench](https://github.ibm.com/docling-project/docling-extractbench/). Inspect document status/counts and item errors, not just terminal task status.
 
