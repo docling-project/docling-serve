@@ -30,6 +30,13 @@ def _build_cm_config():
         custom_vlm_presets=docling_serve_settings.custom_vlm_presets,
         allowed_vlm_engines=docling_serve_settings.allowed_vlm_engines,
         allow_custom_vlm_config=docling_serve_settings.allow_custom_vlm_config,
+        # Extraction Control
+        default_extraction_preset=docling_serve_settings.default_extraction_preset,
+        allowed_extraction_presets=docling_serve_settings.allowed_extraction_presets,
+        custom_extraction_presets=docling_serve_settings.custom_extraction_presets,
+        allowed_extraction_engines=docling_serve_settings.allowed_extraction_engines,
+        allowed_extraction_formats=docling_serve_settings.allowed_extraction_formats,
+        allow_custom_extraction_config=docling_serve_settings.allow_custom_extraction_config,
         # Picture Description Control
         default_picture_description_preset=docling_serve_settings.default_picture_description_preset,
         allowed_picture_description_presets=docling_serve_settings.allowed_picture_description_presets,
@@ -180,6 +187,7 @@ def _build_rq_config():
 @lru_cache
 def get_async_orchestrator() -> BaseOrchestrator:
     if docling_serve_settings.eng_kind == AsyncEngine.LOCAL:
+        from docling.datamodel.settings import settings as docling_settings
         from docling_jobkit.convert.manager import DoclingConverterManager
         from docling_jobkit.orchestrators.local.orchestrator import (
             LocalOrchestrator,
@@ -194,6 +202,10 @@ def get_async_orchestrator() -> BaseOrchestrator:
             presigned_config=_build_presigned_config(),
         )
 
+        # Let docling's model-backend clients include raw transport errors.
+        docling_settings.debug.error_details = (
+            docling_serve_settings.debug_error_details
+        )
         cm = DoclingConverterManager(config=_build_cm_config())
 
         return LocalOrchestrator(config=local_config, converter_manager=cm)

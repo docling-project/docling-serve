@@ -31,7 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "docling-slim[standard,service-client,models-remote,format-opendocument]>=2.129.0,<3.0.0",
     "docling-core>=2.79.0",
@@ -169,6 +169,9 @@ override-dependencies = [
 ]
 
 [tool.uv.sources]
+docling-slim = { git = "git+https://github.com/docling-project/docling.git", branch = "cau/extraction-api-service-models" }
+docling-jobkit = { git = "git+https://github.com/docling-project/docling-jobkit.git", branch = "cau/extract-endpoint" }
+
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
@@ -198,10 +201,6 @@ pytorch-triton-rocm = [
 triton-rocm = [
     { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }
 ]
-
-# docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
-# docling-jobkit = { git = "https://github.com/docling-project/docling-jobkit/", branch = "main" }
-# docling-jobkit = { path = "../docling-jobkit", editable = true }
 
 
 [[tool.uv.index]]
