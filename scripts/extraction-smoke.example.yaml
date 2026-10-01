@@ -1,0 +1,18 @@
+# Local smoke stack only. Start Ray, Redis and MinIO before Serve.
+eng_kind: ray
+eng_ray_address: auto
+eng_ray_redis_url: redis://127.0.0.1:6379/0
+load_models_at_boot: false
+enable_remote_services: true
+allow_custom_extraction_config: true
+allowed_extraction_engines: [transformers, api_lmstudio, api]
+allowed_source_types: [file, http, s3]
+allowed_target_types: [inbody, presigned_url, s3]
+debug_error_details: false
+artifact_storage_enabled: true
+artifact_storage_backend: s3
+artifact_storage_endpoint: 127.0.0.1:9000
+artifact_storage_verify_ssl: false
+artifact_storage_bucket: artifacts
+artifact_storage_access_key: minioadmin
+artifact_storage_secret_key: minioadmin
