@@ -17,7 +17,6 @@ jobs:
       id-token: write
 
   build-images:
-    if: ${{ github.ref_name != 'cau/extract-endpoint' && github.head_ref != 'cau/extract-endpoint' }}
     uses: ./.github/workflows/ci-images-dryrun.yml
     permissions:
       packages: write
