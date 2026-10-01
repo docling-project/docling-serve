@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@docling/docling-client": "^0.3.0",
+    "@docling/docling-client": "^2.131.0",
+    "@docling/docling-components": "^0.0.10",
     "@tanstack/react-query": "^5.103.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 import { DclxInspector } from "@/components/DclxInspector";
+import { DocumentView } from "@/components/DocumentView";
 import { JsonTree } from "@/components/JsonTree";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,8 @@ const FORMAT_LABELS: Record<string, string> = {
   latex: "LaTeX",
 };
 
+const DOCUMENT_TAB = "__document__";
+
 // Viewer tab order: the dclx archive first.
 const FORMAT_ORDER = ["dclx", "md", "html", "json", "doclang", "doctags", "text", "yaml", "latex", "vtt"];
 
@@ -63,6 +66,8 @@ export function ResultView({ outcome, requestedFormats }: Props) {
 
   const files = [...document.files].sort((a, b) => orderOf(a.format) - orderOf(b.format));
   const missingDclx = requestedFormats.includes("dclx") && !files.some((f) => f.format === "dclx");
+  // The rendered document needs the DoclingDocument JSON.
+  const jsonFile = files.find((f) => f.format === "json");
 
   return (
     <div className="space-y-4">
@@ -98,14 +103,20 @@ export function ResultView({ outcome, requestedFormats }: Props) {
       <Downloads outcome={outcome} files={files} />
 
       {files.length > 0 && (
-        <Tabs defaultValue={files[0].name}>
+        <Tabs defaultValue={jsonFile ? DOCUMENT_TAB : files[0].name}>
           <TabsList className="h-auto flex-wrap justify-start">
+            {jsonFile && <TabsTrigger value={DOCUMENT_TAB}>Document</TabsTrigger>}
             {files.map((file) => (
               <TabsTrigger key={file.name} value={file.name}>
                 {FORMAT_LABELS[file.format] ?? file.format}
               </TabsTrigger>
             ))}
           </TabsList>
+          {jsonFile && (
+            <TabsContent value={DOCUMENT_TAB} className="mt-3">
+              <DocumentView file={jsonFile} resources={outcome.resources} />
+            </TabsContent>
+          )}
           {files.map((file) => (
             <TabsContent key={file.name} value={file.name} className="mt-3">
               <FileViewer file={file} resources={outcome.resources} />
