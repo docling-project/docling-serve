@@ -1,3 +1,8 @@
+import io
+import unicodedata
+import zipfile
+from urllib.parse import quote
+
 from fastapi import BackgroundTasks, Response
 
 from docling.datamodel.service.responses import (
@@ -17,6 +22,65 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 
 from docling_serve.settings import docling_serve_settings
+
+DEFAULT_ZIP_FILENAME = "converted_docs.zip"
+
+# Suffixes of the per-document files docling-jobkit writes as ``<stem><suffix>``.
+_EXPORT_SUFFIXES = (
+    ".chunks.jsonl",
+    ".json",
+    ".html",
+    ".md",
+    ".txt",
+    ".doctags",
+    ".dclg",
+    ".dclx",
+)
+# Consolidated output of chunking tasks, covering every document in the task.
+_CHUNKING_RESULT_FILENAME = "chunked_result.json"
+
+
+def _zip_filename(content: bytes) -> str:
+    """Name the archive after its document when it holds exactly one."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            names = zf.namelist()
+    except zipfile.BadZipFile:
+        return DEFAULT_ZIP_FILENAME
+
+    stems = set()
+    for name in names:
+        if "/" in name:
+            continue  # entries under artifacts/ (referenced images)
+        if name == _CHUNKING_RESULT_FILENAME:
+            return DEFAULT_ZIP_FILENAME
+        suffix = next((s for s in _EXPORT_SUFFIXES if name.endswith(s)), None)
+        if suffix is None:
+            return DEFAULT_ZIP_FILENAME
+        stems.add(name[: -len(suffix)])
+
+    if len(stems) != 1:
+        return DEFAULT_ZIP_FILENAME
+    stem = stems.pop()
+    if not stem:
+        return DEFAULT_ZIP_FILENAME
+    return f"{stem}.zip"
+
+
+def _content_disposition(filename: str) -> str:
+    """Build an attachment header that is safe for non-ASCII filenames (RFC 6266)."""
+    ascii_name = "".join(
+        c if c.isprintable() and c not in '"\\' else "_"
+        for c in unicodedata.normalize("NFKD", filename)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    if ascii_name in ("", ".zip"):
+        ascii_name = DEFAULT_ZIP_FILENAME
+    header = f'attachment; filename="{ascii_name}"'
+    if ascii_name != filename:
+        header += f"; filename*=UTF-8''{quote(filename, safe='')}"
+    return header
 
 
 async def prepare_response(
@@ -46,7 +110,9 @@ async def prepare_response(
             content=task_result.result.content,
             media_type="application/zip",
             headers={
-                "Content-Disposition": 'attachment; filename="converted_docs.zip"'
+                "Content-Disposition": _content_disposition(
+                    _zip_filename(task_result.result.content)
+                )
             },
         )
     elif isinstance(task_result.result, RemoteTargetResult):
