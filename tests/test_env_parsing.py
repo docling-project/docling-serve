@@ -63,7 +63,7 @@ def test_default_values():
 
     assert settings.default_vlm_preset == "granite_docling"
     assert settings.default_picture_description_preset == "smolvlm"
-    assert settings.default_code_formula_preset == "default"
+    assert settings.default_code_formula_preset == "granite_docling"
     assert settings.default_chart_extraction_preset == "granite_vision_v4"
     assert settings.default_table_structure_kind == "docling_tableformer"
     assert settings.default_layout_kind == "docling_layout_default"

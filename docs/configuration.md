@@ -208,7 +208,7 @@ The following options control the behavior of the Docling converter, including p
 
 | ENV | Default | Description |
 | ----|---------|-------------|
-| `DOCLING_SERVE_DEFAULT_CODE_FORMULA_PRESET` | `default` | Default code/formula preset. |
+| `DOCLING_SERVE_DEFAULT_CODE_FORMULA_PRESET` | `granite_docling` | Default code/formula preset. |
 | `DOCLING_SERVE_ALLOWED_CODE_FORMULA_PRESETS` | `null` (all allowed) | List of allowed code/formula preset IDs. Accepts JSON array or comma-separated string. |
 | `DOCLING_SERVE_CUSTOM_CODE_FORMULA_PRESETS` | `{}` | Custom code/formula presets. Must be a JSON object. |
 | `DOCLING_SERVE_ALLOWED_CODE_FORMULA_ENGINES` | `null` (all allowed) | List of allowed code/formula engine types. Accepts JSON array or comma-separated string. |

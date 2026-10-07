@@ -354,7 +354,7 @@ class DoclingServeSettings(BaseSettings):
     allowed_picture_description_engines: Optional[list[str]] = None
 
     # Code/Formula Control
-    default_code_formula_preset: str = "default"
+    default_code_formula_preset: str = "granite_docling"
     allowed_code_formula_presets: Optional[list[str]] = None
     custom_code_formula_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_code_formula_engines: Optional[list[str]] = None
