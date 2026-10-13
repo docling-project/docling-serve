@@ -59,6 +59,7 @@ jobs:
       matrix:
         python-version: ['3.12']
     steps:
+      - uses: actions/checkout@v5
       - name: Download all the dists
         uses: actions/download-artifact@v4
         with:
@@ -75,12 +76,14 @@ jobs:
       - name: Create virtual environment
         run: uv venv
       - name: Install package
-        run: uv pip install dist/*.whl
+        run: |
+          uv export --locked --no-dev --no-emit-project --output-file /tmp/package-dependencies.txt
+          uv pip install -r /tmp/package-dependencies.txt dist/*.whl
       - name: Create the server
-        run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
+        run: .venv/bin/python -I -c 'from docling_serve.app import create_app; create_app()'
       - name: Serve the web UI from the installed package
         run: |
-          DOCLING_SERVE_ENABLE_UI=true .venv/bin/python -c '
+          DOCLING_SERVE_ENABLE_UI=true .venv/bin/python -I -c '
           from fastapi.testclient import TestClient
           from docling_serve.app import create_app
           response = TestClient(create_app()).get("/ui/")

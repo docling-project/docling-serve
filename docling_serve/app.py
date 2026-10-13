@@ -56,6 +56,7 @@ from docling.datamodel.service.options import (
 from docling.datamodel.service.requests import (
     BatchConvertSourcesRequest,
     ConvertSourcesRequest,
+    ExtractSourcesRequest,
     GenericChunkDocumentsRequest,
     TargetName,
     TargetRequest,
@@ -65,6 +66,7 @@ from docling.datamodel.service.responses import (
     ChunkDocumentResponse,
     ClearResponse,
     ConvertDocumentResponse,
+    ExtractDocumentResponse,
     HealthCheckResponse,
     MessageKind,
     PresignedUrlConvertDocumentResponse,
@@ -113,6 +115,7 @@ from docling_serve.otel_instrumentation import (
 )
 from docling_serve.policy import (
     build_batch_request_model,
+    build_extract_request_model,
     build_service_policy,
     normalize_convert_options,
     normalize_request,
@@ -121,6 +124,7 @@ from docling_serve.policy import (
     validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
+    validate_extract_request,
     validate_target_kind,
 )
 from docling_serve.public_errors import build_public_http_detail
@@ -273,6 +277,9 @@ def create_app():  # noqa: C901
         target=(TargetRequest, default_target),
     )
     BatchConvertSourcesRequestModel = build_batch_request_model(service_policy)
+    ExtractSourcesRequestModel = build_extract_request_model(
+        service_policy, default_target
+    )
 
     # Without an openapi_url FastAPI registers neither the schema nor its Swagger
     # UI and ReDoc pages; the reference routes added below follow the same flag.
@@ -607,6 +614,49 @@ def create_app():  # noqa: C901
         )
 
         return task
+
+    async def _enqueue_extract(
+        orchestrator: BaseOrchestrator,
+        request: ExtractSourcesRequest,
+        tenant_id: str | None = None,
+    ) -> Task:
+        if docling_serve_settings.eng_kind != AsyncEngine.RAY:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail=(
+                    "Extraction is not implemented for the configured "
+                    f"'{docling_serve_settings.eng_kind.value}' engine."
+                ),
+            )
+        validate_extract_request(request, service_policy)
+        try:
+            sources = [
+                service_policy.source_factory.validate_config(source)
+                for source in request.sources
+            ]
+            target = (
+                service_policy.target_factory.validate_config(request.target)
+                if service_policy.target_factory.supports(request.target)
+                else request.target
+            )
+        except (SourceConnectorConfigError, TargetConnectorConfigError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+            ) from exc
+
+        task_metadata: dict[str, str] = {}
+        if tenant_id:
+            task_metadata["tenant_id"] = tenant_id
+
+        return await orchestrator.enqueue(
+            task_type=TaskType.EXTRACT,
+            sources=sources,
+            extract_target=request.extraction_target,
+            extract_options=request.options,
+            targets=[target],
+            callbacks=request.callbacks,
+            metadata=task_metadata,
+        )
 
     def _get_tenant_id_from_header(tenant_id_header: str | None) -> str:
         """Extract tenant_id from header or return default."""
@@ -1085,6 +1135,36 @@ def create_app():  # noqa: C901
             failure=task.failure,
         )
 
+    @app.post(
+        "/v1/extract/source/async",
+        tags=["extract"],
+        response_model=TaskStatusResponse,
+    )
+    async def extract_url_async(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        extract_request: ExtractSourcesRequestModel,
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
+        ] = None,
+    ):
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        task = await _enqueue_extract(
+            orchestrator=orchestrator, request=extract_request, tenant_id=tenant_id
+        )
+        task_queue_position = await orchestrator.get_queue_position(
+            task_id=task.task_id
+        )
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_type=task.task_type,
+            task_status=task.task_status,
+            task_position=task_queue_position,
+            task_meta=task.processing_meta,
+            error_message=task.error_message,
+            failure=task.failure,
+        )
+
     # Chunking endpoints
     for display_name, path_name, opt_cls in (
         ("HybridChunker", "hybrid", HybridChunkerOptions),
@@ -1530,6 +1610,7 @@ def create_app():  # noqa: C901
         | PresignedUrlConvertDocumentResponse
         | PresignedUrlConvertResponse
         | ChunkDocumentResponse
+        | ExtractDocumentResponse
         | TaskFailureResult,
         responses={
             200: {
