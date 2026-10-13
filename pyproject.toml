@@ -94,6 +94,7 @@ dev = [
     "pytest>=8.3,<10.0.0",
     "pytest-asyncio~=1.2",
     "pytest-check~=2.8",
+    "pyyaml>=6.0",
     "python-semantic-release~=7.32",
 ]
 
