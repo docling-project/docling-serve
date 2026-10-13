@@ -35,7 +35,7 @@ requires-python = ">=3.10"
 dependencies = [
     "docling-slim[standard,service-client,models-remote,format-opendocument]>=2.129.0,<3.0.0",
     "docling-core>=2.79.0",
-    "docling-jobkit[rq,ray,vlm,azure,gcloudstorage,gdrive]>=3.8.0,<4",
+    "docling-jobkit[rq,ray,vlm,azure,gcloudstorage,gdrive]>=3.8.2,<4",
     "fastapi[standard]>=0.138.0,<1.0.0",
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -134,8 +134,8 @@ rocm = [
 ]
 
 rocm72 = [
-    "torch>=2.7.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
-    "torchvision>=0.22.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torch>=2.7.1",
+    "torchvision>=0.22.1",
     "triton-rocm ; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
@@ -159,7 +159,8 @@ conflicts = [
     { group = "rocm72" },
   ],
 ]
-environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
+# Python 3.15 is left out until torch and ray publish cp315 wheels on PyPI
+environments = ["(sys_platform != 'darwin' or platform_machine != 'x86_64') and python_full_version < '3.15'"]
 override-dependencies = [
   "urllib3~=2.0",
   "xgrammar>=0.1.24",

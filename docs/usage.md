@@ -11,7 +11,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `iwork_keynote`, `ebcdic`, `afp`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `iwork_keynote`, `iwork_numbers`, `ebcdic`, `afp`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`, `latex`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
@@ -41,7 +41,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `do_formula_enrichment` | bool | If enabled, perform formula OCR, return LaTeX code. Boolean. Optional, defaults to false. |
 | `do_picture_classification` | bool | If enabled, classify pictures in documents. Boolean. Optional, defaults to false. |
 | `do_chart_extraction` | bool | If enabled, extract numeric data from charts. Boolean. Optional, defaults to false. |
-| `chart_extraction_preset` | str or NoneType | Preset ID for chart extraction. Use "default" for the admin-controlled default, or a specific preset such as "granite_vision_v4" or "granite_vision". |
+| `chart_extraction_preset` | str or NoneType | Preset ID for chart extraction. Use "default" for the admin-controlled default, or a specific preset such as "granite_vision_v4", "granite_vision_v4_mlx", or "granite_vision_v3_3". |
 | `chart_extraction_custom_config` | ChartExtractionVlmEngineOptions or dict or NoneType | Custom chart extraction configuration including model spec and engine options. Only available if the admin allows it. Accepts a ChartExtractionVlmEngineOptions object or an equivalent dict with '`model_spec`', '`engine_options`', and optional output flags (chart2csv, chart2summary, chart2code). |
 | `do_picture_description` | bool | If enabled, describe pictures in documents. Boolean. Optional, defaults to false. |
 | `picture_description_area_threshold` | float | Minimum percentage of the area for a picture to be processed with the models. |
@@ -73,6 +73,8 @@ On top of the source of file (see below), both endpoints support the same parame
 | `max_size` | int or NoneType | Maximum image dimension (width or height) |
 | `extract_code` | bool | Extract code blocks |
 | `extract_formulas` | bool | Extract mathematical formulas |
+| `expansion_factor` | float | Margin added around each code or formula element when it is cropped from the page, as a fraction of the element's width (left and right) and height (top and bottom). A wide margin can take in an equation number or a neighbouring line, which can make the model loop. |
+| `stop_on_repetition` | bool | Stop a generation that keeps repeating the same short unit (for example `\quad \quad ...`) instead of running to max_new_tokens, and remove the repeated tail from the output. Inline engines stop the looping element early; for API and vLLM engines only the output is cleaned up. |
 
 <h4>VlmModelSpec</h4>
 
@@ -209,7 +211,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `use_style` | bool | Use the visual style of the heading (font size, and with `use_font_style` also weight, slant and letter case) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
 | `use_font_style` | bool | Refine the style fallback with the font weight and slant read from the embedded PDF font names, plus all-caps detection, so that headings sharing a font size are still ranked (bold above regular, upright above italic, all-caps above mixed case). Ignored when `use_style` is disabled; font names that carry no recognizable styling fall back to font size alone. |
 | `style_size_tolerance` | float | Relative difference below which two heading font sizes are treated as one size by the style fallback. The size of a heading is measured from its cells, so the same font measures a little taller on a heading that has descenders; without this tolerance such headings would land on different levels. Higher = more sizes collapse into one level. |
-| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
+| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'division', 'subdivision', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
 | `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
 | `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
 

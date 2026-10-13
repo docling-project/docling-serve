@@ -297,6 +297,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Timeouts
             task_timeout=docling_serve_settings.eng_ray_task_timeout,
             document_timeout=docling_serve_settings.eng_ray_document_timeout,
+            converter_request_timeout=docling_serve_settings.eng_ray_converter_request_timeout,
+            recycle_converter_on_abandoned_conversion=docling_serve_settings.eng_ray_recycle_converter_on_abandoned_conversion,
+            abandoned_conversion_grace_s=docling_serve_settings.eng_ray_abandoned_conversion_grace_s,
             redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
             dispatcher_rpc_timeout=docling_serve_settings.eng_ray_dispatcher_rpc_timeout,
             liveness_fail_after=docling_serve_settings.eng_ray_liveness_fail_after,
