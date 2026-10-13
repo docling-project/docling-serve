@@ -706,6 +706,74 @@ while task["task_status"] not in ("success", "failure"):
 
 <details>
 
+### List active tasks
+
+Discover the calling tenant's queued or running tasks without knowing their IDs:
+
+- `GET /v1/tasks?limit=20&offset=0`
+
+`limit` defaults to `20` and must be `1..100`; `offset` defaults to `0` and
+must be `>=0`. Values outside these bounds are rejected with `422`; they are
+never clamped. There is no status selector, queue position, total, cursor, or
+payload/result/options surface, and no tenant selector query parameter: the
+tenant always comes from the request header.
+
+```sh
+curl 'http://localhost:5001/v1/tasks?limit=20&offset=0' \
+  -H 'X-Tenant-Id: tenant-a'
+```
+
+When authentication is enabled (`DOCLING_SERVE_API_KEY`), add the same shared
+`X-Api-Key` header used by the other routes; a missing or wrong key is
+rejected with `401` before the backend is consulted. When no key is
+configured, the endpoint behaves like the other routes and needs no header.
+
+The tenant header name is configurable
+(`DOCLING_SERVE_ENG_RAY_TENANT_ID_HEADER`, default `X-Tenant-Id`). An absent
+header means the `default` tenant; a custom value selects that tenant's tasks.
+The header is the existing routing hint shared with the convert and status
+endpoints, not a stronger identity or security-isolation boundary.
+
+A successful response is a compact page with only identity fields:
+
+```jsonc
+{
+  "items": [
+    {
+      "task_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "task_type": "convert",      // convert|chunk
+      "task_status": "pending",    // pending|started only
+      "created_at": "2026-01-01T00:00:20Z"
+    }
+  ],
+  "has_more": true  // more entries remain beyond this offset
+}
+```
+
+Only `pending` and `started` tasks are listed; terminal `success`/`failure`
+tasks never appear. Entries are ordered newest first with ascending `task_id`
+ties, and the tenant filter runs before pagination in every backend. Because
+listing is a snapshot, concurrent enqueue or completion between two pages can
+shift offsets; clients polling pages should tolerate drift rather than
+assuming a stable total.
+
+Backend visibility follows the orchestrator: the Local engine lists this
+process's in-flight tasks only, so a peer process that enqueued the same
+tenant's work is not visible here, while the RQ and Ray engines list the
+shared queue and active set. Backend enumeration, ordering and paging rules
+live in `docling-jobkit` (`docling_jobkit.datamodel.task_listing`) and are
+covered there; a backend failure propagates with the existing `5xx`
+conventions instead of surfacing as a successful empty page.
+
+This endpoint requires a paired jobkit build that provides
+`orchestrator.list_tasks` and `docling_jobkit.datamodel.task_listing`. The
+published `docling-jobkit 3.8` series does not include it yet, so install the
+matching source checkout editable alongside the server, for example:
+
+```sh
+uv pip install --no-deps -e /path/to/docling-jobkit-checkout
+```
+
 ### Subscribe with websockets
 
 Using websocket you can get the client application being notified about updates of the conversion task.
