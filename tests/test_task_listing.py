@@ -1,20 +1,9 @@
 # SPDX-License-Identifier: MIT
 
-"""Hermetic contract tests for GET /v1/tasks.
+"""HTTP contracts for tenant-scoped active task listing.
 
-The route exposes the tenant-scoped active-task listing owned by
-``docling-jobkit`` (``docling_jobkit.datamodel.task_listing``) without
-reimplementing filtering, ordering or paging: the serve layer forwards the
-resolved tenant plus the validated ``limit``/``offset`` window to
-``orchestrator.list_tasks`` for the Local, RQ and Ray backends. Backend
-enumeration, tenant filtering before paging, newest-first ordering and the
-shared ``ActiveTaskPage`` shape are covered by the jobkit suite
-(``tests/test_task_listing.py`` in the paired jobkit checkout); these tests
-prove the HTTP contract only.
-
-Hermetic: ``TestClient`` without entering lifespan (no model download, no
-converter startup) and ``setup_otel_instrumentation`` patched, mirroring
-``tests/test_api_docs_and_metrics_toggle.py``.
+Backend enumeration is covered by Jobkit. TestClient omits lifespan to avoid
+model downloads and converter startup; OTEL setup is patched.
 """
 
 import datetime
