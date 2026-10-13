@@ -233,7 +233,7 @@ def build_batch_request_model(
         __base__=BatchConvertSourcesRequest,
         sources=(list[source_union], Field(min_length=1)),  # type: ignore[valid-type]
         target=(target_union | None, None),
-        targets=(list[target_union] | None, None),  # type: ignore[valid-type]
+        targets=(list[target_union] | None, None),  # type: ignore[valid-type,arg-type]
     )
     model.model_json_schema()
     return model
