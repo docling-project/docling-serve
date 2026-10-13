@@ -680,9 +680,8 @@ The response format is a task detail:
 }
 ```
 
-A task cancelled while still queued ends in the terminal `cancelled` status.
-`cancelled` is terminal like `success` and `failure`: polling and websocket
-loops must treat it as a final state and must not fetch a result for it.
+A queued task can end in the terminal `cancelled` status. Polling and websocket
+loops must stop on this status without fetching a result.
 
 ### Cancelling a queued task
 
@@ -712,20 +711,14 @@ result — `GET /v1/result/{task_id}` returns `409` with `detail.code
 cancelled externally while waiting ends with the same `409 TASK_CANCELLED`
 response instead of a result.
 
-Terminal waiting loops must therefore watch for `cancelled` alongside `success`
-and `failure`:
+This endpoint requires a Jobkit build with queued-only cancellation support.
+The currently locked `docling-jobkit 3.8.2` does not include this capability.
+Until a release containing it is integrated, install the matching source checkout
+alongside the server, for example:
 
-```python
-while task["task_status"] not in ("success", "failure", "cancelled"):
-    ...
+```sh
+uv pip install --no-deps -e /path/to/docling-jobkit-checkout
 ```
-
-This endpoint requires a Jobkit build with queued-only cancellation support
-(`cancel_queued_task`, `CANCELLED` terminal state). The stock Jobkit range
-`>=3.8.2,<4` declared in `pyproject.toml` predates that interface, so
-deployments that need cancellation must run a paired Jobkit source checkout
-that includes it; release integration of the two remains a separate
-prerequisite.
 
 ### Polling status
 
@@ -751,7 +744,7 @@ while task["task_status"] not in ("success", "failure", "cancelled"):
     time.sleep(5)
 ```
 
-<details>
+</details>
 
 ### Subscribe with websockets
 
