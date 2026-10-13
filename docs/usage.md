@@ -704,7 +704,7 @@ while task["task_status"] not in ("success", "failure"):
     time.sleep(5)
 ```
 
-<details>
+</details>
 
 ### List active tasks
 
@@ -746,7 +746,7 @@ A successful response is a compact page with only identity fields:
       "created_at": "2026-01-01T00:00:20Z"
     }
   ],
-  "has_more": true  // more entries remain beyond this offset
+  "has_more": false  // no more entries remain beyond this page
 }
 ```
 
@@ -760,15 +760,13 @@ assuming a stable total.
 Backend visibility follows the orchestrator: the Local engine lists this
 process's in-flight tasks only, so a peer process that enqueued the same
 tenant's work is not visible here, while the RQ and Ray engines list the
-shared queue and active set. Backend enumeration, ordering and paging rules
-live in `docling-jobkit` (`docling_jobkit.datamodel.task_listing`) and are
-covered there; a backend failure propagates with the existing `5xx`
-conventions instead of surfacing as a successful empty page.
+shared queue and active set. Backend failures return `5xx` responses rather than
+successful empty pages.
 
-This endpoint requires a paired jobkit build that provides
-`orchestrator.list_tasks` and `docling_jobkit.datamodel.task_listing`. The
-published `docling-jobkit 3.8` series does not include it yet, so install the
-matching source checkout editable alongside the server, for example:
+This endpoint requires a Jobkit build with active task listing support. The
+currently locked `docling-jobkit 3.8.2` does not include this capability. Until a
+release containing it is integrated, install the matching source checkout
+alongside the server, for example:
 
 ```sh
 uv pip install --no-deps -e /path/to/docling-jobkit-checkout
