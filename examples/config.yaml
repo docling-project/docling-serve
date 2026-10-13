@@ -1,0 +1,52 @@
+# Example configuration file for Docling Serve.
+#
+# Load it with:
+#   DOCLING_SERVE_CONFIG_FILE=examples/config.yaml docling-serve run
+#
+# Keys are the DOCLING_SERVE_* environment variable names in lowercase, without
+# the prefix. Environment variables take precedence over values in this file.
+# See docs/configuration.md for all settings. examples/config.json has the same
+# configuration in JSON.
+
+# Server
+enable_ui: true
+max_num_pages: 500
+max_file_size: 104857600  # 100 MiB
+max_sync_wait: 120  # seconds
+
+# Compute engine
+eng_kind: local
+eng_loc_num_workers: 2
+
+# Needed by presets that call a remote API, such as granite_remote below.
+enable_remote_services: true
+
+# VLM pipeline presets
+default_vlm_preset: granite_docling
+allowed_vlm_presets:
+  - granite_docling
+  - smoldocling
+# Custom presets are always allowed, in addition to allowed_vlm_presets.
+custom_vlm_presets:
+  granite_remote:
+    model_spec:
+      name: Granite-Docling-258M (remote)
+      default_repo_id: ibm-granite/granite-docling-258M
+      prompt: Convert this page to docling.
+      response_format: doctags
+    engine_options:
+      engine_type: api
+      url: http://localhost:8000/v1/chat/completions
+      params:
+        model: ibm-granite/granite-docling-258M
+        max_tokens: 4096
+      timeout: 120.0
+      concurrency: 4
+    scale: 2.0
+
+# Table structure presets
+default_table_structure_preset: tableformer_v1_accurate
+custom_table_structure_presets:
+  tables_fast:
+    kind: docling_tableformer
+    mode: fast
