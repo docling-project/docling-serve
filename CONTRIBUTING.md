@@ -142,18 +142,24 @@ poetry add NAME
 
 We use the following tools to enforce code style:
 
-- ruff, to sort imports and format code
+- [Ruff](https://docs.astral.sh/ruff/), as linter and code formatter
+- [ty](https://docs.astral.sh/ty/), as static type checker
 
-We run a series of checks on the code base on every commit, using `pre-commit`. To install the hooks, run:
+A set of styling checks is defined and managed through [prek](https://pypi.org/project/prek/), a fast runner for pre-commit-compatible hook configs.
+To run those checks automatically before a commit is finalized, install the hooks in your local repository:
 
 ```bash
-pre-commit install
+uv run prek install
 ```
 
 To run the checks on-demand, run:
 
 ```shell
-pre-commit run --all-files
+uv run prek run --all-files
 ```
 
-Note: Formatting checks like `ruff` will "fail" if they modify files. This is because `pre-commit` doesn't like to see files modified by their Hooks. In these cases, `git add` the modified files and `git commit` again.
+The `Makefile` also provides shortcuts: `make check` runs the read-only Ruff, ty and lock checks, and `make fix` applies the Ruff formatter and auto-fixes.
+
+Note: Checks like `Ruff` will "fail" if they modify files. This is because hook runners don't like to see files modified by their hooks. In these cases, `git add` the modified files and `git commit` again.
+
+On pull requests, the Ruff linter and formatter run on the changed files right away, without waiting for a maintainer to approve the CI run. The full CI, including ty and the tests, runs after the approval.
