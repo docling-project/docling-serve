@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: MIT
 
-"""P2 Serve cancel API over frozen Jobkit cancellation and P2a wire schema.
+"""Queued-cancellation HTTP and WebSocket contracts.
 
-Fake-orchestrator ASGI tests only: no models, no Redis, no workers. The atomic
-claim-vs-cancel guarantee itself stays covered by Jobkit's
-tests/test_queued_cancel.py; here the Serve layer must delegate it, map its
-stable not-found/conflict reasons to HTTP, and keep every terminal surface
-(poll/WS/result/sync) consistent for `cancelled`.
+Use a fake orchestrator without models, Redis or workers. Backend start/cancel
+arbitration is covered by Jobkit.
 """
 
 import uuid
@@ -35,7 +32,7 @@ def _task(
 
 
 class _FakeOrchestrator:
-    """Delegates cancellation exactly like the frozen Jobkit contract."""
+    """Cancellation test double."""
 
     cancel_on_enqueue = False
 
