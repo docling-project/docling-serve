@@ -14,7 +14,6 @@ export type WatchedTaskStatus = Omit<TaskStatusResponse, "task_status"> & {
   task_status: TaskStatusResponse["task_status"] | "cancelled";
 };
 
-/** Raw status polling that tolerates the `cancelled` wire value. */
 export const POLL_INTERVAL_MS = 2000;
 export const JOB_TIMEOUT_MS = 24 * 3600 * 1000;
 

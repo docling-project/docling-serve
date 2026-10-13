@@ -45,13 +45,7 @@ class ServeWebsocketMessage(SdkWebsocketMessage):
 def to_serve_task_status(
     status: ConversionStatus | str,
 ) -> ConversionStatus | Literal["cancelled"]:
-    """Map a task status to the Serve wire value.
-
-    Passes every existing SDK status through untouched and maps the Jobkit
-    ``cancelled`` value (string or enum) to the literal ``"cancelled"``. The
-    Serve response model already coerces Jobkit enums directly, so this helper
-    is documentation-grade explicitness for callers rather than a requirement.
-    """
+    """Map SDK statuses unchanged and preserve cancelled as a wire literal."""
     if str(getattr(status, "value", status)) == "cancelled":
         return "cancelled"
     if isinstance(status, ConversionStatus):
