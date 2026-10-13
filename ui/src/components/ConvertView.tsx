@@ -2,7 +2,6 @@ import {
   type ConvertDocumentResponse,
   DoclingHttpError,
   type PresignedUrlConvertResponse,
-  type TaskStatusResponse,
 } from "@docling/docling-client";
 import { Copy, FileText, FileUp, Link2, Loader2, Play, RotateCcw, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +32,7 @@ import {
 } from "@/lib/capabilities";
 import { asArray, buildFormModel, type OptionValues, requestOptions } from "@/lib/options";
 import { type ConversionOutcome, fromInBody, fromPresigned, fromZip } from "@/lib/results";
+import { pollTaskStatus, type WatchedTaskStatus } from "@/lib/taskPoll";
 import type { FieldSpec } from "@/lib/schema";
 import { curlSnippet, pythonSnippet, type RequestDescription } from "@/lib/snippets";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,7 @@ const EXAMPLE_URLS = [
 
 type RunState =
   | { phase: "idle" }
-  | { phase: "running"; status?: TaskStatusResponse }
+  | { phase: "running"; status?: WatchedTaskStatus }
   | { phase: "done"; outcome: ConversionOutcome; formats: string[] }
   | { phase: "error"; message: string };
 
@@ -90,11 +90,17 @@ export function ConvertView({ capabilities, fields }: Props) {
         target: { kind: target },
         signal: controller.signal,
       });
-      let last: TaskStatusResponse = job.status;
+      let last: WatchedTaskStatus = job.status as WatchedTaskStatus;
       setRun({ phase: "running", status: last });
-      for await (const status of job.watch({ signal: controller.signal })) {
-        last = status;
-        setRun({ phase: "running", status });
+      if ((last.task_status as string) === "cancelled") {
+        throw new Error("The conversion was cancelled while it was queued.");
+      }
+      last = await pollTaskStatus(job.taskId, controller.signal, {
+        onStatus: (status) => setRun({ phase: "running", status }),
+      });
+      setRun({ phase: "running", status: last });
+      if ((last.task_status as string) === "cancelled") {
+        throw new Error("The conversion was cancelled while it was queued.");
       }
       if (last.task_status === "failure") {
         throw new Error(last.failure?.message ?? last.error_message ?? "The conversion failed.");
@@ -333,7 +339,7 @@ function DropOverlay() {
   );
 }
 
-function Progress({ status }: { status?: TaskStatusResponse }) {
+function Progress({ status }: { status?: WatchedTaskStatus }) {
   const meta = status?.task_meta;
   return (
     <div className="flex min-h-[45vh] flex-col items-center justify-center gap-3 text-center">

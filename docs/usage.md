@@ -674,11 +674,58 @@ The response format is a task detail:
 ```jsonc
 {
   "task_id": "<task_id>",  // the task_id which can be used for the next operations
-  "task_status": "pending|started|success|failure",  // the task status
+  "task_status": "pending|started|success|failure|cancelled",  // the task status
   "task_position": 1,  // the position in the queue
   "task_meta": null,  // metadata e.g. how many documents are in the total job and how many have been converted
 }
 ```
+
+A task cancelled while still queued ends in the terminal `cancelled` status.
+`cancelled` is terminal like `success` and `failure`: polling and websocket
+loops must treat it as a final state and must not fetch a result for it.
+
+### Cancelling a queued task
+
+A task that has not started converting yet can be cancelled with:
+
+- `POST /v1/tasks/{task_id}/cancel`
+
+The endpoint requires the same authentication as the other task endpoints and
+the caller must own the task (the tenant header must match the task owner;
+unknown task IDs and tenant mismatches both return `404` without distinguishing
+them).
+
+Responses:
+
+- `200` with the task detail (`task_status: "cancelled"`) when the queued task
+  was cancelled. Repeating the request for an already cancelled task is
+  idempotent and returns `200` again.
+- `409` with `detail.code "TASK_ALREADY_STARTED"` when the task already started.
+- `409` with `detail.code "TASK_ALREADY_FINISHED"` when the task already
+  reached `success` or `failure`.
+- `404` when the task is unknown or belongs to another tenant.
+
+Cancelling only works before conversion starts: running work is never stopped
+and completed tasks keep their outcome. A cancelled task never produces a
+result — `GET /v1/result/{task_id}` returns `409` with `detail.code
+"TASK_CANCELLED"` instead of a result payload. A synchronous conversion that is
+cancelled externally while waiting ends with the same `409 TASK_CANCELLED`
+response instead of a result.
+
+Terminal waiting loops must therefore watch for `cancelled` alongside `success`
+and `failure`:
+
+```python
+while task["task_status"] not in ("success", "failure", "cancelled"):
+    ...
+```
+
+This endpoint requires a Jobkit build with queued-only cancellation support
+(`cancel_queued_task`, `CANCELLED` terminal state). The stock Jobkit range
+`>=3.8.2,<4` declared in `pyproject.toml` predates that interface, so
+deployments that need cancellation must run a paired Jobkit source checkout
+that includes it; release integration of the two remains a separate
+prerequisite.
 
 ### Polling status
 
@@ -697,7 +744,7 @@ import httpx
 # response from the async task submission
 task = response.json()
 
-while task["task_status"] not in ("success", "failure"):
+while task["task_status"] not in ("success", "failure", "cancelled"):
     response = httpx.get(f"{base_url}/status/poll/{task['task_id']}")
     task = response.json()
 
@@ -736,7 +783,7 @@ with connect(uri) as websocket:
             payload = json.loads(message)
             if payload["message"] == "error":
                 break
-            if payload["message"] == "update" and payload["task"]["task_status"] in ("success", "failure"):
+            if payload["message"] == "update" and payload["task"]["task_status"] in ("success", "failure", "cancelled"):
                 break
         except:
           break
