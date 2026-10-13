@@ -255,7 +255,7 @@ def build_batch_request_model(
         __base__=BatchConvertSourcesRequest,
         sources=(list[source_union], Field(min_length=1)),  # type: ignore[valid-type]
         target=(target_union | None, None),
-        targets=(list[target_union] | None, None),  # type: ignore[valid-type]
+        targets=(list[target_union] | None, None),  # type: ignore[valid-type,arg-type]
     )
     model.model_json_schema()
     return model
@@ -312,6 +312,8 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = registered_ocr_presets
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
+    # The converter manager registers custom presets after filtering built-in kinds.
+    allowed_ocr_presets |= set(settings.custom_ocr_presets)
     source_factory = get_source_connector_factory(settings.allow_external_plugins)
     target_factory = get_target_connector_factory(settings.allow_external_plugins)
     available_source_types = (
