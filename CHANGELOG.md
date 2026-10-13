@@ -1,3 +1,27 @@
+## [v1.37.0](https://github.com/docling-project/docling-serve/releases/tag/v1.37.0) - 2026-10-13
+
+### Feature
+
+* Update deps, expose new jobkit settings ([#725](https://github.com/docling-project/docling-serve/issues/725)) ([`d59e3f1`](https://github.com/docling-project/docling-serve/commit/d59e3f137024bbadcd1f511a6da3b3f64fe90aff))
+
+### Fix
+
+* Point default_code_formula_preset at a real Docling preset ([#721](https://github.com/docling-project/docling-serve/issues/721)) ([`7e77b29`](https://github.com/docling-project/docling-serve/commit/7e77b2947cf2e9e1c6c9ded3eeb13ecd150d9c59))
+* **policy:** Keep custom OCR presets selectable ([#723](https://github.com/docling-project/docling-serve/issues/723)) ([`46eb541`](https://github.com/docling-project/docling-serve/commit/46eb5419f00d8276bb8972bb3ce49a3646f0f130))
+
+### Documentation
+
+* Add the example config files referenced in the configuration docs ([#724](https://github.com/docling-project/docling-serve/issues/724)) ([`3a7d4ca`](https://github.com/docling-project/docling-serve/commit/3a7d4ca4f4578663c907a22a5bbd13e8f3b440a4))
+
+### Docling libraries included in this release:
+- docling-core 2.101.1
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.2
+- docling-mcp 3.3.0
+- docling-parse 7.22.3
+- docling-serve 1.37.0
+- docling-slim 2.138.0
+
 ## [v1.36.0](https://github.com/docling-project/docling-serve/releases/tag/v1.36.0) - 2026-10-01
 
 ### Feature
