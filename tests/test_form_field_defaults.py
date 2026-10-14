@@ -7,7 +7,7 @@ forwards the deprecated `ocr_engine` onto `ocr_preset` - therefore never fired,
 and `ocr_engine` was silently ignored (and never validated) on those endpoints.
 """
 
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -96,3 +96,44 @@ def test_json_encoded_fields_are_still_parsed():
     assert body["nested"] == {"value": 7}
     assert body["custom_config"] == {"key": "value"}
     assert body["fields_set"] == ["custom_config", "nested"]
+
+
+class _PipelineOptions(BaseModel):
+    pipeline: Literal["standard", "vlm"] = "standard"
+
+
+def _server_default_client() -> TestClient:
+    app = FastAPI()
+
+    @app.post("/options")
+    async def read_options(  # type: ignore[no-untyped-def]
+        options: Annotated[
+            _PipelineOptions,
+            FormDepends(_PipelineOptions, server_default_fields=["pipeline"]),
+        ],
+    ):
+        return {
+            **options.model_dump(),
+            "fields_set": sorted(options.model_fields_set),
+        }
+
+    return TestClient(app)
+
+
+def test_server_default_field_sent_with_model_default_counts_as_set():
+    # Without server_default_fields, sending the model default is
+    # indistinguishable from omitting the field.
+    response = _server_default_client().post("/options", data={"pipeline": "standard"})
+    assert response.status_code == 200
+    assert response.json() == {"pipeline": "standard", "fields_set": ["pipeline"]}
+
+
+def test_server_default_field_omitted_stays_unset():
+    response = _server_default_client().post("/options", data={})
+    assert response.status_code == 200
+    assert response.json() == {"pipeline": "standard", "fields_set": []}
+
+
+def test_server_default_field_is_still_validated():
+    response = _server_default_client().post("/options", data={"pipeline": "other"})
+    assert response.status_code == 422
