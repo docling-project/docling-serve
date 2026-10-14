@@ -365,6 +365,7 @@ def create_app():  # noqa: C901
         redis_url=redis_url,
         metrics_port=docling_serve_settings.metrics_port,
         ray_redis_manager=ray_redis_manager,
+        ray_metrics_refresh_interval=docling_serve_settings.eng_ray_tenant_metrics_refresh_interval,
     )
 
     # Add log context middleware to extract request headers

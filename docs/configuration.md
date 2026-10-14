@@ -319,6 +319,13 @@ The following table describes the timeout options of the Docling Serve Ray engin
 | `DOCLING_SERVE_ENG_RAY_RECYCLE_CONVERTER_ON_ABANDONED_CONVERSION` | `true` | A cancelled converter call cannot stop its conversion thread. When enabled, a converter replica reports unhealthy while such a thread is still running more than `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` after the cancel, and Ray Serve replaces it. Only takes effect when `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` is at least `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT`, so the draining replica can finish the request it is serving. |
 | `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` | `None` (document timeout + 60 s) | Seconds a conversion may keep running after its request was cancelled before the converter replica reports unhealthy. |
 
+#### Ray engine state and metrics
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_TASK_METADATA_TTL` | `604800` (7 days) | Seconds a finished task's metadata is kept in Redis. Never shorter than `DOCLING_SERVE_ENG_RAY_RESULTS_TTL`. `0` keeps finished tasks forever. |
+| `DOCLING_SERVE_ENG_RAY_TENANT_METRICS_REFRESH_INTERVAL` | `30` | Seconds between two refreshes of the per-tenant Prometheus metrics (`ray_tenant_*`, `ray_total_*`). One docling-serve process at a time, chosen by a lock in Redis, reads them in the background and exports them; the other processes export only `ray_metrics_snapshot_leader` and the refresh failure counter. |
+
 ### Web UI
 
 With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` for trying conversions. It is a static bundle shipped inside the package and talks to the public API like any other client, with the same API key and policies.
