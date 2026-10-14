@@ -282,6 +282,7 @@ def create_app():  # noqa: C901
         openapi_url="/openapi.json" if api_docs_enabled else None,
         docs_url=None if offline_docs_assets else "/swagger",
         redoc_url=None if offline_docs_assets else "/docs",
+        root_path=uvicorn_settings.root_path,
         lifespan=lifespan,
         version=version,
     )
