@@ -6,8 +6,9 @@
 # counters, never on the *_pending / *_active gauges.
 #
 # Only one docling-serve pod (the leader) exports these series at a time, so the
-# pod label changes when leadership moves. Aggregate with sum without (pod, instance)
-# rather than selecting a pod.
+# pod label changes when leadership moves, and during a handover two pods can
+# briefly export the same values. Aggregate with max without (pod, instance),
+# never sum, and never select a pod.
 #
 # --- Documents for a tenant ---
 #   # lifetime documents processed / succeeded / failed (cumulative counters)
@@ -44,6 +45,7 @@
 #        + rate(ray_tenant_tasks_failed_total{tenant_id="acme"}[5m]))
 
 import asyncio
+import atexit
 import logging
 import os
 import socket
@@ -169,17 +171,30 @@ class RaySnapshotRefresher:
             refresh_failures=0,
             is_leader=False,
         )
-        self._stopped = False
         self._thread: Optional[threading.Thread] = None
+        self._loop_ref: Optional[asyncio.AbstractEventLoop] = None
+        self._stop_event: Optional[asyncio.Event] = None
 
     def start(self) -> None:
         self._thread = threading.Thread(
             target=self._run, name="ray_metrics", daemon=True
         )
         self._thread.start()
+        # Release the leader lock on a graceful shutdown, so another process
+        # takes over at once instead of after the lock TTL.
+        atexit.register(self.stop)
 
-    def stop(self) -> None:
-        self._stopped = True
+    def stop(self, timeout: float = 5.0) -> None:
+        """Stop refreshing and release the leader lock if this process holds it."""
+        loop, event = self._loop_ref, self._stop_event
+        if loop is None or event is None or loop.is_closed():
+            return
+        try:
+            loop.call_soon_threadsafe(event.set)
+        except RuntimeError:  # the loop closed in the meantime
+            return
+        if self._thread is not None:
+            self._thread.join(timeout)
 
     def state(self) -> RefresherState:
         with self._lock:
@@ -189,12 +204,19 @@ class RaySnapshotRefresher:
         asyncio.run(self._loop())
 
     async def _loop(self) -> None:
+        self._loop_ref = asyncio.get_running_loop()
+        self._stop_event = asyncio.Event()
         manager = _clone_manager(self.redis_manager)
         await manager.connect()
         try:
-            while not self._stopped:
+            while not self._stop_event.is_set():
                 await self.refresh_once(manager)
-                await asyncio.sleep(self.interval)
+                try:
+                    await asyncio.wait_for(
+                        self._stop_event.wait(), timeout=self.interval
+                    )
+                except asyncio.TimeoutError:
+                    pass
         finally:
             await self._release_leadership(manager)
             await manager.disconnect()

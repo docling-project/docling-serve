@@ -262,3 +262,24 @@ def test_failed_refresh_keeps_previous_snapshot():
     assert state.is_leader
     assert state.data is previous.data
     assert state.refreshed_at == previous.refreshed_at
+
+
+def test_stop_releases_leader_lock(monkeypatch):
+    redis = _FakeLockRedis()
+    manager = _manager_for(redis)
+    monkeypatch.setattr(
+        "docling_serve.ray_metrics_collector._clone_manager", lambda _: manager
+    )
+    refresher = RaySnapshotRefresher(MagicMock(), interval=30.0)
+    refresher.start()
+    deadline = time.monotonic() + 5
+    while not refresher.state().is_leader and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert redis.holder == refresher.instance_id
+
+    # Returns promptly instead of waiting for the 30 s interval.
+    started = time.monotonic()
+    refresher.stop()
+    assert time.monotonic() - started < 5
+    assert redis.holder is None
+    manager.disconnect.assert_awaited_once()
