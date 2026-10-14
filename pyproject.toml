@@ -72,22 +72,30 @@ flash-attn = [
 ]
 
 [dependency-groups]
+typecheck = [
+    "ty==0.0.33",
+    "types-psutil>=7.2.2.20260130",
+    "types-pyyaml>=6.0.12.20250915",
+]
+# Minimal environment for the PR fast checks, which run without CI approval.
+pr-fast-checks = [
+    "ruff==0.16.10",
+]
 dev = [
+    { include-group = "typecheck" },
+    { include-group = "pr-fast-checks" },
     "asgi-lifespan~=2.0",
     "numpy<2.5.0",
     "httpx",
     "pydantic",
     "pydantic-settings",
-    "mypy~=1.11",
-    "pre-commit-uv~=4.1",
+    "prek>=0.3.10",
     "pypdf>=6.0.0",
     "pytest>=8.3,<10.0.0",
     "pytest-asyncio~=1.2",
     "pytest-check~=2.8",
+    "pyyaml>=6.0",
     "python-semantic-release~=7.32",
-    "ruff>=0.9.6",
-    "types-psutil>=7.2.2.20260130",
-    "types-pyyaml>=6.0.12.20250915",
 ]
 
 constraints  = [
@@ -305,6 +313,7 @@ ignore = [
     "PL", # Pylint
     "RUF012", # Mutable Class Attributes
     "UP007", # Option and Union
+    "UP045", # `Optional[T]` vs `T | None`
 ]
 
 #extend-select = []
@@ -330,25 +339,14 @@ section-order = [
   "local-folder",
 ]
 
-[tool.mypy]
-pretty = true
-# strict = true
-no_implicit_optional = true
-plugins = "pydantic.mypy"
-python_version = "3.10"
+[tool.ty.environment]
+python-version = "3.10"
 
-[[tool.mypy.overrides]]
-module = [
-    "easyocr.*",
-    "tesserocr.*",
-    "rapidocr_onnxruntime.*",
-    "requests.*",
-    "mlx_vlm.*",
-    "mlx.*",
-    "scalar_fastapi.*",
-    "msgpack.*",
-]
-ignore_missing_imports = true
+[tool.ty.src]
+include = ["docling_serve"]
+
+[tool.ty.terminal]
+output-format = "concise"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
