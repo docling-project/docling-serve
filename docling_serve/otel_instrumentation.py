@@ -71,6 +71,7 @@ def setup_otel_instrumentation(
     redis_url: str | None = None,
     metrics_port: int | None = None,
     ray_redis_manager=None,
+    ray_metrics_refresh_interval: float = 30.0,
 ):
     """
     Set up OpenTelemetry instrumentation for FastAPI app.
@@ -85,6 +86,7 @@ def setup_otel_instrumentation(
         redis_url: Redis URL for RQ metrics (if using RQ engine)
         metrics_port: If set, start a separate HTTP server on this port for /metrics
         ray_redis_manager: RedisStateManager instance for Ray metrics (if using Ray engine)
+        ray_metrics_refresh_interval: Seconds between Ray tenant metrics refreshes
     """
     resource = Resource(attributes={SERVICE_NAME: service_name})
 
@@ -149,7 +151,11 @@ def setup_otel_instrumentation(
     # Register Ray metrics if RedisStateManager is provided
     if ray_redis_manager and enable_prometheus:
         logger.info("Registering Ray metrics collector")
-        REGISTRY.register(RayCollector(ray_redis_manager))
+        REGISTRY.register(
+            RayCollector(
+                ray_redis_manager, refresh_interval=ray_metrics_refresh_interval
+            )
+        )
 
 
 def get_metrics_endpoint_content():
