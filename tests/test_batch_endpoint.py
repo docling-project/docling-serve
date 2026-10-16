@@ -368,9 +368,7 @@ async def test_batch_endpoint_forwards_target_document_version(app, fake_orchest
         )
 
     assert response.status_code == 200
-    assert (
-        fake_orchestrator.enqueued[0]["metadata"]["target_document_version"] == "1.5.0"
-    )
+    assert fake_orchestrator.enqueued[0]["target_document_version"] == "1.5.0"
 
 
 @pytest.mark.asyncio

@@ -2154,7 +2154,7 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "3.8.2"
-source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fdocument-downprojection-support#64259c708f67a256b7721c8b3ee74425b98b7086" }
+source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fdocument-downprojection-support#b24d8f0dce7c726d893bacd45f754e9fd5f7e47e" }
 dependencies = [
     { name = "boto3" },
     { name = "docling-core" },

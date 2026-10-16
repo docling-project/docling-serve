@@ -541,8 +541,6 @@ def create_app():  # noqa: C901
             )
         else:
             _log.warning("[TENANT_ID] No tenant_id provided, will use default")
-        if target_document_version:
-            task_metadata["target_document_version"] = target_document_version
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -553,6 +551,7 @@ def create_app():  # noqa: C901
             targets=enqueue_targets,
             callbacks=request.callbacks,
             metadata=task_metadata,
+            target_document_version=target_document_version,
         )
 
         _log.info(
@@ -599,8 +598,6 @@ def create_app():  # noqa: C901
         metadata = {}
         if tenant_id:
             metadata["tenant_id"] = tenant_id
-        if target_document_version:
-            metadata["target_document_version"] = target_document_version
 
         task = await orchestrator.enqueue(
             task_type=task_type,
@@ -611,6 +608,7 @@ def create_app():  # noqa: C901
             targets=[target],
             callbacks=callbacks or [],
             metadata=metadata,
+            target_document_version=target_document_version,
         )
 
         _log.info(
@@ -916,6 +914,7 @@ def create_app():  # noqa: C901
             task_result=task_result,
             orchestrator=orchestrator,
             background_tasks=background_tasks,
+            target_document_version=task.target_document_version,
         )
         return response
 
@@ -1001,6 +1000,7 @@ def create_app():  # noqa: C901
             task_result=task_result,
             orchestrator=orchestrator,
             background_tasks=background_tasks,
+            target_document_version=task.target_document_version,
         )
         return response
 
@@ -1637,6 +1637,7 @@ def create_app():  # noqa: C901
                 task_result=task_result,
                 orchestrator=orchestrator,
                 background_tasks=background_tasks,
+                target_document_version=task.target_document_version,
             )
             return response
         except TaskNotFoundError:
