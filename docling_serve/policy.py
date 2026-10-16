@@ -119,6 +119,7 @@ class ServicePolicy:
     allowed_target_types: frozenset[str]
     callbacks_enabled: bool
     custom_vlm_enabled: bool
+    custom_chart_extraction_enabled: bool
     artifact_storage_enabled: bool
     max_sources_per_request: int
     allowed_image_export_modes: frozenset[str]
@@ -232,7 +233,7 @@ def build_batch_request_model(
         __base__=BatchConvertSourcesRequest,
         sources=(list[source_union], Field(min_length=1)),  # type: ignore[valid-type]
         target=(target_union | None, None),
-        targets=(list[target_union] | None, None),  # type: ignore[valid-type]
+        targets=(list[target_union] | None, None),  # type: ignore[valid-type,arg-type]
     )
     model.model_json_schema()
     return model
@@ -247,6 +248,8 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = registered_ocr_presets
     else:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
+    # The converter manager registers custom presets after filtering built-in kinds.
+    allowed_ocr_presets |= set(settings.custom_ocr_presets)
     source_factory = get_source_connector_factory(settings.allow_external_plugins)
     target_factory = get_target_connector_factory(settings.allow_external_plugins)
     available_source_types = (
@@ -288,6 +291,7 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_target_types=allowed_target_types,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
+        custom_chart_extraction_enabled=settings.allow_custom_chart_extraction_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
@@ -399,6 +403,15 @@ def validate_convert_options(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Custom VLM configuration is disabled by server policy.",
+        )
+
+    if (
+        options.chart_extraction_custom_config
+        and not policy.custom_chart_extraction_enabled
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Custom chart extraction configuration is disabled by server policy.",
         )
 
 

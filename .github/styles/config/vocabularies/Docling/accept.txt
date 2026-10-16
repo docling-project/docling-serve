@@ -25,7 +25,6 @@ Kubeflow
 (?i)ROCm
 (?i)env
 mlx
-Gradio
 Podman
 bool
 Ollama

@@ -4,9 +4,12 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
 import yaml
 
 from docling_serve.settings import DoclingServeSettings
+
+EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
 
 
 def test_load_yaml_config(monkeypatch):
@@ -87,3 +90,32 @@ def test_invalid_yaml_ignored(monkeypatch):
         assert settings.default_vlm_preset == "granite_docling"
     finally:
         Path(config_path).unlink()
+
+
+@pytest.mark.parametrize("filename", ["config.yaml", "config.json"])
+def test_example_config_files(monkeypatch, filename):
+    """Test that the example config files referenced in the docs load cleanly."""
+    config_path = EXAMPLES_DIR / filename
+    with open(config_path) as f:
+        if config_path.suffix == ".json":
+            config_data = json.load(f)
+        else:
+            config_data = yaml.safe_load(f)
+
+    monkeypatch.setenv("DOCLING_SERVE_CONFIG_FILE", str(config_path))
+    settings = DoclingServeSettings()
+
+    # Unknown keys are kept as extras instead of being rejected, so a typo or a
+    # renamed setting in an example would otherwise be ignored silently.
+    assert settings.model_extra == {}
+    assert settings.model_dump(mode="json", include=set(config_data)) == config_data
+
+
+def test_example_config_files_match():
+    """Test that the YAML and JSON examples describe the same configuration."""
+    with open(EXAMPLES_DIR / "config.yaml") as f:
+        yaml_data = yaml.safe_load(f)
+    with open(EXAMPLES_DIR / "config.json") as f:
+        json_data = json.load(f)
+
+    assert yaml_data == json_data

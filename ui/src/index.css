@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Docling theme. Colours are taken from the Docling duck logo:
+ *   beak #FF4902 / #C74406, body #FFB02C / #FFC829 / #FFD765,
+ *   outline black, greys #B3B3B3 / #A4A4A4 / #6A6A6A.
+ */
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #141210;
+  --card: #ffffff;
+  --card-foreground: #141210;
+  --popover: #ffffff;
+  --popover-foreground: #141210;
+  --primary: #c74406;
+  --primary-foreground: #ffffff;
+  --secondary: #fff6dc;
+  --secondary-foreground: #141210;
+  --muted: #f6f5f3;
+  --muted-foreground: #6a6a6a;
+  --accent: #ffefc0;
+  --accent-foreground: #141210;
+  --destructive: #c4211a;
+  --border: #e4e2df;
+  --input: #d6d4d1;
+  --ring: #ff4902;
+  --brand: #ff4902;
+  --brand-soft: #ffd765;
+  --success: #1f8a4c;
+  --warning: #b86e00;
+}
+
+.dark {
+  --background: #141210;
+  --foreground: #f5f3f0;
+  --card: #1d1a17;
+  --card-foreground: #f5f3f0;
+  --popover: #1d1a17;
+  --popover-foreground: #f5f3f0;
+  --primary: #ffb02c;
+  --primary-foreground: #141210;
+  --secondary: #2a2520;
+  --secondary-foreground: #f5f3f0;
+  --muted: #26221e;
+  --muted-foreground: #b3b3b3;
+  --accent: #3a2f1c;
+  --accent-foreground: #ffd765;
+  --destructive: #ff6b5e;
+  --border: #36312c;
+  --input: #45403a;
+  --ring: #ff7a3d;
+  --brand: #ff7a3d;
+  --brand-soft: #ffc829;
+  --success: #4cc27f;
+  --warning: #ffc829;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Rendered Markdown output. */
+@layer components {
+  .markdown {
+    @apply text-sm leading-relaxed;
+  }
+  .markdown > * + * {
+    @apply mt-3;
+  }
+  .markdown h1 {
+    @apply mt-6 text-2xl font-semibold tracking-tight first:mt-0;
+  }
+  .markdown h2 {
+    @apply mt-6 border-b pb-1 text-xl font-semibold tracking-tight first:mt-0;
+  }
+  .markdown h3,
+  .markdown h4,
+  .markdown h5,
+  .markdown h6 {
+    @apply mt-5 text-base font-semibold;
+  }
+  .markdown ul {
+    @apply list-disc pl-6;
+  }
+  .markdown ol {
+    @apply list-decimal pl-6;
+  }
+  .markdown a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .markdown code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+  }
+  .markdown pre {
+    @apply overflow-auto rounded-md bg-muted p-3;
+  }
+  .markdown pre code {
+    @apply bg-transparent p-0;
+  }
+  .markdown blockquote {
+    @apply border-l-4 border-brand-soft pl-4 text-muted-foreground;
+  }
+  .markdown table {
+    @apply block w-max max-w-full overflow-auto border-collapse text-xs;
+  }
+  .markdown th,
+  .markdown td {
+    @apply border px-2 py-1 text-left align-top;
+  }
+  .markdown th {
+    @apply bg-muted font-semibold;
+  }
+  .markdown img {
+    @apply max-w-full rounded border;
+  }
+}

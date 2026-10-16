@@ -38,3 +38,7 @@ Dockerfile*
 build/
 dist/
 *.egg-info
+
+# Web UI: dependencies and local builds (the image builds its own)
+ui/node_modules/
+docling_serve/ui_static/

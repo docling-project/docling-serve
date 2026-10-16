@@ -1,9 +1,10 @@
 """Instrumented RQ worker with OpenTelemetry tracing support."""
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
-from opentelemetry import trace
+from opentelemetry import metrics, trace
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
 from docling_jobkit.convert.manager import (
@@ -36,6 +37,27 @@ class InstrumentedRQWorker(CustomRQWorker):
             **kwargs,
         )
         self.tracer = trace.get_tracer(__name__)
+        self.queue_wait_duration = metrics.get_meter(__name__).create_histogram(
+            "docling.rq.queue.wait.duration",
+            unit="s",
+            description="Time from enqueue to worker execution entry for each RQ job attempt",
+            explicit_bucket_boundaries_advisory=(
+                0,
+                0.1,
+                0.5,
+                1,
+                2.5,
+                5,
+                10,
+                30,
+                60,
+                120,
+                300,
+                600,
+                1800,
+                3600,
+            ),
+        )
 
     def perform_job(self, job, queue):
         """
@@ -44,6 +66,14 @@ class InstrumentedRQWorker(CustomRQWorker):
         This extracts the trace context from the job metadata and creates
         a span that continues the trace from the API request.
         """
+        if job.enqueued_at is not None:
+            self.queue_wait_duration.record(
+                max(
+                    0.0, (datetime.now(timezone.utc) - job.enqueued_at).total_seconds()
+                ),
+                attributes={"rq.queue.name": queue.name},
+            )
+
         # Extract parent trace context from job metadata
         parent_context = extract_trace_context(job)
 

@@ -1,5 +1,6 @@
 import importlib.metadata
 import logging
+import os
 import platform
 import sys
 import warnings
@@ -10,6 +11,7 @@ import typer
 import uvicorn
 from rich.console import Console
 
+from docling_serve.rq_instrumentation import setup_rq_worker_metrics
 from docling_serve.settings import docling_serve_settings, uvicorn_settings
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
@@ -106,19 +108,15 @@ def _run(
         and uvicorn_settings.ssl_keyfile is not None
     )
 
-    if run_subprocess and docling_serve_settings.artifacts_path != artifacts_path:
-        err_console.print(
-            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
-            "The argument [bold]--artifacts-path[/bold] will be ignored, please set the value \n"
-            "using the environment variable [bold]DOCLING_SERVE_ARTIFACTS_PATH[/bold].[/yellow]"
-        )
-
-    if run_subprocess and docling_serve_settings.enable_ui != enable_ui:
-        err_console.print(
-            "\n[yellow]:warning: The server will run with reload or multiple workers. \n"
-            "The argument [bold]--enable-ui[/bold] will be ignored, please set the value \n"
-            "using the environment variable [bold]DOCLING_SERVE_ENABLE_UI[/bold].[/yellow]"
-        )
+    if run_subprocess:
+        # With reload or multiple workers, uvicorn starts the server through
+        # multiprocessing "spawn". The child re-imports docling_serve.settings
+        # and rebuilds the settings from the environment, so the assignments
+        # below never reach it. Hand the CLI values over through the very
+        # environment variables the settings model reads.
+        if artifacts_path is not None:
+            os.environ["DOCLING_SERVE_ARTIFACTS_PATH"] = str(artifacts_path)
+        os.environ["DOCLING_SERVE_ENABLE_UI"] = str(enable_ui).lower()
 
     # Propagate the settings to the app settings
     docling_serve_settings.artifacts_path = artifacts_path
@@ -133,8 +131,9 @@ def _run(
 
     console.print("")
     console.print(f"Server started at [link={url}]{url}[/]")
-    console.print(f"Documentation at [link={url_docs}]{url_docs}[/]")
-    console.print(f"Scalar docs at [link={url_docs}]{url_scalar}[/]")
+    if docling_serve_settings.enable_api_docs:
+        console.print(f"Documentation at [link={url_docs}]{url_docs}[/]")
+        console.print(f"Scalar docs at [link={url_scalar}]{url_scalar}[/]")
     if docling_serve_settings.enable_ui:
         console.print(f"UI at [link={url_ui}]{url_ui}[/]")
 
@@ -442,6 +441,12 @@ def rq_worker() -> Any:
         custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
         allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
         allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Chart Extraction Control
+        default_chart_extraction_preset=docling_serve_settings.default_chart_extraction_preset,
+        allowed_chart_extraction_presets=docling_serve_settings.allowed_chart_extraction_presets,
+        custom_chart_extraction_presets=docling_serve_settings.custom_chart_extraction_presets,
+        allowed_chart_extraction_engines=docling_serve_settings.allowed_chart_extraction_engines,
+        allow_custom_chart_extraction_config=docling_serve_settings.allow_custom_chart_extraction_config,
         # Picture Classification Control
         default_picture_classification_preset=docling_serve_settings.default_picture_classification_preset,
         allowed_picture_classification_presets=docling_serve_settings.allowed_picture_classification_presets,
@@ -477,16 +482,31 @@ def rq_worker() -> Any:
     # Create worker with instrumentation
     scratch_dir = rq_config.scratch_dir or Path(tempfile.mkdtemp(prefix="docling_"))
     redis_conn, rq_queue = RQOrchestrator.make_rq_queue(rq_config)
+    rq_queues = [rq_queue]
+    for extra_queue_name in docling_serve_settings.eng_rq_queue_names[1:]:
+        _, extra_queue = RQOrchestrator.make_rq_queue(
+            rq_config.model_copy(update={"queue_name": extra_queue_name})
+        )
+        rq_queues.append(extra_queue)
 
     worker = InstrumentedRQWorker(
-        [rq_queue],
+        rq_queues,
         connection=redis_conn,
         orchestrator_config=rq_config,
         cm_config=cm_config,
         scratch_dir=scratch_dir,
     )
-
-    worker.work()
+    meter_provider = setup_rq_worker_metrics(
+        service_name=f"{docling_serve_settings.otel_service_name}-worker",
+        service_instance_id=worker.name,
+        enable_metrics=docling_serve_settings.otel_enable_metrics,
+        enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
+    )
+    try:
+        worker.work()
+    finally:
+        if meter_provider is not None:
+            meter_provider.shutdown()
 
 
 def main() -> None:

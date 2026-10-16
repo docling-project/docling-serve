@@ -1,0 +1,39 @@
+{
+  "enable_ui": true,
+  "max_num_pages": 500,
+  "max_file_size": 104857600,
+  "max_sync_wait": 120,
+  "eng_kind": "local",
+  "eng_loc_num_workers": 2,
+  "enable_remote_services": true,
+  "default_vlm_preset": "granite_docling",
+  "allowed_vlm_presets": ["granite_docling", "smoldocling"],
+  "custom_vlm_presets": {
+    "granite_remote": {
+      "model_spec": {
+        "name": "Granite-Docling-258M (remote)",
+        "default_repo_id": "ibm-granite/granite-docling-258M",
+        "prompt": "Convert this page to docling.",
+        "response_format": "doctags"
+      },
+      "engine_options": {
+        "engine_type": "api",
+        "url": "http://localhost:8000/v1/chat/completions",
+        "params": {
+          "model": "ibm-granite/granite-docling-258M",
+          "max_tokens": 4096
+        },
+        "timeout": 120.0,
+        "concurrency": 4
+      },
+      "scale": 2.0
+    }
+  },
+  "default_table_structure_preset": "tableformer_v1_accurate",
+  "custom_table_structure_presets": {
+    "tables_fast": {
+      "kind": "docling_tableformer",
+      "mode": "fast"
+    }
+  }
+}

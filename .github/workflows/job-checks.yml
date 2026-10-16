@@ -6,29 +6,45 @@ on:
 jobs:
   py-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       matrix:
         python-version: ['3.12']
     steps:
-      - uses: actions/checkout@v5
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-ci
         with:
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
+          python_version: ${{ matrix.python-version }}
+          uv_sync_args: --frozen --all-extras --no-extra flash-attn
 
-      - name: pre-commit cache key
+      - name: Set prek cache key
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
+
+      - name: Cache prek environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            prek|${{ env.PY }}|
 
+      - name: Run styling and typing checks
+        run: uv run --no-sync prek run --all-files --show-diff-on-failure
+
+  ui-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
       - name: Install dependencies
-        run: uv sync --frozen --all-extras --no-extra flash-attn
-
-      - name: Run styling check
-        run: uv run pre-commit run --all-files
+        run: npm --prefix ui ci
+      - name: Typecheck and build
+        run: npm --prefix ui run build
 
   build-package:
     uses: ./.github/workflows/job-build.yml
@@ -49,6 +65,9 @@ jobs:
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v6
         with:
+          # pinned: uv 0.12.14 broke `uv lock` resolution for this project
+          # https://github.com/astral-sh/uv/pull/21672
+          version: "0.12.13"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
       - name: Create virtual environment
@@ -57,6 +76,14 @@ jobs:
         run: uv pip install dist/*.whl
       - name: Create the server
         run: .venv/bin/python -c 'from docling_serve.app import create_app; create_app()'
+      - name: Serve the web UI from the installed package
+        run: |
+          DOCLING_SERVE_ENABLE_UI=true .venv/bin/python -c '
+          from fastapi.testclient import TestClient
+          from docling_serve.app import create_app
+          response = TestClient(create_app()).get("/ui/")
+          assert response.status_code == 200 and "<div id=\"root\">" in response.text, response.text
+          '
 
   # markdown-lint:
   #   runs-on: ubuntu-latest

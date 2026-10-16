@@ -42,6 +42,12 @@ def _build_cm_config():
         custom_code_formula_presets=docling_serve_settings.custom_code_formula_presets,
         allowed_code_formula_engines=docling_serve_settings.allowed_code_formula_engines,
         allow_custom_code_formula_config=docling_serve_settings.allow_custom_code_formula_config,
+        # Chart Extraction Control
+        default_chart_extraction_preset=docling_serve_settings.default_chart_extraction_preset,
+        allowed_chart_extraction_presets=docling_serve_settings.allowed_chart_extraction_presets,
+        custom_chart_extraction_presets=docling_serve_settings.custom_chart_extraction_presets,
+        allowed_chart_extraction_engines=docling_serve_settings.allowed_chart_extraction_engines,
+        allow_custom_chart_extraction_config=docling_serve_settings.allow_custom_chart_extraction_config,
         # Picture Classification Control
         default_picture_classification_preset=docling_serve_settings.default_picture_classification_preset,
         allowed_picture_classification_presets=docling_serve_settings.allowed_picture_classification_presets,
@@ -75,7 +81,7 @@ def _build_cm_config():
     )
 
 
-def _build_s3_presigned_config():
+def _build_presigned_config():
     """Build presigned artifact storage config, or return None when disabled.
 
     The managed storage prefix and URL TTL are owned by docling-serve settings and
@@ -84,11 +90,47 @@ def _build_s3_presigned_config():
     if not docling_serve_settings.artifact_storage_enabled:
         return None
 
+    if docling_serve_settings.artifact_storage_backend == "azure":
+        from docling.datamodel.service.sources import AzureBlobCoordinates
+        from docling_jobkit.config.target_config import AzurePresignedConfig
+
+        required_settings = {
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONNECTION_STRING": (
+                docling_serve_settings.artifact_storage_azure_connection_string
+            ),
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_CONTAINER": (
+                docling_serve_settings.artifact_storage_azure_container
+            ),
+            "DOCLING_SERVE_ARTIFACT_STORAGE_AZURE_ACCOUNT_NAME": (
+                docling_serve_settings.artifact_storage_azure_account_name
+            ),
+        }
+        missing = [name for name, value in required_settings.items() if not value]
+        if missing:
+            raise ValueError(
+                "Azure managed artifact storage requires: " + ", ".join(missing)
+            )
+
+        return AzurePresignedConfig(
+            azure_coords=AzureBlobCoordinates(
+                account_name=docling_serve_settings.artifact_storage_azure_account_name,
+                container=docling_serve_settings.artifact_storage_azure_container,
+                connection_string=(
+                    docling_serve_settings.artifact_storage_azure_connection_string
+                ),
+                blob_prefix=docling_serve_settings.artifact_storage_azure_blob_prefix,
+            ),
+            url_expiration=(
+                docling_serve_settings.artifact_storage_presign_ttl_seconds
+            ),
+        )
+
     from docling.datamodel.service.sources import S3Coordinates
     from docling_jobkit.config.target_config import S3PresignedConfig
 
     coords = S3Coordinates(
         endpoint=docling_serve_settings.artifact_storage_endpoint,
+        region=docling_serve_settings.artifact_storage_region or None,
         verify_ssl=docling_serve_settings.artifact_storage_verify_ssl,
         access_key=docling_serve_settings.artifact_storage_access_key,
         secret_key=docling_serve_settings.artifact_storage_secret_key,
@@ -106,13 +148,14 @@ def _build_rq_config():
 
     return RQOrchestratorConfig(
         redis_url=docling_serve_settings.eng_rq_redis_url,
-        queue_name=docling_serve_settings.eng_rq_queue_name,
+        queue_name=docling_serve_settings.eng_rq_queue_names[0],
         results_prefix=docling_serve_settings.eng_rq_results_prefix,
         sub_channel=docling_serve_settings.eng_rq_sub_channel,
         scratch_dir=get_scratch(),
         debug_error_details=docling_serve_settings.debug_error_details,
         results_ttl=docling_serve_settings.eng_rq_results_ttl,
         failure_ttl=docling_serve_settings.eng_rq_failure_ttl,
+        job_timeout=docling_serve_settings.eng_rq_job_timeout,
         redis_max_connections=docling_serve_settings.eng_rq_redis_max_connections,
         redis_socket_timeout=docling_serve_settings.eng_rq_redis_socket_timeout,
         redis_socket_connect_timeout=(
@@ -129,7 +172,7 @@ def _build_rq_config():
         zombie_reaper_interval=docling_serve_settings.eng_rq_zombie_reaper_interval,
         zombie_reaper_max_age=docling_serve_settings.eng_rq_zombie_reaper_max_age,
         result_removal_delay=docling_serve_settings.result_removal_delay,
-        s3_presigned_config=_build_s3_presigned_config(),
+        presigned_config=_build_presigned_config(),
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
     )
 
@@ -148,7 +191,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             shared_models=docling_serve_settings.eng_loc_share_models,
             scratch_dir=get_scratch(),
             result_removal_delay=docling_serve_settings.result_removal_delay,
-            s3_presigned_config=_build_s3_presigned_config(),
+            presigned_config=_build_presigned_config(),
         )
 
         cm = DoclingConverterManager(config=_build_cm_config())
@@ -187,7 +230,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
 
         # Create Fair Ray orchestrator config
         ray_config = RayOrchestratorConfig(
-            s3_presigned_config=_build_s3_presigned_config(),
+            presigned_config=_build_presigned_config(),
             # Redis Configuration
             redis_url=docling_serve_settings.eng_ray_redis_url,
             redis_max_connections=docling_serve_settings.eng_ray_redis_max_connections,
@@ -254,6 +297,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Timeouts
             task_timeout=docling_serve_settings.eng_ray_task_timeout,
             document_timeout=docling_serve_settings.eng_ray_document_timeout,
+            converter_request_timeout=docling_serve_settings.eng_ray_converter_request_timeout,
+            recycle_converter_on_abandoned_conversion=docling_serve_settings.eng_ray_recycle_converter_on_abandoned_conversion,
+            abandoned_conversion_grace_s=docling_serve_settings.eng_ray_abandoned_conversion_grace_s,
             redis_operation_timeout=docling_serve_settings.eng_ray_redis_operation_timeout,
             dispatcher_rpc_timeout=docling_serve_settings.eng_ray_dispatcher_rpc_timeout,
             liveness_fail_after=docling_serve_settings.eng_ray_liveness_fail_after,
@@ -271,6 +317,9 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Logging
             log_level=docling_serve_settings.eng_ray_log_level,
             debug_error_details=docling_serve_settings.debug_error_details,
+            # Metrics
+            generate_metrics=docling_serve_settings.eng_ray_generate_metrics,
+            metrics_port=docling_serve_settings.eng_ray_metrics_port,
         )
 
         return RayOrchestrator(config=ray_config, converter_manager=cm)

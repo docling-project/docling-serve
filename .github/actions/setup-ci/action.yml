@@ -1,0 +1,34 @@
+name: Setup CI
+description: Set up Python, uv, and optionally sync the project environment.
+
+inputs:
+  python_version:
+    description: Python version passed to astral-sh/setup-uv.
+    required: true
+  enable_cache:
+    description: Whether to enable the uv cache.
+    default: "true"
+  uv_sync_args:
+    description: Arguments passed to `uv sync`. Leave empty to skip syncing.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv and set the python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        # pinned: uv 0.12.14 broke `uv lock` resolution for this project
+        # https://github.com/astral-sh/uv/pull/21672
+        version: "0.12.13"
+        python-version: ${{ inputs.python_version }}
+        enable-cache: ${{ inputs.enable_cache }}
+
+    - name: Install Python dependencies
+      if: ${{ inputs.uv_sync_args != '' }}
+      shell: bash
+      env:
+        UV_SYNC_ARGS: ${{ inputs.uv_sync_args }}
+      run: |
+        # shellcheck disable=SC2086
+        uv sync $UV_SYNC_ARGS

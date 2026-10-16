@@ -98,6 +98,30 @@ def test_build_service_policy_allows_all_target_types_by_default():
     assert policy.allowed_target_types == ALL_TARGET_TYPES
 
 
+def test_build_service_policy_allows_custom_ocr_presets():
+    policy = build_service_policy(
+        DoclingServeSettings(
+            custom_ocr_presets={"korean": {"kind": "rapidocr", "lang": ["korean"]}}
+        )
+    )
+
+    assert "korean" in policy.allowed_ocr_presets
+    validate_convert_options(ConvertDocumentsOptions(ocr_preset="korean"), policy)
+
+
+def test_allowed_ocr_presets_keeps_custom_ocr_presets_selectable():
+    policy = build_service_policy(
+        DoclingServeSettings(
+            allowed_ocr_presets=["rapidocr"],
+            custom_ocr_presets={"korean": {"kind": "rapidocr", "lang": ["korean"]}},
+        )
+    )
+
+    assert policy.allowed_ocr_presets == {"rapidocr", "korean"}
+    with pytest.raises(HTTPException, match="ocr_preset 'easyocr' is not allowed"):
+        validate_convert_options(ConvertDocumentsOptions(ocr_preset="easyocr"), policy)
+
+
 def test_validate_convert_options_rejects_timeout_above_policy():
     policy = build_service_policy(DoclingServeSettings(max_document_timeout=10))
 

@@ -19,6 +19,8 @@ endif
 # Container runtime - can be overridden: make CONTAINER_RUNTIME=podman cmd
 CONTAINER_RUNTIME ?= docker
 
+PY_LINT_DIRS = docling_serve tests examples scripts .github/scripts
+
 TAG=$(shell git rev-parse HEAD)
 BRANCH_TAG=$(shell git rev-parse --abbrev-ref HEAD)
 
@@ -101,6 +103,12 @@ action-lint: .action-lint ##      Lint GitHub Action workflows
 	$(CMD_PREFIX) actionlint -color
 	$(CMD_PREFIX) touch $@
 
+.PHONY: ui
+ui: ##      Build the web UI bundle into docling_serve/ui_static
+	$(ECHO_PREFIX) printf "  %-12s ui/\n" "[UI BUILD]"
+	$(CMD_PREFIX) npm --prefix ui ci
+	$(CMD_PREFIX) npm --prefix ui run build
+
 .PHONY: md-lint
 md-lint: .md-lint ##      Lint markdown files
 .md-lint: $(wildcard */**/*.md) | md-lint-file
@@ -108,15 +116,35 @@ md-lint: .md-lint ##      Lint markdown files
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) run --rm -v $$(pwd):/workdir davidanson/markdownlint-cli2:v0.16.0 "**/*.md" "#.venv"
 	$(CMD_PREFIX) touch $@
 
-.PHONY: py-Lint
-py-lint: ##      Lint Python files
+.PHONY: py-lint
+py-lint: ##      Lint Python files (all prek hooks on all files)
 	$(ECHO_PREFIX) printf "  %-12s ./...\n" "[PY LINT]"
 	$(CMD_PREFIX) if ! which uv $(PIPE_DEV_NULL) ; then \
 		echo "Please install uv." ; \
 		exit 1 ; \
 	fi
-	$(CMD_PREFIX) uv sync --extra ui
-	$(CMD_PREFIX) uv run pre-commit run --all-files
+	$(CMD_PREFIX) uv sync --frozen --all-extras --no-extra flash-attn
+	$(CMD_PREFIX) uv run --no-sync prek run --all-files
+
+.PHONY: hooks-install
+hooks-install: ##      Install git hooks via prek
+	$(CMD_PREFIX) uv run prek install
+
+.PHONY: check
+check: ##      Run read-only Python checks (ruff, ty, lock)
+	$(CMD_PREFIX) uv run --no-sync ruff format --check --config=pyproject.toml $(PY_LINT_DIRS)
+	$(CMD_PREFIX) uv run --no-sync ruff check --config=pyproject.toml $(PY_LINT_DIRS)
+	$(CMD_PREFIX) uv run --no-sync ty check
+	$(CMD_PREFIX) uv lock --locked
+
+.PHONY: fix
+fix: ##      Run the Ruff formatter and auto-fixes
+	$(CMD_PREFIX) uv run --no-sync ruff format --config=pyproject.toml $(PY_LINT_DIRS)
+	$(CMD_PREFIX) uv run --no-sync ruff check --fix --config=pyproject.toml $(PY_LINT_DIRS)
+
+.PHONY: typecheck
+typecheck: ##      Run ty
+	$(CMD_PREFIX) uv run --no-sync ty check
 
 .PHONY: run-docling-cpu
 run-docling-cpu: ## Run the docling-serve container with CPU support and assign a container name

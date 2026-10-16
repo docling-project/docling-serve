@@ -1,3 +1,147 @@
+## [v1.37.0](https://github.com/docling-project/docling-serve/releases/tag/v1.37.0) - 2026-10-13
+
+### Feature
+
+* Update deps, expose new jobkit settings ([#725](https://github.com/docling-project/docling-serve/issues/725)) ([`d59e3f1`](https://github.com/docling-project/docling-serve/commit/d59e3f137024bbadcd1f511a6da3b3f64fe90aff))
+
+### Fix
+
+* Point default_code_formula_preset at a real Docling preset ([#721](https://github.com/docling-project/docling-serve/issues/721)) ([`7e77b29`](https://github.com/docling-project/docling-serve/commit/7e77b2947cf2e9e1c6c9ded3eeb13ecd150d9c59))
+* **policy:** Keep custom OCR presets selectable ([#723](https://github.com/docling-project/docling-serve/issues/723)) ([`46eb541`](https://github.com/docling-project/docling-serve/commit/46eb5419f00d8276bb8972bb3ce49a3646f0f130))
+
+### Documentation
+
+* Add the example config files referenced in the configuration docs ([#724](https://github.com/docling-project/docling-serve/issues/724)) ([`3a7d4ca`](https://github.com/docling-project/docling-serve/commit/3a7d4ca4f4578663c907a22a5bbd13e8f3b440a4))
+
+### Docling libraries included in this release:
+- docling-core 2.101.1
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.2
+- docling-mcp 3.3.0
+- docling-parse 7.22.3
+- docling-serve 1.37.0
+- docling-slim 2.138.0
+
+## [v1.36.0](https://github.com/docling-project/docling-serve/releases/tag/v1.36.0) - 2026-10-01
+
+### Feature
+
+* New visualization components ([#717](https://github.com/docling-project/docling-serve/issues/717)) ([`4c9f57c`](https://github.com/docling-project/docling-serve/commit/4c9f57cc5e4536abcad8035a66d9a8a5c75002d5))
+* **ui:** Build new UI capturing all the new docling-serve features ([#714](https://github.com/docling-project/docling-serve/issues/714)) ([`a8458e1`](https://github.com/docling-project/docling-serve/commit/a8458e111d1bc686a0a4a2572df38ea956b72826))
+
+### Fix
+
+* Updated dependencies ([#719](https://github.com/docling-project/docling-serve/issues/719)) ([`adc7a38`](https://github.com/docling-project/docling-serve/commit/adc7a38d90437559bb0fd918408fef5bcc2aef65))
+
+### Docling libraries included in this release:
+- docling-core 2.99.0
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.1
+- docling-mcp 3.2.1
+- docling-parse 7.22.1
+- docling-serve 1.36.0
+- docling-slim 2.132.0
+
+## [v1.35.0](https://github.com/docling-project/docling-serve/releases/tag/v1.35.0) - 2026-09-23
+
+### Feature
+
+* Chart extraction runtimes ([#706](https://github.com/docling-project/docling-serve/issues/706)) ([`d28827d`](https://github.com/docling-project/docling-serve/commit/d28827d02a0cc18192491f98966da6ced4a66903))
+* **metrics:** Expose RQ queue waiting time via OTLP ([#711](https://github.com/docling-project/docling-serve/issues/711)) ([`98ebc9e`](https://github.com/docling-project/docling-serve/commit/98ebc9ed40321e7c67f9dabe1c79ea8b4e23ada8))
+* Allow RQ workers to drain multiple queues in priority order ([#710](https://github.com/docling-project/docling-serve/issues/710)) ([`6f6efe2`](https://github.com/docling-project/docling-serve/commit/6f6efe2d008397327aefe322525b3118e3835459))
+* Add enable_api_docs and serve /metrics only with the Prometheus export ([#707](https://github.com/docling-project/docling-serve/issues/707)) ([`96c78d7`](https://github.com/docling-project/docling-serve/commit/96c78d70205314163fff966625c048b6adf5a6f5))
+
+### Fix
+
+* Remove deprecated openapi-3 endpoint ([#712](https://github.com/docling-project/docling-serve/issues/712)) ([`14202bf`](https://github.com/docling-project/docling-serve/commit/14202bf58e72d9ef6cb0609a41e6f00f8e439792))
+
+### Docling libraries included in this release:
+- docling-core 2.98.0
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.0
+- docling-mcp 3.2.0
+- docling-parse 7.21.0
+- docling-serve 1.35.0
+- docling-slim 2.130.0
+
+## [v1.34.0](https://github.com/docling-project/docling-serve/releases/tag/v1.34.0) - 2026-09-17
+
+### Feature
+
+* Adds ray application level metrics support ([#688](https://github.com/docling-project/docling-serve/issues/688)) ([`c3becab`](https://github.com/docling-project/docling-serve/commit/c3becab066875874abf896f25e8bc59835fab19e))
+
+### Fix
+
+* **notifier:** Drop tasks the orchestrator no longer tracks ([#700](https://github.com/docling-project/docling-serve/issues/700)) ([`0207eb9`](https://github.com/docling-project/docling-serve/commit/0207eb9497c7d3b1b0bbf8cf3ad89c31a4e6ac35))
+
+### Docling libraries included in this release:
+- docling-core 2.97.0
+- docling-ibm-models 4.0.2
+- docling-jobkit 3.7.0
+- docling-mcp 3.2.0
+- docling-parse 7.20.0
+- docling-serve 1.34.0
+- docling-slim 2.128.0
+
+## [v1.33.0](https://github.com/docling-project/docling-serve/releases/tag/v1.33.0) - 2026-09-15
+
+### Feature
+
+* Adds support for 'region' in s3 coordinates ([#694](https://github.com/docling-project/docling-serve/issues/694)) ([`db76b6f`](https://github.com/docling-project/docling-serve/commit/db76b6fad767110012fd99e128331b2c0b27e492))
+
+### Fix
+
+* **form:** Keep model_fields_set truthful on the multipart endpoints (#674) ([#680](https://github.com/docling-project/docling-serve/issues/680)) ([`dba2122`](https://github.com/docling-project/docling-serve/commit/dba2122371fc96d37136b0943e7711ad1b9accf7))
+* **ui:** Preserve the Enable OCR selection in conversion requests ([#691](https://github.com/docling-project/docling-serve/issues/691)) ([`773be82`](https://github.com/docling-project/docling-serve/commit/773be82ee84d564ded1b0205a099031c0a54c40b))
+
+### Docling libraries included in this release:
+- docling-core 2.96.1
+- docling-ibm-models 4.0.2
+- docling-jobkit 3.6.0
+- docling-mcp 3.2.0
+- docling-parse 7.19.1
+- docling-serve 1.33.0
+- docling-slim 2.127.0
+
+## [v1.32.0](https://github.com/docling-project/docling-serve/releases/tag/v1.32.0) - 2026-09-01
+
+### Feature
+
+* Add Azure Blob presigned artifact storage ([#655](https://github.com/docling-project/docling-serve/issues/655)) ([`b2d1aea`](https://github.com/docling-project/docling-serve/commit/b2d1aea3f2a7a512f91e0b99257373f6ab333934))
+
+### Fix
+
+* **cli:** Let --artifacts-path/--enable-ui reach the uvicorn subprocess ([#686](https://github.com/docling-project/docling-serve/issues/686)) ([`bcc5624`](https://github.com/docling-project/docling-serve/commit/bcc562419d3222a1ae5b64a6adac0fa2cf896a93))
+
+### Docling libraries included in this release:
+- docling-core 2.93.0
+- docling-ibm-models 4.0.1
+- docling-jobkit 3.5.0
+- docling-mcp 3.2.0
+- docling-parse 7.16.0
+- docling-serve 1.32.0
+- docling-slim 2.124.0
+
+## [v1.31.0](https://github.com/docling-project/docling-serve/releases/tag/v1.31.0) - 2026-08-20
+
+### Feature
+
+* Expose the RQ job timeout as DOCLING_SERVE_ENG_RQ_JOB_TIMEOUT ([#681](https://github.com/docling-project/docling-serve/issues/681)) ([`9b0ac2f`](https://github.com/docling-project/docling-serve/commit/9b0ac2f9c72419d7a02a848c93738fcdb910dad3))
+
+### Fix
+
+* Return 422 instead of 500 for invalid options on the multipart endpoints ([#672](https://github.com/docling-project/docling-serve/issues/672)) ([`02016c5`](https://github.com/docling-project/docling-serve/commit/02016c52ab966315a7f5d28a481b48bca1605f80))
+* Update locked deps ([#683](https://github.com/docling-project/docling-serve/issues/683)) ([`51a07ed`](https://github.com/docling-project/docling-serve/commit/51a07ed1ac54c4f36ea66a59ef39a0f2345ede6b))
+
+### Docling libraries included in this release:
+- docling-core 2.92.0
+- docling-ibm-models 3.14.0
+- docling-jobkit 3.4.0
+- docling-mcp 3.1.0
+- docling-parse 7.15.0
+- docling-serve 1.31.0
+- docling-slim 2.121.0
+
 ## [v1.30.0](https://github.com/docling-project/docling-serve/releases/tag/v1.30.0) - 2026-08-07
 
 ### Feature

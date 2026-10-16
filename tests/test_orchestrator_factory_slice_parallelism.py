@@ -102,7 +102,7 @@ def test_ray_config_omits_presigned_storage_when_disabled(monkeypatch):
         max_page_slice_parallelism=None,
     )
 
-    assert orchestrator.config.s3_presigned_config is None
+    assert orchestrator.config.presigned_config is None
 
 
 def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
@@ -130,6 +130,11 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
         factory_module.docling_serve_settings,
         "artifact_storage_endpoint",
         "s3.example.com",
+    )
+    monkeypatch.setattr(
+        factory_module.docling_serve_settings,
+        "artifact_storage_region",
+        "us-east-2",
     )
     monkeypatch.setattr(
         factory_module.docling_serve_settings,
@@ -182,12 +187,44 @@ def test_ray_config_passes_presigned_storage_when_enabled(monkeypatch):
     ):
         orchestrator = factory_module.get_async_orchestrator()
 
-    config = orchestrator.config.s3_presigned_config
+    config = orchestrator.config.presigned_config
     assert config is not None
     assert config.s3_coords.endpoint == "s3.example.com"
+    assert config.s3_coords.region == "us-east-2"
     assert config.s3_coords.verify_ssl is False
     assert config.s3_coords.bucket == "bucket-a"
     assert config.s3_coords.access_key == "key-a"
     assert config.s3_coords.secret_key == "secret-a"
     assert config.s3_coords.key_prefix == "converted/test/"
     assert config.url_expiration == 900
+
+
+def test_ray_config_passes_converter_timeout_settings(monkeypatch):
+    settings = factory_module.docling_serve_settings
+    monkeypatch.setattr(settings, "eng_ray_converter_request_timeout", 660.0)
+    monkeypatch.setattr(
+        settings, "eng_ray_recycle_converter_on_abandoned_conversion", False
+    )
+    monkeypatch.setattr(settings, "eng_ray_abandoned_conversion_grace_s", 120.0)
+
+    orchestrator = _build_ray_orchestrator(
+        monkeypatch,
+        max_concurrent_tasks=5,
+        max_page_slice_parallelism=None,
+    )
+
+    assert orchestrator.config.converter_request_timeout == 660.0
+    assert orchestrator.config.recycle_converter_on_abandoned_conversion is False
+    assert orchestrator.config.abandoned_conversion_grace_s == 120.0
+
+
+def test_ray_converter_timeout_settings_default_to_jobkit_defaults(monkeypatch):
+    orchestrator = _build_ray_orchestrator(
+        monkeypatch,
+        max_concurrent_tasks=5,
+        max_page_slice_parallelism=None,
+    )
+
+    assert orchestrator.config.converter_request_timeout is None
+    assert orchestrator.config.recycle_converter_on_abandoned_conversion is True
+    assert orchestrator.config.abandoned_conversion_grace_s is None
