@@ -1181,6 +1181,7 @@ def create_app():  # noqa: C901
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
+            _check_file_upload(files, target_type)
             convert_options = _prepare_convert_options(convert_options)
             _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
@@ -1323,6 +1324,7 @@ def create_app():  # noqa: C901
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
+            _check_file_upload(files, target_type)
             convert_options = _prepare_convert_options(convert_options)
             _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
