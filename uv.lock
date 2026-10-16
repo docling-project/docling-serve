@@ -2154,19 +2154,16 @@ wheels = [
 [[package]]
 name = "docling-jobkit"
 version = "3.8.2"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fdocument-downprojection-support#b24d8f0dce7c726d893bacd45f754e9fd5f7e47e" }
 dependencies = [
     { name = "boto3" },
+    { name = "docling-core" },
     { name = "docling-slim", extra = ["standard"] },
     { name = "httpx" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/43/28b416c05b7b2ed20c05b1e1c69ce3a6dc5cbaf6696d9e489d7bd922062a/docling_jobkit-3.8.2.tar.gz", hash = "sha256:d3a402b9ac0a95e50bc105a62e33c8e799c314a8fe079e64d2591166afeeb738", size = 215996, upload-time = "2026-10-13T11:47:06.087Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/47/1c403174b7ef82e23fee26764394d3505bf25f4c16dcfb577f5380ad9557/docling_jobkit-3.8.2-py3-none-any.whl", hash = "sha256:627560fe6010435039204ee2c721c3c28c1f925eec301746f0694157324d7999", size = 277091, upload-time = "2026-10-13T11:47:04.403Z" },
 ]
 
 [package.optional-dependencies]
@@ -2366,8 +2363,8 @@ typecheck = [
 
 [package.metadata]
 requires-dist = [
-    { name = "docling-core", specifier = ">=2.79.0" },
-    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=3.8.2,<4" },
+    { name = "docling-core", specifier = ">=2.92.0" },
+    { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], git = "https://github.com/docling-project/docling-jobkit/?branch=cau%2Fdocument-downprojection-support" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
     { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], specifier = ">=2.129.0,<3.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
