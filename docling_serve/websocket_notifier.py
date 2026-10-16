@@ -2,17 +2,18 @@ import logging
 
 from fastapi import WebSocket
 
-from docling.datamodel.base_models import ConversionStatus
-from docling.datamodel.service.responses import (
-    MessageKind,
-    TaskStatusResponse,
-    WebsocketMessage,
-)
+from docling.datamodel.service.responses import MessageKind
 from docling_jobkit.datamodel.task_meta import TaskStatus
 from docling_jobkit.orchestrators.base_notifier import BaseNotifier
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     TaskNotFoundError,
+)
+
+from docling_serve.datamodel.task_status import (
+    ServeTaskStatusResponse,
+    ServeWebsocketMessage,
+    to_serve_task_status,
 )
 
 _log = logging.getLogger(__name__)
@@ -56,10 +57,10 @@ class WebsocketNotifier(BaseNotifier):
             # Get task status from Redis or RQ directly instead of in-memory registry
             task = await self.orchestrator.task_status(task_id=task_id)
             task_queue_position = await self.orchestrator.get_queue_position(task_id)
-            msg = TaskStatusResponse(
+            msg = ServeTaskStatusResponse(
                 task_id=task.task_id,
                 task_type=task.task_type,
-                task_status=ConversionStatus(task.task_status.value),
+                task_status=to_serve_task_status(task.task_status),  # type: ignore[arg-type]
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
                 error_message=task.error_message,
@@ -72,7 +73,7 @@ class WebsocketNotifier(BaseNotifier):
             _log.error(f"Error fetching status for task {task_id}: {e}")
             return
 
-        payload = WebsocketMessage(
+        payload = ServeWebsocketMessage(
             message=MessageKind.UPDATE, task=msg
         ).model_dump_json()
         for websocket in list(self.task_subscribers.get(task_id, set())):
