@@ -6,7 +6,6 @@ from typing import Annotated, Any, TypeVar, Union, get_args
 from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, create_model
 
-from docling.datamodel.pipeline_options import ProcessingPipeline
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     BaseChunkDocumentsRequest,
@@ -65,10 +64,6 @@ ALL_SOURCE_TYPES = _source_kinds(SourceRequestItem) | _source_kinds(
 # them on the convert/chunk endpoints.
 _INLINE_SOURCE_KINDS = _source_kinds(SourceRequestItem)
 ALL_TARGET_TYPES = _source_kinds(TargetRequest)
-ALL_PIPELINES = frozenset(pipeline.value for pipeline in ProcessingPipeline)
-# Options whose omitted value normalize_convert_options replaces with a
-# deployment default, so the multipart forms must keep "omitted" detectable.
-SERVER_DEFAULT_OPTIONS = ["pipeline"]
 _ConvertRequestT = TypeVar(
     "_ConvertRequestT", ConvertSourcesRequest, BatchConvertSourcesRequest
 )
@@ -275,14 +270,19 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         available=available_target_types,
         setting="allowed_target_types",
     )
+    # Only pipelines the converter manager can dispatch. Imported here, like in
+    # capabilities.py, to keep the converter stack off the module import path.
+    from docling_jobkit.convert.manager import SUPPORTED_PIPELINES
+
+    supported_pipelines = frozenset(pipeline.value for pipeline in SUPPORTED_PIPELINES)
     allowed_pipelines = _configured_types(
         settings.allowed_pipelines,
-        defaults=ALL_PIPELINES,
-        available=ALL_PIPELINES,
+        defaults=supported_pipelines,
+        available=supported_pipelines,
         setting="allowed_pipelines",
     )
-    # Requests that omit `pipeline` get the default, so it must be one the
-    # deployment accepts; otherwise every such request would fail with a 422.
+    # jobkit resolves an omitted `pipeline` to the default, so it must be one
+    # the deployment accepts; otherwise every such request would fail.
     if settings.default_pipeline not in allowed_pipelines:
         raise ValueError(
             f"default_pipeline {settings.default_pipeline!r} is not in "
@@ -348,15 +348,6 @@ def normalize_convert_options(
 
     if options.document_timeout is None:
         updates["document_timeout"] = policy.max_document_timeout
-
-    # The request model defaults `pipeline` to standard; an omitted pipeline
-    # takes the deployment's default instead. An explicit one is kept as sent
-    # and checked against allowed_pipelines in validate_convert_options.
-    if (
-        "pipeline" not in options.model_fields_set
-        and options.pipeline != policy.default_pipeline
-    ):
-        updates["pipeline"] = ProcessingPipeline(policy.default_pipeline)
 
     # Placeholder export mode discards all image data, so generating images would
     # be wasted work. Coerce the include_* flags off rather than rejecting the
@@ -429,12 +420,15 @@ def validate_convert_options(
             ),
         )
 
-    pipeline = getattr(options.pipeline, "value", options.pipeline)
-    if pipeline not in policy.allowed_pipelines:
+    # An unset pipeline resolves to the default, which is always allowed.
+    if (
+        options.pipeline is not None
+        and options.pipeline.value not in policy.allowed_pipelines
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
-                f"pipeline '{pipeline}' is not allowed. "
+                f"pipeline '{options.pipeline.value}' is not allowed. "
                 f"Allowed values: {sorted(policy.allowed_pipelines)}."
             ),
         )

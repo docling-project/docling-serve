@@ -95,12 +95,13 @@ export function buildFormModel(fields: FieldSpec[], capabilities: Capabilities |
     });
 
   const pipelineField = take("pipeline");
-  // The server fills an omitted pipeline with its own default, which can differ
-  // from the schema default, so that is the value an omitted field stands for.
+  // The server resolves an omitted pipeline to its default, so offer the
+  // allowed pipelines with that default preselected instead of "Not set".
   const pipeline =
     pipelineField && capabilities
       ? {
           ...restrict(pipelineField, capabilities.pipelines.allowed),
+          nullable: false,
           default: capabilities.pipelines.default,
         }
       : pipelineField;

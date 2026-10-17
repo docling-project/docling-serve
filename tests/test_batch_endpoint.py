@@ -98,8 +98,7 @@ class _FakeOrchestrator:
             task_id="task-batch",
             task_type=kwargs["task_type"],
             sources=kwargs["sources"],
-            target=kwargs.get("target"),
-            targets=kwargs.get("targets"),
+            target=kwargs["target"],
             convert_options=kwargs["convert_options"],
             callbacks=kwargs["callbacks"],
             metadata=kwargs["metadata"],
@@ -734,25 +733,6 @@ def vlm_only_app(fake_orchestrator, monkeypatch):
     monkeypatch.setattr(app_module.docling_serve_settings, "default_pipeline", "vlm")
     with patch.object(app_module, "setup_otel_instrumentation"):
         return app_module.create_app()
-
-
-@pytest.mark.asyncio
-async def test_convert_applies_default_pipeline_when_omitted(
-    vlm_only_app, fake_orchestrator
-):
-    async with AsyncClient(
-        transport=ASGITransport(app=vlm_only_app), base_url="http://app.io"
-    ) as client:
-        response = await client.post(
-            "/v1/convert/source/async",
-            json={
-                "sources": [{"kind": "http", "url": "https://example.com/a.pdf"}],
-                "target": {"kind": "inbody"},
-            },
-        )
-
-    assert response.status_code == 200, response.text
-    assert fake_orchestrator.enqueued[0]["convert_options"].pipeline == "vlm"
 
 
 @pytest.mark.asyncio

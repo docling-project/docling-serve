@@ -24,6 +24,9 @@ def _build_cm_config():
         layout_batch_size=docling_serve_settings.layout_batch_size,
         table_batch_size=docling_serve_settings.table_batch_size,
         batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
+        # Pipeline Control
+        default_pipeline=docling_serve_settings.default_pipeline,
+        allowed_pipelines=docling_serve_settings.allowed_pipelines,
         # VLM Pipeline Control
         default_vlm_preset=docling_serve_settings.default_vlm_preset,
         allowed_vlm_presets=docling_serve_settings.allowed_vlm_presets,
