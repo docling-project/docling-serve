@@ -1,3 +1,47 @@
+## [v1.37.0](https://github.com/docling-project/docling-serve/releases/tag/v1.37.0) - 2026-10-13
+
+### Feature
+
+* Update deps, expose new jobkit settings ([#725](https://github.com/docling-project/docling-serve/issues/725)) ([`d59e3f1`](https://github.com/docling-project/docling-serve/commit/d59e3f137024bbadcd1f511a6da3b3f64fe90aff))
+
+### Fix
+
+* Point default_code_formula_preset at a real Docling preset ([#721](https://github.com/docling-project/docling-serve/issues/721)) ([`7e77b29`](https://github.com/docling-project/docling-serve/commit/7e77b2947cf2e9e1c6c9ded3eeb13ecd150d9c59))
+* **policy:** Keep custom OCR presets selectable ([#723](https://github.com/docling-project/docling-serve/issues/723)) ([`46eb541`](https://github.com/docling-project/docling-serve/commit/46eb5419f00d8276bb8972bb3ce49a3646f0f130))
+
+### Documentation
+
+* Add the example config files referenced in the configuration docs ([#724](https://github.com/docling-project/docling-serve/issues/724)) ([`3a7d4ca`](https://github.com/docling-project/docling-serve/commit/3a7d4ca4f4578663c907a22a5bbd13e8f3b440a4))
+
+### Docling libraries included in this release:
+- docling-core 2.101.1
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.2
+- docling-mcp 3.3.0
+- docling-parse 7.22.3
+- docling-serve 1.37.0
+- docling-slim 2.138.0
+
+## [v1.36.0](https://github.com/docling-project/docling-serve/releases/tag/v1.36.0) - 2026-10-01
+
+### Feature
+
+* New visualization components ([#717](https://github.com/docling-project/docling-serve/issues/717)) ([`4c9f57c`](https://github.com/docling-project/docling-serve/commit/4c9f57cc5e4536abcad8035a66d9a8a5c75002d5))
+* **ui:** Build new UI capturing all the new docling-serve features ([#714](https://github.com/docling-project/docling-serve/issues/714)) ([`a8458e1`](https://github.com/docling-project/docling-serve/commit/a8458e111d1bc686a0a4a2572df38ea956b72826))
+
+### Fix
+
+* Updated dependencies ([#719](https://github.com/docling-project/docling-serve/issues/719)) ([`adc7a38`](https://github.com/docling-project/docling-serve/commit/adc7a38d90437559bb0fd918408fef5bcc2aef65))
+
+### Docling libraries included in this release:
+- docling-core 2.99.0
+- docling-ibm-models 4.0.3
+- docling-jobkit 3.8.1
+- docling-mcp 3.2.1
+- docling-parse 7.22.1
+- docling-serve 1.36.0
+- docling-slim 2.132.0
+
 ## [v1.35.0](https://github.com/docling-project/docling-serve/releases/tag/v1.35.0) - 2026-09-23
 
 ### Feature

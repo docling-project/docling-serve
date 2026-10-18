@@ -88,9 +88,6 @@ export function createClient(): DoclingClient {
   return new DoclingClient({
     baseUrl: apiBaseUrl(),
     apiKey: apiKey || undefined,
-    // docling-client 0.3.0 calls a stored `fetch` reference, which browsers
-    // reject as an illegal invocation; a wrapper keeps it bound to window.
-    fetch: (input, init) => globalThis.fetch(input, init),
     statusWatcher: "websocket",
     webSocketFallbackToPoll: true,
     jobTimeoutMs: 24 * 3600 * 1000,

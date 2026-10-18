@@ -294,6 +294,9 @@ class DoclingServeSettings(BaseSettings):
     # Timeouts
     eng_ray_task_timeout: Optional[float] = 3600.0
     eng_ray_document_timeout: Optional[float] = 300.0
+    eng_ray_converter_request_timeout: Optional[float] = None
+    eng_ray_recycle_converter_on_abandoned_conversion: bool = True
+    eng_ray_abandoned_conversion_grace_s: Optional[float] = None
     eng_ray_redis_operation_timeout: float = 30.0
     eng_ray_dispatcher_rpc_timeout: float = 5.0
     eng_ray_liveness_fail_after: float = 90.0
@@ -354,7 +357,7 @@ class DoclingServeSettings(BaseSettings):
     allowed_picture_description_engines: Optional[list[str]] = None
 
     # Code/Formula Control
-    default_code_formula_preset: str = "default"
+    default_code_formula_preset: str = "granite_docling"
     allowed_code_formula_presets: Optional[list[str]] = None
     custom_code_formula_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_code_formula_engines: Optional[list[str]] = None

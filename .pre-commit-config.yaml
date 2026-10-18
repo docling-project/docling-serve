@@ -1,28 +1,40 @@
 fail_fast: true
+default_stages: [pre-commit]
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.6
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      # Run the Ruff formatter.
-      - id: ruff-format
-        name: "Ruff formatter"
-        args: [--config=pyproject.toml]
-        files: '^(docling_serve|tests|examples|scripts).*\.(py|ipynb)$'
+      - id: trailing-whitespace
+        files: '^(docling_serve|tests|examples|scripts)/.*\.py$|^(\.pre-commit-config\.yaml|pyproject\.toml)$'
+      - id: end-of-file-fixer
+        files: '^(docling_serve|tests|examples|scripts)/.*\.py$|^(\.pre-commit-config\.yaml|pyproject\.toml)$'
+      - id: check-yaml
+        args: [--unsafe, --allow-multiple-documents]
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=5120]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
       # Run the Ruff linter.
       - id: ruff
         name: "Ruff linter"
         args: [--exit-non-zero-on-fix, --fix, --config=pyproject.toml]
-        files: '^(docling_serve|tests|examples|scripts).*\.(py|ipynb)$'
+        files: '^(docling_serve|tests|examples|scripts|\.github/scripts).*\.(py|ipynb)$'
+      # Run the Ruff formatter.
+      - id: ruff-format
+        name: "Ruff formatter"
+        args: [--config=pyproject.toml]
+        files: '^(docling_serve|tests|examples|scripts|\.github/scripts).*\.(py|ipynb)$'
   - repo: local
     hooks:
-      - id: system
-        name: MyPy
-        entry: uv run --no-sync mypy docling_serve
+      - id: ty
+        name: ty
+        entry: uv run --no-sync ty check
         pass_filenames: false
         language: system
-        files: '\.py$'
-  - repo: local
-    hooks:
+        files: '^docling_serve/.*\.py$'
       - id: update-docs-common-parameters
         name: Update Documentation File
         entry: uv run scripts/update_doc_usage.py
@@ -39,6 +51,8 @@ repos:
         args: [sync, "--config=.github/vale.ini"]
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version, https://github.com/astral-sh/uv-pre-commit/releases
-    rev: 0.8.19
+    # pinned: uv 0.12.14 broke `uv lock` resolution for this project
+    # https://github.com/astral-sh/uv/pull/21672
+    rev: 0.12.13
     hooks:
       - id: uv-lock

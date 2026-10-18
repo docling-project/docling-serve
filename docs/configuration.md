@@ -210,7 +210,7 @@ The following options control the behavior of the Docling converter, including p
 
 | ENV | Default | Description |
 | ----|---------|-------------|
-| `DOCLING_SERVE_DEFAULT_CODE_FORMULA_PRESET` | `default` | Default code/formula preset. |
+| `DOCLING_SERVE_DEFAULT_CODE_FORMULA_PRESET` | `granite_docling` | Default code/formula preset. |
 | `DOCLING_SERVE_ALLOWED_CODE_FORMULA_PRESETS` | `null` (all allowed) | List of allowed code/formula preset IDs. Accepts JSON array or comma-separated string. |
 | `DOCLING_SERVE_CUSTOM_CODE_FORMULA_PRESETS` | `{}` | Custom code/formula presets. Must be a JSON object. |
 | `DOCLING_SERVE_ALLOWED_CODE_FORMULA_ENGINES` | `null` (all allowed) | List of allowed code/formula engine types. Accepts JSON array or comma-separated string. |
@@ -308,12 +308,26 @@ The following table describes the options to configure the Docling Serve RQ engi
 - **Timeout settings:** Only set if experiencing connection issues. Start with 5.0 seconds for both timeouts.
 - Ensure your Redis server's `maxclients` setting can accommodate all connections from all docling-serve instances and RQ workers
 
+#### Ray engine timeouts
+
+The following table describes the timeout options of the Docling Serve Ray engine.
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_TASK_TIMEOUT` | `3600` | Maximum seconds per task. When it is exceeded, the task fails and is cancelled, including its in-flight converter calls. |
+| `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT` | `300` | Per-document timeout the Ray orchestrator uses for its own checks, e.g. whether converter recycling is safe. It does not limit requests: the limit applied to a document is the request's `document_timeout`, or `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` when the request does not set one. Keep the two equal. |
+| `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` | `None` (Ray Serve default, 20 s) | Maximum seconds Ray Serve waits for a draining replica before force-killing it. |
+| `DOCLING_SERVE_ENG_RAY_CONVERTER_REQUEST_TIMEOUT` | `None` (disabled) | Hard limit in seconds, per document, on a coordinator call to a converter replica, including the wait for a free replica. A backstop for conversions that run past the document timeout: set it well above that (e.g. 2x). A PDF slice that exceeds it is recorded as failed; any other task fails. |
+| `DOCLING_SERVE_ENG_RAY_RECYCLE_CONVERTER_ON_ABANDONED_CONVERSION` | `true` | A cancelled converter call cannot stop its conversion thread. When enabled, a converter replica reports unhealthy while such a thread is still running more than `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` after the cancel, and Ray Serve replaces it. Only takes effect when `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` is at least `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT`, so the draining replica can finish the request it is serving. |
+| `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` | `None` (document timeout + 60 s) | Seconds a conversion may keep running after its request was cancelled before the converter replica reports unhealthy. |
+
 ### Web UI
 
 With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` for trying conversions. It is a static bundle shipped inside the package and talks to the public API like any other client, with the same API key and policies.
 
 - The options form is built from `/openapi.json` (deprecated options are hidden) and `/v1/capabilities`, so it only offers the presets, output formats, image export modes and targets the deployment allows. Without the capabilities endpoint, preset fields become free text; without the API docs, conversions run with the server defaults.
 - Results are fetched with the first available target among presigned URLs (when artifact storage is enabled), zip archive and inline JSON. The `.dclx` archive is only available with the first two.
+- When the result includes the JSON output, the **Document** tab renders the DoclingDocument with [`@docling/docling-components`](https://github.com/docling-project/docling-ts): every item as a box on the original page images (with a tooltip showing the parsed content), or as a list of parsed items next to their crops from the page. It can be filtered to text, tables or pictures. Page images come from the zip result, so they need "Include page images", a non-placeholder image mode and the zip delivery.
 - "Open in viewer" opens the [DocLang viewer](https://doclang.ai/viewer/) in a new window and sends it the `.dclx` archive with `postMessage`, since zip and inline results have no URL the viewer could fetch. The viewer page is opened with `?source=opener`, answers `{type: "doclang-viewer:ready"}` to `window.opener` when it receives `{type: "doclang-viewer:ping"}`, and then receives `{type: "doclang-viewer:open", name, mimeType, buffer}` with the archive as an `ArrayBuffer`.
 - The UI requests page images (`include_page_images`) and the `referenced` image mode by default, so the `.dclx` archive contains the page and picture images the viewer displays.
 - With presigned URLs, downloads are plain links, but in-browser previews fetch the files from object storage. Allow the UI origin in the bucket CORS rules (`GET` with any header) for previews to work; otherwise the UI falls back to download buttons.
