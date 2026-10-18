@@ -500,6 +500,8 @@ Each value is either a **bare URL** (shortcut) or a **JSON-encoded `CallbackSpec
 
 The bare-URL format is the easiest way to register a webhook. Use the JSON-object format when you need custom request headers (e.g. an auth token) or a non-default CA certificate for TLS verification.
 
+The first successful cancellation of a queued task schedules one `cancelled` completion callback. Repeats do not resend it, and delivery is best-effort.
+
 <details>
 <summary>CURL example — bare URL callback:</summary>
 
@@ -710,15 +712,6 @@ result — `GET /v1/result/{task_id}` returns `409` with `detail.code
 "TASK_CANCELLED"` instead of a result payload. A synchronous conversion that is
 cancelled externally while waiting ends with the same `409 TASK_CANCELLED`
 response instead of a result.
-
-This endpoint requires a Jobkit build with queued-only cancellation support.
-The currently locked `docling-jobkit 3.8.2` does not include this capability.
-Until a release containing it is integrated, install the matching source checkout
-alongside the server, for example:
-
-```sh
-uv pip install --no-deps -e /path/to/docling-jobkit-checkout
-```
 
 ### Polling status
 

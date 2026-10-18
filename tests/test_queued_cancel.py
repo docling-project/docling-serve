@@ -190,13 +190,27 @@ def test_openapi_exposes_cancelled_status(client: TestClient):
         ref = doc["paths"][route]["post" if "cancel" in route else "get"]["responses"][
             "200"
         ]["content"]["application/json"]["schema"]["$ref"]
-        assert ref == "#/components/schemas/ServeTaskStatusResponse", ref
-    status_schema = doc["components"]["schemas"]["ServeTaskStatusResponse"][
-        "properties"
-    ]["task_status"]
-    assert {"const": "cancelled", "type": "string"} in status_schema["anyOf"]
-    assert doc["components"]["schemas"]["ServeTaskStatusResponse"]["title"] == (
-        "ServeTaskStatusResponse"
+        assert ref == "#/components/schemas/TaskStatusResponse", ref
+    status_schema = doc["components"]["schemas"]["TaskStatusResponse"]["properties"][
+        "task_status"
+    ]
+    assert status_schema == {"$ref": "#/components/schemas/ConversionStatus"}
+    assert "cancelled" in doc["components"]["schemas"]["ConversionStatus"]["enum"]
+
+
+def test_cancel_unsupported_engine_returns_501(
+    client: TestClient, orchestrator, monkeypatch
+):
+    async def _unsupported(task_id: str) -> Task:
+        raise NotImplementedError(f"no queued cancellation for {task_id}")
+
+    monkeypatch.setattr(orchestrator, "cancel_queued_task", _unsupported)
+
+    response = client.post("/v1/tasks/pending/cancel")
+
+    assert response.status_code == 501, response.text
+    assert response.json()["detail"] == (
+        "Queued task cancellation is not supported by this orchestrator."
     )
 
 

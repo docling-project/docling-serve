@@ -1,7 +1,9 @@
 import {
   type ConvertDocumentResponse,
   DoclingHttpError,
+  DoclingTaskCancelledError,
   type PresignedUrlConvertResponse,
+  type TaskStatusResponse,
 } from "@docling/docling-client";
 import { Copy, FileText, FileUp, Link2, Loader2, Play, RotateCcw, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +34,6 @@ import {
 } from "@/lib/capabilities";
 import { asArray, buildFormModel, type OptionValues, requestOptions } from "@/lib/options";
 import { type ConversionOutcome, fromInBody, fromPresigned, fromZip } from "@/lib/results";
-import { pollTaskStatus, type WatchedTaskStatus } from "@/lib/taskPoll";
 import type { FieldSpec } from "@/lib/schema";
 import { curlSnippet, pythonSnippet, type RequestDescription } from "@/lib/snippets";
 import { cn } from "@/lib/utils";
@@ -45,8 +46,9 @@ const EXAMPLE_URLS = [
 
 type RunState =
   | { phase: "idle" }
-  | { phase: "running"; status?: WatchedTaskStatus }
+  | { phase: "running"; status?: TaskStatusResponse }
   | { phase: "done"; outcome: ConversionOutcome; formats: string[] }
+  | { phase: "cancelled" }
   | { phase: "error"; message: string };
 
 interface Props {
@@ -90,17 +92,15 @@ export function ConvertView({ capabilities, fields }: Props) {
         target: { kind: target },
         signal: controller.signal,
       });
-      let last: WatchedTaskStatus = job.status as WatchedTaskStatus;
+      let last: TaskStatusResponse = job.status;
       setRun({ phase: "running", status: last });
-      if ((last.task_status as string) === "cancelled") {
-        throw new Error("The conversion was cancelled while it was queued.");
+      for await (const status of job.watch({ signal: controller.signal })) {
+        last = status;
+        setRun({ phase: "running", status });
       }
-      last = await pollTaskStatus(job.taskId, controller.signal, {
-        onStatus: (status) => setRun({ phase: "running", status }),
-      });
-      setRun({ phase: "running", status: last });
-      if ((last.task_status as string) === "cancelled") {
-        throw new Error("The conversion was cancelled while it was queued.");
+      if (last.task_status === "cancelled") {
+        setRun({ phase: "cancelled" });
+        return;
       }
       if (last.task_status === "failure") {
         throw new Error(last.failure?.message ?? last.error_message ?? "The conversion failed.");
@@ -108,21 +108,32 @@ export function ConvertView({ capabilities, fields }: Props) {
 
       let outcome: ConversionOutcome;
       if (target === "zip") {
-        const result = await client.getBinaryResult(job.taskId, { signal: controller.signal });
+        const result = await client.getBinaryResult(job.taskId, {
+          signal: controller.signal,
+          lastStatus: last,
+        });
         outcome = fromZip(result, source.kind === "file" ? source.file.name : source.url);
       } else if (target === "presigned_url") {
         const result = await client.getRawResult<PresignedUrlConvertResponse>(job.taskId, {
           signal: controller.signal,
+          lastStatus: last,
         });
         outcome = fromPresigned(result);
       } else {
-        const result = await client.getResult(job.taskId, { signal: controller.signal });
+        const result = await client.getResult(job.taskId, {
+          signal: controller.signal,
+          lastStatus: last,
+        });
         outcome = fromInBody(result as ConvertDocumentResponse);
       }
       setRun({ phase: "done", outcome, formats });
     } catch (error) {
       if (controller.signal.aborted) {
         setRun({ phase: "idle" });
+        return;
+      }
+      if (error instanceof DoclingTaskCancelledError) {
+        setRun({ phase: "cancelled" });
         return;
       }
       setRun({ phase: "error", message: errorMessage(error) });
@@ -228,6 +239,11 @@ export function ConvertView({ capabilities, fields }: Props) {
             />
           )}
           {run.phase === "running" && <Progress status={run.status} />}
+          {run.phase === "cancelled" && (
+            <Alert>
+              <AlertTitle>Task cancelled</AlertTitle>
+            </Alert>
+          )}
           {run.phase === "error" && (
             <Alert variant="destructive">
               <AlertTitle>Conversion failed</AlertTitle>
@@ -339,7 +355,7 @@ function DropOverlay() {
   );
 }
 
-function Progress({ status }: { status?: WatchedTaskStatus }) {
+function Progress({ status }: { status?: TaskStatusResponse }) {
   const meta = status?.task_meta;
   return (
     <div className="flex min-h-[45vh] flex-col items-center justify-center gap-3 text-center">
