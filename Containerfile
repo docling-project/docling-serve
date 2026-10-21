@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=quay.io/sclorg/python-312-c9s:c9s
 
-ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.8.19
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.4
 
 ARG UV_SYNC_EXTRA_ARGS=""
 
