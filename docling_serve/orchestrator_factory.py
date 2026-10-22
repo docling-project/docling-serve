@@ -245,6 +245,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_ray_redis_gate_status_poll_wait_timeout,
             # Result Storage
             results_ttl=docling_serve_settings.eng_ray_results_ttl,
+            task_metadata_ttl=docling_serve_settings.eng_ray_task_metadata_ttl,
             results_prefix=docling_serve_settings.eng_ray_results_prefix,
             result_removal_delay=docling_serve_settings.result_removal_delay,
             # Pub/Sub

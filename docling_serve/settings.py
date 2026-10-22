@@ -224,6 +224,8 @@ class DoclingServeSettings(BaseSettings):
 
     # Result Storage
     eng_ray_results_ttl: int = 3_600 * 4  # 4 hours
+    # Expiry of a finished task's metadata hash; None or 0 keeps it forever.
+    eng_ray_task_metadata_ttl: Optional[int] = 3_600 * 24 * 7  # 7 days
     eng_ray_results_prefix: str = "docling:ray:results"
 
     # Pub/Sub
@@ -329,6 +331,9 @@ class DoclingServeSettings(BaseSettings):
     # Metrics
     eng_ray_generate_metrics: bool = False
     eng_ray_metrics_port: int = 8090
+    # Seconds between two refreshes of the per-tenant Prometheus metrics, which
+    # one docling-serve process (the leader) reads from Redis in the background.
+    eng_ray_tenant_metrics_refresh_interval: PositiveFloat = 30.0
 
     # Tenant ID Header
     eng_ray_tenant_id_header: str = "X-Tenant-Id"
