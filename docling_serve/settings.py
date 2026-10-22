@@ -203,6 +203,8 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_socket_connect_timeout: Optional[float] = (
         None  # Socket connect timeout in seconds
     )
+    # Seconds a pooled connection may sit idle before it is pinged on reuse
+    eng_rq_redis_health_check_interval: float = 30.0
     eng_rq_redis_gate_concurrency: Optional[int] = None
     eng_rq_redis_gate_reserved_connections: int = 10
     eng_rq_redis_gate_wait_timeout: float = 0.25

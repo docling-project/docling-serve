@@ -161,6 +161,9 @@ def _build_rq_config():
         redis_socket_connect_timeout=(
             docling_serve_settings.eng_rq_redis_socket_connect_timeout
         ),
+        redis_health_check_interval=(
+            docling_serve_settings.eng_rq_redis_health_check_interval
+        ),
         redis_gate_concurrency=docling_serve_settings.eng_rq_redis_gate_concurrency,
         redis_gate_reserved_connections=(
             docling_serve_settings.eng_rq_redis_gate_reserved_connections

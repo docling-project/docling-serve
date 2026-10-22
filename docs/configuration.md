@@ -297,6 +297,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_HEALTH_CHECK_INTERVAL` | `30.0` | Seconds a pooled Redis connection may stay idle before it is checked with a `PING` on reuse. Stale connections (e.g. dropped by a load balancer or after a Redis failover) are then reconnected instead of failing the request. Set to `0` to disable. |
 
 **Scaling Recommendations for RQ Engine:**
 
