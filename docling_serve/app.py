@@ -8,7 +8,7 @@ import re
 import shutil
 import time
 from collections import Counter
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any
@@ -107,6 +107,7 @@ from docling_serve.helper_functions import (
     FormDepends,
     parse_callback_item,
 )
+from docling_serve.idle_unload import IdleModelUnloader
 from docling_serve.logging_config import setup_logging
 from docling_serve.orchestrator_factory import get_async_orchestrator
 from docling_serve.otel_instrumentation import (
@@ -193,6 +194,11 @@ async def lifespan(app: FastAPI):
     scratch_dir = get_scratch()
 
     orchestrator = get_async_orchestrator()
+    if (
+        docling_serve_settings.idle_unload_seconds > 0
+        and docling_serve_settings.eng_kind != AsyncEngine.LOCAL
+    ):
+        raise ValueError("idle_unload_seconds requires the local engine.")
     notifier = WebsocketNotifier(orchestrator)
     orchestrator.bind_notifier(notifier)
 
@@ -202,6 +208,18 @@ async def lifespan(app: FastAPI):
         await orchestrator.warm_up_caches()
 
     _models_ready.set()
+
+    unloader = None
+    idle_task = None
+    if docling_serve_settings.idle_unload_seconds > 0:
+        from docling_jobkit.orchestrators.local.orchestrator import LocalOrchestrator
+
+        if not isinstance(orchestrator, LocalOrchestrator):
+            raise ValueError("idle_unload_seconds requires the local engine.")
+        unloader = IdleModelUnloader(
+            orchestrator, docling_serve_settings.idle_unload_seconds
+        )
+        idle_task = asyncio.create_task(unloader.run())
 
     # Start the background queue processor. If a supervised loop (RQ/Ray pub/sub
     # listener, Local workers) ever crashes, the done-callback flags the pod
@@ -215,25 +233,34 @@ async def lifespan(app: FastAPI):
     if isinstance(orchestrator, RQOrchestrator):
         reaper_task = asyncio.create_task(orchestrator._reap_zombie_tasks())
 
-    yield
-
-    # Cancel the background queue processor on shutdown
-    queue_task.cancel()
-    if reaper_task:
-        reaper_task.cancel()
     try:
-        await queue_task
-    except asyncio.CancelledError:
-        _log.info("Queue processor cancelled.")
-    if reaper_task:
-        try:
-            await reaper_task
-        except asyncio.CancelledError:
-            _log.info("Zombie reaper cancelled.")
+        yield
+    finally:
+        # A cancelled to_thread worker can finish queue accounting before its
+        # executor thread exits. Disable cleanup before cancelling any workers.
+        if unloader is not None and idle_task is not None:
+            unloader.stop()
+            idle_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await idle_task
 
-    # Remove scratch directory in case it was a tempfile
-    if docling_serve_settings.scratch_path is not None:
-        shutil.rmtree(scratch_dir, ignore_errors=True)
+        # Cancel the background queue processor on shutdown
+        queue_task.cancel()
+        if reaper_task:
+            reaper_task.cancel()
+        try:
+            await queue_task
+        except asyncio.CancelledError:
+            _log.info("Queue processor cancelled.")
+        if reaper_task:
+            try:
+                await reaper_task
+            except asyncio.CancelledError:
+                _log.info("Zombie reaper cancelled.")
+
+        # Remove scratch directory in case it was a tempfile
+        if docling_serve_settings.scratch_path is not None:
+            shutil.rmtree(scratch_dir, ignore_errors=True)
 
 
 ##################################

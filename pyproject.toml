@@ -96,6 +96,7 @@ dev = [
     "pytest-check~=2.8",
     "pyyaml>=6.0",
     "python-semantic-release~=7.32",
+    "hypothesis>=6,<7",
 ]
 
 constraints  = [

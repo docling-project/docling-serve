@@ -130,6 +130,7 @@ class DoclingServeSettings(BaseSettings):
     single_use_results: bool = True
     load_models_at_boot: bool = True
     options_cache_size: int = 2
+    idle_unload_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
     enable_remote_services: bool = False
     allow_external_plugins: bool = False
     allow_custom_vlm_config: bool = False
@@ -528,6 +529,9 @@ class DoclingServeSettings(BaseSettings):
 
     @model_validator(mode="after")
     def engine_settings(self) -> Self:
+        if self.idle_unload_seconds > 0 and self.eng_kind != AsyncEngine.LOCAL:
+            raise ValueError("idle_unload_seconds requires the local engine.")
+
         if self.eng_kind == AsyncEngine.RQ:
             if not self.eng_rq_redis_url:
                 raise ValueError("RQ Redis url is required when using the RQ engine.")
