@@ -25,7 +25,9 @@ from docling.datamodel.service.targets import (
 )
 from docling_jobkit.connectors.connector_factory import SourceConnectorFactory
 from docling_jobkit.connectors.source_processor import BaseSourceProcessor
+from docling_jobkit.convert.manager import SUPPORTED_PIPELINES
 
+from docling_serve.capabilities import build_capabilities
 from docling_serve.datamodel.convert import ConvertDocumentsRequestOptions
 from docling_serve.policy import (
     ALL_SOURCE_TYPES,
@@ -188,6 +190,92 @@ def test_validate_convert_options_allows_images_scale_at_policy_cap():
     policy = build_service_policy(DoclingServeSettings(max_images_scale=2.0))
 
     validate_convert_options(ConvertDocumentsOptions(images_scale=2.0), policy)
+
+
+def test_build_service_policy_allows_supported_pipelines_by_default():
+    policy = build_service_policy(DoclingServeSettings())
+
+    assert policy.allowed_pipelines == {p.value for p in SUPPORTED_PIPELINES}
+    assert policy.default_pipeline == "standard"
+
+
+def test_default_pipeline_outside_allowed_pipelines_fails_startup():
+    with pytest.raises(ValueError, match=r"default_pipeline 'standard'.*\['vlm'\]"):
+        build_service_policy(DoclingServeSettings(allowed_pipelines=["vlm"]))
+
+
+# `asr` exists in docling but jobkit cannot dispatch it, so every request
+# would fail; it must be rejected at startup like an unknown name.
+@pytest.mark.parametrize("pipeline", ["asr", "VLM", "unknown"])
+def test_unsupported_allowed_pipeline_fails_startup(pipeline):
+    with pytest.raises(ValueError, match=rf"allowed_pipelines.*{pipeline}"):
+        build_service_policy(
+            DoclingServeSettings(allowed_pipelines=[pipeline], default_pipeline="vlm")
+        )
+
+
+def test_unsupported_default_pipeline_fails_startup():
+    with pytest.raises(ValueError, match="default_pipeline 'asr'"):
+        build_service_policy(DoclingServeSettings(default_pipeline="asr"))
+
+
+def test_validate_convert_options_accepts_omitted_pipeline():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+
+    # jobkit resolves the omitted pipeline to the default, which is allowed.
+    validate_convert_options(
+        normalize_convert_options(ConvertDocumentsOptions(), policy), policy
+    )
+
+
+def test_validate_convert_options_rejects_disallowed_pipeline():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_convert_options(ConvertDocumentsOptions(pipeline="standard"), policy)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "pipeline 'standard' is not allowed. Allowed values: ['vlm']."
+    )
+
+
+def test_validate_convert_options_allows_configured_pipeline():
+    policy = build_service_policy(
+        DoclingServeSettings(allowed_pipelines=["vlm"], default_pipeline="vlm")
+    )
+
+    validate_convert_options(ConvertDocumentsOptions(pipeline="vlm"), policy)
+
+
+def test_pipeline_settings_reach_the_converter_manager(monkeypatch):
+    from docling_serve import orchestrator_factory
+
+    settings = orchestrator_factory.docling_serve_settings
+    monkeypatch.setattr(settings, "default_pipeline", "vlm")
+    monkeypatch.setattr(settings, "allowed_pipelines", ["vlm"])
+
+    config = orchestrator_factory._build_cm_config()
+
+    assert config.default_pipeline == "vlm"
+    assert config.allowed_pipelines == ["vlm"]
+
+
+def test_capabilities_report_allowed_and_default_pipeline():
+    settings = DoclingServeSettings(
+        allowed_pipelines=["vlm", "standard"], default_pipeline="vlm"
+    )
+
+    capabilities = build_capabilities(
+        settings, build_service_policy(settings), manager=object()
+    )
+
+    assert capabilities.pipelines.allowed == ["standard", "vlm"]
+    assert capabilities.pipelines.default == "vlm"
 
 
 def test_convert_sources_request_rejects_s3_inputs_at_model_layer():

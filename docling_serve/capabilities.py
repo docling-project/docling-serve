@@ -44,6 +44,11 @@ class TargetCapabilities(BaseModel):
     default: str
 
 
+class PipelineCapabilities(BaseModel):
+    allowed: list[str]
+    default: str = Field(description="Pipeline used when a request omits it.")
+
+
 class LimitsCapabilities(BaseModel):
     max_document_timeout: float
     max_images_scale: float
@@ -65,6 +70,7 @@ class CapabilitiesResponse(BaseModel):
     targets: TargetCapabilities
     output_formats: list[str]
     image_export_modes: list[str]
+    pipelines: PipelineCapabilities
     limits: LimitsCapabilities
     features: FeatureCapabilities
 
@@ -302,6 +308,10 @@ def build_capabilities(
         ),
         output_formats=[fmt.value for fmt in OutputFormat],
         image_export_modes=sorted(policy.allowed_image_export_modes),
+        pipelines=PipelineCapabilities(
+            allowed=sorted(policy.allowed_pipelines),
+            default=policy.default_pipeline,
+        ),
         limits=LimitsCapabilities(
             max_document_timeout=settings.max_document_timeout,
             max_images_scale=settings.max_images_scale,
