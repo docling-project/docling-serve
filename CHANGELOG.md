@@ -1,3 +1,18 @@
+## [v1.38.1](https://github.com/docling-project/docling-serve/releases/tag/v1.38.1) - 2026-10-23
+
+### Fix
+
+* Pinned docling fix release ([#742](https://github.com/docling-project/docling-serve/issues/742)) ([`10e41b9`](https://github.com/docling-project/docling-serve/commit/10e41b9727c0bdad0d8a7e8e98dab1bd2e5c3c4e))
+
+### Docling libraries included in this release:
+- docling-core 2.104.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.9.1
+- docling-mcp 3.3.0
+- docling-parse 7.23.0
+- docling-serve 1.38.1
+- docling-slim 2.142.1
+
 ## [v1.38.0](https://github.com/docling-project/docling-serve/releases/tag/v1.38.0) - 2026-10-22
 
 ### Feature
