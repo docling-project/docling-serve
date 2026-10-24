@@ -92,10 +92,13 @@ from docling_jobkit.datamodel.stored_outcome import (
     StoredSuccessOutcome,
 )
 from docling_jobkit.datamodel.task import Task, TaskSource
+from docling_jobkit.datamodel.task_meta import TaskStatus as JobkitTaskStatus
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
+    CancellationConflictReason,
     ProgressInvalid,
     RedisBackpressureError,
+    TaskCancellationConflictError,
     TaskNotFoundError,
 )
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
@@ -678,6 +681,41 @@ def create_app():  # noqa: C901
             )
             raise TaskNotFoundError()
 
+    def _is_cancelled(task: Task) -> bool:
+        """Whether a Jobkit task reached terminal CANCELLED."""
+        return task.task_status == JobkitTaskStatus.CANCELLED
+
+    def _serve_status_response(
+        task: Task, task_queue_position: int | None
+    ) -> TaskStatusResponse:
+        """Build the Serve wire response, preserving every SDK field."""
+        return TaskStatusResponse(
+            task_id=task.task_id,
+            task_type=task.task_type,
+            task_status=ConversionStatus(task.task_status),
+            task_position=task_queue_position,
+            task_meta=task.processing_meta,
+            error_message=task.error_message,
+            failure=task.failure,
+        )
+
+    def _cancelled_detail() -> dict:
+        return {
+            "code": "TASK_CANCELLED",
+            "message": "Task was cancelled while queued.",
+        }
+
+    def _cancel_conflict_detail(reason: CancellationConflictReason) -> dict:
+        if reason == CancellationConflictReason.ALREADY_STARTED:
+            return {
+                "code": "TASK_ALREADY_STARTED",
+                "message": "Task already started and can no longer be cancelled.",
+            }
+        return {
+            "code": "TASK_ALREADY_FINISHED",
+            "message": "Task already reached a terminal outcome.",
+        }
+
     async def _wait_task_complete(orchestrator: BaseOrchestrator, task_id: str) -> bool:
         start_time = time.monotonic()
         while True:
@@ -904,6 +942,9 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
+        fresh_task = await orchestrator.task_status(task_id=task.task_id)
+        if _is_cancelled(fresh_task):
+            raise HTTPException(status_code=409, detail=_cancelled_detail())
         task_result = await orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
             raise HTTPException(
@@ -990,6 +1031,9 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
+        fresh_task = await orchestrator.task_status(task_id=task.task_id)
+        if _is_cancelled(fresh_task):
+            raise HTTPException(status_code=409, detail=_cancelled_detail())
         task_result = await orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
             raise HTTPException(
@@ -1037,15 +1081,7 @@ def create_app():  # noqa: C901
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
         )
-        return TaskStatusResponse(
-            task_id=task.task_id,
-            task_type=task.task_type,
-            task_status=ConversionStatus(task.task_status.value),
-            task_position=task_queue_position,
-            task_meta=task.processing_meta,
-            error_message=task.error_message,
-            failure=task.failure,
-        )
+        return _serve_status_response(task, task_queue_position)
 
     @app.post(
         "/v1/convert/source/batch",
@@ -1078,15 +1114,7 @@ def create_app():  # noqa: C901
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
         )
-        return TaskStatusResponse(
-            task_id=task.task_id,
-            task_type=task.task_type,
-            task_status=ConversionStatus(task.task_status.value),
-            task_position=task_queue_position,
-            task_meta=task.processing_meta,
-            error_message=task.error_message,
-            failure=task.failure,
-        )
+        return _serve_status_response(task, task_queue_position)
 
     # Convert a document from file(s) using the async api
     @app.post(
@@ -1146,15 +1174,7 @@ def create_app():  # noqa: C901
         task_queue_position = await orchestrator.get_queue_position(
             task_id=task.task_id
         )
-        return TaskStatusResponse(
-            task_id=task.task_id,
-            task_type=task.task_type,
-            task_status=ConversionStatus(task.task_status.value),
-            task_position=task_queue_position,
-            task_meta=task.processing_meta,
-            error_message=task.error_message,
-            failure=task.failure,
-        )
+        return _serve_status_response(task, task_queue_position)
 
     # Chunking endpoints
     for display_name, path_name, opt_cls in (
@@ -1190,15 +1210,7 @@ def create_app():  # noqa: C901
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
             )
-            return TaskStatusResponse(
-                task_id=task.task_id,
-                task_type=task.task_type,
-                task_status=ConversionStatus(task.task_status.value),
-                task_position=task_queue_position,
-                task_meta=task.processing_meta,
-                error_message=task.error_message,
-                failure=task.failure,
-            )
+            return _serve_status_response(task, task_queue_position)
 
         @app.post(
             f"/v1/chunk/{path_name}/file/async",
@@ -1272,15 +1284,7 @@ def create_app():  # noqa: C901
             task_queue_position = await orchestrator.get_queue_position(
                 task_id=task.task_id
             )
-            return TaskStatusResponse(
-                task_id=task.task_id,
-                task_type=task.task_type,
-                task_status=ConversionStatus(task.task_status.value),
-                task_position=task_queue_position,
-                task_meta=task.processing_meta,
-                error_message=task.error_message,
-                failure=task.failure,
-            )
+            return _serve_status_response(task, task_queue_position)
 
         @app.post(
             f"/v1/chunk/{path_name}/source",
@@ -1323,6 +1327,9 @@ def create_app():  # noqa: C901
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
 
+            fresh_task = await orchestrator.task_status(task_id=task.task_id)
+            if _is_cancelled(fresh_task):
+                raise HTTPException(status_code=409, detail=_cancelled_detail())
             task_result = await orchestrator.task_result(task_id=task.task_id)
             if task_result is None:
                 raise HTTPException(
@@ -1422,6 +1429,9 @@ def create_app():  # noqa: C901
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
 
+            fresh_task = await orchestrator.task_status(task_id=task.task_id)
+            if _is_cancelled(fresh_task):
+                raise HTTPException(status_code=409, detail=_cancelled_detail())
             task_result = await orchestrator.task_result(task_id=task.task_id)
             if task_result is None:
                 raise HTTPException(
@@ -1461,15 +1471,43 @@ def create_app():  # noqa: C901
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
         except TaskNotFoundError:
             raise HTTPException(status_code=404, detail="Task not found.")
-        return TaskStatusResponse(
-            task_id=task.task_id,
-            task_type=task.task_type,
-            task_status=ConversionStatus(task.task_status.value),
-            task_position=task_queue_position,
-            task_meta=task.processing_meta,
-            error_message=task.error_message,
-            failure=task.failure,
-        )
+        return _serve_status_response(task, task_queue_position)
+
+    # Cancel a queued task
+    @app.post(
+        "/v1/tasks/{task_id}/cancel",
+        tags=["tasks"],
+        response_model=TaskStatusResponse,
+    )
+    async def cancel_queued_task(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+        task_id: str,
+        x_tenant_id: Annotated[
+            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
+        ] = None,
+    ):
+        tenant_id = _get_tenant_id_from_header(x_tenant_id)
+        try:
+            task = await orchestrator.task_status(task_id=task_id)
+            _assert_task_tenant(task, tenant_id)
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found.")
+        try:
+            cancelled = await orchestrator.cancel_queued_task(task_id)
+        except TaskNotFoundError:
+            raise HTTPException(status_code=404, detail="Task not found.")
+        except TaskCancellationConflictError as exc:
+            raise HTTPException(
+                status_code=409, detail=_cancel_conflict_detail(exc.reason)
+            )
+        except NotImplementedError:
+            raise HTTPException(
+                status_code=501,
+                detail="Queued task cancellation is not supported by this orchestrator.",
+            )
+        task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
+        return _serve_status_response(cancelled, task_queue_position)
 
     # Task status websocket
     @app.websocket(
@@ -1525,15 +1563,7 @@ def create_app():  # noqa: C901
 
         try:
             task_queue_position = await orchestrator.get_queue_position(task_id=task_id)
-            task_response = TaskStatusResponse(
-                task_id=task.task_id,
-                task_type=task.task_type,
-                task_status=ConversionStatus(task.task_status.value),
-                task_position=task_queue_position,
-                task_meta=task.processing_meta,
-                error_message=task.error_message,
-                failure=task.failure,
-            )
+            task_response = _serve_status_response(task, task_queue_position)
             await websocket.send_text(
                 WebsocketMessage(
                     message=MessageKind.CONNECTION, task=task_response
@@ -1547,15 +1577,7 @@ def create_app():  # noqa: C901
                 task_queue_position = await orchestrator.get_queue_position(
                     task_id=task_id
                 )
-                task_response = TaskStatusResponse(
-                    task_id=task.task_id,
-                    task_type=task.task_type,
-                    task_status=ConversionStatus(task.task_status.value),
-                    task_position=task_queue_position,
-                    task_meta=task.processing_meta,
-                    error_message=task.error_message,
-                    failure=task.failure,
-                )
+                task_response = _serve_status_response(task, task_queue_position)
                 await websocket.send_text(
                     WebsocketMessage(
                         message=MessageKind.UPDATE, task=task_response
@@ -1621,6 +1643,8 @@ def create_app():  # noqa: C901
         try:
             task = await orchestrator.task_status(task_id=task_id)
             _assert_task_tenant(task, tenant_id)
+            if _is_cancelled(task):
+                raise HTTPException(status_code=409, detail=_cancelled_detail())
             outcome = await orchestrator.task_outcome(task_id=task_id)
             if outcome is None:
                 raise HTTPException(

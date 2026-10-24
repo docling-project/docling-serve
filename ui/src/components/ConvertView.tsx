@@ -1,6 +1,7 @@
 import {
   type ConvertDocumentResponse,
   DoclingHttpError,
+  DoclingTaskCancelledError,
   type PresignedUrlConvertResponse,
   type TaskStatusResponse,
 } from "@docling/docling-client";
@@ -47,6 +48,7 @@ type RunState =
   | { phase: "idle" }
   | { phase: "running"; status?: TaskStatusResponse }
   | { phase: "done"; outcome: ConversionOutcome; formats: string[] }
+  | { phase: "cancelled" }
   | { phase: "error"; message: string };
 
 interface Props {
@@ -96,27 +98,42 @@ export function ConvertView({ capabilities, fields }: Props) {
         last = status;
         setRun({ phase: "running", status });
       }
+      if (last.task_status === "cancelled") {
+        setRun({ phase: "cancelled" });
+        return;
+      }
       if (last.task_status === "failure") {
         throw new Error(last.failure?.message ?? last.error_message ?? "The conversion failed.");
       }
 
       let outcome: ConversionOutcome;
       if (target === "zip") {
-        const result = await client.getBinaryResult(job.taskId, { signal: controller.signal });
+        const result = await client.getBinaryResult(job.taskId, {
+          signal: controller.signal,
+          lastStatus: last,
+        });
         outcome = fromZip(result, source.kind === "file" ? source.file.name : source.url);
       } else if (target === "presigned_url") {
         const result = await client.getRawResult<PresignedUrlConvertResponse>(job.taskId, {
           signal: controller.signal,
+          lastStatus: last,
         });
         outcome = fromPresigned(result);
       } else {
-        const result = await client.getResult(job.taskId, { signal: controller.signal });
+        const result = await client.getResult(job.taskId, {
+          signal: controller.signal,
+          lastStatus: last,
+        });
         outcome = fromInBody(result as ConvertDocumentResponse);
       }
       setRun({ phase: "done", outcome, formats });
     } catch (error) {
       if (controller.signal.aborted) {
         setRun({ phase: "idle" });
+        return;
+      }
+      if (error instanceof DoclingTaskCancelledError) {
+        setRun({ phase: "cancelled" });
         return;
       }
       setRun({ phase: "error", message: errorMessage(error) });
@@ -222,6 +239,11 @@ export function ConvertView({ capabilities, fields }: Props) {
             />
           )}
           {run.phase === "running" && <Progress status={run.status} />}
+          {run.phase === "cancelled" && (
+            <Alert>
+              <AlertTitle>Task cancelled</AlertTitle>
+            </Alert>
+          )}
           {run.phase === "error" && (
             <Alert variant="destructive">
               <AlertTitle>Conversion failed</AlertTitle>
