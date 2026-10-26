@@ -540,6 +540,15 @@ def validate_chunk_request(
             detail="Callbacks are disabled by server policy.",
         )
 
+    if len(request.sources) > policy.max_sources_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"Too many sources: {len(request.sources)} exceeds the "
+                f"maximum of {policy.max_sources_per_request}."
+            ),
+        )
+
     if isinstance(request.target, PresignedUrlTarget):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

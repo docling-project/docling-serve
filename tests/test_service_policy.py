@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
+from docling.datamodel.service.chunking import HybridChunkerOptions
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     AzureBlobSourceRequest,
@@ -14,6 +15,7 @@ from docling.datamodel.service.requests import (
     GoogleDriveSourceRequest,
     HttpSourceRequest,
     S3SourceRequest,
+    make_request_model,
 )
 from docling.datamodel.service.targets import (
     AzureBlobTarget,
@@ -36,6 +38,7 @@ from docling_serve.policy import (
     normalize_convert_options,
     normalize_request,
     validate_batch_convert_request,
+    validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
     validate_source_target_pairing,
@@ -268,6 +271,24 @@ def test_validate_convert_request_rejects_too_many_sources():
 
     with pytest.raises(HTTPException) as exc_info:
         validate_convert_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "Too many sources" in exc_info.value.detail
+
+
+def test_validate_chunk_request_rejects_too_many_sources():
+    policy = build_service_policy(DoclingServeSettings(max_sources_per_request=2))
+    request = make_request_model(HybridChunkerOptions)(
+        sources=[
+            HttpSourceRequest(url="https://example.com/a.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/b.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/c.pdf", headers={}),
+        ],
+        chunking_options=HybridChunkerOptions(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_chunk_request(request, policy)
 
     assert exc_info.value.status_code == 422
     assert "Too many sources" in exc_info.value.detail
