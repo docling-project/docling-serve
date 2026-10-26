@@ -76,6 +76,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_SYNC_POLL_INTERVAL` | `2` | Number of seconds to sleep between polling the task status in the sync endpoints. |
 |  | `DOCLING_SERVE_MAX_SYNC_WAIT` | `120` | Max number of seconds a synchronous endpoint is waiting for the task completion. |
 |  | `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` | `True` | If enabled, the models for the default options will be loaded at boot. |
+|  | `DOCLING_SERVE_IDLE_UNLOAD_SECONDS` | `0` | Seconds without unfinished local jobs before releasing converter and allocator caches. `0` disables cleanup; positive values require the local engine. |
 |  | `DOCLING_SERVE_OPTIONS_CACHE_SIZE` | `2` | How many DocumentConveter objects (including their loaded models) to keep in the cache. |
 |  | `DOCLING_SERVE_QUEUE_MAX_SIZE` | | Size of the pages queue. Potentially so many pages opened at the same time. |
 |  | `DOCLING_SERVE_OCR_BATCH_SIZE` | | Batch size for the OCR stage. |
@@ -337,6 +338,14 @@ With `DOCLING_SERVE_ENABLE_UI=true` the server hosts a small web app at `/ui` fo
 - "Open in viewer" opens the [DocLang viewer](https://doclang.ai/viewer/) in a new window and sends it the `.dclx` archive with `postMessage`, since zip and inline results have no URL the viewer could fetch. The viewer page is opened with `?source=opener`, answers `{type: "doclang-viewer:ready"}` to `window.opener` when it receives `{type: "doclang-viewer:ping"}`, and then receives `{type: "doclang-viewer:open", name, mimeType, buffer}` with the archive as an `ArrayBuffer`.
 - The UI requests page images (`include_page_images`) and the `referenced` image mode by default, so the `.dclx` archive contains the page and picture images the viewer displays.
 - With presigned URLs, downloads are plain links, but in-browser previews fetch the files from object storage. Allow the UI origin in the bucket CORS rules (`GET` with any header) for previews to work; otherwise the UI falls back to download buttons.
+
+### Idle model unloading
+
+Set `DOCLING_SERVE_IDLE_UNLOAD_SECONDS=300` (or `idle_unload_seconds: 300` in the config file) to release cached models after five idle minutes. The default `0` disables this feature. The timeout must be finite and nonnegative; positive values require the local engine because RQ and Ray models live in separate workers.
+
+The timer starts after boot warm-up and resets when the last queued or running job finishes. Health probes and result polling do not reset it. Cleanup waits for all jobs, clears converter and chunker caches once per idle period, and logs RSS before and after. The next job loads its models normally; readiness stays available and downloaded model files are kept.
+
+Cleanup collects Python cycles, releases already initialized PyTorch device caches, and asks the active allocator to return unused pages (mimalloc, glibc or macOS, where supported). RSS reduction depends on the allocator and platform, including mimalloc's thread-owned heaps. Live references, retained results, Python arenas and device contexts can keep memory resident; returning to the startup footprint is not guaranteed. Failed cleanup stages are logged and retried after another interval.
 
 ### Telemetry
 
