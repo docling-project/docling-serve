@@ -1,3 +1,19 @@
+## [v1.38.2](https://github.com/docling-project/docling-serve/releases/tag/v1.38.2) - 2026-10-27
+
+### Fix
+
+* Widen dependency ranges to allow latest versions ([#746](https://github.com/docling-project/docling-serve/issues/746)) ([`b063079`](https://github.com/docling-project/docling-serve/commit/b0630797f4c3d7485eabc6ad4e8cd7ebbb38e4c3))
+* Enforce max_sources_per_request on the chunk endpoints ([#744](https://github.com/docling-project/docling-serve/issues/744)) ([`4b0bd7b`](https://github.com/docling-project/docling-serve/commit/4b0bd7b55d3a5e6c2146d3bcb70271dfa702d20c))
+
+### Docling libraries included in this release:
+- docling-core 2.104.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.9.1
+- docling-mcp 3.3.0
+- docling-parse 7.23.0
+- docling-serve 1.38.2
+- docling-slim 2.142.1
+
 ## [v1.38.1](https://github.com/docling-project/docling-serve/releases/tag/v1.38.1) - 2026-10-23
 
 ### Fix
