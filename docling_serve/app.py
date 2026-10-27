@@ -345,6 +345,11 @@ def create_app():  # noqa: C901
         if docling_serve_settings.eng_kind == AsyncEngine.RQ
         else None
     )
+    rq_queue_names = (
+        docling_serve_settings.eng_rq_queue_names
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ
+        else None
+    )
 
     # Get Ray redis_manager if using Ray engine
     ray_redis_manager = None
@@ -363,6 +368,7 @@ def create_app():  # noqa: C901
         enable_prometheus=docling_serve_settings.otel_enable_prometheus,
         enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
         redis_url=redis_url,
+        rq_queue_names=rq_queue_names,
         metrics_port=docling_serve_settings.metrics_port,
         ray_redis_manager=ray_redis_manager,
         ray_metrics_refresh_interval=docling_serve_settings.eng_ray_tenant_metrics_refresh_interval,

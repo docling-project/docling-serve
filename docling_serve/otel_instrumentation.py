@@ -69,6 +69,7 @@ def setup_otel_instrumentation(
     enable_prometheus: bool = True,
     enable_otlp_metrics: bool = False,
     redis_url: str | None = None,
+    rq_queue_names: list[str] | None = None,
     metrics_port: int | None = None,
     ray_redis_manager=None,
     ray_metrics_refresh_interval: float = 30.0,
@@ -84,6 +85,7 @@ def setup_otel_instrumentation(
         enable_prometheus: Enable Prometheus metrics export
         enable_otlp_metrics: Enable OTLP metrics export (for OTEL collector)
         redis_url: Redis URL for RQ metrics (if using RQ engine)
+        rq_queue_names: RQ queues to always report metrics for, even when empty
         metrics_port: If set, start a separate HTTP server on this port for /metrics
         ray_redis_manager: RedisStateManager instance for Ray metrics (if using Ray engine)
         ray_metrics_refresh_interval: Seconds between Ray tenant metrics refreshes
@@ -146,7 +148,7 @@ def setup_otel_instrumentation(
     if redis_url and enable_prometheus:
         logger.info(f"Registering RQ metrics collector for Redis at {redis_url}")
         connection = Redis.from_url(redis_url)
-        REGISTRY.register(RQCollector(connection))
+        REGISTRY.register(RQCollector(connection, queue_names=rq_queue_names or []))
 
     # Register Ray metrics if RedisStateManager is provided
     if ray_redis_manager and enable_prometheus:
