@@ -761,3 +761,39 @@ async def test_convert_source_accepts_file_when_file_excluded_from_allowed_sourc
 
     sources = fake_orchestrator.enqueued[0]["sources"]
     assert getattr(sources[0], "kind", None) == "file"
+
+
+@pytest.fixture
+def vlm_only_app(fake_orchestrator, monkeypatch):
+    from docling_serve import app as app_module
+
+    del fake_orchestrator
+    monkeypatch.setattr(app_module.docling_serve_settings, "allowed_pipelines", ["vlm"])
+    monkeypatch.setattr(app_module.docling_serve_settings, "default_pipeline", "vlm")
+    with patch.object(app_module, "setup_otel_instrumentation"):
+        return app_module.create_app()
+
+
+@pytest.mark.asyncio
+async def test_convert_rejects_disallowed_pipeline(vlm_only_app, fake_orchestrator):
+    async with AsyncClient(
+        transport=ASGITransport(app=vlm_only_app), base_url="http://app.io"
+    ) as client:
+        json_response = await client.post(
+            "/v1/convert/source/async",
+            json={
+                "options": {"pipeline": "standard"},
+                "sources": [{"kind": "http", "url": "https://example.com/a.pdf"}],
+                "target": {"kind": "inbody"},
+            },
+        )
+        form_response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("a.pdf", b"%PDF-1.4", "application/pdf")},
+            data={"pipeline": "standard"},
+        )
+
+    for response in (json_response, form_response):
+        assert response.status_code == 422, response.text
+        assert "pipeline 'standard' is not allowed" in response.text
+    assert fake_orchestrator.enqueued == []
