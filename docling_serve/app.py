@@ -92,6 +92,7 @@ from docling_jobkit.datamodel.stored_outcome import (
     StoredSuccessOutcome,
 )
 from docling_jobkit.datamodel.task import Task, TaskSource
+from docling_jobkit.datamodel.task_meta import TaskStatus
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -678,16 +679,31 @@ def create_app():  # noqa: C901
             )
             raise TaskNotFoundError()
 
-    async def _wait_task_complete(orchestrator: BaseOrchestrator, task_id: str) -> bool:
+    async def _wait_task_complete(
+        orchestrator: BaseOrchestrator, task_id: str
+    ) -> Task | None:
         start_time = time.monotonic()
         while True:
             task = await orchestrator.task_status(task_id=task_id)
             if task.is_completed():
-                return True
+                return task
             await asyncio.sleep(docling_serve_settings.sync_poll_interval)
             elapsed_time = time.monotonic() - start_time
             if elapsed_time > docling_serve_settings.max_sync_wait:
-                return False
+                return None
+
+    def _check_task_outcome(task: Task, completed: Task | None) -> None:
+        if completed is None:
+            # TODO: abort task!
+            raise HTTPException(
+                status_code=504,
+                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
+            )
+        if completed.task_status == TaskStatus.FAILURE:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Conversion failed: {completed.error_message or 'unknown error'}",
+            )
 
     def _prepare_convert_request(
         request: ConvertSourcesRequest,
@@ -896,13 +912,7 @@ def create_app():  # noqa: C901
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
         )
-
-        if not completed:
-            # TODO: abort task!
-            raise HTTPException(
-                status_code=504,
-                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
-            )
+        _check_task_outcome(task, completed)
 
         task_result = await orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
@@ -982,13 +992,7 @@ def create_app():  # noqa: C901
         completed = await _wait_task_complete(
             orchestrator=orchestrator, task_id=task.task_id
         )
-
-        if not completed:
-            # TODO: abort task!
-            raise HTTPException(
-                status_code=504,
-                detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
-            )
+        _check_task_outcome(task, completed)
 
         task_result = await orchestrator.task_result(task_id=task.task_id)
         if task_result is None:
@@ -1316,13 +1320,7 @@ def create_app():  # noqa: C901
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id
             )
-
-            if not completed:
-                # TODO: abort task!
-                raise HTTPException(
-                    status_code=504,
-                    detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
-                )
+            _check_task_outcome(task, completed)
 
             task_result = await orchestrator.task_result(task_id=task.task_id)
             if task_result is None:
@@ -1416,13 +1414,7 @@ def create_app():  # noqa: C901
             completed = await _wait_task_complete(
                 orchestrator=orchestrator, task_id=task.task_id
             )
-
-            if not completed:
-                # TODO: abort task!
-                raise HTTPException(
-                    status_code=504,
-                    detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
-                )
+            _check_task_outcome(task, completed)
 
             task_result = await orchestrator.task_result(task_id=task.task_id)
             if task_result is None:
