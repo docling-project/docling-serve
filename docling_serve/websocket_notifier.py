@@ -2,7 +2,6 @@ import logging
 
 from fastapi import WebSocket
 
-from docling.datamodel.base_models import ConversionStatus
 from docling.datamodel.service.responses import (
     MessageKind,
     TaskStatusResponse,
@@ -59,7 +58,7 @@ class WebsocketNotifier(BaseNotifier):
             msg = TaskStatusResponse(
                 task_id=task.task_id,
                 task_type=task.task_type,
-                task_status=ConversionStatus(task.task_status),
+                task_status=task.task_status,
                 task_position=task_queue_position,
                 task_meta=task.processing_meta,
                 error_message=task.error_message,

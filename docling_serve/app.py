@@ -40,7 +40,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import create_model
 from scalar_fastapi import get_scalar_api_reference
 
-from docling.datamodel.base_models import ConversionStatus, DocumentStream
+from docling.datamodel.base_models import DocumentStream
 from docling.datamodel.service.callbacks import (
     CallbackSpec,
     ProgressCallbackRequest,
@@ -80,7 +80,7 @@ from docling.datamodel.service.targets import (
     PresignedUrlTarget,
     ZipTarget,
 )
-from docling.datamodel.service.tasks import TaskType
+from docling.datamodel.service.tasks import TaskStatus, TaskType
 from docling_core.types.doc.common.constants import FIRST_SUPPORTED_MINOR
 from docling_jobkit.connectors.errors import (
     SourceConnectorConfigError,
@@ -92,7 +92,6 @@ from docling_jobkit.datamodel.stored_outcome import (
     StoredSuccessOutcome,
 )
 from docling_jobkit.datamodel.task import Task, TaskSource
-from docling_jobkit.datamodel.task_meta import TaskStatus as JobkitTaskStatus
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     CancellationConflictReason,
@@ -683,7 +682,7 @@ def create_app():  # noqa: C901
 
     def _is_cancelled(task: Task) -> bool:
         """Whether a Jobkit task reached terminal CANCELLED."""
-        return task.task_status == JobkitTaskStatus.CANCELLED
+        return task.task_status == TaskStatus.CANCELLED
 
     def _serve_status_response(
         task: Task, task_queue_position: int | None
@@ -692,7 +691,7 @@ def create_app():  # noqa: C901
         return TaskStatusResponse(
             task_id=task.task_id,
             task_type=task.task_type,
-            task_status=ConversionStatus(task.task_status),
+            task_status=task.task_status,
             task_position=task_queue_position,
             task_meta=task.processing_meta,
             error_message=task.error_message,
