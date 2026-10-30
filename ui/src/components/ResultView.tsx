@@ -28,6 +28,7 @@ const FORMAT_LABELS: Record<string, string> = {
   md: "Markdown",
   html: "HTML",
   json: "JSON",
+  chunks: "Chunks",
   doclang: "DocLang",
   doctags: "DocTags",
   text: "Text",
@@ -39,7 +40,7 @@ const FORMAT_LABELS: Record<string, string> = {
 const DOCUMENT_TAB = "__document__";
 
 // Viewer tab order: the dclx archive first.
-const FORMAT_ORDER = ["dclx", "md", "html", "json", "doclang", "doctags", "text", "yaml", "latex", "vtt"];
+const FORMAT_ORDER = ["dclx", "md", "html", "json", "chunks", "doclang", "doctags", "text", "yaml", "latex", "vtt"];
 
 const orderOf = (format: string) => {
   const index = FORMAT_ORDER.indexOf(format);
