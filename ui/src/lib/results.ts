@@ -55,6 +55,7 @@ const EXTENSION_FORMATS: Record<string, string> = {
   doclang: "doclang",
   dclg: "doclang",
   dclx: "dclx",
+  jsonl: "chunks",
   vtt: "vtt",
   tex: "latex",
 };
@@ -68,6 +69,7 @@ const FORMAT_MIME: Record<string, string> = {
   doctags: "text/plain",
   doclang: "application/xml",
   dclx: "application/zip",
+  chunks: "application/jsonl",
   vtt: "text/vtt",
   latex: "application/x-tex",
 };
@@ -80,6 +82,7 @@ const ARTIFACT_FORMATS: Record<string, string> = {
   doctags: "doctags",
   doclang: "doclang",
   dclx: "dclx",
+  chunks: "chunks",
   resource_bundle: "bundle",
 };
 
@@ -94,7 +97,9 @@ export const decodeText = (bytes: Uint8Array) => TEXT_DECODER.decode(bytes);
 function stem(filename: string): string {
   const base = filename.split("/").pop() ?? filename;
   const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(0, dot) : base;
+  const name = dot > 0 ? base.slice(0, dot) : base;
+  // Chunks are written as `{stem}.chunks.jsonl`: group them with the document.
+  return name.endsWith(".chunks") ? name.slice(0, -".chunks".length) : name;
 }
 
 function extensionOf(path: string): string {
