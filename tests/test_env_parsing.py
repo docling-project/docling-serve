@@ -74,6 +74,15 @@ def test_default_values():
     assert settings.custom_chart_extraction_presets == {}
     assert settings.allowed_chart_extraction_engines is None
     assert settings.debug_error_details is False
+    assert settings.enable_task_listing is False
+
+
+def test_task_listing_from_env(monkeypatch):
+    monkeypatch.setenv("DOCLING_SERVE_ENABLE_TASK_LISTING", "true")
+
+    settings = DoclingServeSettings()
+
+    assert settings.enable_task_listing is True
 
 
 def test_debug_error_details_from_env(monkeypatch):

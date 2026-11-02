@@ -704,7 +704,87 @@ while task["task_status"] not in ("success", "failure"):
     time.sleep(5)
 ```
 
-<details>
+</details>
+
+### List active tasks
+
+Task listing is opt-in. Set `DOCLING_SERVE_ENABLE_TASK_LISTING=true` to expose
+`GET /v1/tasks`; the default is `false`, in which case the route is not
+registered (`404`) and is absent from the OpenAPI schema. The capabilities
+document reports the configured availability as `features.task_listing`.
+
+Discover the calling tenant's queued or running tasks without knowing their IDs:
+
+- `GET /v1/tasks?limit=20&offset=0`
+
+`limit` defaults to `20` and must be `1..100`; `offset` defaults to `0` and
+must be `>=0`. Values outside these bounds are rejected with `422`; they are
+never clamped. There is no status selector, queue position, total, cursor, or
+payload/result/options surface, and no tenant selector query parameter: the
+tenant always comes from the request header.
+
+```sh
+curl 'http://localhost:5001/v1/tasks?limit=20&offset=0' \
+  -H 'X-Tenant-Id: tenant-a'
+```
+
+The endpoint uses the same shared authentication as the other routes. When
+`DOCLING_SERVE_API_KEY` is set, add its `X-Api-Key` header; a missing or wrong
+key is rejected with `401` before the backend is consulted. When no key is
+configured, the endpoint permits anonymous callers. Enabling listing does not
+create a new mandatory key of its own.
+
+The tenant header name is configurable
+(`DOCLING_SERVE_ENG_RAY_TENANT_ID_HEADER`, default `X-Tenant-Id`). An absent
+header means the `default` tenant; a custom value selects that tenant's tasks.
+The header is the existing routing hint shared with the convert and status
+endpoints, not a stronger identity or security-isolation boundary. Enabling
+listing can make task IDs and result identifiers discoverable to any caller
+that can reach the endpoint, so protect it with the shared API key or network
+policy.
+
+A successful response is a compact page with only identity fields:
+
+```jsonc
+{
+  "items": [
+    {
+      "task_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "task_type": "convert",      // convert|chunk
+      "task_status": "pending",    // pending|started only
+      "created_at": "2026-01-01T00:00:20Z"
+    }
+  ],
+  "has_more": false  // no more entries remain beyond this page
+}
+```
+
+Only `pending` and `started` tasks are listed; terminal `success`/`failure`
+tasks never appear. Entries are ordered newest first with ascending `task_id`
+ties, and the tenant filter runs before pagination in every backend. Because
+listing is a snapshot, concurrent enqueue or completion between two pages can
+shift offsets; clients polling pages should tolerate drift rather than
+assuming a stable total.
+
+The Local engine lists this process's in-flight tasks only, so a peer process
+that enqueued the same tenant's work is not visible here. The RQ and Ray engines
+list the shared queue and active set through a derived index namespaced by
+backend, version and tenant. The first enabled listing after startup may build
+that index once from the existing queued and active tasks. After it is ready,
+`limit` and `offset` count the tenant's matching tasks, not raw index entries:
+a first page reads a bounded window and batch metadata reads, while a non-zero
+`offset` also reads the compact index rows before it, so its cost grows with
+`offset + limit` and not with other tenants' work or the source payload size.
+Removing stale entries can read further within that tenant's index. Stale,
+terminal or missing entries are omitted without consuming the requested
+offset, and backend failures return `5xx` responses rather than successful
+empty pages. Enable listing only after every server and worker instance runs a
+listing-capable Jobkit version; mixed older producers are not supported. A
+backend that does not implement listing returns `501`.
+
+This release requires a Jobkit version that provides the opt-in task-listing
+configuration and index. The current `docling-jobkit>=3.9.1,<4` dependency floor
+predates that configuration.
 
 ### Subscribe with websockets
 

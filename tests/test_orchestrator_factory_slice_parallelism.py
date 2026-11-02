@@ -25,6 +25,17 @@ class _FakeRayOrchestrator:
         self.converter_manager = converter_manager
 
 
+class _FakeLocalOrchestrator:
+    def __init__(self, config, converter_manager):
+        self.config = config
+        self.converter_manager = converter_manager
+
+
+class _FakeRQOrchestrator:
+    def __init__(self, config):
+        self.config = config
+
+
 def _build_ray_orchestrator(
     monkeypatch, *, max_concurrent_tasks, max_page_slice_parallelism
 ):
@@ -228,3 +239,67 @@ def test_ray_converter_timeout_settings_default_to_jobkit_defaults(monkeypatch):
     assert orchestrator.config.converter_request_timeout is None
     assert orchestrator.config.recycle_converter_on_abandoned_conversion is True
     assert orchestrator.config.abandoned_conversion_grace_s is None
+
+
+def test_ray_config_receives_task_listing_flag(monkeypatch):
+    monkeypatch.setattr(
+        factory_module.docling_serve_settings, "enable_task_listing", True
+    )
+
+    orchestrator = _build_ray_orchestrator(
+        monkeypatch,
+        max_concurrent_tasks=5,
+        max_page_slice_parallelism=None,
+    )
+
+    assert orchestrator.config.enable_task_listing is True
+
+
+def test_local_config_receives_task_listing_flag(monkeypatch):
+    factory_module.get_async_orchestrator.cache_clear()
+    settings = factory_module.docling_serve_settings
+    monkeypatch.setattr(settings, "eng_kind", AsyncEngine.LOCAL)
+    monkeypatch.setattr(settings, "enable_task_listing", True)
+
+    with (
+        patch(
+            "docling_jobkit.convert.manager.DoclingConverterManagerConfig",
+            _CapturedConverterManagerConfig,
+        ),
+        patch(
+            "docling_jobkit.convert.manager.DoclingConverterManager",
+            _FakeConverterManager,
+        ),
+        patch(
+            "docling_jobkit.orchestrators.local.orchestrator.LocalOrchestratorConfig",
+            _CapturedConfig,
+        ),
+        patch(
+            "docling_jobkit.orchestrators.local.orchestrator.LocalOrchestrator",
+            _FakeLocalOrchestrator,
+        ),
+    ):
+        orchestrator = factory_module.get_async_orchestrator()
+
+    assert orchestrator.config.enable_task_listing is True
+
+
+def test_rq_config_receives_task_listing_flag(monkeypatch):
+    factory_module.get_async_orchestrator.cache_clear()
+    settings = factory_module.docling_serve_settings
+    monkeypatch.setattr(settings, "eng_kind", AsyncEngine.RQ)
+    monkeypatch.setattr(settings, "enable_task_listing", True)
+
+    with (
+        patch(
+            "docling_jobkit.orchestrators.rq.orchestrator.RQOrchestratorConfig",
+            _CapturedConfig,
+        ),
+        patch(
+            "docling_jobkit.orchestrators.rq.orchestrator.RQOrchestrator",
+            _FakeRQOrchestrator,
+        ),
+    ):
+        orchestrator = factory_module.get_async_orchestrator()
+
+    assert orchestrator.config.enable_task_listing is True
