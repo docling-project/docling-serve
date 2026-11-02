@@ -8,6 +8,7 @@ model downloads and converter startup; OTEL setup is patched.
 
 import datetime
 import json
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -30,7 +31,8 @@ from docling_jobkit.orchestrators.local.orchestrator import (
 from docling_jobkit.orchestrators.rq.orchestrator import _decode_stored_task
 
 from docling_serve import app as app_module
-from docling_serve.settings import docling_serve_settings
+from docling_serve.capabilities import build_capabilities
+from docling_serve.settings import DoclingServeSettings, docling_serve_settings
 
 _T0 = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
 
@@ -62,7 +64,7 @@ def _make_task(
 
 def _local_orchestrator(tmp_path, tasks: dict) -> LocalOrchestrator:
     orchestrator = LocalOrchestrator(
-        config=LocalOrchestratorConfig(scratch_dir=tmp_path),
+        config=LocalOrchestratorConfig(scratch_dir=tmp_path, enable_task_listing=True),
         converter_manager=None,  # type: ignore[arg-type]  # listing never touches converters
     )
     orchestrator.tasks = tasks
@@ -77,9 +79,18 @@ def _local_orchestrator(tmp_path, tasks: dict) -> LocalOrchestrator:
     return orchestrator
 
 
-def _make_client(monkeypatch, *, orchestrator, api_key: str = "") -> TestClient:
+def _make_client(
+    monkeypatch,
+    *,
+    orchestrator,
+    api_key: str = "",
+    enable_task_listing: bool = True,
+) -> TestClient:
     """Build the app without lifespan or real OTEL, with a stubbed orchestrator."""
     monkeypatch.setattr(docling_serve_settings, "api_key", api_key)
+    monkeypatch.setattr(
+        docling_serve_settings, "enable_task_listing", enable_task_listing
+    )
     monkeypatch.setattr(app_module, "get_async_orchestrator", lambda: orchestrator)
     with patch.object(app_module, "setup_otel_instrumentation"):
         return TestClient(app_module.create_app(), raise_server_exceptions=False)
@@ -94,6 +105,44 @@ def _stub_orchestrator(page: ActiveTaskPage | None = None):
 
 def _tenant_header() -> str:
     return docling_serve_settings.eng_ray_tenant_id_header
+
+
+# ---------------------------------------------------------------------------
+# Opt-in registration and capability reporting
+# ---------------------------------------------------------------------------
+
+
+def test_listing_is_disabled_by_default(monkeypatch) -> None:
+    stub = _stub_orchestrator(ActiveTaskPage(items=[], has_more=False))
+    client = _make_client(monkeypatch, orchestrator=stub, enable_task_listing=False)
+
+    response = client.get("/v1/tasks")
+
+    assert response.status_code == 404
+    stub.list_tasks.assert_not_awaited()
+    assert "/v1/tasks" not in client.get("/openapi.json").json()["paths"]
+
+
+def test_capabilities_report_the_configured_listing_availability() -> None:
+    policy = SimpleNamespace(
+        artifact_storage_enabled=False,
+        allowed_source_types=frozenset(),
+        allowed_target_types=frozenset(),
+        allowed_image_export_modes=frozenset(),
+    )
+    disabled = build_capabilities(
+        DoclingServeSettings(enable_task_listing=False),
+        policy,
+        manager=SimpleNamespace(),
+    )
+    enabled = build_capabilities(
+        DoclingServeSettings(enable_task_listing=True),
+        policy,
+        manager=SimpleNamespace(),
+    )
+
+    assert disabled.features.task_listing is False
+    assert enabled.features.task_listing is True
 
 
 # ---------------------------------------------------------------------------
@@ -443,6 +492,18 @@ def test_backpressure_surfaces_as_503(monkeypatch) -> None:
     response = client.get("/v1/tasks")
 
     assert response.status_code == 503
+
+
+def test_unsupported_backend_surfaces_as_501(monkeypatch) -> None:
+    stub = AsyncMock()
+    stub.list_tasks.side_effect = NotImplementedError(
+        "CustomOrchestrator does not support listing active tasks"
+    )
+    client = _make_client(monkeypatch, orchestrator=stub)
+
+    response = client.get("/v1/tasks")
+
+    assert response.status_code == 501
 
 
 def test_openapi_declares_response_query_and_header(monkeypatch) -> None:

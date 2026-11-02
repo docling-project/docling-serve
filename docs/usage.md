@@ -708,6 +708,11 @@ while task["task_status"] not in ("success", "failure"):
 
 ### List active tasks
 
+Task listing is opt-in. Set `DOCLING_SERVE_ENABLE_TASK_LISTING=true` to expose
+`GET /v1/tasks`; the default is `false`, in which case the route is not
+registered (`404`) and is absent from the OpenAPI schema. The capabilities
+document reports the configured availability as `features.task_listing`.
+
 Discover the calling tenant's queued or running tasks without knowing their IDs:
 
 - `GET /v1/tasks?limit=20&offset=0`
@@ -723,16 +728,20 @@ curl 'http://localhost:5001/v1/tasks?limit=20&offset=0' \
   -H 'X-Tenant-Id: tenant-a'
 ```
 
-When authentication is enabled (`DOCLING_SERVE_API_KEY`), add the same shared
-`X-Api-Key` header used by the other routes; a missing or wrong key is
-rejected with `401` before the backend is consulted. When no key is
-configured, the endpoint behaves like the other routes and needs no header.
+The endpoint uses the same shared authentication as the other routes. When
+`DOCLING_SERVE_API_KEY` is set, add its `X-Api-Key` header; a missing or wrong
+key is rejected with `401` before the backend is consulted. When no key is
+configured, the endpoint permits anonymous callers. Enabling listing does not
+create a new mandatory key of its own.
 
 The tenant header name is configurable
 (`DOCLING_SERVE_ENG_RAY_TENANT_ID_HEADER`, default `X-Tenant-Id`). An absent
 header means the `default` tenant; a custom value selects that tenant's tasks.
 The header is the existing routing hint shared with the convert and status
-endpoints, not a stronger identity or security-isolation boundary.
+endpoints, not a stronger identity or security-isolation boundary. Enabling
+listing can make task IDs and result identifiers discoverable to any caller
+that can reach the endpoint, so protect it with the shared API key or network
+policy.
 
 A successful response is a compact page with only identity fields:
 
@@ -757,20 +766,25 @@ listing is a snapshot, concurrent enqueue or completion between two pages can
 shift offsets; clients polling pages should tolerate drift rather than
 assuming a stable total.
 
-Backend visibility follows the orchestrator: the Local engine lists this
-process's in-flight tasks only, so a peer process that enqueued the same
-tenant's work is not visible here, while the RQ and Ray engines list the
-shared queue and active set. Backend failures return `5xx` responses rather than
-successful empty pages.
+The Local engine lists this process's in-flight tasks only, so a peer process
+that enqueued the same tenant's work is not visible here. The RQ and Ray engines
+list the shared queue and active set through a derived index namespaced by
+backend, version and tenant. The first enabled listing after startup may build
+that index once from the existing queued and active tasks. After it is ready,
+`limit` and `offset` count the tenant's matching tasks, not raw index entries:
+a first page reads a bounded window and batch metadata reads, while a non-zero
+`offset` also reads the compact index rows before it, so its cost grows with
+`offset + limit` and not with other tenants' work or the source payload size.
+Removing stale entries can read further within that tenant's index. Stale,
+terminal or missing entries are omitted without consuming the requested
+offset, and backend failures return `5xx` responses rather than successful
+empty pages. Enable listing only after every server and worker instance runs a
+listing-capable Jobkit version; mixed older producers are not supported. A
+backend that does not implement listing returns `501`.
 
-This endpoint requires a Jobkit build with active task listing support. The
-currently locked `docling-jobkit 3.8.2` does not include this capability. Until a
-release containing it is integrated, install the matching source checkout
-alongside the server, for example:
-
-```sh
-uv pip install --no-deps -e /path/to/docling-jobkit-checkout
-```
+This release requires a Jobkit version that provides the opt-in task-listing
+configuration and index. The current `docling-jobkit>=3.9.1,<4` dependency floor
+predates that configuration.
 
 ### Subscribe with websockets
 

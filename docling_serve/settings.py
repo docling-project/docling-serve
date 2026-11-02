@@ -120,6 +120,7 @@ class DoclingServeSettings(BaseSettings):
     enable_ui: bool = False
     enable_api_docs: bool = True
     enable_capabilities_endpoint: bool = True
+    enable_task_listing: bool = False
     api_host: str = "localhost"
     log_level: Optional[LogLevel] = None
     log_format: LogFormat = LogFormat.TEXT

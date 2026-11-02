@@ -1440,37 +1440,46 @@ def create_app():  # noqa: C901
             return response
 
     # Tenant-scoped active task list
-    @app.get(
-        "/v1/tasks",
-        tags=["tasks"],
-        response_model=ActiveTaskPage,
-    )
-    async def list_tasks(
-        auth: Annotated[AuthenticationResult, Depends(require_auth)],
-        orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
-        limit: Annotated[
-            int,
-            Query(
-                ge=1,
-                le=100,
-                description="Maximum number of active tasks to return (1..100).",
-            ),
-        ] = 20,
-        offset: Annotated[
-            int,
-            Query(
-                ge=0,
-                description="Number of active tasks to skip (offset pagination).",
-            ),
-        ] = 0,
-        x_tenant_id: Annotated[
-            str | None, Header(alias=docling_serve_settings.eng_ray_tenant_id_header)
-        ] = None,
-    ):
-        tenant_id = _get_tenant_id_from_header(x_tenant_id)
-        return await orchestrator.list_tasks(
-            tenant_id=tenant_id, limit=limit, offset=offset
+    if docling_serve_settings.enable_task_listing:
+
+        @app.get(
+            "/v1/tasks",
+            tags=["tasks"],
+            response_model=ActiveTaskPage,
         )
+        async def list_tasks(
+            auth: Annotated[AuthenticationResult, Depends(require_auth)],
+            orchestrator: Annotated[BaseOrchestrator, Depends(get_async_orchestrator)],
+            limit: Annotated[
+                int,
+                Query(
+                    ge=1,
+                    le=100,
+                    description="Maximum number of active tasks to return (1..100).",
+                ),
+            ] = 20,
+            offset: Annotated[
+                int,
+                Query(
+                    ge=0,
+                    description="Number of active tasks to skip (offset pagination).",
+                ),
+            ] = 0,
+            x_tenant_id: Annotated[
+                str | None,
+                Header(alias=docling_serve_settings.eng_ray_tenant_id_header),
+            ] = None,
+        ):
+            tenant_id = _get_tenant_id_from_header(x_tenant_id)
+            try:
+                return await orchestrator.list_tasks(
+                    tenant_id=tenant_id, limit=limit, offset=offset
+                )
+            except NotImplementedError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                    detail="Active task listing is not supported by this backend.",
+                ) from exc
 
     # Task status poll
     @app.get(
