@@ -256,12 +256,8 @@ def test_websocket_cancelled_is_terminal_and_closes(client: TestClient):
         second = json.loads(websocket.receive_text())
         assert second["task"]["task_status"] == "cancelled"
         assert first["task"]["task_id"] == "cancelled"
-        # The socket must be closed after the terminal update: an adversary
-        # that stays open must fail within the bound, not hang the suite.
-        # The third receive runs on an owned daemon worker; the main thread
-        # interrupts/closes before joining it, so a permanently blocked
-        # receive cannot stall executor teardown and no non-daemon thread
-        # lingers.
+        # Bound the third receive and close the socket if it remains blocked;
+        # the daemon worker cannot stall test teardown.
         outcome: dict[str, object] = {}
 
         def _blocked_receive() -> None:

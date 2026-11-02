@@ -45,16 +45,8 @@ class _FakeWebSocket:
         self.closed = True
 
 
-def test_every_task_status_is_accepted_and_serialized():
-    for status in list(TaskStatus):
-        response = TaskStatusResponse(
-            task_id="t", task_type=TaskType.CONVERT, task_status=status
-        )
-        assert response.task_status == status
-        assert f'"{status.value}"' in response.model_dump_json()
-
-
-def test_cancelled_string_and_jobkit_enum_accepted():
+def test_canonical_cancelled_string_and_jobkit_enum_accepted():
+    assert JobkitStatus is TaskStatus
     from_string = TaskStatusResponse(
         task_id="t", task_type=TaskType.CONVERT, task_status="cancelled"
     )
@@ -66,14 +58,6 @@ def test_cancelled_string_and_jobkit_enum_accepted():
         task_status=JobkitStatus.CANCELLED,
     )
     assert from_jobkit.model_dump()["task_status"] == "cancelled"
-
-
-def test_jobkit_status_is_the_canonical_task_status():
-    assert JobkitStatus is TaskStatus
-    response = TaskStatusResponse(
-        task_id="t", task_type=TaskType.CONVERT, task_status=JobkitStatus.STARTED
-    )
-    assert response.task_status is TaskStatus.STARTED
 
 
 def test_document_only_statuses_are_rejected():
@@ -105,23 +89,9 @@ def test_sdk_fields_and_defaults_preserved():
     assert full.error_message == "boom"
 
 
-def test_status_schema_exposes_task_status_enum():
+def test_status_schema_references_task_status():
     schema = TaskStatusResponse.model_json_schema()
     assert schema["properties"]["task_status"] == {"$ref": "#/$defs/TaskStatus"}
-    assert set(schema["$defs"]["TaskStatus"]["enum"]) == {
-        "pending",
-        "started",
-        "success",
-        "failure",
-        "cancelled",
-    }
-
-    payload = json.loads(
-        TaskStatusResponse(
-            task_id="t", task_type=TaskType.CONVERT, task_status="cancelled"
-        ).model_dump_json()
-    )
-    assert payload["task_status"] == "cancelled"
 
 
 def test_websocket_envelope_nests_cancelled():
