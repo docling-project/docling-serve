@@ -12,13 +12,28 @@ from fastapi import Depends, Form
 from fastapi.exceptions import RequestValidationError
 from pydantic import AnyUrl, BaseModel, TypeAdapter, ValidationError
 
+
+def _optional_version(name: str) -> str:
+    """Report the version of a distribution that an install may leave out.
+
+    ``docling-ibm-models`` and ``docling-parse`` are not declared by
+    docling-serve: they arrive through optional extras of docling-slim, and
+    ``models-local`` carries torch with it. The version banner is diagnostics,
+    so an install without one of them has to keep starting.
+    """
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return "not installed"
+
+
 DOCLING_VERSIONS = {
     "docling-serve": importlib.metadata.version("docling-serve"),
     "docling-jobkit": importlib.metadata.version("docling-jobkit"),
     "docling": importlib.metadata.version("docling-slim"),
     "docling-core": importlib.metadata.version("docling-core"),
-    "docling-ibm-models": importlib.metadata.version("docling-ibm-models"),
-    "docling-parse": importlib.metadata.version("docling-parse"),
+    "docling-ibm-models": _optional_version("docling-ibm-models"),
+    "docling-parse": _optional_version("docling-parse"),
     "python": f"{sys.implementation.cache_tag} ({platform.python_version()})",
     "plaform": platform.platform(),
 }
