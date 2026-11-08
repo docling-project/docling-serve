@@ -135,11 +135,16 @@ def _build_form_parameter(
     if is_pydantic_model(annotation):
         annotation = str
         form_default = (
-            None
-            if model_field.default is None
-            else json.dumps(model_field.default.model_dump(mode="json"))
+            ...
+            if model_field.is_required()
+            else (
+                None
+                if model_field.default is None
+                else json.dumps(model_field.default.model_dump(mode="json"))
+            )
         )
-        form_defaults[field_name] = form_default
+        if not model_field.is_required():
+            form_defaults[field_name] = form_default
         default = Form(
             form_default,
             description=description,
@@ -152,9 +157,14 @@ def _build_form_parameter(
     elif is_json_field(annotation):
         annotation = str
         form_default = (
-            None if model_field.default is None else json.dumps(model_field.default)
+            ...
+            if model_field.is_required()
+            else (
+                None if model_field.default is None else json.dumps(model_field.default)
+            )
         )
-        form_defaults[field_name] = form_default
+        if not model_field.is_required():
+            form_defaults[field_name] = form_default
         default = Form(
             form_default,
             description=description,
