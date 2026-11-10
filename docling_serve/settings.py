@@ -177,6 +177,9 @@ class DoclingServeSettings(BaseSettings):
     layout_batch_size: Optional[int] = None
     table_batch_size: Optional[int] = None
     batch_polling_interval_seconds: Optional[float] = None
+    # Remote OpenAI-compatible transcription server for audio and video inputs
+    # (docling ApiAsrOptions fields). Requires enable_remote_services.
+    asr_options: Optional[dict[str, Any]] = None
 
     sync_poll_interval: int = 2  # seconds
     max_sync_wait: int = 120  # 2 minutes
