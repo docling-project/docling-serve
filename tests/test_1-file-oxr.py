@@ -40,7 +40,9 @@ async def test_convert_oxr_file(async_client):
 
     assert response.status_code == 200, response.text
     data = response.json()
-    assert "document" in data, f"Response keys: {list(data.keys())}"
-    markdown = data["document"]["md_content"]
+    document = data.get("document")
+    assert document is not None, f"Response keys: {list(data.keys())}"
+    markdown = document.get("md_content")
+    assert markdown is not None, f"Document keys: {list(document.keys())}"
     assert "# JavaScript Code Example" in markdown
     assert "a^{2}+8=12" in markdown

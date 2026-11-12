@@ -6,9 +6,10 @@
   "service_url": "https://free-oxr.somark.ai/api/v1",
   "generated_at": "2026-11-13T05:18:00+08:00",
   "input": {
+    "repository": "docling-project/docling",
     "path": "tests/data/pdf/sources/code_and_formula.pdf",
     "sha256": "6cb63fba2ad42dd0e0afe6a26dcf3b3bff5a86919c4c06157c71c65ebc0fc9e6",
-    "license": "same repository (MIT test data)"
+    "license": "MIT test data of the docling repository"
   },
   "request": {
     "endpoint": "POST /parse/sync",
@@ -22,5 +23,6 @@
     "http_status": 200,
     "elapsed_seconds": 6.3
   },
-  "notes": "The response body was not edited. The source PDF has two pages, and so does the response."
+  "notes": "The response body was not edited. The source PDF has two pages, and so does the response.",
+  "related_pr": "docling-project/docling#5323"
 }
