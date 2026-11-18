@@ -2,18 +2,20 @@
 
 services:
   docling-serve:
-    image: ghcr.io/docling-project/docling-serve-rocm72:main
+    # Use -rocm:main (ROCm 6.3), -rocm72:main (ROCm 7.2), or -rocm101:main (ROCm 10.1.0)
+    image: ghcr.io/docling-project/docling-serve-rocm101:main
     container_name: docling-serve
     ports:
       - "5001:5001"
     environment:
       DOCLING_SERVE_ENABLE_UI: "true"
       ROCR_VISIBLE_DEVICES: "0" # https://rocm.docs.amd.com/en/latest/conceptual/gpu-isolation.html#rocr-visible-devices
-      ## This section is for compatibility with older cards
+      ## Recommended for unified APU memory architectures (e.g. Strix Halo / Strix Point)
+      HSA_ENABLE_SDMA: "0"
+      ## This section is for compatibility with older cards (do not set on native gfx1151/gfx1150)
       # HSA_OVERRIDE_GFX_VERSION: "11.0.0"
-      # HSA_ENABLE_SDMA: "0"
-      ## Enable experimental Flash/Mem-Efficient attention kernels on AMD GPU (aotriton).
-      TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
+      ## Enable experimental Flash/Mem-Efficient attention kernels on AMD GPU (aotriton) - do not enable on gfx1151/gfx1150
+      # TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri

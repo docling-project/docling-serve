@@ -102,6 +102,7 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 from docling_jobkit.orchestrators.rq.orchestrator import RQOrchestrator
 
+from docling_serve import _configure_sdpa
 from docling_serve.auth import APIKeyAuth, AuthenticationResult
 from docling_serve.capabilities import CapabilitiesResponse, build_capabilities
 from docling_serve.helper_functions import (
@@ -192,6 +193,7 @@ def _supervise_queue_processor(task: asyncio.Task, failed_event: asyncio.Event) 
 # Context manager to initialize and clean up the lifespan of the FastAPI app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _configure_sdpa()
     scratch_dir = get_scratch()
 
     orchestrator = get_async_orchestrator()

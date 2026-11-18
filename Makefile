@@ -86,6 +86,21 @@ docling-serve-rocm72-image: Containerfile ## Build docling-serve container image
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm72:$(TAG) ghcr.io/docling-project/docling-serve-rocm72:$(BRANCH_TAG)
 	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm72:$(TAG) quay.io/docling-project/docling-serve-rocm72:$(BRANCH_TAG)
 
+VALID_ROCM101_DEVICES := gfx1151 gfx1150 gfx1100 gfx1101 gfx1102 gfx942 gfx90a
+DEVICE ?= gfx1151
+
+.PHONY: docling-serve-rocm101-image
+docling-serve-rocm101-image: Containerfile ## Build docling-serve container image with ROCm 10.1.0 support (defaults to DEVICE=gfx1151)
+ifeq ($(filter $(DEVICE),$(VALID_ROCM101_DEVICES)),)
+	$(error Unsupported DEVICE='$(DEVICE)'. Supported devices are: $(VALID_ROCM101_DEVICES))
+endif
+	$(ECHO_PREFIX) printf "  %-12s Containerfile (DEVICE=$(DEVICE))\n" "[docling-serve with ROCm 10.1.0]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) build --load --build-arg "UV_SYNC_EXTRA_ARGS=--no-group pypi --group rocm101 --no-extra flash-attn" -f Containerfile --platform linux/amd64 -t ghcr.io/docling-project/docling-serve-rocm101:$(TAG) .
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm101:$(TAG) ghcr.io/docling-project/docling-serve-rocm101:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm101:$(TAG) ghcr.io/docling-project/docling-serve-rocm101-$(DEVICE):$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm101:$(TAG) quay.io/docling-project/docling-serve-rocm101:$(BRANCH_TAG)
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) tag ghcr.io/docling-project/docling-serve-rocm101:$(TAG) quay.io/docling-project/docling-serve-rocm101-$(DEVICE):$(BRANCH_TAG)
+
 .PHONY: action-lint
 action-lint: .action-lint ##      Lint GitHub Action workflows
 .action-lint: $(shell find .github -type f) | action-lint-file
@@ -201,3 +216,18 @@ run-docling-rocm72: ## Run the docling-serve container with ROCm 7.2 support and
 		-e TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 \
 		-e DOCLING_SERVE_ENABLE_UI=true \
 		ghcr.io/docling-project/docling-serve-rocm72:main
+
+.PHONY: run-docling-rocm101
+run-docling-rocm101: ## Run the docling-serve container with ROCm 10.1 support (defaults to DEVICE=gfx1151)
+	$(ECHO_PREFIX) printf "  %-12s Removing existing container if it exists...\n" "[CLEANUP]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) rm -f docling-serve-rocm101 2>/dev/null || true
+	$(ECHO_PREFIX) printf "  %-12s Running docling-serve container with ROCm 10.1 support on port 5001...\n" "[RUN ROCm 10.1]"
+	$(CMD_PREFIX) $(CONTAINER_RUNTIME) run -it --name docling-serve-rocm101 -p 5001:5001 \
+		--device /dev/kfd:/dev/kfd \
+		--device /dev/dri:/dev/dri \
+		--group-add $(shell getent group video | cut -d: -f3) \
+		--group-add $(shell getent group render | cut -d: -f3) \
+		-e ROCR_VISIBLE_DEVICES=0 \
+		-e HSA_ENABLE_SDMA=0 \
+		-e DOCLING_SERVE_ENABLE_UI=true \
+		ghcr.io/docling-project/docling-serve-rocm101:main
