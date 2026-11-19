@@ -21,6 +21,14 @@ on:
         type: boolean
         description: "If true, the images will be published."
         default: false
+      publish_pr:
+        type: boolean
+        description: "If true, the image will be pushed to GHCR with a pr-<N> tag (no Quay, no attestation)."
+        default: false
+      pr_number:
+        type: string
+        description: "PR number used for the pr-<N> tag when publish_pr is true."
+        default: ""
       tag_latest:
         type: boolean
         description: "If true, the 'latest' tag will be applied to the image."
@@ -92,14 +100,23 @@ jobs:
           flavor: |
             latest=${{ inputs.tag_latest }}
 
+      - name: Extract metadata for PR image
+        id: meta_pr
+        if: ${{ inputs.publish_pr }}
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GHCR_REGISTRY }}/${{ inputs.ghcr_image_name }}
+          flavor: latest=false
+          tags: type=raw,value=pr-${{ inputs.pr_number }}
+
       - name: Build and push image
         id: image_push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ inputs.publish }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ inputs.publish || inputs.publish_pr }}
+          tags: ${{ inputs.publish_pr && steps.meta_pr.outputs.tags || steps.meta.outputs.tags }}
+          labels: ${{ inputs.publish_pr && steps.meta_pr.outputs.labels || steps.meta.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           # Registry cache: GHCR has no 10 GB quota (unlike type=gha which
           # was evicting blobs mid-run). Main writes :main; PR dry-runs read
