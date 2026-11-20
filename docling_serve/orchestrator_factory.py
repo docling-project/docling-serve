@@ -177,6 +177,7 @@ def _build_rq_config():
         result_removal_delay=docling_serve_settings.result_removal_delay,
         presigned_config=_build_presigned_config(),
         allow_external_plugins=docling_serve_settings.allow_external_plugins,
+        enable_task_listing=docling_serve_settings.enable_task_listing,
     )
 
 
@@ -195,6 +196,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             scratch_dir=get_scratch(),
             result_removal_delay=docling_serve_settings.result_removal_delay,
             presigned_config=_build_presigned_config(),
+            enable_task_listing=docling_serve_settings.enable_task_listing,
         )
 
         cm = DoclingConverterManager(config=_build_cm_config())
@@ -324,6 +326,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             # Metrics
             generate_metrics=docling_serve_settings.eng_ray_generate_metrics,
             metrics_port=docling_serve_settings.eng_ray_metrics_port,
+            enable_task_listing=docling_serve_settings.enable_task_listing,
         )
 
         return RayOrchestrator(config=ray_config, converter_manager=cm)

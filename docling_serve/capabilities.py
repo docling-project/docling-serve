@@ -56,6 +56,7 @@ class FeatureCapabilities(BaseModel):
     api_key_required: bool
     artifact_storage: bool
     websocket: bool = True
+    task_listing: bool = False
 
 
 class CapabilitiesResponse(BaseModel):
@@ -312,5 +313,6 @@ def build_capabilities(
         features=FeatureCapabilities(
             api_key_required=bool(settings.api_key),
             artifact_storage=policy.artifact_storage_enabled,
+            task_listing=settings.enable_task_listing,
         ),
     )
