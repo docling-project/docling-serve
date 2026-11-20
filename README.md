@@ -89,7 +89,7 @@ An image for AMD ROCm 6.3 (`docling-serve-rocm`) is supported but **not publishe
 To build it locally:
 
 ```bash
-git clone --branch main git@github.com:docling-project/docling-serve.git
+git clone --branch main https://github.com/docling-project/docling-serve.git
 cd docling-serve/
 make docling-serve-rocm-image
 ```
