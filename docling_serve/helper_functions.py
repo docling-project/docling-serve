@@ -131,57 +131,36 @@ def _build_form_parameter(
     """Build a single :class:`inspect.Parameter` for *field_name* and record its
     default in *form_defaults* (mutated in place)."""
     annotation = model_field.annotation
-    description = model_field.description
+    required = model_field.is_required()
+    default = model_field.default
+    examples = model_field.examples
 
-    default = (
-        Form(..., description=description, examples=model_field.examples)
-        if model_field.is_required()
-        else Form(
-            model_field.default,
-            examples=model_field.examples,
-            description=description,
-        )
+    # Flatten nested Pydantic models and dict/list fields by accepting them as JSON strings
+    if is_pydantic_model(annotation) or is_json_field(annotation):
+        annotation = str
+
+        def to_json(value: Any) -> str | None:
+            if isinstance(value, BaseModel):
+                value = value.model_dump(mode="json")
+            return None if value is None else json.dumps(value)
+
+        if not required:
+            default = to_json(default)
+        examples = examples and [to_json(ex) for ex in examples]
+
+    if not required:
+        form_defaults[field_name] = default
+
+    form = Form(
+        ... if required else default,
+        description=model_field.description,
+        examples=examples,
     )
-
-    if not model_field.is_required():
-        form_defaults[field_name] = model_field.default
-
-    # Flatten nested Pydantic models by accepting them as JSON strings
-    if is_pydantic_model(annotation):
-        annotation = str
-        form_default = (
-            None
-            if model_field.default is None
-            else json.dumps(model_field.default.model_dump(mode="json"))
-        )
-        form_defaults[field_name] = form_default
-        default = Form(
-            form_default,
-            description=description,
-            examples=None
-            if not model_field.examples
-            else [
-                json.dumps(ex.model_dump(mode="json")) for ex in model_field.examples
-            ],
-        )
-    elif is_json_field(annotation):
-        annotation = str
-        form_default = (
-            None if model_field.default is None else json.dumps(model_field.default)
-        )
-        form_defaults[field_name] = form_default
-        default = Form(
-            form_default,
-            description=description,
-            examples=None
-            if not model_field.examples
-            else [json.dumps(ex) for ex in model_field.examples],
-        )
 
     return inspect.Parameter(
         name=f"{prefix}{field_name}",
         kind=inspect.Parameter.POSITIONAL_ONLY,
-        default=default,
+        default=form,
         annotation=annotation,
     )
 
