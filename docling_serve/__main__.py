@@ -423,6 +423,7 @@ def rq_worker() -> Any:
         layout_batch_size=docling_serve_settings.layout_batch_size,
         table_batch_size=docling_serve_settings.table_batch_size,
         batch_polling_interval_seconds=docling_serve_settings.batch_polling_interval_seconds,
+        asr_options=docling_serve_settings.asr_options,
         # VLM Pipeline Control
         default_vlm_preset=docling_serve_settings.default_vlm_preset,
         allowed_vlm_presets=docling_serve_settings.allowed_vlm_presets,
