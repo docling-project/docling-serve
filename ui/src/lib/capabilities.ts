@@ -20,6 +20,7 @@ export interface Capabilities {
   targets: { allowed: string[]; default: string };
   output_formats: string[];
   image_export_modes: string[];
+  pipelines: { allowed: string[]; default: string };
   limits: {
     max_document_timeout: number;
     max_images_scale: number;
