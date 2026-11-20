@@ -402,6 +402,43 @@ def test_validate_batch_convert_request_allows_http_source_with_s3_target():
     validate_batch_convert_request(request, policy)
 
 
+@pytest.mark.parametrize("payload", [{}, {"targets": []}])
+def test_validate_batch_convert_request_rejects_expandable_source_without_target(
+    payload,
+):
+    """An omitted target leaves nowhere for an expanded bucket to be written.
+
+    `target` and `targets` are both optional on the batch model, so the
+    effective target list can be empty and the pairing check has to run on
+    that case too.
+    """
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="incoming",
+            )
+        ],
+        **payload,
+    )
+
+    with pytest.raises(HTTPException, match="require a storage target"):
+        validate_batch_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_allows_non_expandable_source_without_target():
+    """Only expandable sources need a target; file/http must stay accepted."""
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})]
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
 @pytest.mark.parametrize(
     "target",
     [

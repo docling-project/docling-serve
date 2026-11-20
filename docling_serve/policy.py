@@ -523,7 +523,11 @@ def validate_batch_convert_request(
                     ),
                 )
 
-    for t in effective_targets:
+    # `[None]` when no target was given: both fields are optional here, and an
+    # expandable source still needs a storage target it can fan out into.
+    # validate_source_target_pairing reports the missing target and passes any
+    # request whose sources cannot expand.
+    for t in effective_targets or [None]:
         validate_source_target_pairing(request.sources, t, policy)
 
 
