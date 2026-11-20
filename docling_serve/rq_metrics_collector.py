@@ -1,6 +1,7 @@
 # Heavily based on https://github.com/mdawar/rq-exporter
 import logging
 import time
+from collections import Counter
 from collections.abc import Iterable
 
 from prometheus_client import Summary
@@ -169,9 +170,31 @@ class RQCollector(Collector):
         yield rq_workers_failed
         yield rq_workers_working_time
 
-        for queue_name, jobs in get_jobs_by_queue(
-            self.connection, self.queue_names
-        ).items():
+        jobs_by_queue = get_jobs_by_queue(self.connection, self.queue_names)
+
+        # Aggregate queue memberships by state. Worker names are unbounded
+        # labels; the per-queue totals are the fleet-health signal.
+        worker_counts = Counter(
+            (queue_name, worker["state"])
+            for worker in workers
+            for queue_name in worker["queues"]
+        )
+        rq_worker_count = GaugeMetricFamily(
+            "rq_worker_count",
+            "RQ worker queue memberships by state",
+            labels=["queue", "state"],
+        )
+        states = {"idle", "busy", "suspended", "started"} | {
+            state for _, state in worker_counts
+        }
+        for queue_name in jobs_by_queue:
+            for state in sorted(states):
+                rq_worker_count.add_metric(
+                    [queue_name, state], worker_counts[queue_name, state]
+                )
+        yield rq_worker_count
+
+        for queue_name, jobs in jobs_by_queue.items():
             for status, count in jobs.items():
                 rq_jobs.add_metric([queue_name, status], count)
 
