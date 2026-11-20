@@ -2,6 +2,15 @@ name: Dry run docling-serve image building
 
 on:
   workflow_call:
+    inputs:
+      publish_pr:
+        type: boolean
+        description: "If true, push the image to GHCR with a pr-<N> tag."
+        default: false
+      pr_number:
+        type: string
+        description: "PR number for the pr-<N> tag."
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -32,6 +41,8 @@ jobs:
     uses: ./.github/workflows/job-image.yml
     with:
       publish: false
+      publish_pr: ${{ inputs.publish_pr }}
+      pr_number: ${{ inputs.pr_number }}
       build_args: ${{ matrix.spec.build_args }}
       ghcr_image_name: ${{ matrix.spec.name }}
       quay_image_name: ""

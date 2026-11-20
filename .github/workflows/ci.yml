@@ -5,6 +5,7 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   code-checks:
@@ -23,3 +24,6 @@ jobs:
       contents: read
       attestations: write
       id-token: write
+    with:
+      publish_pr: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish-pr-image') }}
+      pr_number: ${{ github.event.pull_request.number || '' }}
