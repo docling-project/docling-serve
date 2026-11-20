@@ -87,11 +87,13 @@ from docling_jobkit.connectors.errors import (
     TargetConnectorConfigError,
 )
 from docling_jobkit.datamodel.chunking import ChunkingExportOptions
+from docling_jobkit.datamodel.result import DoclingTaskResult
 from docling_jobkit.datamodel.stored_outcome import (
     StoredFailureOutcome,
     StoredSuccessOutcome,
 )
 from docling_jobkit.datamodel.task import Task, TaskSource
+from docling_jobkit.datamodel.task_meta import TaskStatus
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
     ProgressInvalid,
@@ -345,6 +347,11 @@ def create_app():  # noqa: C901
         if docling_serve_settings.eng_kind == AsyncEngine.RQ
         else None
     )
+    rq_queue_names = (
+        docling_serve_settings.eng_rq_queue_names
+        if docling_serve_settings.eng_kind == AsyncEngine.RQ
+        else None
+    )
 
     # Get Ray redis_manager if using Ray engine
     ray_redis_manager = None
@@ -363,6 +370,7 @@ def create_app():  # noqa: C901
         enable_prometheus=docling_serve_settings.otel_enable_prometheus,
         enable_otlp_metrics=docling_serve_settings.otel_enable_otlp_metrics,
         redis_url=redis_url,
+        rq_queue_names=rq_queue_names,
         metrics_port=docling_serve_settings.metrics_port,
         ray_redis_manager=ray_redis_manager,
         ray_metrics_refresh_interval=docling_serve_settings.eng_ray_tenant_metrics_refresh_interval,
@@ -689,6 +697,29 @@ def create_app():  # noqa: C901
             if elapsed_time > docling_serve_settings.max_sync_wait:
                 return False
 
+    async def _sync_task_result(
+        orchestrator: BaseOrchestrator, task_id: str
+    ) -> DoclingTaskResult:
+        outcome = await orchestrator.task_outcome(task_id=task_id)
+        if isinstance(outcome, StoredFailureOutcome):
+            raise HTTPException(status_code=500, detail=outcome.failure.message)
+        if isinstance(outcome, StoredSuccessOutcome):
+            return outcome.result
+        if outcome is not None:
+            return outcome
+        task = await orchestrator.task_status(task_id=task_id)
+        if task.task_status == TaskStatus.FAILURE:
+            detail = (
+                task.failure.message
+                if task.failure is not None
+                else (task.error_message or "The conversion task failed.")
+            )
+            raise HTTPException(status_code=500, detail=detail)
+        raise HTTPException(
+            status_code=404,
+            detail="Task result not found. Please wait for a completion status.",
+        )
+
     def _prepare_convert_request(
         request: ConvertSourcesRequest,
     ) -> ConvertSourcesRequest:
@@ -904,12 +935,9 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
-        task_result = await orchestrator.task_result(task_id=task.task_id)
-        if task_result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Task result not found. Please wait for a completion status.",
-            )
+        task_result = await _sync_task_result(
+            orchestrator=orchestrator, task_id=task.task_id
+        )
         response = await prepare_response(
             task_id=task.task_id,
             task_result=task_result,
@@ -990,12 +1018,9 @@ def create_app():  # noqa: C901
                 detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
             )
 
-        task_result = await orchestrator.task_result(task_id=task.task_id)
-        if task_result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Task result not found. Please wait for a completion status.",
-            )
+        task_result = await _sync_task_result(
+            orchestrator=orchestrator, task_id=task.task_id
+        )
         response = await prepare_response(
             task_id=task.task_id,
             task_result=task_result,
@@ -1249,6 +1274,7 @@ def create_app():  # noqa: C901
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
+            _check_file_upload(files, target_type)
             convert_options = _prepare_convert_options(convert_options)
             _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
@@ -1323,12 +1349,9 @@ def create_app():  # noqa: C901
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
 
-            task_result = await orchestrator.task_result(task_id=task.task_id)
-            if task_result is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Task result not found. Please wait for a completion status.",
-                )
+            task_result = await _sync_task_result(
+                orchestrator=orchestrator, task_id=task.task_id
+            )
             response = await prepare_response(
                 task_id=task.task_id,
                 task_result=task_result,
@@ -1391,6 +1414,7 @@ def create_app():  # noqa: C901
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="presigned_url target is not supported for chunk endpoints.",
                 )
+            _check_file_upload(files, target_type)
             convert_options = _prepare_convert_options(convert_options)
             _validate_multipart_target_type(target_type)
             tenant_id = _get_tenant_id_from_header(x_tenant_id)
@@ -1422,12 +1446,9 @@ def create_app():  # noqa: C901
                     detail=f"Conversion is taking too long. The maximum wait time is configure as DOCLING_SERVE_MAX_SYNC_WAIT={docling_serve_settings.max_sync_wait}.",
                 )
 
-            task_result = await orchestrator.task_result(task_id=task.task_id)
-            if task_result is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Task result not found. Please wait for a completion status.",
-                )
+            task_result = await _sync_task_result(
+                orchestrator=orchestrator, task_id=task.task_id
+            )
             response = await prepare_response(
                 task_id=task.task_id,
                 task_result=task_result,

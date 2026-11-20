@@ -1,3 +1,55 @@
+## [v1.38.2](https://github.com/docling-project/docling-serve/releases/tag/v1.38.2) - 2026-10-27
+
+### Fix
+
+* Widen dependency ranges to allow latest versions ([#746](https://github.com/docling-project/docling-serve/issues/746)) ([`b063079`](https://github.com/docling-project/docling-serve/commit/b0630797f4c3d7485eabc6ad4e8cd7ebbb38e4c3))
+* Enforce max_sources_per_request on the chunk endpoints ([#744](https://github.com/docling-project/docling-serve/issues/744)) ([`4b0bd7b`](https://github.com/docling-project/docling-serve/commit/4b0bd7b55d3a5e6c2146d3bcb70271dfa702d20c))
+
+### Docling libraries included in this release:
+- docling-core 2.104.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.9.1
+- docling-mcp 3.3.0
+- docling-parse 7.23.0
+- docling-serve 1.38.2
+- docling-slim 2.142.1
+
+## [v1.38.1](https://github.com/docling-project/docling-serve/releases/tag/v1.38.1) - 2026-10-23
+
+### Fix
+
+* Pinned docling fix release ([#742](https://github.com/docling-project/docling-serve/issues/742)) ([`10e41b9`](https://github.com/docling-project/docling-serve/commit/10e41b9727c0bdad0d8a7e8e98dab1bd2e5c3c4e))
+
+### Docling libraries included in this release:
+- docling-core 2.104.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.9.1
+- docling-mcp 3.3.0
+- docling-parse 7.23.0
+- docling-serve 1.38.1
+- docling-slim 2.142.1
+
+## [v1.38.0](https://github.com/docling-project/docling-serve/releases/tag/v1.38.0) - 2026-10-22
+
+### Feature
+
+* Bump docling-jobkit to 3.9.1, expose RQ Redis health check interval ([#735](https://github.com/docling-project/docling-serve/issues/735)) ([`87432c4`](https://github.com/docling-project/docling-serve/commit/87432c4d42bc7582e96a582a17a328ea63682e81))
+* Honor Accept-Docling-Document-Version on convert endpoints ([#679](https://github.com/docling-project/docling-serve/issues/679)) ([`7c10de4`](https://github.com/docling-project/docling-serve/commit/7c10de4e97ef62d91c9dccfbc50ca28873d2c068))
+
+### Fix
+
+* Updated dependencies ([#737](https://github.com/docling-project/docling-serve/issues/737)) ([`ca67c40`](https://github.com/docling-project/docling-serve/commit/ca67c40847d2587beadda618882651deac5bda72))
+* **ray:** Serve tenant metrics from a background snapshot on one pod ([#730](https://github.com/docling-project/docling-serve/issues/730)) ([`c4784be`](https://github.com/docling-project/docling-serve/commit/c4784be5bdc3d992f730535bd13414b9bcb0e482))
+
+### Docling libraries included in this release:
+- docling-core 2.104.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.9.1
+- docling-mcp 3.3.0
+- docling-parse 7.23.0
+- docling-serve 1.38.0
+- docling-slim 2.142.0
+
 ## [v1.37.0](https://github.com/docling-project/docling-serve/releases/tag/v1.37.0) - 2026-10-13
 
 ### Feature
