@@ -64,8 +64,14 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
     dnf -y clean all && \
     rm -rf /var/cache/dnf
 
+# `dnf update` may bump the system python3.12 patch version, leaving the base image's venv
+# pyvenv.cfg stale. uv would then try to recreate /opt/app-root (which contains the WORKDIR
+# and cache mounts) and fail. Refresh the venv metadata in place to match the interpreter.
+RUN /usr/bin/python3.12 -m venv --upgrade /opt/app-root && \
+    mkdir -p /opt/app-root/src/.cache && \
+    /usr/bin/fix-permissions /opt/app-root
+
 COPY --from=mimalloc /opt/app-root/src/mimalloc/out/release/libmimalloc.so /usr/local/lib/libmimalloc.so
-RUN /usr/bin/fix-permissions /opt/app-root/src/.cache
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract/tessdata/
 
