@@ -1,6 +1,6 @@
 # Docling MCP in Docling Serve
 
-The `docling-serve` container image includes all MCP (Model Communication Protocol) features starting from version v1.1.0. To leverage these features, you simply need to use a different entrypoint—no custom image builds or additional installations are required. The image provides the `docling-mcp-server` executable, which enables MCP functionality out of the box as of version v1.1.0 ([changelog](https://github.com/docling-project/docling-serve/blob/624f65d41b734e8b39ff267bc8bf6e766c376d6d/CHANGELOG.md)).
+The `docling-serve` container image includes all MCP (Model Context Protocol) features starting from version v1.1.0. To leverage these features, you simply need to use a different entrypoint—no custom image builds or additional installations are required. The image provides the `docling-mcp-server` executable, which enables MCP functionality out of the box as of version v1.1.0 ([changelog](https://github.com/docling-project/docling-serve/blob/624f65d41b734e8b39ff267bc8bf6e766c376d6d/CHANGELOG.md)).
 
 Read more on [Docling MCP](https://github.com/docling-project/docling-mcp) in its dedicated repository.
 
