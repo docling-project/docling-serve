@@ -282,6 +282,16 @@ The following table describes the options to configure the Docling Serve local e
 | `DOCLING_SERVE_ENG_LOC_NUM_WORKERS` | 2 | Number of workers/threads processing the incoming tasks. |
 | `DOCLING_SERVE_ENG_LOC_SHARE_MODELS` | False | If true, each process will share the same models among all thread workers. Otherwise, one instance of the models is allocated for each worker thread. |
 
+More than one worker converts documents concurrently, and a concurrent conversion is not
+reproducible: the threaded PDF pipeline assembles its model batches on a poll interval, so a busy
+machine batches differently from an idle one, and model output is not identical across batch
+sizes. The same PDF then comes back with a slightly different structure — adjacent text items
+merged or split, labels changed. No text is lost.
+
+If a conversion has to be reproducible, run a single worker, or keep the batches fixed with
+`DOCLING_SERVE_LAYOUT_BATCH_SIZE=1` and `DOCLING_SERVE_TABLE_BATCH_SIZE=1`. See
+[docling#4274](https://github.com/docling-project/docling/issues/4274).
+
 #### RQ engine
 
 The following table describes the options to configure the Docling Serve RQ engine.
