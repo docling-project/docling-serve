@@ -87,6 +87,7 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_CORS_HEADERS` | `["*"]` | A list of HTTP request headers that should be supported for cross-origin requests. |
 |  | `DOCLING_SERVE_API_KEY` | | If specified, all the API requests must contain the header `X-Api-Key` with this value. |
 |  | `DOCLING_SERVE_ENG_KIND` | `local` | The compute engine to use for the async tasks. Possible values are `local`, `rq` and `ray`. See below for more configurations of the engines. |
+|  | `DOCLING_SERVE_FORCE_MATH_SDPA` | `auto` | Control PyTorch Scaled Dot-Product Attention (SDPA) backend selection. Options: `auto` (default; probes ROCm GPUs at startup and falls back to Math SDPA if precompiled FlashAttention/Mem-Efficient kernels are unavailable for the device architecture), `1`/`true`/`yes` (force Math SDPA backend), or `0`/`false`/`no` (disable auto-probe and keep PyTorch defaults). |
 
 ### Configuration File Support
 

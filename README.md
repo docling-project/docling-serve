@@ -84,7 +84,7 @@ The following container images are available for running **Docling Serve** with 
 
 #### 🚫 Not Distributed
 
-An image for AMD ROCm 6.3 (`docling-serve-rocm`) and ROCm 10.1 (`docling-serve-rocm101`) are supported but **not published** due to their large size (around 10 GB for ROCm 10.1).
+An image for AMD ROCm 6.3 (`docling-serve-rocm`) and ROCm 10.1 (`docling-serve-rocm101-gfx1151`) are supported but **not published** due to their large size (around 10 GB for ROCm 10.1).
 
 To build them locally:
 
@@ -95,8 +95,8 @@ cd docling-serve/
 # Build for ROCm 6.3
 make docling-serve-rocm-image
 
-# Build for ROCm 10.1 (defaults to AMD Strix Halo gfx1151, or specify DEVICE=<arch>)
-make docling-serve-rocm101-image
+# Build for ROCm 10.1 (AMD Strix Halo gfx1151)
+make docling-serve-rocm101-gfx1151-image
 ```
 
 For deployment using Docker Compose, see [docs/deployment.md](docs/deployment.md).

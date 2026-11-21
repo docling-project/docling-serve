@@ -147,7 +147,7 @@ rocm72 = [
     "triton-rocm ; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
-rocm101 = [
+rocm101-gfx1151 = [
     "torch>=2.7.1",
     "torchvision>=0.22.1",
     "triton ; sys_platform == 'linux' and platform_machine == 'x86_64'",
@@ -178,7 +178,7 @@ conflicts = [
     { group = "cu130" },
     { group = "rocm" },
     { group = "rocm72" },
-    { group = "rocm101" },
+    { group = "rocm101-gfx1151" },
   ],
 ]
 # Python 3.15 is left out until torch and ray publish cp315 wheels on PyPI
@@ -201,7 +201,7 @@ torch = [
   { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 torchvision = [
@@ -213,7 +213,7 @@ torchvision = [
   { index = "pytorch-cu130", group = "cu130", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm", group = "rocm", marker = "sys_platform == 'linux'" },
   { index = "pytorch-rocm72", group = "rocm72", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 pytorch-triton-rocm = [
@@ -225,33 +225,33 @@ triton-rocm = [
 ]
 
 triton = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 rocm = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 rocm-bootstrap = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 rocm-sdk-core = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 rocm-sdk-libraries = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 amd-torch-device-gfx1151 = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 amd-torchvision-device-gfx1151 = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 rocm-sdk-device-gfx1151 = [
-  { index = "pytorch-rocm101", group = "rocm101", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-rocm101", group = "rocm101-gfx1151", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 
 # docling-slim = { git = "https://github.com/docling-project/docling/", rev = "main" }
@@ -299,6 +299,7 @@ name = "pytorch-rocm72"
 url = "https://download.pytorch.org/whl/rocm7.2"
 explicit = true
 
+# AMD's official stable modular wheel repository (TheRock packaging; retains immutable +rocm* release builds)
 [[tool.uv.index]]
 name = "pytorch-rocm101"
 url = "https://stable.repo.amd.com/rocm/whl-next"

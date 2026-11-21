@@ -6,6 +6,19 @@ import os
 
 _log = logging.getLogger(__name__)
 
+_HIP_KERNEL_ERROR_TOKENS = (
+    "hiperrorinvalidimage",
+    "invalid device image",
+    "hiperrorinvalidkernelfile",
+    "hiperrorinvaliddevicefunction",
+    "invalid device function",
+)
+
+
+def _is_hip_kernel_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return any(token in msg for token in _HIP_KERNEL_ERROR_TOKENS)
+
 
 def _configure_sdpa() -> None:
     """Configure PyTorch SDPA backends safely across platforms.
@@ -48,38 +61,59 @@ def _configure_sdpa() -> None:
             # NVIDIA CUDA or CPU: leave PyTorch default backends intact
             return
 
-        # 3. Auto-detect on ROCm via lightweight canary probe
+        # 3. Auto-detect on ROCm via lightweight canary probe across all visible GPUs
         if hasattr(torch, "cuda") and torch.cuda.is_available():
-            device_id = torch.cuda.current_device()
-            arch_name = getattr(
-                torch.cuda.get_device_properties(device_id), "gcnArchName", "unknown"
+            count_fn = getattr(torch.cuda, "device_count", None)
+            num_devices = count_fn() if callable(count_fn) else 0
+            device_ids = (
+                list(range(num_devices))
+                if num_devices > 0
+                else [torch.cuda.current_device()]
             )
-            try:
-                # Test 1-token SDPA probe on GPU
-                q = torch.zeros(
-                    (1, 1, 1, 64), device=f"cuda:{device_id}", dtype=torch.float16
+            probe_dtypes = tuple(
+                dt
+                for dt in (
+                    getattr(torch, "float16", None),
+                    getattr(torch, "bfloat16", None),
                 )
-                torch.nn.functional.scaled_dot_product_attention(q, q, q)
-                _log.debug(
-                    "ROCm SDPA: Flash/Mem-Efficient kernels verified on %s", arch_name
+                if dt is not None
+            )
+
+            for device_id in device_ids:
+                arch_name = getattr(
+                    torch.cuda.get_device_properties(device_id),
+                    "gcnArchName",
+                    "unknown",
                 )
-            except Exception as exc:
-                if "invalid" in str(exc).lower() or "image" in str(exc).lower():
-                    torch.backends.cuda.enable_flash_sdp(False)
-                    torch.backends.cuda.enable_mem_efficient_sdp(False)
-                    torch.backends.cuda.enable_math_sdp(True)
-                    _log.warning(
-                        "ROCm SDPA: Device %s lacks precompiled FlashAttention kernels. "
-                        "Fallback to Math SDPA enabled (hipErrorInvalidImage avoided).",
+                try:
+                    for dtype in probe_dtypes:
+                        q = torch.zeros(
+                            (1, 1, 1, 64),
+                            device=f"cuda:{device_id}",
+                            dtype=dtype,
+                        )
+                        torch.nn.functional.scaled_dot_product_attention(q, q, q)
+                    _log.debug(
+                        "ROCm SDPA: Flash/Mem-Efficient kernels verified on device %s (%s)",
+                        device_id,
                         arch_name,
                     )
-                else:
-                    _log.debug("ROCm SDPA probe returned non-kernel error: %s", exc)
+                except Exception as exc:
+                    if _is_hip_kernel_error(exc):
+                        torch.backends.cuda.enable_flash_sdp(False)
+                        torch.backends.cuda.enable_mem_efficient_sdp(False)
+                        torch.backends.cuda.enable_math_sdp(True)
+                        _log.warning(
+                            "ROCm SDPA: Device %s (%s) lacks precompiled FlashAttention kernels. "
+                            "Fallback to Math SDPA enabled (hipErrorInvalidImage avoided).",
+                            device_id,
+                            arch_name,
+                        )
+                        return
+                    _log.debug(
+                        "ROCm SDPA probe on device %s returned non-kernel error: %s",
+                        device_id,
+                        exc,
+                    )
     except Exception as exc:
         _log.debug("SDPA configuration skipped: %s", exc)
-
-
-# Backwards compatibility alias
-_configure_rocm_sdpa = _configure_sdpa
-
-_configure_sdpa()

@@ -159,7 +159,7 @@ curl -X 'POST' \
 - Container engine (Docker or Podman)
 - AMDGPU kernel driver & ROCm runtime:
   - Discrete RDNA / CDNA GPUs: AMD ROCm >= 6.3
-  - Modern AMD GPUs and APUs (Radeon RX 7000 series, Strix Halo `gfx1151`, Strix Point `gfx1150`): ROCm 10.1.0 (`rocm101` image)
+  - AMD Strix Halo APU (`gfx1151`): ROCm 10.1.0 (`docling-serve-rocm101-gfx1151` image)
 
 Docs:
 
@@ -195,18 +195,14 @@ Docs:
       ```sh
       make docling-serve-rocm72-image
       ```
-    - For ROCm 10.1.0 (defaults to AMD Strix Halo `gfx1151`):
+    - For ROCm 10.1.0 (AMD Strix Halo `gfx1151`):
       ```sh
-      make docling-serve-rocm101-image
-      ```
-      Or specify target architecture (`DEVICE=<arch>`, e.g. `gfx1150`, `gfx1100`, `gfx942`, `gfx90a`):
-      ```sh
-      make docling-serve-rocm101-image DEVICE=gfx1150
+      make docling-serve-rocm101-gfx1151-image
       ```
 
-4. Configure Environment Variables for AMD ROCm 10.1 / APUs:
+4. Configure Environment Variables for AMD ROCm 10.1 / Strix Halo APU (`gfx1151`):
 
-    When deploying on AMD Strix Halo (`gfx1151` / Radeon 8060S / 8050S) or Strix Point (`gfx1150` / Radeon 890M / 880M), set the following container environment:
+    When deploying on AMD Strix Halo (`gfx1151` / Radeon 8060S / 8050S), update [compose-amd.yaml](./deploy-examples/compose-amd.yaml) to use `ghcr.io/docling-project/docling-serve-rocm101-gfx1151:main` and set the following container environment:
 
     ```env
     ROCR_VISIBLE_DEVICES=0
@@ -214,10 +210,10 @@ Docs:
     ```
 
     > [!IMPORTANT]
-    > **Hardware Notes for Strix Halo / APUs (`gfx1151`, `gfx1150`):**
-    > - **PyTorch SDPA Math Fallback:** FlashAttention / Composable-Kernel C++ fatbins do not include precompiled binary code objects for client APUs (`gfx1151`, `gfx1150`). `docling-serve` automatically detects this at startup and enables PyTorch Math SDPA fallback to route attention ops to standard rocBLAS / hipBLASLt GEMM, avoiding `hipErrorInvalidImage`.
-    > - **Do NOT override GFX version:** Do not set `HSA_OVERRIDE_GFX_VERSION` on ROCm 10.1.0 since `gfx1151` and `gfx1150` are natively targeted by the AMD modular runtime.
-    > - **Do NOT enable AOTriton experimental:** Ensure `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL` is unset or `0` on client APUs.
+    > **Hardware Notes for Strix Halo / APUs (`gfx1151`):**
+    > - **PyTorch SDPA Math Fallback:** FlashAttention / Composable-Kernel C++ fatbins do not include precompiled binary code objects for client APUs (`gfx1151`). `docling-serve` automatically detects this at startup and enables PyTorch Math SDPA fallback to route attention ops to standard rocBLAS / hipBLASLt GEMM, avoiding `hipErrorInvalidImage`. You can also override this manually via `DOCLING_SERVE_FORCE_MATH_SDPA` (`auto` by default, `1`/`true` to force Math SDPA, or `0`/`false` to disable auto-detection).
+    > - **Do NOT override GFX version:** Do not set `HSA_OVERRIDE_GFX_VERSION` on ROCm 10.1.0 since `gfx1151` is natively targeted by the AMD modular runtime.
+    > - **Do NOT enable AOTriton experimental:** Comment out or set `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=0` on client APUs.
     > - **SDMA:** `HSA_ENABLE_SDMA=0` is recommended for unified APU memory architectures to prevent SDMA queue stalls.
 
 </details>
