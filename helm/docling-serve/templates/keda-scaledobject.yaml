@@ -1,0 +1,66 @@
+{{- if and (eq .Values.engine.kind "rq") .Values.kedaScaling.enabled }}
+{{- if and (eq .Values.redis.type "external") .Values.secrets.externalSecret.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-keda-redis-trigger-auth
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: {{ .Values.secrets.rqRedis.name }}
+      key: REDIS_HOST
+    - parameter: port
+      name: {{ .Values.secrets.rqRedis.name }}
+      key: REDIS_PORT
+    - parameter: password
+      name: {{ .Values.secrets.rqRedis.name }}
+      key: {{ .Values.secrets.rqRedis.redisPasswordKey }}
+    - parameter: username
+      name: {{ .Values.secrets.rqRedis.name }}
+      key: {{ .Values.secrets.rqRedis.redisUsernameKey }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-rq-worker-scaledobject
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  scaleTargetRef:
+    name: {{ include "docling-serve.fullname" . }}-rq-workers
+  minReplicaCount: {{ .Values.kedaScaling.minReplicas }}
+  maxReplicaCount: {{ .Values.kedaScaling.maxReplicas }}
+  pollingInterval: {{ .Values.kedaScaling.pollingInterval }}
+  cooldownPeriod: {{ .Values.kedaScaling.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: {{ .Values.kedaScaling.hpaScaleDownStabilizationWindow }}
+          policies:
+            - type: Pods
+              value: {{ .Values.kedaScaling.hpaScaleDownPolicyPods }}
+              periodSeconds: {{ .Values.kedaScaling.hpaScaleDownPolicyPeriod }}
+        scaleUp:
+          stabilizationWindowSeconds: {{ .Values.kedaScaling.hpaScaleUpStabilizationWindow }}
+          policies:
+            - type: Pods
+              value: {{ .Values.kedaScaling.hpaScaleUpPolicyPods }}
+              periodSeconds: {{ .Values.kedaScaling.hpaScaleUpPolicyPeriod }}
+  triggers:
+    - type: redis
+      authenticationRef:
+        name: {{ include "docling-serve.fullname" . }}-keda-redis-trigger-auth
+      metadata:
+        listName: "{{ .Values.kedaScaling.listName }}"
+        listLength: "{{ .Values.kedaScaling.listLength }}"
+        enableTLS: "{{ .Values.redis.external.tls.enabled }}"
+        databaseIndex: "{{ .Values.redis.external.database }}"
+        unsafeSsl: "{{ .Values.kedaScaling.unsafeSsl }}"
+{{- end }}
+{{- end }}

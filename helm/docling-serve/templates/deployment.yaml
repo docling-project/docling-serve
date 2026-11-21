@@ -1,0 +1,243 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "docling-serve.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "docling-serve.fullname" . }}
+    component: {{ include "docling-serve.fullname" . }}-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.deploymentStrategy }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
+    {{- if eq .Values.deploymentStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.deploymentStrategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.deploymentStrategy.rollingUpdate.maxSurge }}
+    {{- end }}
+  minReadySeconds: {{ .Values.deploymentStrategy.minReadySeconds }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "docling-serve.fullname" . }}
+      component: {{ include "docling-serve.fullname" . }}-api
+  template:
+    metadata:
+      labels:
+        app: {{ include "docling-serve.fullname" . }}
+        component: {{ include "docling-serve.fullname" . }}-api
+    spec:
+      serviceAccountName: {{ include "docling-serve.fullname" . }}
+      restartPolicy: Always
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- else if .Values.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          {{- if eq .Values.podAntiAffinity.type "hard" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ include "docling-serve.fullname" . }}
+              - key: component
+                operator: In
+                values:
+                - {{ include "docling-serve.fullname" . }}-api
+            topologyKey: kubernetes.io/hostname
+          {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ include "docling-serve.fullname" . }}
+                - key: component
+                  operator: In
+                  values:
+                  - {{ include "docling-serve.fullname" . }}-api
+              topologyKey: kubernetes.io/hostname
+          {{- end }}
+      {{- end }}
+      containers:
+        - name: api
+          image: "{{ .Values.images.api.repository }}:{{ .Values.images.api.tag }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.api.port }}
+              protocol: TCP
+          {{- if .Values.healthChecks.api.enabled }}
+          {{- if .Values.healthChecks.api.startupProbe }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.api.startupProbe.path }}
+              port: {{ .Values.service.api.port }}
+            periodSeconds: {{ .Values.healthChecks.api.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.api.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.api.startupProbe.failureThreshold }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.api.livenessProbe.path }}
+              port: {{ .Values.service.api.port }}
+            initialDelaySeconds: {{ .Values.healthChecks.api.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.api.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.api.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.api.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.api.readinessProbe.path }}
+              port: {{ .Values.service.api.port }}
+            initialDelaySeconds: {{ .Values.healthChecks.api.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.api.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.api.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.api.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.api.requests.cpu }}
+              memory: {{ .Values.resources.api.requests.memory }}
+              {{- if (hasKey .Values.resources.api.requests "nvidia.com/gpu") }}
+              nvidia.com/gpu: {{ index .Values.resources.api.requests "nvidia.com/gpu" }}
+              {{- end }}
+            limits:
+              {{- if (hasKey .Values.resources.api.limits "cpu") }}
+              cpu: {{ .Values.resources.api.limits.cpu }}
+              {{- end }}
+              memory: {{ .Values.resources.api.limits.memory }}
+              {{- if (hasKey .Values.resources.api.limits "nvidia.com/gpu") }}
+              nvidia.com/gpu: {{ index .Values.resources.api.limits "nvidia.com/gpu" }}
+              {{- end }}
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: "{{ .Values.doclingServe.enableUI }}"
+            {{- if .Values.doclingServe.maxFileSize }}
+            - name: DOCLING_SERVE_MAX_FILE_SIZE
+              value: "{{ .Values.doclingServe.maxFileSize }}"
+            {{- end }}
+            {{- if .Values.doclingServe.maxNumPages }}
+            - name: DOCLING_SERVE_MAX_NUM_PAGES
+              value: "{{ .Values.doclingServe.maxNumPages }}"
+            {{- end }}
+            {{- if .Values.doclingServe.scratchPath }}
+            - name: DOCLING_SERVE_SCRATCH_PATH
+              value: "{{ .Values.doclingServe.scratchPath }}"
+            {{- end }}
+            {{- if .Values.doclingServe.singleUseResults }}
+            - name: DOCLING_SERVE_SINGLE_USE_RESULTS
+              value: "{{ .Values.doclingServe.singleUseResults }}"
+            {{- end }}
+            {{- if .Values.doclingDebug.profilePipelineTimings }}
+            - name: DOCLING_DEBUG_PROFILE_PIPELINE_TIMINGS
+              value: "{{ .Values.doclingDebug.profilePipelineTimings }}"
+            {{- end }}
+            {{- if .Values.doclingServe.enableRemoteServices }}
+            - name: DOCLING_SERVE_ENABLE_REMOTE_SERVICES
+              value: "true"
+            {{- end }}
+            {{- if .Values.doclingServe.allowCustomVlmConfig }}
+            - name: DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG
+              value: "true"
+            {{- end }}
+            - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+              value: '{{ .Values.engine.local.numWorkers }}'
+            - name: UVICORN_WORKERS
+              value: '4'
+            - name: DOCLING_NUM_THREADS
+              value: '4'
+            - name: DOCLING_SERVE_ENG_KIND
+              value: '{{ .Values.engine.kind }}'
+            {{- if .Values.opentelemetry.enabled }}
+            - name: DOCLING_SERVE_OTEL_ENABLE_TRACES
+              value: "{{ .Values.opentelemetry.traces.enabled }}"
+            - name: DOCLING_SERVE_OTEL_ENABLE_METRICS
+              value: "{{ .Values.opentelemetry.metrics.enabled }}"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "{{ .Values.opentelemetry.exporter.endpoint }}"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "{{ .Values.opentelemetry.exporter.protocol }}"
+            - name: DOCLING_SERVE_OTEL_SERVICE_NAME
+              value: "{{ .Values.opentelemetry.serviceName.api }}"
+            {{- if .Values.opentelemetry.excludedUrls }}
+            - name: OTEL_PYTHON_FASTAPI_EXCLUDED_URLS
+              value: "{{ .Values.opentelemetry.excludedUrls }}"
+            {{- end }}
+            {{- if .Values.opentelemetry.resourceAttributes }}
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "{{ .Values.opentelemetry.resourceAttributes }},deployment.environment={{ .Values.environment | default .Release.Namespace }},service.namespace={{ .Release.Namespace }}"
+            {{- else }}
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment={{ .Values.environment | default .Release.Namespace }},service.namespace={{ .Release.Namespace }}"
+            {{- end }}
+            {{- end }}
+            {{- if eq .Values.engine.kind "rq" }}
+            {{- if eq .Values.redis.type "external" }}
+            {{- if .Values.secrets.externalSecret.enabled }}
+            # When using ExternalSecret, build Redis URL from individual components
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: {{ .Values.secrets.rqRedis.redisUsernameKey }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: {{ .Values.secrets.rqRedis.redisPasswordKey }}
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: REDIS_PORT
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_URL
+              value: "redis{{ if .Values.redis.external.tls.enabled }}s{{ end }}://$(REDIS_USERNAME):$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)/{{ .Values.redis.external.database }}"
+            {{- else }}
+            # When not using ExternalSecret, use the full URL from the secret
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: {{ .Values.secrets.rqRedis.redisUrlKey }}
+            {{- end }}
+            {{- else }}
+            # Internal Redis (deployed in K8s)
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.rqRedis.name }}
+                  key: {{ .Values.secrets.rqRedis.redisUrlKey }}
+            {{- end }}
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS
+              value: "{{ .Values.redis.pool.maxConnections }}"
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT
+              value: "{{ .Values.redis.pool.socketTimeout }}"
+            - name: DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT
+              value: "{{ .Values.redis.pool.socketConnectTimeout }}"
+            {{- if .Values.engine.rq.resultsTtl }}
+            - name: DOCLING_SERVE_ENG_RQ_RESULTS_TTL
+              value: "{{ .Values.engine.rq.resultsTtl }}"
+            {{- end }}
+            {{- if .Values.engine.rq.failureTtl }}
+            - name: DOCLING_SERVE_ENG_RQ_FAILURE_TTL
+              value: "{{ .Values.engine.rq.failureTtl }}"
+            {{- end }}
+            {{- end }}
+      {{- if (hasKey .Values.resources.api.requests "nvidia.com/gpu") }}
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Equal
+          value: present
+      {{- end }}
