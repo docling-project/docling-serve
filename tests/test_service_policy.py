@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
+from docling.datamodel.service.chunking import HybridChunkerOptions
 from docling.datamodel.service.options import ConvertDocumentsOptions
 from docling.datamodel.service.requests import (
     AzureBlobSourceRequest,
@@ -14,6 +15,7 @@ from docling.datamodel.service.requests import (
     GoogleDriveSourceRequest,
     HttpSourceRequest,
     S3SourceRequest,
+    make_request_model,
 )
 from docling.datamodel.service.targets import (
     AzureBlobTarget,
@@ -38,6 +40,7 @@ from docling_serve.policy import (
     normalize_convert_options,
     normalize_request,
     validate_batch_convert_request,
+    validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
     validate_source_target_pairing,
@@ -361,6 +364,24 @@ def test_validate_convert_request_rejects_too_many_sources():
     assert "Too many sources" in exc_info.value.detail
 
 
+def test_validate_chunk_request_rejects_too_many_sources():
+    policy = build_service_policy(DoclingServeSettings(max_sources_per_request=2))
+    request = make_request_model(HybridChunkerOptions)(
+        sources=[
+            HttpSourceRequest(url="https://example.com/a.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/b.pdf", headers={}),
+            HttpSourceRequest(url="https://example.com/c.pdf", headers={}),
+        ],
+        chunking_options=HybridChunkerOptions(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_chunk_request(request, policy)
+
+    assert exc_info.value.status_code == 422
+    assert "Too many sources" in exc_info.value.detail
+
+
 def test_validate_convert_request_allows_presigned_url_when_storage_enabled():
     policy = build_service_policy(DoclingServeSettings(artifact_storage_enabled=True))
     request = ConvertSourcesRequest(
@@ -464,6 +485,43 @@ def test_validate_batch_convert_request_allows_http_source_with_s3_target():
             secret_key="secret",
             bucket="converted",
         ),
+    )
+
+    validate_batch_convert_request(request, policy)
+
+
+@pytest.mark.parametrize("payload", [{}, {"targets": []}])
+def test_validate_batch_convert_request_rejects_expandable_source_without_target(
+    payload,
+):
+    """An omitted target leaves nowhere for an expanded bucket to be written.
+
+    `target` and `targets` are both optional on the batch model, so the
+    effective target list can be empty and the pairing check has to run on
+    that case too.
+    """
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[
+            S3SourceRequest(
+                endpoint="s3.example.com",
+                access_key="key",
+                secret_key="secret",
+                bucket="incoming",
+            )
+        ],
+        **payload,
+    )
+
+    with pytest.raises(HTTPException, match="require a storage target"):
+        validate_batch_convert_request(request, policy)
+
+
+def test_validate_batch_convert_request_allows_non_expandable_source_without_target():
+    """Only expandable sources need a target; file/http must stay accepted."""
+    policy = build_service_policy(DoclingServeSettings())
+    request = BatchConvertSourcesRequest(
+        sources=[HttpSourceRequest(url="https://example.com/test.pdf", headers={})]
     )
 
     validate_batch_convert_request(request, policy)

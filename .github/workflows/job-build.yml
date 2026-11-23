@@ -12,11 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           # pinned: uv 0.12.14 broke `uv lock` resolution for this project
           # https://github.com/astral-sh/uv/pull/21672
-          version: "0.12.13"
+          version: "0.13.4"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
       - name: Set up Node

@@ -15,11 +15,11 @@ jobs:
         with:
           fetch-depth: 0  # for fetching tags, required for semantic-release
       - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           # pinned: uv 0.12.14 broke `uv lock` resolution for this project
           # https://github.com/astral-sh/uv/pull/21672
-          version: "0.12.13"
+          version: "0.13.4"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --only-dev
@@ -48,11 +48,11 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0  # for fetching tags, required for semantic-release
       - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           # pinned: uv 0.12.14 broke `uv lock` resolution for this project
           # https://github.com/astral-sh/uv/pull/21672
-          version: "0.12.13"
+          version: "0.13.4"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --only-dev
