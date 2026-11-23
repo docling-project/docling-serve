@@ -797,3 +797,31 @@ async def test_convert_rejects_disallowed_pipeline(vlm_only_app, fake_orchestrat
         assert response.status_code == 422, response.text
         assert "pipeline 'standard' is not allowed" in response.text
     assert fake_orchestrator.enqueued == []
+
+
+@pytest.mark.asyncio
+async def test_convert_accepts_omitted_pipeline_with_vlm_default(
+    vlm_only_app, fake_orchestrator
+):
+    async with AsyncClient(
+        transport=ASGITransport(app=vlm_only_app), base_url="http://app.io"
+    ) as client:
+        json_response = await client.post(
+            "/v1/convert/source/async",
+            json={
+                "sources": [{"kind": "http", "url": "https://example.com/a.pdf"}],
+                "target": {"kind": "inbody"},
+            },
+        )
+        form_response = await client.post(
+            "/v1/convert/file/async",
+            files={"files": ("a.pdf", b"%PDF-1.4", "application/pdf")},
+        )
+
+    for response in (json_response, form_response):
+        assert response.status_code == 200, response.text
+    # The pipeline stays unset so docling-jobkit resolves the configured default.
+    assert [e["convert_options"].pipeline for e in fake_orchestrator.enqueued] == [
+        None,
+        None,
+    ]
