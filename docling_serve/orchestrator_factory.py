@@ -161,6 +161,9 @@ def _build_rq_config():
         redis_socket_connect_timeout=(
             docling_serve_settings.eng_rq_redis_socket_connect_timeout
         ),
+        redis_health_check_interval=(
+            docling_serve_settings.eng_rq_redis_health_check_interval
+        ),
         redis_gate_concurrency=docling_serve_settings.eng_rq_redis_gate_concurrency,
         redis_gate_reserved_connections=(
             docling_serve_settings.eng_rq_redis_gate_reserved_connections
@@ -242,6 +245,7 @@ def get_async_orchestrator() -> BaseOrchestrator:
             redis_gate_status_poll_wait_timeout=docling_serve_settings.eng_ray_redis_gate_status_poll_wait_timeout,
             # Result Storage
             results_ttl=docling_serve_settings.eng_ray_results_ttl,
+            task_metadata_ttl=docling_serve_settings.eng_ray_task_metadata_ttl,
             results_prefix=docling_serve_settings.eng_ray_results_prefix,
             result_removal_delay=docling_serve_settings.result_removal_delay,
             # Pub/Sub

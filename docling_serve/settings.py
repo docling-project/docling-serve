@@ -203,6 +203,8 @@ class DoclingServeSettings(BaseSettings):
     eng_rq_redis_socket_connect_timeout: Optional[float] = (
         None  # Socket connect timeout in seconds
     )
+    # Seconds a pooled connection may sit idle before it is pinged on reuse
+    eng_rq_redis_health_check_interval: float = 30.0
     eng_rq_redis_gate_concurrency: Optional[int] = None
     eng_rq_redis_gate_reserved_connections: int = 10
     eng_rq_redis_gate_wait_timeout: float = 0.25
@@ -222,6 +224,8 @@ class DoclingServeSettings(BaseSettings):
 
     # Result Storage
     eng_ray_results_ttl: int = 3_600 * 4  # 4 hours
+    # Expiry of a finished task's metadata hash; None or 0 keeps it forever.
+    eng_ray_task_metadata_ttl: Optional[int] = 3_600 * 24 * 7  # 7 days
     eng_ray_results_prefix: str = "docling:ray:results"
 
     # Pub/Sub
@@ -327,6 +331,9 @@ class DoclingServeSettings(BaseSettings):
     # Metrics
     eng_ray_generate_metrics: bool = False
     eng_ray_metrics_port: int = 8090
+    # Seconds between two refreshes of the per-tenant Prometheus metrics, which
+    # one docling-serve process (the leader) reads from Redis in the background.
+    eng_ray_tenant_metrics_refresh_interval: PositiveFloat = 30.0
 
     # Tenant ID Header
     eng_ray_tenant_id_header: str = "X-Tenant-Id"

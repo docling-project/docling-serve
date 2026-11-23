@@ -53,6 +53,6 @@ repos:
     # uv version, https://github.com/astral-sh/uv-pre-commit/releases
     # pinned: uv 0.12.14 broke `uv lock` resolution for this project
     # https://github.com/astral-sh/uv/pull/21672
-    rev: 0.12.13
+    rev: 0.13.4
     hooks:
       - id: uv-lock

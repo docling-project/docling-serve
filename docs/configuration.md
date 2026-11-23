@@ -297,6 +297,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_HEALTH_CHECK_INTERVAL` | `30.0` | Seconds a pooled Redis connection may stay idle before it is checked with a `PING` on reuse. Stale connections (e.g. dropped by a load balancer or after a Redis failover) are then reconnected instead of failing the request. Set to `0` to disable. |
 
 **Scaling Recommendations for RQ Engine:**
 
@@ -318,6 +319,13 @@ The following table describes the timeout options of the Docling Serve Ray engin
 | `DOCLING_SERVE_ENG_RAY_CONVERTER_REQUEST_TIMEOUT` | `None` (disabled) | Hard limit in seconds, per document, on a coordinator call to a converter replica, including the wait for a free replica. A backstop for conversions that run past the document timeout: set it well above that (e.g. 2x). A PDF slice that exceeds it is recorded as failed; any other task fails. |
 | `DOCLING_SERVE_ENG_RAY_RECYCLE_CONVERTER_ON_ABANDONED_CONVERSION` | `true` | A cancelled converter call cannot stop its conversion thread. When enabled, a converter replica reports unhealthy while such a thread is still running more than `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` after the cancel, and Ray Serve replaces it. Only takes effect when `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` is at least `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT`, so the draining replica can finish the request it is serving. |
 | `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` | `None` (document timeout + 60 s) | Seconds a conversion may keep running after its request was cancelled before the converter replica reports unhealthy. |
+
+#### Ray engine state and metrics
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_TASK_METADATA_TTL` | `604800` (7 days) | Seconds a finished task's metadata is kept in Redis. Never shorter than `DOCLING_SERVE_ENG_RAY_RESULTS_TTL`. `0` keeps finished tasks forever. |
+| `DOCLING_SERVE_ENG_RAY_TENANT_METRICS_REFRESH_INTERVAL` | `30` | Seconds between two refreshes of the per-tenant Prometheus metrics (`ray_tenant_*`, `ray_total_*`). One docling-serve process at a time, chosen by a lock in Redis, reads them in the background and exports them; the other processes export only `ray_metrics_snapshot_leader` and the refresh failure counter. |
 
 ### Web UI
 
