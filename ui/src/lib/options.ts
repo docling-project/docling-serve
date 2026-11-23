@@ -94,7 +94,17 @@ export function buildFormModel(fields: FieldSpec[], capabilities: Capabilities |
       return field;
     });
 
-  const pipeline = take("pipeline");
+  const pipelineField = take("pipeline");
+  // The server resolves an omitted pipeline to its default, so offer the
+  // allowed pipelines with that default preselected instead of "Not set".
+  const pipeline =
+    pipelineField && capabilities
+      ? {
+          ...restrict(pipelineField, capabilities.pipelines.allowed),
+          nullable: false,
+          default: capabilities.pipelines.default,
+        }
+      : pipelineField;
 
   const stages: StageModel[] = stageCapabilities(fields, capabilities).map(([stage, caps]) => {
     const toggles = (STAGE_TOGGLES[stage] ?? [])
@@ -138,6 +148,7 @@ export function buildFormModel(fields: FieldSpec[], capabilities: Capabilities |
   for (const field of fields) {
     if (field.default !== undefined) defaults[field.name] = field.default;
   }
+  if (pipeline?.default !== undefined) defaults.pipeline = pipeline.default;
   const formats = output.find((field) => field.name === "to_formats")?.options ?? [];
   const preferred = PREFERRED_FORMATS.filter((format) => formats.includes(format));
   if (preferred.length > 0) defaults.to_formats = preferred;
@@ -162,7 +173,8 @@ export function buildFormModel(fields: FieldSpec[], capabilities: Capabilities |
 
 /**
  * The options sent to the server: only values that differ from the schema
- * defaults, plus the output formats. Keeps requests (and snippets) readable.
+ * defaults (the server default for the pipeline), plus the output formats.
+ * Keeps requests (and snippets) readable.
  */
 export function requestOptions(
   fields: FieldSpec[],
@@ -170,6 +182,7 @@ export function requestOptions(
   model: FormModel,
 ): OptionValues {
   const schemaDefaults = new Map(fields.map((field) => [field.name, field.default]));
+  if (model.pipeline) schemaDefaults.set(model.pipeline.name, model.pipeline.default);
   const hiddenStages = new Set(
     model.stages.filter((stage) => !stage.isActive(values)).map((stage) => stage.capabilities.option),
   );

@@ -2811,7 +2811,7 @@ requires-dist = [
     { name = "docling-core", specifier = ">=2.103.0" },
     { name = "docling-jobkit", extras = ["rq", "ray", "vlm", "azure", "gcloudstorage", "gdrive"], specifier = ">=3.10.0,<4" },
     { name = "docling-mcp", specifier = ">=1.0.0" },
-    { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], specifier = ">=2.140.0,<3.0.0" },
+    { name = "docling-slim", extras = ["standard", "service-client", "models-remote", "format-opendocument"], specifier = ">=2.152.0,<3.0.0" },
     { name = "easyocr", marker = "extra == 'easyocr'", specifier = ">=1.7" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.138.0,<1.0.0" },
     { name = "flash-attn", marker = "sys_platform == 'linux' and extra == 'flash-attn'", specifier = "~=2.8.2" },
