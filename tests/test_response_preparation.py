@@ -1,6 +1,4 @@
-import io
 import json
-import zipfile
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 from urllib.parse import unquote
@@ -20,11 +18,7 @@ from docling.datamodel.service.responses import (
 from docling_core.types.doc.document import DoclingDocument
 from docling_core.types.doc.labels import DocItemLabel
 
-from docling_serve.response_preparation import (
-    _content_disposition,
-    _zip_filename,
-    prepare_response,
-)
+from docling_serve.response_preparation import _content_disposition, prepare_response
 
 
 def _stored_result() -> DoclingTaskResult:
@@ -72,50 +66,6 @@ async def test_in_body_json_untouched_without_target():
     assert isinstance(response, ConvertDocumentResponse)
 
 
-def _make_zip(names: list[str]) -> bytes:
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w") as zf:
-        for name in names:
-            zf.writestr(name, b"" if name.endswith("/") else b"x")
-    return buf.getvalue()
-
-
-@pytest.mark.parametrize(
-    ("names", "expected"),
-    [
-        (["report.md"], "report.zip"),
-        (
-            ["report.md", "report.json", "report.html", "report.txt"],
-            "report.zip",
-        ),
-        (["report.doctags", "report.dclg", "report.dclx"], "report.zip"),
-        (["report.md", "report.chunks.jsonl"], "report.zip"),
-        (
-            ["report.md", "artifacts/", "artifacts/image_000000.png"],
-            "report.zip",
-        ),
-        (["annual.report.v2.md", "annual.report.v2.json"], "annual.report.v2.zip"),
-        (["Übersicht.md"], "Übersicht.zip"),
-        # Multiple documents keep the generic name.
-        (["a.md", "b.md"], "converted_docs.zip"),
-        (["a.md", "a.json", "b.json"], "converted_docs.zip"),
-        # Archives that are not per-document exports keep the generic name.
-        (["chunked_result.json"], "converted_docs.zip"),
-        (["chunked_result.json", "artifacts/image_000000.png"], "converted_docs.zip"),
-        (["unknown.bin"], "converted_docs.zip"),
-        (["report.md", "notes.bin"], "converted_docs.zip"),
-        ([".md"], "converted_docs.zip"),
-        ([], "converted_docs.zip"),
-    ],
-)
-def test_zip_filename(names, expected):
-    assert _zip_filename(_make_zip(names)) == expected
-
-
-def test_zip_filename_invalid_zip():
-    assert _zip_filename(b"not a zip") == "converted_docs.zip"
-
-
 def test_content_disposition_ascii():
     assert _content_disposition("report.zip") == 'attachment; filename="report.zip"'
 
@@ -145,18 +95,24 @@ def test_content_disposition_escapes_unsafe_chars():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("names", "expected"),
+    ("filename", "expected"),
     [
-        (["report.md", "report.json"], 'attachment; filename="report.zip"'),
-        (["a.md", "b.md"], 'attachment; filename="converted_docs.zip"'),
+        # docling-jobkit sets the name when the task had exactly one document.
+        ("report.zip", 'attachment; filename="report.zip"'),
+        (
+            "Übersicht.zip",
+            "attachment; filename=\"Ubersicht.zip\"; filename*=UTF-8''%C3%9Cbersicht.zip",
+        ),
+        # Several documents (or an older worker) leave it unset.
+        (None, 'attachment; filename="converted_docs.zip"'),
     ],
 )
-async def test_prepare_response_zip_filename(names, expected):
+async def test_prepare_response_zip_filename(filename, expected):
     task_result = DoclingTaskResult(
-        result=ZipArchiveResult(content=_make_zip(names)),
+        result=ZipArchiveResult(content=b"PK", filename=filename),
         processing_time=0.0,
-        num_converted=len(names),
-        num_succeeded=len(names),
+        num_converted=1,
+        num_succeeded=1,
         num_partially_succeeded=0,
         num_failed=0,
     )

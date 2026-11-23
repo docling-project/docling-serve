@@ -1,9 +1,8 @@
-import io
 import unicodedata
-import zipfile
 from urllib.parse import quote
 
 from fastapi import BackgroundTasks, Response
+from fastapi.responses import JSONResponse
 
 from docling.datamodel.service.responses import (
     ChunkDocumentResponse,
@@ -17,6 +16,7 @@ from docling.datamodel.service.responses import (
     RemoteTargetResult,
     ZipArchiveResult,
 )
+from docling_jobkit.datamodel.exportable_document import project_document_dict
 from docling_jobkit.orchestrators.base_orchestrator import (
     BaseOrchestrator,
 )
@@ -24,47 +24,6 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 from docling_serve.settings import docling_serve_settings
 
 DEFAULT_ZIP_FILENAME = "converted_docs.zip"
-
-# Suffixes of the per-document files docling-jobkit writes as ``<stem><suffix>``.
-_EXPORT_SUFFIXES = (
-    ".chunks.jsonl",
-    ".json",
-    ".html",
-    ".md",
-    ".txt",
-    ".doctags",
-    ".dclg",
-    ".dclx",
-)
-# Consolidated output of chunking tasks, covering every document in the task.
-_CHUNKING_RESULT_FILENAME = "chunked_result.json"
-
-
-def _zip_filename(content: bytes) -> str:
-    """Name the archive after its document when it holds exactly one."""
-    try:
-        with zipfile.ZipFile(io.BytesIO(content)) as zf:
-            names = zf.namelist()
-    except zipfile.BadZipFile:
-        return DEFAULT_ZIP_FILENAME
-
-    stems = set()
-    for name in names:
-        if "/" in name:
-            continue  # entries under artifacts/ (referenced images)
-        if name == _CHUNKING_RESULT_FILENAME:
-            return DEFAULT_ZIP_FILENAME
-        suffix = next((s for s in _EXPORT_SUFFIXES if name.endswith(s)), None)
-        if suffix is None:
-            return DEFAULT_ZIP_FILENAME
-        stems.add(name[: -len(suffix)])
-
-    if len(stems) != 1:
-        return DEFAULT_ZIP_FILENAME
-    stem = stems.pop()
-    if not stem:
-        return DEFAULT_ZIP_FILENAME
-    return f"{stem}.zip"
 
 
 def _content_disposition(filename: str) -> str:
@@ -88,6 +47,7 @@ async def prepare_response(
     task_result: DoclingTaskResult,
     orchestrator: BaseOrchestrator,
     background_tasks: BackgroundTasks,
+    target_document_version: str | None = None,
 ):
     response: (
         Response
@@ -105,13 +65,27 @@ async def prepare_response(
             errors=task_result.result.errors,
             confidence=task_result.result.confidence,
         )
+        json_content = task_result.result.document.json_content
+        projected = (
+            project_document_dict(json_content, target_document_version)
+            if json_content is not None
+            else None
+        )
+        if projected is not None:
+            # Emit the projected dict as-is; the DoclingDocument model would
+            # re-add newer fields and its native version when serialized.
+            content = response.model_dump(mode="json", by_alias=True)
+            content["document"]["json_content"] = projected
+            response = JSONResponse(content)
     elif isinstance(task_result.result, ZipArchiveResult):
         response = Response(
             content=task_result.result.content,
             media_type="application/zip",
             headers={
+                # docling-jobkit names the archive after the source when the task
+                # had exactly one document; otherwise keep the generic name.
                 "Content-Disposition": _content_disposition(
-                    _zip_filename(task_result.result.content)
+                    task_result.result.filename or DEFAULT_ZIP_FILENAME
                 )
             },
         )
