@@ -1,3 +1,37 @@
+## [v1.39.0](https://github.com/docling-project/docling-serve/releases/tag/v1.39.0) - 2026-11-23
+
+### Feature
+
+* Add DOCLING_SERVE_ALLOWED_PIPELINES and DOCLING_SERVE_DEFAULT_PIPELINE ([#715](https://github.com/docling-project/docling-serve/issues/715)) ([`a97b3ec`](https://github.com/docling-project/docling-serve/commit/a97b3ec3d313b6159a3748eec73d977e8ab806fe))
+* Name zip downloads after the source document ([#732](https://github.com/docling-project/docling-serve/issues/732)) ([`335456f`](https://github.com/docling-project/docling-serve/commit/335456fbe6da9e127c94633db962f78056b13aea))
+* **metrics:** Add aggregate RQ worker counts by queue and state ([#738](https://github.com/docling-project/docling-serve/issues/738)) ([`31fd6ec`](https://github.com/docling-project/docling-serve/commit/31fd6ecad6fa9de72f60f6695b9ef4dc0dfd1383))
+* **metrics:** Fail-closed RQ collector with health gauges and configured-queue reporting ([#739](https://github.com/docling-project/docling-serve/issues/739)) ([`69fb058`](https://github.com/docling-project/docling-serve/commit/69fb0588c5e04e09b4b6b6a8edf9613e812b3c36))
+
+### Fix
+
+* Updated depencencies ([#776](https://github.com/docling-project/docling-serve/issues/776)) ([`568b065`](https://github.com/docling-project/docling-serve/commit/568b0652e1c27a21adee33a3c88947e30d95f4ec))
+* Require docling-jobkit 3.10.0 ([#775](https://github.com/docling-project/docling-serve/issues/775)) ([`e5fc8e5`](https://github.com/docling-project/docling-serve/commit/e5fc8e5d222d7582221fd4344fb3d5f67d5be737))
+* Preserve required nested and dictionary form fields ([#758](https://github.com/docling-project/docling-serve/issues/758)) ([`7fe44f2`](https://github.com/docling-project/docling-serve/commit/7fe44f242f7ceaddefb7acd9e3dffb40fcfc0201))
+* Check the expandable source pairing when a batch request has no target ([#756](https://github.com/docling-project/docling-serve/issues/756)) ([`9eb92bb`](https://github.com/docling-project/docling-serve/commit/9eb92bb878d501c576c0a5696925aa783963fff7))
+* Keep starting when an undeclared version lookup finds nothing ([#753](https://github.com/docling-project/docling-serve/issues/753)) ([`e3d44cf`](https://github.com/docling-project/docling-serve/commit/e3d44cf96b46d9f1a84e5580f7e2f44d9144c43c))
+* Report a failed task's failure on the sync endpoints ([#767](https://github.com/docling-project/docling-serve/issues/767)) ([`4fb7935`](https://github.com/docling-project/docling-serve/commit/4fb7935853d973a8a8f494132a96eb1c65915432))
+* Updated pinned dependencies ([#773](https://github.com/docling-project/docling-serve/issues/773)) ([`9214911`](https://github.com/docling-project/docling-serve/commit/9214911907205dd07d26f9527afe96e90e0ce953))
+* **ui:** Show chunks outputs in the results ([#749](https://github.com/docling-project/docling-serve/issues/749)) ([`332acab`](https://github.com/docling-project/docling-serve/commit/332acab10ce28a2ce3a328a23d7e4ed92affa378))
+
+### Documentation
+
+* Correct expansion of MCP in server guide ([#750](https://github.com/docling-project/docling-serve/issues/750)) ([`f32ae30`](https://github.com/docling-project/docling-serve/commit/f32ae30836a1ebcad315e38907804f6848f7e289))
+* Use HTTPS for ROCm clone instructions ([#752](https://github.com/docling-project/docling-serve/issues/752)) ([`a50b5dc`](https://github.com/docling-project/docling-serve/commit/a50b5dcdb6ef273310d7922324f4f9695616baba))
+
+### Docling libraries included in this release:
+- docling-core 2.108.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.10.0
+- docling-mcp 3.5.1
+- docling-parse 7.27.1
+- docling-serve 1.39.0
+- docling-slim 2.152.0
+
 ## [v1.38.2](https://github.com/docling-project/docling-serve/releases/tag/v1.38.2) - 2026-10-27
 
 ### Fix
