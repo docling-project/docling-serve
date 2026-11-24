@@ -21,7 +21,7 @@ The following table shows the options which are propagated directly to the
 | `--host` | `UVICORN_HOST` | `0.0.0.0` for `run`, `localhost` for `dev` | THe host to serve on. |
 | `--port` | `UVICORN_PORT` | `5001` | The port to serve on. |
 | `--reload` | `UVICORN_RELOAD` | `false` for `run`, `true` for `dev` | Enable auto-reload of the server when (code) files change. |
-| `--workers` | `UVICORN_WORKERS` | `1` | Use multiple worker processes. |
+| `--workers` | `UVICORN_WORKERS` | `1` | Use multiple worker processes. With the local engine, tasks are per worker, so async task requests may return 404: use 1 worker or the RQ engine. |
 | `--root-path` | `UVICORN_ROOT_PATH` | `""` | The root path is used to tell your app that it is being served to the outside world with some |
 | `--proxy-headers` | `UVICORN_PROXY_HEADERS` | `true` | Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. |
 | `--timeout-keep-alive` | `UVICORN_TIMEOUT_KEEP_ALIVE` | `60` | Timeout for the server response. |

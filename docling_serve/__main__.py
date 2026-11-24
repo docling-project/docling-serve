@@ -12,7 +12,7 @@ import uvicorn
 from rich.console import Console
 
 from docling_serve.rq_instrumentation import setup_rq_worker_metrics
-from docling_serve.settings import docling_serve_settings, uvicorn_settings
+from docling_serve.settings import AsyncEngine, docling_serve_settings, uvicorn_settings
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="pydantic|torch")
 warnings.filterwarnings(action="ignore", category=FutureWarning, module="easyocr")
@@ -99,9 +99,21 @@ def _run(
 
     console.print(f"Starting {server_type} server 🚀")
 
-    run_subprocess = (
+    multiple_workers = (
         uvicorn_settings.workers is not None and uvicorn_settings.workers > 1
-    ) or uvicorn_settings.reload
+    )
+    run_subprocess = multiple_workers or uvicorn_settings.reload
+
+    if (
+        multiple_workers
+        and not uvicorn_settings.reload  # uvicorn ignores workers when reloading
+        and docling_serve_settings.eng_kind == AsyncEngine.LOCAL
+    ):
+        logger.warning(
+            "Local engine with %d workers: tasks are per worker, so async task "
+            "requests may return 404. Use --workers 1, or the RQ engine to scale.",
+            uvicorn_settings.workers,
+        )
 
     run_ssl = (
         uvicorn_settings.ssl_certfile is not None
