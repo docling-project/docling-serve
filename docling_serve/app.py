@@ -122,6 +122,7 @@ from docling_serve.policy import (
     normalize_request,
     resolve_default_target,
     validate_batch_convert_request,
+    validate_callbacks,
     validate_chunk_request,
     validate_convert_options,
     validate_convert_request,
@@ -995,6 +996,7 @@ def create_app():  # noqa: C901
         _log.info(f"[TENANT_ID] process_file endpoint received tenant_id='{tenant_id}'")
         target = _resolve_file_target(target_type)
         callbacks = [parse_callback_item(v) for v in callbacks_raw]
+        validate_callbacks(callbacks, service_policy)
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,
@@ -1156,6 +1158,7 @@ def create_app():  # noqa: C901
         )
         target = _resolve_file_target(target_type)
         callbacks = [parse_callback_item(v) for v in callbacks_raw]
+        validate_callbacks(callbacks, service_policy)
         task = await _enqueue_file(
             task_type=TaskType.CONVERT,
             orchestrator=orchestrator,

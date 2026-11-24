@@ -511,6 +511,8 @@ Each value is either a **bare URL** (shortcut) or a **JSON-encoded `CallbackSpec
 
 The bare-URL format is the easiest way to register a webhook. Use the JSON-object format when you need custom request headers (e.g. an auth token) or a non-default CA certificate for TLS verification.
 
+The server sends callbacks from its own network position, to any URL the client gives. Restrict where it can connect with egress network policies, and set `DOCLING_SERVE_ENABLE_CALLBACKS=false` if your deployment does not use callbacks. A request may register at most `DOCLING_SERVE_MAX_CALLBACKS_PER_REQUEST` callbacks (default 5). See [SECURITY.md](../.github/SECURITY.md#threat-model).
+
 <details>
 <summary>CURL example — bare URL callback:</summary>
 

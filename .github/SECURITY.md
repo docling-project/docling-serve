@@ -21,6 +21,49 @@ The latest versions of all Docling repositories are supported.
 - Use of [Ruff](https://docs.astral.sh/ruff/), [Mypy](https://mypy.readthedocs.io/) and [Pytest](https://docs.pytest.org/en/7.2.x/) for Python code linting (static and dynamic analysers) on pull requests and builds
 - Use of GitHub Issues for bug reporting and tracking
 
+## Scope and Threat Model
+
+This section tells reporters which docling-serve reports we treat as vulnerabilities, and how we score them.
+
+### Threat model
+
+docling-serve is an API service that converts documents for its clients. It has these trust boundaries:
+
+- **API clients are trusted to use every API feature.** docling-serve has one shared API key (`DOCLING_SERVE_API_KEY`) and no per-user permissions. Every client with the key can use every endpoint, including `/v1/clear/*`. Without an API key, every client that can reach the port has the same access. `docling-serve run` and the container images listen on all interfaces, so set an API key, or put an authenticating proxy in front, on any deployment that untrusted clients can reach.
+- **Documents are untrusted.** The conversion follows the [Docling threat model](https://github.com/docling-project/docling/blob/main/.github/SECURITY.md#scope-and-threat-model). Report conversion issues to the [Docling repository](https://github.com/docling-project/docling/security).
+- **The operator controls the network.** Some features make the server connect to URLs chosen by the client: HTTP sources, callbacks and `put` targets. HTTP sources refuse private addresses unless `DOCLINGCORE_ALLOWED_PRIVATE_IPS` allows them. Callbacks and `put` targets are not filtered, because their usual receivers are on the operator's own network. Restrict where the server can connect with egress network policies. Turn off what you do not use with `DOCLING_SERVE_ENABLE_CALLBACKS=false` and `DOCLING_SERVE_ALLOWED_TARGET_TYPES`.
+- **The operator sets resource limits.** Limits such as `DOCLING_SERVE_MAX_FILE_SIZE` and `DOCLING_SERVE_MAX_NUM_PAGES` are off by default. Set request-size limits and rate limits at the ingress or reverse proxy, and run the service with memory and CPU limits.
+- **Configuration and logs are trusted.** Only the operator can change the configuration. Logs can contain request details, so restrict who can read them.
+
+### In scope
+
+For example, we treat these as vulnerabilities:
+
+- Using the API without the key when an API key is configured.
+- Reading or changing another client's tasks or results without knowing their task id.
+- Bypassing a check that the documentation describes, for example the private-address check for HTTP sources.
+- Exposing server secrets, such as the API key or storage credentials, to clients, or to logs in a documented configuration.
+- A small request that makes docling-serve itself use memory or CPU out of proportion to its size.
+- Code execution, or file access outside the configured paths.
+
+### Out of scope
+
+We do not treat these cases as vulnerabilities:
+
+- A client using any API feature when no API key is configured, or when it holds the API key.
+- Callbacks or `put` targets connecting to destinations that the deployment's network allows.
+- Cost that grows linearly with the size or the number of requests, for example a large upload.
+- Behavior that needs an option that the documentation marks as risky. We can accept such reports with low severity.
+- Issues in the document conversion itself. Report these to the Docling repository.
+
+### Scoring
+
+We score with CVSS 3.1.
+
+- Issues that need API access use `PR:L`, also when the deployment has no API key. The open default applies to every endpoint, so it is not counted again in each report.
+- Only a bypass of a configured API key uses `PR:N`.
+- Issues that need a non-default or risky configuration use `AC:H`.
+
 ## Reporting a Vulnerability
 
 If you think you've identified a security issue in any Docling project repository, please DO NOT report the issue publicly via the GitHub issue tracker, discussions, or any other public forum.

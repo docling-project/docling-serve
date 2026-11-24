@@ -143,6 +143,7 @@ class DoclingServeSettings(BaseSettings):
     show_version_info: bool = True
     enable_management_endpoints: bool = False
     debug_error_details: bool = False
+    enable_callbacks: bool = True
 
     api_key: str = ""
 
@@ -150,6 +151,7 @@ class DoclingServeSettings(BaseSettings):
     max_num_pages: int = sys.maxsize
     max_file_size: int = sys.maxsize
     max_sources_per_request: int = 3
+    max_callbacks_per_request: int = 5
 
     # Image export policy
     allowed_image_export_modes: Optional[list[str]] = None  # None = all modes allowed

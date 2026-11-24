@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Annotated, Any, TypeVar, Union, get_args
 
@@ -124,6 +125,7 @@ class ServicePolicy:
     custom_chart_extraction_enabled: bool
     artifact_storage_enabled: bool
     max_sources_per_request: int
+    max_callbacks_per_request: int
     allowed_image_export_modes: frozenset[str]
     source_factory: SourceConnectorFactory
     target_factory: TargetConnectorFactory
@@ -312,11 +314,12 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_target_types=allowed_target_types,
         allowed_pipelines=allowed_pipelines,
         default_pipeline=settings.default_pipeline,
-        callbacks_enabled=True,
+        callbacks_enabled=settings.enable_callbacks,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
         custom_chart_extraction_enabled=settings.allow_custom_chart_extraction_config,
         artifact_storage_enabled=settings.artifact_storage_enabled,
         max_sources_per_request=settings.max_sources_per_request,
+        max_callbacks_per_request=settings.max_callbacks_per_request,
         allowed_image_export_modes=frozenset(allowed_image_export_modes),
         source_factory=source_factory,
         target_factory=target_factory,
@@ -483,6 +486,30 @@ def validate_source_kinds(
             )
 
 
+def validate_callbacks(callbacks: Sequence[Any] | None, policy: ServicePolicy) -> None:
+    """Reject callbacks when the server disables them or a request has too many.
+
+    Callbacks make the server send requests to URLs chosen by the client, so
+    operators can turn them off (``DOCLING_SERVE_ENABLE_CALLBACKS=false``).
+    The count limit bounds how many outbound requests one task can cause.
+    """
+    if not callbacks:
+        return
+    if not policy.callbacks_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Callbacks are disabled by server policy.",
+        )
+    if len(callbacks) > policy.max_callbacks_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"Too many callbacks: {len(callbacks)} exceeds the "
+                f"maximum of {policy.max_callbacks_per_request}."
+            ),
+        )
+
+
 def validate_convert_request(
     request: ConvertSourcesRequest, policy: ServicePolicy
 ) -> None:
@@ -493,11 +520,7 @@ def validate_convert_request(
     validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
-    if request.callbacks and not policy.callbacks_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Callbacks are disabled by server policy.",
-        )
+    validate_callbacks(request.callbacks, policy)
 
     if len(request.sources) > policy.max_sources_per_request:
         raise HTTPException(
@@ -527,11 +550,7 @@ def validate_batch_convert_request(
     validate_convert_options(request.options, policy)
     validate_source_kinds(request.sources, policy)
 
-    if request.callbacks and not policy.callbacks_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Callbacks are disabled by server policy.",
-        )
+    validate_callbacks(request.callbacks, policy)
 
     if len(request.sources) > policy.max_sources_per_request:
         raise HTTPException(
@@ -574,11 +593,7 @@ def validate_chunk_request(
     validate_source_kinds(request.sources, policy, skip_kinds=_INLINE_SOURCE_KINDS)
     validate_target_kind(request.target.kind, policy)
 
-    if request.callbacks and not policy.callbacks_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Callbacks are disabled by server policy.",
-        )
+    validate_callbacks(request.callbacks, policy)
 
     if len(request.sources) > policy.max_sources_per_request:
         raise HTTPException(
