@@ -20,6 +20,18 @@ _log_context: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
     "log_context", default={}
 )
 
+# Headers carrying credentials or session data are never copied into the log
+# context, regardless of the configured prefix.
+EXCLUDED_LOG_HEADERS: frozenset[str] = frozenset(
+    {
+        "authorization",
+        "proxy-authorization",
+        "cookie",
+        "set-cookie",
+        "x-api-key",
+    }
+)
+
 
 class ColoredLogFormatter(logging.Formatter):
     """Colored formatter for text log output."""
@@ -142,10 +154,11 @@ class LogContextMiddleware(BaseHTTPMiddleware):
 
         Args:
             app: The ASGI application
-            header_prefix: Prefix for headers to extract (case-insensitive)
+            header_prefix: Prefix for headers to extract (case-insensitive).
+                An empty prefix disables header extraction.
         """
         super().__init__(app)
-        self.header_prefix = header_prefix.lower()
+        self.header_prefix = header_prefix.strip().lower()
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process the request and extract headers into log context."""
@@ -153,7 +166,12 @@ class LogContextMiddleware(BaseHTTPMiddleware):
         context: dict[str, Any] = {}
 
         for header_name, header_value in request.headers.items():
-            if header_name.lower().startswith(self.header_prefix):
+            name = header_name.lower()
+            if (
+                self.header_prefix
+                and name.startswith(self.header_prefix)
+                and name not in EXCLUDED_LOG_HEADERS
+            ):
                 # Remove prefix from header name for cleaner log field names
                 # e.g., "X-Docling-Log-RequestID" -> "RequestID"
                 field_name = header_name[len(self.header_prefix) :]
