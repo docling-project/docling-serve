@@ -51,6 +51,43 @@ curl -X 'POST' \
   }'
 ```
 
+### Structured extraction
+
+Ray deployments accept `POST /v1/extract/source/async` with an explicit extraction
+target. For example:
+
+```json
+{
+  "options": {
+    "extraction_preset": "nuextract_2b",
+    "target": {
+      "template": {"format": "nuextract", "value": {"total": "number"}}
+    },
+    "output_mode": "prompt_only"
+  },
+  "sources": [{"kind": "http", "url": "https://example.com/invoice.pdf"}],
+  "target": {"kind": "inbody"}
+}
+```
+
+`options.target` supplies guidance and/or `output_schema`; the outer `target`
+selects the result destination. Generic models use `format: "example_json"`
+for examples; examples do not imply a schema. Lift requires `output_schema`.
+`schema_constrained` additionally requires an operator-authorized vLLM API
+configuration and a supported output schema. Model, engine, channel and target
+compatibility are checked before enqueue. Local and RQ extraction return 501.
+
+Poll `/v1/status/poll/{task_id}`, then fetch `/v1/result/{task_id}` with the same
+tenant header. In-body documents contain original `source_index`, expanded
+`source_uri`, filename, status, errors and `items`. Each item has an absolute page
+or document `scope`, extracted JSON, raw answer, validation status and inference
+metadata. This unreleased service contract replaces bare `options.template` and
+document `pages`; use tagged guidance and `document.items`/`item.scope`.
+
+Before a release, raise Docling and Jobkit minimum versions to their first
+published releases containing this contract. Source-checkout validation is not
+a substitute for that release dependency update.
+
 ### Container Images
 
 The following container images are available for running **Docling Serve** with different hardware and PyTorch configurations:

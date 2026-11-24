@@ -526,7 +526,7 @@ async def test_batch_endpoint_resolves_plugin_source_and_target(
     assert batch_schema["sources"]["items"]["discriminator"]["mapping"][
         "filenet"
     ].endswith("/TaskFileNetSource")
-    assert batch_schema["target"]["discriminator"]["mapping"][
+    assert batch_schema["target"]["anyOf"][0]["discriminator"]["mapping"][
         "plugin_artifact"
     ].endswith("/PluginArtifactTarget")
     api_key_schema = schemas["TaskFileNetSource"]["properties"]["api_key"]
