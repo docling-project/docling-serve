@@ -13,6 +13,8 @@ import datetime
 import os
 import sys
 
+_PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 async def _get_tenant_activity_breakdown(redis_manager, tenant_id: str) -> dict:
     active_task_ids = await redis_manager.get_tenant_active_task_ids(tenant_id)
@@ -46,7 +48,7 @@ async def _get_tenant_activity_breakdown(redis_manager, tenant_id: str) -> dict:
 async def debug_redis_state():  # noqa: C901
     """Check Redis state for Ray orchestrator."""
     # Add parent directory to path for imports
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, _PARENT_DIR)
 
     from docling_jobkit.orchestrators.ray.redis_helper import RedisStateManager
 

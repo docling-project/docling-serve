@@ -37,7 +37,7 @@ THe following table describes the options to configure the Docling Serve app.
 | -----------|-----|---------|-------------|
 | `-v, --verbose` | `DOCLING_SERVE_LOG_LEVEL` | `WARNING` | Set the verbosity level. CLI: `-v` for INFO, `-vv` for DEBUG. ENV: `WARNING`, `INFO`, or `DEBUG` (case-insensitive). CLI flag takes precedence over ENV. |
 |  | `DOCLING_SERVE_LOG_FORMAT` | `text` | Log output format. Options: `text` (colored console logs) or `json` (structured JSON logs). JSON format is recommended for production deployments and log aggregation systems. |
-|  | `DOCLING_SERVE_LOG_HEADER_PREFIX` | `X-Docling-Log-` | Prefix for HTTP request headers that should be propagated to logs. Headers matching this prefix (case-insensitive) will be extracted and included as structured fields in all logs during the request lifecycle. Example: `X-Docling-Log-RequestID` becomes `RequestID` in logs. |
+|  | `DOCLING_SERVE_LOG_HEADER_PREFIX` | `X-Docling-Log-` | Prefix for HTTP request headers that should be propagated to logs. Headers matching this prefix (case-insensitive) will be extracted and included as structured fields in all logs during the request lifecycle. Example: `X-Docling-Log-RequestID` becomes `RequestID` in logs. An empty value disables header propagation. `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `X-Api-Key` are never propagated. |
 | `--artifacts-path` | `DOCLING_SERVE_ARTIFACTS_PATH` | unset | If set to a valid directory, the model weights will be loaded from this path |
 |  | `DOCLING_SERVE_STATIC_PATH` | unset | If set to a valid directory, the static assets for the docs and UI will be loaded from this path |
 |  | `DOCLING_SERVE_SCRATCH_PATH` |  | If set, this directory will be used as scratch workspace, e.g. storing the results before they get requested. If unset, a temporary created is created for this purpose. |
@@ -73,6 +73,8 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_MAX_FILE_SIZE` |  | The maximum file size for a document to be processed. |
 |  | `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` | `null` (built-in API sources) | List of allowed batch source kinds. Accepts a JSON array or comma-separated string. Registered plugin sources require explicit inclusion; `local_path` is never available remotely. |
 |  | `DOCLING_SERVE_ALLOWED_TARGET_TYPES` | `null` (built-in API targets) | List of allowed target kinds. Accepts a JSON array or comma-separated string. Registered plugin targets require explicit inclusion and artifact result mode; `local_path` is never available remotely. |
+|  | `DOCLING_SERVE_DEFAULT_PIPELINE` | `standard` | Pipeline used for PDF and image inputs when a request does not set `pipeline`. `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` warms up this pipeline. Must be one of `DOCLING_SERVE_ALLOWED_PIPELINES`, otherwise the server does not start. |
+|  | `DOCLING_SERVE_ALLOWED_PIPELINES` | `null` (all supported pipelines) | List of pipelines a request may select with `pipeline`. Accepts a JSON array or comma-separated string of the supported pipelines, `standard` and `vlm`. Other values are rejected with a 422. Only PDF and image inputs are affected; office and HTML formats always use the simple pipeline. For example, allow only the VLM pipeline with `DOCLING_SERVE_ALLOWED_PIPELINES=vlm` and `DOCLING_SERVE_DEFAULT_PIPELINE=vlm`. |
 |  | `DOCLING_SERVE_SYNC_POLL_INTERVAL` | `2` | Number of seconds to sleep between polling the task status in the sync endpoints. |
 |  | `DOCLING_SERVE_MAX_SYNC_WAIT` | `120` | Max number of seconds a synchronous endpoint is waiting for the task completion. |
 |  | `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` | `True` | If enabled, the models for the default options will be loaded at boot. |
@@ -307,6 +309,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_HEALTH_CHECK_INTERVAL` | `30.0` | Seconds a pooled Redis connection may stay idle before it is checked with a `PING` on reuse. Stale connections (e.g. dropped by a load balancer or after a Redis failover) are then reconnected instead of failing the request. Set to `0` to disable. |
 
 **Scaling Recommendations for RQ Engine:**
 
@@ -328,6 +331,13 @@ The following table describes the timeout options of the Docling Serve Ray engin
 | `DOCLING_SERVE_ENG_RAY_CONVERTER_REQUEST_TIMEOUT` | `None` (disabled) | Hard limit in seconds, per document, on a coordinator call to a converter replica, including the wait for a free replica. A backstop for conversions that run past the document timeout: set it well above that (e.g. 2x). A PDF slice that exceeds it is recorded as failed; any other task fails. |
 | `DOCLING_SERVE_ENG_RAY_RECYCLE_CONVERTER_ON_ABANDONED_CONVERSION` | `true` | A cancelled converter call cannot stop its conversion thread. When enabled, a converter replica reports unhealthy while such a thread is still running more than `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` after the cancel, and Ray Serve replaces it. Only takes effect when `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` is at least `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT`, so the draining replica can finish the request it is serving. |
 | `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` | `None` (document timeout + 60 s) | Seconds a conversion may keep running after its request was cancelled before the converter replica reports unhealthy. |
+
+#### Ray engine state and metrics
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_TASK_METADATA_TTL` | `604800` (7 days) | Seconds a finished task's metadata is kept in Redis. Never shorter than `DOCLING_SERVE_ENG_RAY_RESULTS_TTL`. `0` keeps finished tasks forever. |
+| `DOCLING_SERVE_ENG_RAY_TENANT_METRICS_REFRESH_INTERVAL` | `30` | Seconds between two refreshes of the per-tenant Prometheus metrics (`ray_tenant_*`, `ray_total_*`). One docling-serve process at a time, chosen by a lock in Redis, reads them in the background and exports them; the other processes export only `ray_metrics_snapshot_leader` and the refresh failure counter. |
 
 ### Web UI
 
@@ -353,3 +363,4 @@ ENV | Default | Description |
 | `DOCLING_SERVE_OTEL_SERVICE_NAME` | docling-serve | Service identification. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` |  | OTLP endpoint (for traces and optional metrics). |
 | `DOCLING_SERVE_METRICS_PORT` | `None` | Enable serving /metrics endpoint on a separate port. |
+

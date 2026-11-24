@@ -61,6 +61,11 @@ export function ServerPanel({ capabilities }: { capabilities: Capabilities | nul
               highlight={capabilities.targets.default}
             />
             <BadgeList label="Image export modes" items={capabilities.image_export_modes} />
+            <BadgeList
+              label="Pipelines"
+              items={capabilities.pipelines.allowed}
+              highlight={capabilities.pipelines.default}
+            />
           </CardContent>
         </Card>
         <Card>

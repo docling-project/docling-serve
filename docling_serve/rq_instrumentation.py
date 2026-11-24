@@ -101,7 +101,7 @@ def instrument_rq_job(func: Callable) -> Callable:
 
         # Create span with parent context
         tracer = get_rq_tracer()
-        span_name = f"rq.job.{func.__name__}"
+        span_name = f"rq.job.{getattr(func, '__name__', repr(func))}"
 
         with tracer.start_as_current_span(
             span_name,

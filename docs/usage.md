@@ -11,7 +11,7 @@ On top of the source of file (see below), both endpoints support the same parame
 
 | Field Name | Type | Description |
 |------------|------|-------------|
-| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `iwork_keynote`, `iwork_numbers`, `ebcdic`, `afp`. Optional, defaults to all formats. |
+| `from_formats` | List[InputFormat] | Input format(s) to convert from. String or list of strings. Allowed values: `docx`, `doc`, `rtf`, `pptx`, `ppt`, `html`, `mhtml`, `image`, `pdf`, `asciidoc`, `md`, `csv`, `xlsx`, `xls`, `odt`, `ods`, `odp`, `xml_uspto`, `xml_jats`, `xml_xbrl`, `xml_doclang`, `dclx`, `mets_gbs`, `json_docling`, `audio`, `video`, `vtt`, `latex`, `email`, `epub`, `boxnote`, `iwork_pages`, `iwork_keynote`, `iwork_numbers`, `ebcdic`, `afp`, `calendar`. Optional, defaults to all formats. |
 | `to_formats` | List[OutputFormat] | Output format(s) to convert to. String or list of strings. Allowed values: `md`, `json`, `yaml`, `html`, `html_split_page`, `text`, `doctags`, `vtt`, `doclang`, `dclx`, `chunks`, `latex`. Optional, defaults to Markdown. |
 | `image_export_mode` | ImageRefMode | Image export mode for the document (in case of JSON, Markdown or HTML). Allowed values: `placeholder`, `embedded`, `referenced`. Optional, defaults to Placeholder. |
 | `do_ocr` | bool | If enabled, the bitmap content will be processed using OCR. Boolean. Optional, defaults to true |
@@ -23,7 +23,7 @@ On top of the source of file (see below), both endpoints support the same parame
 | `pdf_backend` | PdfBackend | The PDF backend to use. String. Allowed values: `pypdfium2`, `docling_parse`, `_docling_parse`, `dlparse_v1`, `dlparse_v2`, `dlparse_v4`. Optional, defaults to `docling_parse`. |
 | `table_mode` | TableFormerMode | Mode to use for table structure, String. Allowed values: `fast`, `accurate`. Optional, defaults to accurate. |
 | `table_cell_matching` | bool | If true, matches table cells predictions back to PDF cells. Can break table output if PDF cells are merged across table columns. If false, let table structure model define the text cells, ignore PDF cells. |
-| `pipeline` | ProcessingPipeline | Choose the pipeline to process PDF or image files. |
+| `pipeline` | ProcessingPipeline or NoneType | Choose the pipeline to process PDF or image files. If not set, the server uses its default pipeline (`standard` unless the administrator configured another one). |
 | `page_range` | Tuple | Only convert a range of pages. The page number starts at 1. |
 | `document_timeout` | float or NoneType | The timeout for processing each document, in seconds. |
 | `abort_on_error` | bool | Abort on error if enabled. Boolean. Optional, defaults to false. |
@@ -124,7 +124,16 @@ On top of the source of file (see below), both endpoints support the same parame
 | `scale` | float | Image scaling factor for preprocessing |
 | `max_size` | int or NoneType | Maximum image dimension (width or height) |
 | `batch_size` | int | Batch size for processing multiple pages |
+| `nemotron_parse` | NemotronParseOptions | Multi-pass options for the nemotron_parse_v3_5 response format |
 | `force_backend_text` | bool | Force use of backend text extraction instead of VLM |
+
+<h4>NemotronParseOptions</h4>
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| `passes` | Literal | No description provided. |
+| `triple_regions` | Literal | No description provided. |
+| `crop_batch_size` | int | Maximum crops per engine batch |
 
 <h4>VlmModelApi</h4>
 
@@ -208,10 +217,12 @@ On top of the source of file (see below), both endpoints support the same parame
 | `enabled` | bool | Enable inference of section-header levels for the PDF/image pipeline. When disabled (default), all detected headings remain at level 1 (unchanged behavior). |
 | `use_bookmarks` | bool | Use the PDF bookmarks / table-of-contents (when present) as the authoritative heading signal. Bookmarks are fuzzily matched to detected headings by title and page; confident matches win over numbering and style, and a confidently matched list-item is promoted to a heading. Unmatched entries fall back to numbering/style. |
 | `use_numbering` | bool | Use legal/outline numbering (e.g. PART I -> 1. -> 1.1 -> (a) -> (i), Roman vs Arabic numerals) as the primary signal for headings without a bookmark match. |
-| `use_style` | bool | Use the visual style of the heading (font size, and with `use_font_style` also weight, slant and letter case) as a fallback for headings without recognizable numbering. Requires `generate_parsed_pages=True`. |
+| `use_style` | bool | Use the visual style of the heading (font size, and with `use_font_style` also weight, slant and letter case) as a fallback for headings without recognizable numbering. |
 | `use_font_style` | bool | Refine the style fallback with the font weight and slant read from the embedded PDF font names, plus all-caps detection, so that headings sharing a font size are still ranked (bold above regular, upright above italic, all-caps above mixed case). Ignored when `use_style` is disabled; font names that carry no recognizable styling fall back to font size alone. |
 | `style_size_tolerance` | float | Relative difference below which two heading font sizes are treated as one size by the style fallback. The size of a heading is measured from its cells, so the same font measures a little taller on a heading that has descenders; without this tolerance such headings would land on different levels. Higher = more sizes collapse into one level. |
-| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'division', 'subdivision', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l'. When None, a default legal/regulatory ordering is used. |
+| `numbering_schemes` | List[str] or NoneType | Optional override of the numbering-scheme precedence (highest level first). Known schemes: 'part', 'chapter', 'division', 'subdivision', 'article', 'roman_u', 'arabic', 'alpha_u', 'alpha_l', 'roman_l', plus any family that `numbering_keywords` defines. When None, a default legal/regulatory ordering is used. |
+| `numbering_keywords` | Dict[str, List[str]] | Extra keyword markers for the numbering signal, as a mapping from a scheme family to its words, for documents that are not in English. A key is one of 'part', 'chapter', 'division', 'subdivision', 'article', or a new family name that `numbering_schemes` must then list. A word given here replaces the built-in family of that word. Matching ignores letter case. Words in 'division' and 'subdivision' count only when an enumerator follows; words in every other family also count when they stand alone. Write the dot of an abbreviation as part of the word ('art.'). Empty by default. |
+| `numbering_number_words` | List[str] | Extra number words that count as the enumerator after a keyword marker, in addition to the English ones ('one', 'first', ...). For example ['pierwszy', 'drugi'] lets 'DZIAŁ PIERWSZY' count as a marker. Matching ignores letter case. Empty by default. |
 | `max_level` | int | Maximum heading level to assign. Deeper levels are clamped. |
 | `bookmark_match_threshold` | float | Minimum normalized title-similarity (0..1) for a bookmark to be considered a match to a detected heading/list-item. Below this, the bookmark is ignored and the heading falls back to numbering/style. Higher = stricter. |
 
@@ -263,7 +274,7 @@ schemas (unless `DOCLING_SERVE_ENABLE_API_DOCS=false`). Plugin installation or p
 `GET /v1/capabilities` describes what the running deployment accepts, so clients can offer only valid choices:
 
 - `stages`: for each model stage (OCR, layout, table structure, VLM pipeline, picture description and classification, code/formula, chart extraction, chunking), the request option that selects the preset, the allowed presets with their name and description, the preset `default` resolves to, and whether a custom config is allowed (`custom_config_option`).
-- `sources`, `targets` (with the default target), `output_formats` and `image_export_modes`.
+- `sources`, `targets` (with the default target), `output_formats`, `image_export_modes` and `pipelines` (with the pipeline used when a request omits `pipeline`).
 - `limits` (for example `max_file_size` and `max_images_scale`) and `features` (for example whether an API key is required and whether artifact storage is enabled).
 
 The endpoint needs no API key. Custom presets are listed by id only, never with their configuration. Disable it with `DOCLING_SERVE_ENABLE_CAPABILITIES_ENDPOINT=false`.

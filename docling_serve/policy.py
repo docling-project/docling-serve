@@ -137,6 +137,8 @@ class ServicePolicy:
     allowed_ocr_presets: frozenset[str]
     allowed_source_types: frozenset[str]
     allowed_target_types: frozenset[str]
+    allowed_pipelines: frozenset[str]
+    default_pipeline: str
     callbacks_enabled: bool
     custom_vlm_enabled: bool
     custom_extraction_enabled: bool
@@ -334,6 +336,25 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         available=available_target_types,
         setting="allowed_target_types",
     )
+    # Only pipelines the converter manager can dispatch. Imported here, like in
+    # capabilities.py, to keep the converter stack off the module import path.
+    from docling_jobkit.convert.manager import SUPPORTED_PIPELINES
+
+    supported_pipelines = frozenset(pipeline.value for pipeline in SUPPORTED_PIPELINES)
+    allowed_pipelines = _configured_types(
+        settings.allowed_pipelines,
+        defaults=supported_pipelines,
+        available=supported_pipelines,
+        setting="allowed_pipelines",
+    )
+    # jobkit resolves an omitted `pipeline` to the default, so it must be one
+    # the deployment accepts; otherwise every such request would fail.
+    if settings.default_pipeline not in allowed_pipelines:
+        raise ValueError(
+            f"default_pipeline {settings.default_pipeline!r} is not in "
+            f"allowed_pipelines {sorted(allowed_pipelines)}; set "
+            "DOCLING_SERVE_DEFAULT_PIPELINE to one of them."
+        )
 
     # Determine allowed image export modes
     if settings.allowed_image_export_modes is None:
@@ -371,6 +392,8 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets=frozenset(allowed_ocr_presets),
         allowed_source_types=allowed_source_types,
         allowed_target_types=allowed_target_types,
+        allowed_pipelines=allowed_pipelines,
+        default_pipeline=settings.default_pipeline,
         callbacks_enabled=True,
         custom_vlm_enabled=settings.allow_custom_vlm_config,
         custom_extraction_enabled=settings.allow_custom_extraction_config,
@@ -480,6 +503,19 @@ def validate_convert_options(
             detail=(
                 f"image_export_mode '{image_export_mode}' is not allowed. "
                 f"Allowed values: {sorted(policy.allowed_image_export_modes)}."
+            ),
+        )
+
+    # An unset pipeline resolves to the default, which is always allowed.
+    if (
+        options.pipeline is not None
+        and options.pipeline.value not in policy.allowed_pipelines
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"pipeline '{options.pipeline.value}' is not allowed. "
+                f"Allowed values: {sorted(policy.allowed_pipelines)}."
             ),
         )
 
@@ -607,7 +643,11 @@ def validate_batch_convert_request(
                     ),
                 )
 
-    for t in effective_targets:
+    # `[None]` when no target was given: both fields are optional here, and an
+    # expandable source still needs a storage target it can fan out into.
+    # validate_source_target_pairing reports the missing target and passes any
+    # request whose sources cannot expand.
+    for t in effective_targets or [None]:
         validate_source_target_pairing(request.sources, t, policy)
 
 
@@ -715,6 +755,15 @@ def validate_chunk_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Callbacks are disabled by server policy.",
+        )
+
+    if len(request.sources) > policy.max_sources_per_request:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"Too many sources: {len(request.sources)} exceeds the "
+                f"maximum of {policy.max_sources_per_request}."
+            ),
         )
 
     if isinstance(request.target, PresignedUrlTarget):
