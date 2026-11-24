@@ -136,3 +136,29 @@ def test_worker_count_empty_fleet_reports_zero():
     samples = metrics["rq_worker_count"].samples
     assert {s.labels["queue"] for s in samples} == {"convert"}
     assert all(s.value == 0 for s in samples)
+
+
+def test_worker_count_reports_a_queue_only_the_fleet_knows():
+    """A queue nothing has been enqueued to is missing from ``Queue.all()``."""
+    workers = [_worker("worker-one", "busy", ["convert"])]
+    asked_for: dict[str, tuple[str, ...]] = {}
+
+    def fake_get_jobs_by_queue(connection, queue_names=()):
+        asked_for["queue_names"] = tuple(queue_names)
+        return {name: {"queued": 0} for name in sorted(set(queue_names))}
+
+    with (
+        patch.object(rq_metrics_collector, "get_workers_stats", return_value=workers),
+        patch.object(rq_metrics_collector, "get_jobs_by_queue", fake_get_jobs_by_queue),
+    ):
+        metrics = _collect(_collector())
+
+    assert "convert" in asked_for["queue_names"]
+    assert (
+        next(
+            s.value
+            for s in metrics["rq_worker_count"].samples
+            if s.labels == {"queue": "convert", "state": "busy"}
+        )
+        == 1
+    )

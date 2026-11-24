@@ -170,7 +170,13 @@ class RQCollector(Collector):
         yield rq_workers_failed
         yield rq_workers_working_time
 
-        jobs_by_queue = get_jobs_by_queue(self.connection, self.queue_names)
+        # A queue only enters ``rq:queues`` once something is enqueued on it, so a
+        # queue the fleet is draining can be missing from ``Queue.all()``. Reporting
+        # it keeps the aggregate below consistent with ``rq_workers`` above.
+        worker_queue_names = {name for worker in workers for name in worker["queues"]}
+        jobs_by_queue = get_jobs_by_queue(
+            self.connection, (*self.queue_names, *sorted(worker_queue_names))
+        )
 
         # Aggregate queue memberships by state. Worker names are unbounded
         # labels; the per-queue totals are the fleet-health signal.
