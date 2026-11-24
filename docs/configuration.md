@@ -71,6 +71,8 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` | `604800` (7 days) | The maximum time for processing a document. |
 |  | `DOCLING_SERVE_MAX_NUM_PAGES` |  | The maximum number of pages for a document to be processed. |
 |  | `DOCLING_SERVE_MAX_FILE_SIZE` |  | The maximum file size for a document to be processed. |
+|  | `DOCLING_SERVE_ENABLE_CALLBACKS` | `true` | Accept `callbacks` in conversion and chunking requests. Callbacks make the server send HTTP requests to URLs chosen by the client; set to `false` if you do not use them. Requests that include callbacks are then rejected with 422. See [SECURITY.md](../.github/SECURITY.md#threat-model). |
+|  | `DOCLING_SERVE_MAX_CALLBACKS_PER_REQUEST` | `5` | The maximum number of callbacks a single request may register. Requests with more are rejected with 422. |
 |  | `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` | `null` (built-in API sources) | List of allowed batch source kinds. Accepts a JSON array or comma-separated string. Registered plugin sources require explicit inclusion; `local_path` is never available remotely. |
 |  | `DOCLING_SERVE_ALLOWED_TARGET_TYPES` | `null` (built-in API targets) | List of allowed target kinds. Accepts a JSON array or comma-separated string. Registered plugin targets require explicit inclusion and artifact result mode; `local_path` is never available remotely. |
 |  | `DOCLING_SERVE_DEFAULT_PIPELINE` | `standard` | Pipeline used for PDF and image inputs when a request does not set `pipeline`. `DOCLING_SERVE_LOAD_MODELS_AT_BOOT` warms up this pipeline. Must be one of `DOCLING_SERVE_ALLOWED_PIPELINES`, otherwise the server does not start. |
