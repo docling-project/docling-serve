@@ -347,6 +347,10 @@ The timer starts after boot warm-up and resets when the last queued or running j
 
 Cleanup collects Python cycles, releases already initialized PyTorch device caches, and asks the active allocator to return unused pages (mimalloc, glibc or macOS, where supported). RSS reduction depends on the allocator and platform, including mimalloc's thread-owned heaps. Live references, retained results, Python arenas and device contexts can keep memory resident; returning to the startup footprint is not guaranteed. Failed cleanup stages are logged and retried after another interval.
 
+Cleanup runs on the server's event loop, the same as `GET /v1/clear/converters`. With large heaps, requests and health probes may stall briefly while caches are released.
+
+To free memory as soon as the queue is empty, for example on a GPU shared with other processes, use a small timeout such as `0.1` or `0.5`. Cleanup still waits until no job is queued or running, so consecutive jobs in a batch keep their models loaded.
+
 ### Telemetry
 
 THe following table describes the telemetry options for the Docling Serve app. Some deployment examples are available in [examples/OTEL.md](../examples/OTEL.md).
