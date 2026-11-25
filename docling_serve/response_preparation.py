@@ -1,3 +1,6 @@
+import unicodedata
+from urllib.parse import quote
+
 from fastapi import BackgroundTasks, Response
 from fastapi.responses import JSONResponse
 
@@ -19,6 +22,24 @@ from docling_jobkit.orchestrators.base_orchestrator import (
 )
 
 from docling_serve.settings import docling_serve_settings
+
+DEFAULT_ZIP_FILENAME = "converted_docs.zip"
+
+
+def _content_disposition(filename: str) -> str:
+    """Build an attachment header that is safe for non-ASCII filenames (RFC 6266)."""
+    ascii_name = "".join(
+        c if c.isprintable() and c not in '"\\' else "_"
+        for c in unicodedata.normalize("NFKD", filename)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    if ascii_name in ("", ".zip"):
+        ascii_name = DEFAULT_ZIP_FILENAME
+    header = f'attachment; filename="{ascii_name}"'
+    if ascii_name != filename:
+        header += f"; filename*=UTF-8''{quote(filename, safe='')}"
+    return header
 
 
 async def prepare_response(
@@ -61,7 +82,11 @@ async def prepare_response(
             content=task_result.result.content,
             media_type="application/zip",
             headers={
-                "Content-Disposition": 'attachment; filename="converted_docs.zip"'
+                # docling-jobkit names the archive after the source when the task
+                # had exactly one document; otherwise keep the generic name.
+                "Content-Disposition": _content_disposition(
+                    task_result.result.filename or DEFAULT_ZIP_FILENAME
+                )
             },
         )
     elif isinstance(task_result.result, RemoteTargetResult):

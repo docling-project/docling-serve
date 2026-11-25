@@ -44,10 +44,16 @@ class TargetCapabilities(BaseModel):
     default: str
 
 
+class PipelineCapabilities(BaseModel):
+    allowed: list[str]
+    default: str = Field(description="Pipeline used when a request omits it.")
+
+
 class LimitsCapabilities(BaseModel):
     max_document_timeout: float
     max_images_scale: float
     max_sources_per_request: int
+    max_callbacks_per_request: int
     max_num_pages: int | None = None
     max_file_size: int | None = None
 
@@ -55,6 +61,7 @@ class LimitsCapabilities(BaseModel):
 class FeatureCapabilities(BaseModel):
     api_key_required: bool
     artifact_storage: bool
+    callbacks: bool
     websocket: bool = True
 
 
@@ -65,6 +72,7 @@ class CapabilitiesResponse(BaseModel):
     targets: TargetCapabilities
     output_formats: list[str]
     image_export_modes: list[str]
+    pipelines: PipelineCapabilities
     limits: LimitsCapabilities
     features: FeatureCapabilities
 
@@ -302,15 +310,21 @@ def build_capabilities(
         ),
         output_formats=[fmt.value for fmt in OutputFormat],
         image_export_modes=sorted(policy.allowed_image_export_modes),
+        pipelines=PipelineCapabilities(
+            allowed=sorted(policy.allowed_pipelines),
+            default=policy.default_pipeline,
+        ),
         limits=LimitsCapabilities(
             max_document_timeout=settings.max_document_timeout,
             max_images_scale=settings.max_images_scale,
             max_sources_per_request=settings.max_sources_per_request,
+            max_callbacks_per_request=settings.max_callbacks_per_request,
             max_num_pages=_bounded(settings.max_num_pages),
             max_file_size=_bounded(settings.max_file_size),
         ),
         features=FeatureCapabilities(
             api_key_required=bool(settings.api_key),
             artifact_storage=policy.artifact_storage_enabled,
+            callbacks=policy.callbacks_enabled,
         ),
     )
