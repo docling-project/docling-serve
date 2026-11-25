@@ -8,12 +8,19 @@ on that hand-over channel: the environment `_run` leaves behind, read back
 through a fresh `DoclingServeSettings()` exactly as the child builds it.
 """
 
+import logging
+
 import pytest
 import uvicorn
 from typer.testing import CliRunner
 
 import docling_serve.__main__ as cli
-from docling_serve.settings import DoclingServeSettings, docling_serve_settings
+from docling_serve.settings import (
+    AsyncEngine,
+    DoclingServeSettings,
+    docling_serve_settings,
+    uvicorn_settings,
+)
 
 DOCLING_ENV = ("DOCLING_SERVE_ENABLE_UI", "DOCLING_SERVE_ARTIFACTS_PATH")
 
@@ -74,3 +81,29 @@ def test_single_process_run_leaves_the_environment_alone(run_cli, monkeypatch):
     assert captured["reload"] is False and captured["workers"] is None
     assert docling_serve_settings.enable_ui is True
     assert DoclingServeSettings().enable_ui is False
+
+
+@pytest.mark.parametrize(
+    ("args", "eng_kind", "warns"),
+    [
+        (("run", "--workers", "2"), AsyncEngine.LOCAL, True),
+        (("run", "--workers", "1"), AsyncEngine.LOCAL, False),
+        (("run", "--workers", "2"), AsyncEngine.RQ, False),
+        # UVICORN_WORKERS=2, but uvicorn ignores workers when dev reloads
+        (("dev",), AsyncEngine.LOCAL, False),
+    ],
+)
+def test_local_engine_with_several_workers_warns(
+    run_cli, monkeypatch, caplog, args, eng_kind, warns
+):
+    """Each worker process has its own local orchestrator, so task ids from one
+    worker are unknown to the others."""
+    monkeypatch.setattr(uvicorn_settings, "workers", 2)
+    monkeypatch.setattr(docling_serve_settings, "eng_kind", eng_kind)
+    # setup_logging replaces the root handlers, so listen on the module logger
+    monkeypatch.setattr(cli.logger, "handlers", [caplog.handler])
+
+    run_cli(*args)
+
+    warned = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert bool(warned) is warns
