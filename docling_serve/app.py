@@ -262,7 +262,7 @@ async def lifespan(app: FastAPI):
                 _log.info("Zombie reaper cancelled.")
 
         # Remove scratch directory in case it was a tempfile
-        if docling_serve_settings.scratch_path is not None:
+        if docling_serve_settings.scratch_path is None:
             shutil.rmtree(scratch_dir, ignore_errors=True)
 
 
