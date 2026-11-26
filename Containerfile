@@ -66,8 +66,19 @@ RUN --mount=type=bind,source=os-packages.txt,target=/tmp/os-packages.txt \
 
 # `dnf update` may bump the system python3.12 patch version, leaving the base image's venv
 # pyvenv.cfg stale. uv would then try to recreate /opt/app-root (which contains the WORKDIR
-# and cache mounts) and fail. Refresh the venv metadata in place to match the interpreter.
+# and cache mounts) and fail with "Resource busy" on /opt/app-root/src.
+#
+# `--upgrade` refreshes `home` and `version`, but uv >=0.5 also checks `version_info` and
+# `implementation`. If a previous build cached those fields at an older patch level, the
+# mismatch still triggers a venv recreate. Stamp them explicitly after the upgrade.
 RUN /usr/bin/python3.12 -m venv --upgrade /opt/app-root && \
+    PY_VER=$(/usr/bin/python3.12 -c "import sys; print('{}.{}.{}'.format(*sys.version_info[:3]))") && \
+    sed -i "s/^version = .*/version = ${PY_VER}/" /opt/app-root/pyvenv.cfg && \
+    grep -q '^version_info' /opt/app-root/pyvenv.cfg \
+        && sed -i "s/^version_info = .*/version_info = ${PY_VER}/" /opt/app-root/pyvenv.cfg \
+        || echo "version_info = ${PY_VER}" >> /opt/app-root/pyvenv.cfg && \
+    grep -q '^implementation' /opt/app-root/pyvenv.cfg \
+        || echo "implementation = CPython" >> /opt/app-root/pyvenv.cfg && \
     mkdir -p /opt/app-root/src/.cache && \
     /usr/bin/fix-permissions /opt/app-root
 
