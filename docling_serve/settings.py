@@ -22,6 +22,12 @@ from typing_extensions import Self
 
 _log = logging.getLogger(__name__)
 
+# Settings renamed in the Ray engine, mapped to their replacement.
+_DEPRECATED_RAY_SETTINGS = {
+    "eng_ray_num_cpus_per_actor": "eng_ray_converter_actor_num_cpus",
+    "eng_ray_memory_limit_per_actor": "eng_ray_converter_actor_memory_request",
+}
+
 
 class UvicornSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -430,6 +436,13 @@ class DoclingServeSettings(BaseSettings):
         Customize settings sources to include YAML/JSON config file support.
         Priority order: init > env > dotenv > yaml_config > file_secret
         """
+        prefix = cls.model_config.get("env_prefix", "")
+        for source in (env_settings, dotenv_settings):
+            seen = getattr(source, "env_vars", None) or {}
+            for old_key, new_key in _DEPRECATED_RAY_SETTINGS.items():
+                if f"{prefix}{old_key}".lower() in seen:
+                    _log.warning("%s is deprecated; use %s instead.", old_key, new_key)
+
         return (
             init_settings,
             env_settings,
@@ -524,11 +537,7 @@ class DoclingServeSettings(BaseSettings):
     @classmethod
     def warn_deprecated_ray_settings(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            deprecated_keys = {
-                "eng_ray_num_cpus_per_actor": "eng_ray_converter_actor_num_cpus",
-                "eng_ray_memory_limit_per_actor": "eng_ray_converter_actor_memory_request",
-            }
-            for old_key, new_key in deprecated_keys.items():
+            for old_key, new_key in _DEPRECATED_RAY_SETTINGS.items():
                 if old_key in data:
                     _log.warning("%s is deprecated; use %s instead.", old_key, new_key)
 
