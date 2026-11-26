@@ -6,7 +6,7 @@ ARG UV_SYNC_EXTRA_ARGS=""
 
 ARG MIMALLOC_VERSION=v3.2.8
 
-ARG NODE_IMAGE=docker.io/library/node:24-alpine
+ARG NODE_IMAGE=docker.io/library/node:24.22.1-alpine
 
 
 ###################################################################################################
