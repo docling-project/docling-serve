@@ -1,3 +1,26 @@
+## [v1.40.0](https://github.com/docling-project/docling-serve/releases/tag/v1.40.0) - 2026-11-26
+
+### Feature
+
+* Unload idle local models and release allocator caches ([#741](https://github.com/docling-project/docling-serve/issues/741)) ([`2cf64e1`](https://github.com/docling-project/docling-serve/commit/2cf64e1e6807efef42e07cbedbbcd80b2ad1468e))
+* Add settings to disable callbacks and limit them per request ([#780](https://github.com/docling-project/docling-serve/issues/780)) ([`46a67e8`](https://github.com/docling-project/docling-serve/commit/46a67e8e295ae3af65b80737b80465e26cd502ea))
+
+### Fix
+
+* Update dependencies ([#782](https://github.com/docling-project/docling-serve/issues/782)) ([`6261380`](https://github.com/docling-project/docling-serve/commit/62613802466365a50720be9f1b4b2da4c49fafa2))
+* Warn when the local engine runs with several workers ([#781](https://github.com/docling-project/docling-serve/issues/781)) ([`98113b5`](https://github.com/docling-project/docling-serve/commit/98113b588915a88609f5c2b14b5f1c04fabf5fd1))
+* **ui:** Bump vite and source-map-js to fix security advisories ([#779](https://github.com/docling-project/docling-serve/issues/779)) ([`3a21c95`](https://github.com/docling-project/docling-serve/commit/3a21c95f031bbbfbcbd8c2183fc36807d20f152e))
+* Make header-to-log propagation stricter ([#778](https://github.com/docling-project/docling-serve/issues/778)) ([`4acdd40`](https://github.com/docling-project/docling-serve/commit/4acdd408acfdf8a142ce2b9a4a423c2fe263da86))
+
+### Docling libraries included in this release:
+- docling-core 2.108.0
+- docling-ibm-models 4.0.4
+- docling-jobkit 3.10.0
+- docling-mcp 3.5.1
+- docling-parse 7.28.0
+- docling-serve 1.40.0
+- docling-slim 2.153.0
+
 ## [v1.39.0](https://github.com/docling-project/docling-serve/releases/tag/v1.39.0) - 2026-11-23
 
 ### Feature
