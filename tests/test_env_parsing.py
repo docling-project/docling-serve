@@ -137,12 +137,34 @@ def test_prefixed_env_var_converter_memory_request(monkeypatch):
     assert settings.eng_ray_converter_actor_memory_request == "6Gi"
 
 
-def test_prefixed_env_var_deprecated_aliases(monkeypatch):
+def test_prefixed_env_var_deprecated_aliases(monkeypatch, caplog):
     monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_NUM_CPUS_PER_ACTOR", "3")
     monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_MEMORY_LIMIT_PER_ACTOR", "8Gi")
     settings = DoclingServeSettings()
     assert settings.eng_ray_converter_actor_num_cpus == 3.0
     assert settings.eng_ray_converter_actor_memory_request == "8Gi"
+    assert "eng_ray_num_cpus_per_actor is deprecated" in caplog.text
+    assert "eng_ray_memory_limit_per_actor is deprecated" in caplog.text
+
+
+def test_dotenv_deprecated_aliases(monkeypatch, tmp_path, caplog):
+    env_file = tmp_path / ".env"
+    env_file.write_text("DOCLING_SERVE_ENG_RAY_NUM_CPUS_PER_ACTOR=3\n")
+    monkeypatch.chdir(tmp_path)
+
+    settings = DoclingServeSettings()
+
+    assert settings.eng_ray_converter_actor_num_cpus == 3.0
+    assert "eng_ray_num_cpus_per_actor is deprecated" in caplog.text
+
+
+def test_current_ray_setting_names_do_not_warn(monkeypatch, caplog):
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_NUM_CPUS", "3")
+    monkeypatch.setenv("DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_MEMORY_REQUEST", "8Gi")
+
+    DoclingServeSettings()
+
+    assert "is deprecated" not in caplog.text
 
 
 def test_ray_metrics_defaults():
