@@ -3,8 +3,15 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from opentelemetry.sdk.trace.sampling import Decision
-from opentelemetry.trace import SpanKind
+from opentelemetry.sdk.trace.sampling import ALWAYS_ON, Decision
+from opentelemetry.trace import (
+    NonRecordingSpan,
+    SpanContext,
+    SpanKind,
+    TraceFlags,
+    TraceState,
+    set_span_in_context,
+)
 from opentelemetry.util.http import ExcludeList
 
 from docling_serve.otel_instrumentation import (
@@ -18,6 +25,21 @@ from docling_serve.otel_instrumentation import (
 def sampler():
     """Create a HealthMetricsFilterSampler instance."""
     return HealthMetricsFilterSampler()
+
+
+def _remote_parent(trace_state):
+    """Build the context of a sampled remote parent carrying trace_state."""
+    return set_span_in_context(
+        NonRecordingSpan(
+            SpanContext(
+                trace_id=0x1234567890ABCDEF1234567890ABCDEF,
+                span_id=0x1234567890ABCDEF,
+                is_remote=True,
+                trace_flags=TraceFlags(TraceFlags.SAMPLED),
+                trace_state=trace_state,
+            )
+        )
+    )
 
 
 class TestHealthMetricsFilterSampler:
@@ -137,6 +159,60 @@ class TestHealthMetricsFilterSampler:
         )
 
         assert result.decision == Decision.RECORD_AND_SAMPLE
+
+    def test_parent_tracestate_survives_a_sampled_span(self, sampler):
+        """The tracestate an upstream service sent is carried into the result."""
+        incoming = TraceState([("vendor", "p:1;acct:A42"), ("congo", "t61rcWkgMzE")])
+        parent_context = _remote_parent(incoming)
+
+        result = sampler.should_sample(
+            parent_context=parent_context,
+            trace_id=12345,
+            name="POST /v1/convert/source",
+            kind=SpanKind.SERVER,
+            attributes={"http.target": "/v1/convert/source"},
+        )
+
+        assert result.decision == Decision.RECORD_AND_SAMPLE
+        assert result.trace_state == incoming
+        assert (
+            result.trace_state
+            == ALWAYS_ON.should_sample(
+                parent_context=parent_context,
+                trace_id=12345,
+                name="POST /v1/convert/source",
+                kind=SpanKind.SERVER,
+                attributes={"http.target": "/v1/convert/source"},
+            ).trace_state
+        )
+
+    def test_parent_tracestate_survives_a_dropped_span(self, sampler):
+        """A dropped health span still reports the parent tracestate."""
+        incoming = TraceState([("vendor", "p:1")])
+
+        result = sampler.should_sample(
+            parent_context=_remote_parent(incoming),
+            trace_id=12345,
+            name="GET /health",
+            kind=SpanKind.SERVER,
+            attributes={"http.target": "/health"},
+        )
+
+        assert result.decision == Decision.DROP
+        assert result.trace_state == incoming
+
+    def test_no_parent_means_no_tracestate(self, sampler):
+        """A root span has no parent to take a tracestate from."""
+        result = sampler.should_sample(
+            parent_context=None,
+            trace_id=12345,
+            name="POST /v1/convert/source",
+            kind=SpanKind.SERVER,
+            attributes={"http.target": "/v1/convert/source"},
+        )
+
+        assert result.decision == Decision.RECORD_AND_SAMPLE
+        assert result.trace_state is None
 
     def test_filtered_paths_constant(self):
         """Test that FILTERED_PATHS contains expected endpoints."""
