@@ -1752,7 +1752,9 @@ def create_app():  # noqa: C901
         return ClearResponse()
 
     @app.get("/v1/memory/stats", tags=["management"])
-    async def memory_stats():
+    async def memory_stats(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+    ):
         if not docling_serve_settings.enable_management_endpoints:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -1781,7 +1783,9 @@ def create_app():  # noqa: C901
         }
 
     @app.get("/v1/memory/counts", tags=["management"])
-    async def memory_counts():
+    async def memory_counts(
+        auth: Annotated[AuthenticationResult, Depends(require_auth)],
+    ):
         if not docling_serve_settings.enable_management_endpoints:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
