@@ -13,7 +13,7 @@ from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
-from opentelemetry.trace import SpanKind
+from opentelemetry.trace import SpanKind, TraceState, get_current_span
 from opentelemetry.util.types import Attributes
 from prometheus_client import REGISTRY, start_http_server
 from redis import Redis
@@ -27,12 +27,23 @@ logger = logging.getLogger(__name__)
 FILTERED_PATHS = {"/metrics", "/health", "/healthz", "/ready", "/readyz", "/livez"}
 
 
+def _parent_trace_state(parent_context) -> TraceState | None:
+    """Return the tracestate of the parent span, or None if there is no valid parent."""
+    span_context = get_current_span(parent_context).get_span_context()
+    if not span_context.is_valid:
+        return None
+    return span_context.trace_state
+
+
 class HealthMetricsFilterSampler(Sampler):
     """
     Sampler that filters out traces for health and metrics endpoints.
 
     Drops spans for /metrics, /health, /healthz, /readyz, /livez regardless
     of query parameters. All other endpoints are sampled normally (always on).
+
+    The parent's tracestate is carried into the result, as the samplers in the
+    SDK do, so that the W3C tracestate header survives this hop.
     """
 
     def should_sample(
@@ -45,14 +56,16 @@ class HealthMetricsFilterSampler(Sampler):
         links=None,
         trace_state=None,
     ) -> SamplingResult:
+        trace_state = _parent_trace_state(parent_context)
+
         if attributes:
             http_target = attributes.get("http.target") or attributes.get("url.path")
             if http_target:
                 path = str(http_target).split("?")[0]
                 if path in FILTERED_PATHS:
-                    return SamplingResult(Decision.DROP)
+                    return SamplingResult(Decision.DROP, trace_state=trace_state)
 
-        return SamplingResult(Decision.RECORD_AND_SAMPLE)
+        return SamplingResult(Decision.RECORD_AND_SAMPLE, trace_state=trace_state)
 
     def get_description(self) -> str:
         """Return description of the sampler."""
