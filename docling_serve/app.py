@@ -619,7 +619,7 @@ def create_app():  # noqa: C901
         for i, file in enumerate(files):
             file_bytes = file.file.read()
             buf = BytesIO(file_bytes)
-            suffix = "" if len(file_sources) == 1 else f"_{i}"
+            suffix = "" if len(files) == 1 else f"_{i}"
             name = file.filename if file.filename else f"file{suffix}.pdf"
 
             # Log file details for debugging transmission issues

@@ -35,7 +35,7 @@ DOCLING_VERSIONS = {
     "docling-ibm-models": _optional_version("docling-ibm-models"),
     "docling-parse": _optional_version("docling-parse"),
     "python": f"{sys.implementation.cache_tag} ({platform.python_version()})",
-    "plaform": platform.platform(),
+    "platform": platform.platform(),
 }
 
 
