@@ -216,7 +216,14 @@ class TestHealthMetricsFilterSampler:
 
     def test_filtered_paths_constant(self):
         """Test that FILTERED_PATHS contains expected endpoints."""
-        expected_paths = {"/metrics", "/health", "/healthz", "/readyz", "/livez"}
+        expected_paths = {
+            "/metrics",
+            "/health",
+            "/healthz",
+            "/ready",
+            "/readyz",
+            "/livez",
+        }
         assert FILTERED_PATHS == expected_paths
 
 
