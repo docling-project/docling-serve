@@ -118,6 +118,7 @@ def test_allowed_ocr_presets_keeps_custom_ocr_presets_selectable():
     policy = build_service_policy(
         DoclingServeSettings(
             allowed_ocr_presets=["rapidocr"],
+            default_ocr_preset="rapidocr",
             custom_ocr_presets={"korean": {"kind": "rapidocr", "lang": ["korean"]}},
         )
     )
@@ -125,6 +126,40 @@ def test_allowed_ocr_presets_keeps_custom_ocr_presets_selectable():
     assert policy.allowed_ocr_presets == {"rapidocr", "korean"}
     with pytest.raises(HTTPException, match="ocr_preset 'easyocr' is not allowed"):
         validate_convert_options(ConvertDocumentsOptions(ocr_preset="easyocr"), policy)
+
+
+def test_default_ocr_preset_outside_allowed_ocr_presets_fails_startup():
+    with pytest.raises(ValueError, match=r"default_ocr_preset 'auto'.*\['tesseract'\]"):
+        build_service_policy(DoclingServeSettings(allowed_ocr_presets=["tesseract"]))
+
+
+def test_unregistered_default_ocr_preset_fails_startup():
+    with pytest.raises(ValueError, match="default_ocr_preset 'unknown'"):
+        build_service_policy(DoclingServeSettings(default_ocr_preset="unknown"))
+
+
+def test_default_ocr_preset_may_be_a_custom_preset():
+    policy = build_service_policy(
+        DoclingServeSettings(
+            allowed_ocr_presets=[],
+            default_ocr_preset="korean",
+            custom_ocr_presets={"korean": {"kind": "rapidocr", "lang": ["korean"]}},
+        )
+    )
+
+    assert policy.allowed_ocr_presets == {"korean"}
+    validate_convert_options(ConvertDocumentsOptions(ocr_preset="korean"), policy)
+
+
+def test_omitted_ocr_preset_is_accepted_under_a_restricted_allowlist():
+    settings = DoclingServeSettings(
+        allowed_ocr_presets=["tesseract"], default_ocr_preset="tesseract"
+    )
+    policy = build_service_policy(settings)
+
+    validate_convert_options(ConvertDocumentsOptions(ocr_preset="tesseract"), policy)
+    ocr = build_capabilities(settings, policy).stages["ocr"]
+    assert ocr.default in [preset.id for preset in ocr.presets]
 
 
 def test_validate_convert_options_rejects_timeout_above_policy():
