@@ -31,7 +31,7 @@ import docx
 import httpx
 from botocore.exceptions import ClientError
 
-from docling.datamodel.extraction import ExtractionTarget, ExtractionTemplate
+from docling.datamodel.extraction import ExtractionSpec
 from docling.datamodel.extraction_options import ExtractionVlmOptions
 from docling.datamodel.service.callbacks import CallbackSpec
 from docling.datamodel.service.options import ExtractDocumentsOptions
@@ -80,18 +80,17 @@ MODEL_CONFIGS = {
         "engine_type": VlmEngineType.API_LMSTUDIO,
         "default_url": "http://127.0.0.1:1234/v1/chat/completions",
         "default_model": "granite-vision-4.1-4b",
-        # generic_chat prompting: an example_json template adds illustrative guidance.
-        "template": ExtractionTemplate(
-            format="example_json", value={"title": "Example paper title"}
-        ),
+        # Generic chat presets have no native template format; the model gets
+        # the json_schema text.
+        "template": None,
     },
     "nuextract": {
         "preset_id": "nuextract_3",
         "engine_type": VlmEngineType.API,
         "default_url": "http://127.0.0.1:1235/v1/chat/completions",
         "default_model": "numind/NuExtract3-GGUF:Q5_K_M",
-        # NuExtract's own "structured" prep only accepts its native template
-        # dialect (or none, auto-derived from output_schema); reject example_json.
+        # NuExtract derives its native template from json_schema when no
+        # native_template is given.
         "template": None,
     },
 }
@@ -300,7 +299,7 @@ def run_inbody(
     client,
     source_kind: str,
     source,
-    extraction_target,
+    extraction_spec,
     options,
     expected_scopes: list[dict],
     expect_no_channel: bool,
@@ -313,14 +312,14 @@ def run_inbody(
         documents = [
             client.extract(
                 source,
-                target=extraction_target,
+                spec=extraction_spec,
                 options=options,
                 raises_on_error=False,
             )
         ]
     else:
         documents = list(
-            client.extract_all([source], target=extraction_target, options=options)
+            client.extract_all([source], spec=extraction_spec, options=options)
         )
     require(len(documents) == 1, f"Expected one document, got {len(documents)}.")
     document = documents[0]
@@ -410,9 +409,9 @@ def main() -> None:
     try:
         source, httpd = build_source(args, cfg, s3, run_id, doc)
 
-        extraction_target = ExtractionTarget(
-            output_schema=FAIL_SCHEMA if args.schema_fail else SCHEMA,
-            template=model_cfg["template"],
+        extraction_spec = ExtractionSpec(
+            json_schema=FAIL_SCHEMA if args.schema_fail else SCHEMA,
+            native_template=model_cfg["template"],
         )
         extraction_config = ExtractionVlmOptions.from_preset(
             model_cfg["preset_id"],
@@ -426,7 +425,7 @@ def main() -> None:
         if paginated:
             options = ExtractDocumentsOptions(
                 extraction_custom_config=extraction_config,
-                input_channels="image",
+                extraction_input_channels="image",
                 page_range=(page_start, page_end),
             )
             expected_scopes = [
@@ -465,7 +464,7 @@ def main() -> None:
                     client,
                     args.source,
                     source,
-                    extraction_target,
+                    extraction_spec,
                     options,
                     expected_scopes,
                     expect_no_channel,
@@ -495,7 +494,7 @@ def main() -> None:
             try:
                 job = client.submit_extract(
                     source=source,
-                    extraction_target=extraction_target,
+                    spec=extraction_spec,
                     options=options,
                     target=storage_target,
                     callbacks=callbacks,
@@ -556,7 +555,9 @@ def main() -> None:
             )
             for document in result.documents:
                 json_artifacts = [
-                    a for a in document.artifacts or [] if a.artifact_type == "json"
+                    a
+                    for a in document.artifacts or []
+                    if a.artifact_type == "extraction"
                 ]
                 require(json_artifacts, f"Expected a JSON artifact for {document}.")
                 presigned_response = httpx.get(

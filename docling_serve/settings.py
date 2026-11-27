@@ -366,6 +366,14 @@ class DoclingServeSettings(BaseSettings):
     custom_extraction_presets: dict[str, Any] = Field(default_factory=dict)
     allowed_extraction_engines: list[str] | None = None
     allowed_extraction_formats: list[InputFormat] | None = None
+    # Extraction input policy: limit the caller text that reaches the model.
+    allow_extraction_native_template: bool = False
+    allow_extraction_instructions: bool = True
+    max_extraction_instructions_length: int = Field(default=2000, ge=0)
+    max_extraction_schema_size: int = Field(default=65536, ge=1)
+    max_extraction_schema_keys: int = Field(default=500, ge=1)
+    max_extraction_schema_depth: int = Field(default=32, ge=1)
+    strip_extraction_schema_annotations: bool = False
 
     # Picture Description Control
     default_picture_description_preset: str = "smolvlm"

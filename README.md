@@ -53,28 +53,37 @@ curl -X 'POST' \
 
 ### Structured extraction
 
-Ray deployments accept `POST /v1/extract/source/async` with an explicit extraction
-target. For example:
+Ray deployments accept `POST /v1/extract/source/async` with an explicit
+extraction spec. For example:
 
 ```json
 {
+  "extraction_spec": {
+    "json_schema": {
+      "type": "object",
+      "properties": {"total": {"type": "number"}},
+      "required": ["total"]
+    },
+    "instructions": "Use the gross total."
+  },
   "options": {
     "extraction_preset": "nuextract_2b",
-    "target": {
-      "template": {"format": "nuextract", "value": {"total": "number"}}
-    },
-    "output_mode": "prompt_only"
+    "extraction_output_mode": "prompt_only"
   },
   "sources": [{"kind": "http", "url": "https://example.com/invoice.pdf"}],
   "target": {"kind": "inbody"}
 }
 ```
 
-`options.target` supplies guidance and/or `output_schema`; the outer `target`
-selects the result destination. Generic models use `format: "example_json"`
-for examples; examples do not imply a schema. Lift requires `output_schema`.
-`schema_constrained` additionally requires an operator-authorized vLLM API
-configuration and a supported output schema. Model, engine, channel and target
+`extraction_spec.json_schema` is the validation contract and, by default, the
+source of the model input. `extraction_spec.native_template` overrides the model
+input for NuExtract presets only; it is disabled unless the operator sets
+`DOCLING_SERVE_ALLOW_EXTRACTION_NATIVE_TEMPLATE=true`. The outer `target` selects
+the result destination. Lift requires `json_schema`.
+`extraction_output_mode: "schema_constrained"` additionally requires an
+operator-authorized vLLM API configuration and a supported `json_schema`.
+`raw_text` is returned only for failed items unless
+`options.extraction_raw_text` is `always`. Model, engine, channel and target
 compatibility are checked before enqueue. Local and RQ extraction return 501.
 
 Poll `/v1/status/poll/{task_id}`, then fetch `/v1/result/{task_id}` with the same

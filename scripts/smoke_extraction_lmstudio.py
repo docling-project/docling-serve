@@ -8,7 +8,7 @@ model that accepts text (NuExtract3); Granite rejects it with a channel error.
 import argparse
 from pathlib import Path
 
-from docling.datamodel.extraction import ExtractionTarget, ExtractionTemplate
+from docling.datamodel.extraction import ExtractionSpec
 from docling.datamodel.extraction_options import ExtractionVlmOptions
 from docling.datamodel.service.options import ExtractDocumentsOptions
 from docling.datamodel.service.responses import ExtractDocumentResponse
@@ -44,15 +44,14 @@ def main() -> None:
     if args.model == "granite":
         preset = "granite_vision_4_1"
         engine_type = VlmEngineType.API_LMSTUDIO
-        template = ExtractionTemplate(
-            format="example_json", value={"title": "Example paper title"}
-        )
+        # Generic chat presets have no native template format.
+        template = None
     else:
         preset = "nuextract_3"
         # NuExtract3 needs per-request chat_template_kwargs. The generic API
         # transport sends them; this smoke exposes whether LM Studio honors them.
         engine_type = VlmEngineType.API
-        template = ExtractionTemplate(format="nuextract", value={"title": "string"})
+        template = {"title": "string"}
 
     extraction_config = ExtractionVlmOptions.from_preset(
         preset,
@@ -67,7 +66,7 @@ def main() -> None:
     if paginated:
         options = ExtractDocumentsOptions(
             extraction_custom_config=extraction_config,
-            input_channels="image",
+            extraction_input_channels="image",
             page_range=(1, 1),
         )
     else:
@@ -81,7 +80,7 @@ def main() -> None:
     )
     result = client.submit_extract(
         source=args.source,
-        extraction_target=ExtractionTarget(output_schema=SCHEMA, template=template),
+        spec=ExtractionSpec(json_schema=SCHEMA, native_template=template),
         options=options,
     ).result(timeout=args.timeout)
     if not isinstance(result, ExtractDocumentResponse):

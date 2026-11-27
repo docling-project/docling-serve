@@ -9,7 +9,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-from docling.datamodel.extraction import ExtractionTarget, ExtractionTemplate
+from docling.datamodel.extraction import ExtractionSpec
 from docling.datamodel.extraction_options import ExtractionVlmOptions
 from docling.datamodel.service.options import ExtractDocumentsOptions
 from docling.datamodel.service.requests import ExtractSourcesRequest, FileSourceRequest
@@ -81,15 +81,10 @@ def main() -> None:
         ),
     )
     request = ExtractSourcesRequest(
-        extraction_target=ExtractionTarget(
-            output_schema=SCHEMA,
-            template=ExtractionTemplate(
-                format="example_json", value={"title": "Example paper title"}
-            ),
-        ),
+        extraction_spec=ExtractionSpec(json_schema=SCHEMA),
         options=ExtractDocumentsOptions(
             extraction_custom_config=extraction_config,
-            input_channels="image",
+            extraction_input_channels="image",
             page_range=(1, 1),
         ),
         sources=[

@@ -34,8 +34,16 @@ SCHEMA = {
     "required": ["total"],
     "additionalProperties": False,
 }
-NATIVE = {"template": {"format": "nuextract", "value": {"total": "number"}}}
-EXAMPLE = {"template": {"format": "example_json", "value": {"total": 5}}}
+NATIVE = {"native_template": {"total": "number"}}
+
+
+@pytest.fixture(autouse=True)
+def _allow_native_template(monkeypatch):
+    # Most tests here cover the model preflight with a native template; the
+    # server default (disabled) has its own tests in test_extraction_policy.py.
+    monkeypatch.setattr(
+        docling_serve_settings, "allow_extraction_native_template", True
+    )
 
 
 @pytest.fixture
@@ -92,23 +100,26 @@ def test_startup_rejects_invalid_operator_default(settings, message):
         build_service_policy(DoclingServeSettings(**settings))
 
 
-def test_openapi_advertises_tagged_guidance_mode_and_canonical_items():
+def test_openapi_advertises_spec_mode_and_canonical_items():
     schema = create_app().openapi()
     models = schema["components"]["schemas"]
     request = models["ExtractSourcesRequest"]
-    assert "extraction_target" in request["required"]
+    assert "extraction_spec" in request["required"]
     options = models["ExtractDocumentsOptions"]
     assert "target" not in options["properties"]
     assert "template" not in options["properties"]
-    assert options["properties"]["output_mode"]["enum"] == [
+    assert "output_mode" not in options["properties"]
+    assert options["properties"]["extraction_output_mode"]["enum"] == [
         "prompt_only",
         "schema_constrained",
     ]
-    assert models["ExtractionTemplate"]["required"] == ["format", "value"]
-    assert set(models["ExtractionTemplate"]["properties"]["format"]["enum"]) == {
-        "nuextract",
-        "example_json",
-    }
+    assert options["properties"]["extraction_raw_text"]["enum"] == [
+        "on_failure",
+        "always",
+    ]
+    spec = models["ExtractionSpec"]["properties"]
+    assert set(spec) == {"json_schema", "native_template", "instructions"}
+    assert "ExtractionTemplate" not in models
     result = models["ExtractionDocumentResult"]
     assert set(result["required"]) == {
         "source_index",
@@ -134,25 +145,53 @@ def test_openapi_advertises_tagged_guidance_mode_and_canonical_items():
 @pytest.mark.parametrize(
     "options, message",
     [
-        ({"template": {}}, "target"),
-        ({"target": {}}, "requires output_schema or template"),
+        ({"template": {}}, "extraction_spec"),
+        ({"target": {}}, "requires json_schema or native_template"),
         ({"target": {**NATIVE, "unknown": True}}, "Extra inputs"),
-        ({"target": {"template": {"total": "number"}}}, "format"),
-        ({"target": {"template": {"format": "other", "value": {}}}}, "Input should be"),
+        (
+            {"target": {"template": {"format": "nuextract", "value": {}}}},
+            "Extra inputs",
+        ),
+        ({"target": {"native_template": "total"}}, "valid dictionary"),
         ({"target": NATIVE, "grouping": "document"}, "Extra inputs"),
-        ({"target": NATIVE, "output_mode": "automatic"}, "Input should be"),
-        ({"target": EXAMPLE}, "NuExtract requires"),
+        ({"target": NATIVE, "output_mode": "prompt_only"}, "Extra inputs"),
+        ({"target": NATIVE, "extraction_output_mode": "automatic"}, "Input should be"),
         (
             {"target": NATIVE, "extraction_preset": "granite_vision_4_1"},
-            "native dialect",
+            "native_template is not supported",
         ),
-        ({"target": EXAMPLE, "extraction_preset": "lift"}, "requires an output schema"),
-        ({"target": {"output_schema": {"type": "broken"}}}, "invalid JSON Schema"),
-        ({"target": {"output_schema": {"type": "array"}}}, "object"),
+        (
+            {
+                "target": {"json_schema": SCHEMA, **NATIVE},
+                "extraction_preset": "granite_vision_4_1",
+            },
+            "native_template is not supported",
+        ),
+        ({"target": NATIVE, "extraction_preset": "lift"}, "requires a json_schema"),
         (
             {
                 "target": {
-                    "output_schema": {
+                    "json_schema": {
+                        "type": "object",
+                        "properties": {
+                            "pay": {
+                                "oneOf": [
+                                    {"type": "object", "properties": {"iban": {}}},
+                                    {"type": "object", "properties": {"card": {}}},
+                                ]
+                            }
+                        },
+                    }
+                }
+            },
+            "Add a native_template",
+        ),
+        ({"target": {"json_schema": {"type": "broken"}}}, "invalid JSON Schema"),
+        ({"target": {"json_schema": {"type": "array"}}}, "object"),
+        (
+            {
+                "target": {
+                    "json_schema": {
                         "type": "object",
                         "properties": {"total": {"$ref": "https://example.com/schema"}},
                     }
@@ -163,7 +202,7 @@ def test_openapi_advertises_tagged_guidance_mode_and_canonical_items():
         (
             {
                 "target": {
-                    "output_schema": {
+                    "json_schema": {
                         "type": "object",
                         "patternProperties": {".*": {"type": "string"}},
                     }
@@ -172,23 +211,26 @@ def test_openapi_advertises_tagged_guidance_mode_and_canonical_items():
             "unsupported",
         ),
         (
-            {"target": {"output_schema": SCHEMA}, "output_mode": "schema_constrained"},
+            {
+                "target": {"json_schema": SCHEMA},
+                "extraction_output_mode": "schema_constrained",
+            },
             "vLLM API engine",
         ),
         ({"target": NATIVE, "extraction_preset": "unknown"}, "not found"),
         (
             {
-                "target": EXAMPLE,
+                "target": {"json_schema": SCHEMA},
                 "extraction_preset": "granite_vision_4_1",
-                "input_channels": "text",
+                "extraction_input_channels": "text",
             },
             "does not accept a text",
         ),
         (
             {
-                "target": EXAMPLE,
+                "target": {"json_schema": SCHEMA},
                 "extraction_preset": "granite_vision_4_1",
-                "input_channels": "image_and_text",
+                "extraction_input_channels": "image_and_text",
             },
             "does not accept a text",
         ),
@@ -208,7 +250,7 @@ async def test_incompatible_requests_fail_before_queue(
         "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
     }
     if "target" in options:
-        body["extraction_target"] = options.pop("target")
+        body["extraction_spec"] = options.pop("target")
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -226,10 +268,10 @@ async def test_incompatible_requests_fail_before_queue(
     "preset, target, channels",
     [
         ("nuextract_2b", NATIVE, "text"),
-        ("nuextract_3", {"output_schema": SCHEMA}, "image_and_text"),
-        ("granite_vision_4_1", EXAMPLE, "image"),
-        ("granite_vision_4_1", {"output_schema": SCHEMA}, "image"),
-        ("lift", {"output_schema": SCHEMA, **EXAMPLE}, "text"),
+        ("nuextract_2b", {"json_schema": SCHEMA, **NATIVE}, "text"),
+        ("nuextract_3", {"json_schema": SCHEMA}, "image_and_text"),
+        ("granite_vision_4_1", {"json_schema": SCHEMA}, "image"),
+        ("lift", {"json_schema": SCHEMA}, "text"),
     ],
 )
 async def test_valid_targets_forward_unchanged_and_isolated(
@@ -237,10 +279,10 @@ async def test_valid_targets_forward_unchanged_and_isolated(
 ):
     app, orchestrator = extraction_app
     payload = {
-        "extraction_target": deepcopy(target),
+        "extraction_spec": deepcopy(target),
         "options": {
             "extraction_preset": preset,
-            "input_channels": channels,
+            "extraction_input_channels": channels,
             "page_range": [2, 5],
         },
         "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
@@ -250,7 +292,7 @@ async def test_valid_targets_forward_unchanged_and_isolated(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         for instructions in ("First request.", "Second request."):
-            payload["extraction_target"]["instructions"] = instructions
+            payload["extraction_spec"]["instructions"] = instructions
             response = await client.post(
                 "/v1/extract/source/async",
                 headers={
@@ -262,8 +304,8 @@ async def test_valid_targets_forward_unchanged_and_isolated(
             assert response.status_code == 200, response.text
             forwarded = orchestrator.enqueue.await_args.kwargs
             assert (
-                forwarded["extract_target"].model_dump(mode="json", exclude_none=True)
-                == payload["extraction_target"]
+                forwarded["extract_spec"].model_dump(mode="json", exclude_none=True)
+                == payload["extraction_spec"]
             )
             assert forwarded["extract_options"].page_range == (2, 5)
             assert forwarded["metadata"] == {"tenant_id": "tenant-a"}
@@ -271,7 +313,7 @@ async def test_valid_targets_forward_unchanged_and_isolated(
             assert str(forwarded["sources"][0].url) == "https://example.com/test.pdf"
             assert forwarded["callbacks"] == []
     first, second = [
-        call.kwargs["extract_target"] for call in orchestrator.enqueue.await_args_list
+        call.kwargs["extract_spec"] for call in orchestrator.enqueue.await_args_list
     ]
     assert first.instructions == "First request."
     assert second.instructions == "Second request."
@@ -281,7 +323,7 @@ async def test_valid_targets_forward_unchanged_and_isolated(
     "engine, mode, schema, message",
     [
         ("api", "schema_constrained", SCHEMA, None),
-        ("api", "schema_constrained", None, "requires extraction_target.output_schema"),
+        ("api", "schema_constrained", None, "requires extraction_spec.json_schema"),
         (
             "api",
             "schema_constrained",
@@ -317,17 +359,17 @@ async def test_custom_decoder_mode_preflight(
     app = create_app()
     app.dependency_overrides[get_async_orchestrator] = lambda: orchestrator
     monkeypatch.setattr(docling_serve_settings, "eng_kind", AsyncEngine.RAY)
-    target = {**NATIVE, **({"output_schema": schema} if schema is not None else {})}
+    target = {**NATIVE, **({"json_schema": schema} if schema is not None else {})}
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "extraction_target": target,
+                "extraction_spec": target,
                 "options": {
                     "extraction_custom_config": custom,
-                    "output_mode": mode,
+                    "extraction_output_mode": mode,
                 },
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },
@@ -339,7 +381,9 @@ async def test_custom_decoder_mode_preflight(
     else:
         assert response.status_code == 200, response.text
         assert (
-            orchestrator.enqueue.await_args.kwargs["extract_options"].output_mode
+            orchestrator.enqueue.await_args.kwargs[
+                "extract_options"
+            ].extraction_output_mode
             == mode
         )
 
@@ -352,7 +396,7 @@ async def test_extraction_requires_authentication_before_queue(extraction_app):
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "extraction_target": NATIVE,
+                "extraction_spec": NATIVE,
                 "options": {},
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },
@@ -438,7 +482,7 @@ async def test_extraction_result_unions_preserve_tenant_and_durable_shape(
                     "status": "success",
                     "artifacts": [
                         {
-                            "artifact_type": "json",
+                            "artifact_type": "extraction",
                             "mime_type": "application/json",
                             "uri": "https://storage.test/result.json",
                         }
@@ -540,7 +584,7 @@ async def test_api_transport_incompatibility_fails_before_queue(
         response = await client.post(
             "/v1/extract/source/async",
             json={
-                "extraction_target": NATIVE,
+                "extraction_spec": NATIVE,
                 "options": {"extraction_custom_config": custom},
                 "sources": [{"kind": "http", "url": "https://example.com/test.pdf"}],
             },

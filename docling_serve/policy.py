@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Annotated, Any, TypeVar, Union, get_args
+from typing import Annotated, Any, NoReturn, TypeVar, Union, get_args
 from urllib.parse import urlparse
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, JsonValue, create_model
 
 from docling.datamodel.base_models import FormatToExtensions
+from docling.datamodel.extraction import ExtractionSpec
 from docling.datamodel.extraction_options import ChannelSelection
 from docling.datamodel.pipeline_options import VlmExtractionPipelineOptions
 from docling.datamodel.service.options import (
@@ -130,6 +132,19 @@ def validate_source_target_pairing(
 
 
 @dataclass(frozen=True, slots=True)
+class ExtractionInputPolicy:
+    """Operator limits for the caller text that reaches the extraction model."""
+
+    allow_native_template: bool = False
+    allow_instructions: bool = True
+    max_instructions_length: int = 2000
+    max_schema_size: int = 65536
+    max_schema_keys: int = 500
+    max_schema_depth: int = 32
+    strip_schema_annotations: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class ServicePolicy:
     max_document_timeout: float
     max_images_scale: float
@@ -149,6 +164,7 @@ class ServicePolicy:
     source_factory: SourceConnectorFactory
     target_factory: TargetConnectorFactory
     extraction_manager: DocumentExtractionManager
+    extraction_input: ExtractionInputPolicy = ExtractionInputPolicy()
 
 
 def _configured_types(
@@ -381,6 +397,9 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
             custom_extraction_presets=settings.custom_extraction_presets,
             allow_custom_extraction_config=settings.allow_custom_extraction_config,
             allowed_extraction_engines=settings.allowed_extraction_engines,
+            strip_extraction_schema_annotations=(
+                settings.strip_extraction_schema_annotations
+            ),
         )
     )
     extraction_manager.resolve_extraction_model()
@@ -404,6 +423,15 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         source_factory=source_factory,
         target_factory=target_factory,
         extraction_manager=extraction_manager,
+        extraction_input=ExtractionInputPolicy(
+            allow_native_template=settings.allow_extraction_native_template,
+            allow_instructions=settings.allow_extraction_instructions,
+            max_instructions_length=settings.max_extraction_instructions_length,
+            max_schema_size=settings.max_extraction_schema_size,
+            max_schema_keys=settings.max_extraction_schema_keys,
+            max_schema_depth=settings.max_extraction_schema_depth,
+            strip_schema_annotations=settings.strip_extraction_schema_annotations,
+        ),
     )
 
 
@@ -651,9 +679,85 @@ def validate_batch_convert_request(
         validate_source_target_pairing(request.sources, t, policy)
 
 
+def _reject_extraction_input(detail: str) -> NoReturn:
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail
+    )
+
+
+def _json_shape(value: JsonValue) -> tuple[int, int]:
+    """Return the nesting depth and the number of object keys of a JSON value.
+
+    The walk is iterative, so a deep value cannot exhaust the Python stack.
+    """
+    max_depth = 0
+    keys = 0
+    stack: list[tuple[JsonValue, int]] = [(value, 1)]
+    while stack:
+        node, depth = stack.pop()
+        if isinstance(node, dict):
+            max_depth = max(max_depth, depth)
+            keys += len(node)
+            stack.extend((child, depth + 1) for child in node.values())
+        elif isinstance(node, list):
+            max_depth = max(max_depth, depth)
+            stack.extend((child, depth + 1) for child in node)
+    return max_depth, keys
+
+
+def _check_definition_size(
+    name: str, value: dict[str, JsonValue], limits: ExtractionInputPolicy
+) -> None:
+    size = len(json.dumps(value, separators=(",", ":")).encode("utf-8"))
+    if size > limits.max_schema_size:
+        _reject_extraction_input(
+            f"extraction_spec.{name} is {size} bytes; the server maximum is "
+            f"{limits.max_schema_size} bytes."
+        )
+    depth, keys = _json_shape(value)
+    if depth > limits.max_schema_depth:
+        _reject_extraction_input(
+            f"extraction_spec.{name} is nested {depth} levels deep; the server "
+            f"maximum is {limits.max_schema_depth}."
+        )
+    if keys > limits.max_schema_keys:
+        _reject_extraction_input(
+            f"extraction_spec.{name} has {keys} object keys; the server maximum "
+            f"is {limits.max_schema_keys}."
+        )
+
+
+def validate_extraction_spec(
+    spec: ExtractionSpec, limits: ExtractionInputPolicy
+) -> None:
+    """Apply the operator limits for caller text that reaches the model."""
+    if spec.native_template is not None:
+        if not limits.allow_native_template:
+            _reject_extraction_input(
+                "extraction_spec.native_template is disabled by server policy. "
+                "Use extraction_spec.json_schema."
+            )
+        _check_definition_size("native_template", spec.native_template, limits)
+    if spec.json_schema is not None:
+        _check_definition_size("json_schema", spec.json_schema, limits)
+    if spec.instructions is not None:
+        if not limits.allow_instructions:
+            _reject_extraction_input(
+                "extraction_spec.instructions is disabled by server policy."
+            )
+        if len(spec.instructions) > limits.max_instructions_length:
+            _reject_extraction_input(
+                f"extraction_spec.instructions has {len(spec.instructions)} "
+                "characters; the server maximum is "
+                f"{limits.max_instructions_length}."
+            )
+
+
 def validate_extract_request(
     request: ExtractSourcesRequest, policy: ServicePolicy
 ) -> None:
+    # Size limits run first, before any schema walk in the preflight below.
+    validate_extraction_spec(request.extraction_spec, policy.extraction_input)
     validate_source_kinds(request.sources, policy)
     validate_target_kind(request.target.kind, policy)
     if request.options.extraction_custom_config is not None and (
@@ -726,10 +830,15 @@ def validate_extract_request(
         resolved = policy.extraction_manager.resolve_extraction_model(request.options)
         VlmExtractionPipelineOptions(
             vlm_options=resolved,
-            input_channels=request.options.input_channels or ChannelSelection.AUTO,
+            input_channels=request.options.extraction_input_channels
+            or ChannelSelection.AUTO,
         )
         prepared = prepare_output_target(
-            prepare_target(request.extraction_target, resolved.model_spec),
+            prepare_target(
+                request.extraction_spec,
+                resolved.model_spec,
+                strip_annotations=policy.extraction_input.strip_schema_annotations,
+            ),
             resolved.output_mode,
             resolved.engine_options.engine_type,
         )

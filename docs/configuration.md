@@ -205,6 +205,15 @@ The following options control the behavior of the Docling converter, including p
 | `DOCLING_SERVE_CUSTOM_EXTRACTION_PRESETS` | `{}` | JSON object mapping operator-defined preset IDs to complete `ExtractionVlmOptions`. Operator presets override built-ins with the same ID. |
 | `DOCLING_SERVE_ALLOWED_EXTRACTION_ENGINES` | `null` (all allowed) | Allow-list of extraction engine types. |
 | `DOCLING_SERVE_ALLOW_CUSTOM_EXTRACTION_CONFIG` | `false` | Whether clients may submit raw extraction configurations. This does not control operator-defined presets. |
+| `DOCLING_SERVE_ALLOW_EXTRACTION_NATIVE_TEMPLATE` | `false` | Whether requests may send `extraction_spec.native_template`. The template goes to the model as is, so it is free caller text in the prompt. When `false`, a request with it gets 422. |
+| `DOCLING_SERVE_ALLOW_EXTRACTION_INSTRUCTIONS` | `true` | Whether requests may send `extraction_spec.instructions` (free text added to the prompt). When `false`, a request with it gets 422. |
+| `DOCLING_SERVE_MAX_EXTRACTION_INSTRUCTIONS_LENGTH` | `2000` | Maximum number of characters in `extraction_spec.instructions`. Longer instructions get 422. |
+| `DOCLING_SERVE_MAX_EXTRACTION_SCHEMA_SIZE` | `65536` | Maximum size in bytes of `extraction_spec.json_schema` and of `extraction_spec.native_template`, each as compact JSON. Larger values get 422. |
+| `DOCLING_SERVE_MAX_EXTRACTION_SCHEMA_KEYS` | `500` | Maximum number of object keys (property names and keywords) in `json_schema` and in `native_template`, each. More keys get 422. |
+| `DOCLING_SERVE_MAX_EXTRACTION_SCHEMA_DEPTH` | `32` | Maximum nesting depth of objects and arrays in `json_schema` and in `native_template`, each. Deeper values get 422. |
+| `DOCLING_SERVE_STRIP_EXTRACTION_SCHEMA_ANNOTATIONS` | `false` | When `true`, generic chat presets get the `json_schema` text without `title`, `description`, `examples`, `default` and `$comment`. The validation still uses the full schema. NuExtract presets never get these annotations. |
+
+All extraction input checks run at admission, before the task is queued. The strictest configuration is `ALLOW_EXTRACTION_NATIVE_TEMPLATE=false`, `ALLOW_EXTRACTION_INSTRUCTIONS=false` and `STRIP_EXTRACTION_SCHEMA_ANNOTATIONS=true`: then only field names and types reach the model. These settings do not cover the text of the documents.
 
 #### Picture Description Control
 
