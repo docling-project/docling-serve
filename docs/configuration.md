@@ -66,11 +66,19 @@ THe following table describes the options to configure the Docling Serve app.
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_VLM_CONFIG` | `false` | Allow users to specify a fully custom VLM pipeline configuration (`vlm_pipeline_custom_config`). When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_DESCRIPTION_CONFIG` | `false` | Allow users to specify a fully custom picture description configuration. When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_ALLOW_CUSTOM_CODE_FORMULA_CONFIG` | `false` | Allow users to specify a fully custom code/formula configuration. When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_ALLOW_CUSTOM_CHART_EXTRACTION_CONFIG` | `false` | Allow users to specify a fully custom chart extraction configuration (`chart_extraction_custom_config`). When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_ALLOW_CUSTOM_TABLE_STRUCTURE_CONFIG` | `false` | Allow users to specify a fully custom table structure configuration (`table_structure_custom_config`). When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_ALLOW_CUSTOM_LAYOUT_CONFIG` | `false` | Allow users to specify a fully custom layout configuration (`layout_custom_config`). When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_ALLOW_CUSTOM_PICTURE_CLASSIFICATION_CONFIG` | `false` | Allow users to specify a fully custom picture classification configuration (`picture_classification_custom_config`). When `false`, only presets are accepted. |
+|  | `DOCLING_SERVE_ALLOW_CUSTOM_OCR_CONFIG` | `false` | Allow users to specify a fully custom OCR configuration (`ocr_custom_config`). When `false`, only presets are accepted. |
 |  | `DOCLING_SERVE_SINGLE_USE_RESULTS` | `true` | If true, results can be accessed only once. If false, the results accumulate in the scratch directory. |
 |  | `DOCLING_SERVE_RESULT_REMOVAL_DELAY` | `300` | When `DOCLING_SERVE_SINGLE_USE_RESULTS` is active, this is the delay before results are removed from the task registry. |
 |  | `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` | `604800` (7 days) | The maximum time for processing a document. |
 |  | `DOCLING_SERVE_MAX_NUM_PAGES` |  | The maximum number of pages for a document to be processed. |
 |  | `DOCLING_SERVE_MAX_FILE_SIZE` |  | The maximum file size for a document to be processed. |
+|  | `DOCLING_SERVE_MAX_SOURCES_PER_REQUEST` | `3` | The maximum number of sources in a single conversion request, or files in a single upload. Requests with more are rejected with 422. |
+|  | `DOCLING_SERVE_ALLOWED_IMAGE_EXPORT_MODES` | `null` (all modes allowed) | List of `image_export_mode` values a request may use, out of `placeholder`, `referenced` and `embedded`. Accepts a JSON array or comma-separated string. Other values are rejected with 422. |
+|  | `DOCLING_SERVE_MAX_IMAGES_SCALE` | `2.0` | The maximum `images_scale` a request may set. Requests with a larger value are rejected with 422. |
 |  | `DOCLING_SERVE_ENABLE_CALLBACKS` | `true` | Accept `callbacks` in conversion and chunking requests. Callbacks make the server send HTTP requests to URLs chosen by the client; set to `false` if you do not use them. Requests that include callbacks are then rejected with 422. See [SECURITY.md](../.github/SECURITY.md#threat-model). |
 |  | `DOCLING_SERVE_MAX_CALLBACKS_PER_REQUEST` | `5` | The maximum number of callbacks a single request may register. Requests with more are rejected with 422. |
 |  | `DOCLING_SERVE_ALLOWED_SOURCE_TYPES` | `null` (built-in API sources) | List of allowed batch source kinds. Accepts a JSON array or comma-separated string. Registered plugin sources require explicit inclusion; `local_path` is never available remotely. |
@@ -298,6 +306,7 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_RESULTS_PREFIX` | `docling:results` | The prefix used for storing the results in Redis. |
 | `DOCLING_SERVE_ENG_RQ_SUB_CHANNEL` | `docling:updates` | The channel key name used for storing communicating updates between the workers and the orchestrator. |
 | `DOCLING_SERVE_ENG_RQ_RESULTS_TTL` | `14400` (4 hours) | Time To Live (in seconds) for RQ job results in Redis. This controls how long job results are kept before being automatically deleted. |
+| `DOCLING_SERVE_ENG_RQ_FAILURE_TTL` | `14400` (4 hours) | Time To Live (in seconds) for failed RQ jobs in Redis, the counterpart of `DOCLING_SERVE_ENG_RQ_RESULTS_TTL` for jobs that end with an error. |
 | `DOCLING_SERVE_ENG_RQ_JOB_TIMEOUT` | `14400` (4 hours) | Maximum runtime (in seconds) of a single RQ job before the worker aborts it with a `JobTimeoutException`. Raise it for long conversions (large documents, CPU-only inference, enrichments), or set `-1` to disable the limit and rely on `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` / the request's `document_timeout` instead. The value is baked into each job when it is enqueued, so it must be set on the instances serving the API, not on the RQ workers, and jobs already in the queue keep the value they were enqueued with. Do not set `0` — RQ treats it as unset and falls back to its own 180 s default. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. Increase this value when scaling to many RQ workers (e.g., 100 for 10+ workers). |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
