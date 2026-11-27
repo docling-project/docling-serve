@@ -247,6 +247,41 @@ The following options control the behavior of the Docling converter, including p
 | `DOCLING_SERVE_ALLOWED_LAYOUT_PRESETS` | `null` (all allowed) | List of allowed layout preset IDs. Accepts JSON array or comma-separated string. |
 | `DOCLING_SERVE_CUSTOM_LAYOUT_PRESETS` | `{}` | Custom layout presets. Must be a JSON object mapping preset IDs to layout options with 'kind' field. |
 
+#### OCR Control
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_OCR_PRESET` | `auto` | Default OCR preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_OCR_PRESETS` | `null` (all allowed) | List of allowed OCR preset IDs (`ocr_preset`). Each registered OCR kind is available as a preset of the same name. The `default` preset and the custom presets are always allowed; requests with another preset are rejected with 422. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_OCR_PRESETS` | `{}` | Custom OCR presets. Must be a JSON object mapping preset IDs to OCR options with 'kind' field. |
+| `DOCLING_SERVE_DEFAULT_OCR_KIND` | `auto` | Default OCR kind used when user doesn't provide custom config. |
+| `DOCLING_SERVE_ALLOWED_OCR_KINDS` | `null` (all allowed) | List of allowed OCR kinds. The default kind is always implicitly allowed. Accepts JSON array or comma-separated string. Use this to block specific plugin kinds for security or policy reasons. |
+
+#### Chart Extraction Control
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_CHART_EXTRACTION_PRESET` | `granite_vision_v4` | Default chart extraction preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_CHART_EXTRACTION_PRESETS` | `null` (all allowed) | List of allowed chart extraction preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_CHART_EXTRACTION_PRESETS` | `{}` | Custom chart extraction presets. Must be a JSON object mapping preset IDs to ChartExtractionVlmEngineOptions. |
+| `DOCLING_SERVE_ALLOWED_CHART_EXTRACTION_ENGINES` | `null` (all allowed) | List of allowed chart extraction engine types. Accepts JSON array or comma-separated string. |
+
+#### Picture Classification Control
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_PICTURE_CLASSIFICATION_PRESET` | `document_figure_classifier_v2` | Default picture classification preset to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_PICTURE_CLASSIFICATION_PRESETS` | `null` (all allowed) | List of allowed picture classification preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_PICTURE_CLASSIFICATION_PRESETS` | `{}` | Custom picture classification presets. Must be a JSON object mapping preset IDs to picture classification options. |
+
+#### Chunking Control
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_DEFAULT_CHUNKING_PRESET` | `granite_embedding_278m` | Default chunking preset (`chunking_preset`) to use when user specifies "default". |
+| `DOCLING_SERVE_ALLOWED_CHUNKING_PRESETS` | `null` (all allowed) | List of allowed chunking preset IDs. Accepts JSON array or comma-separated string. |
+| `DOCLING_SERVE_CUSTOM_CHUNKING_PRESETS` | `{}` | Custom chunking presets. Must be a JSON object mapping preset IDs to chunking options. |
+
 **Configuration Examples:**
 
 Using JSON arrays in environment variables:
@@ -312,6 +347,12 @@ The following table describes the options to configure the Docling Serve RQ engi
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. Set to a value (e.g., 5.0) if you experience timeout issues. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. Set to a value (e.g., 5.0) for slow networks. |
 | `DOCLING_SERVE_ENG_RQ_REDIS_HEALTH_CHECK_INTERVAL` | `30.0` | Seconds a pooled Redis connection may stay idle before it is checked with a `PING` on reuse. Stale connections (e.g. dropped by a load balancer or after a Redis failover) are then reconnected instead of failing the request. Set to `0` to disable. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_GATE_CONCURRENCY` | `None` (max connections minus reserved connections, at least 1) | Maximum number of Redis operations on behalf of API requests (e.g. enqueueing a task or reading its status) a docling-serve process runs at the same time. Requests that cannot get a slot in time are answered with `503` and `Retry-After: 1`. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_GATE_RESERVED_CONNECTIONS` | `10` | Connections of the Redis pool kept free for background and internal work when `DOCLING_SERVE_ENG_RQ_REDIS_GATE_CONCURRENCY` is not set. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_GATE_WAIT_TIMEOUT` | `0.25` | Seconds a request waits for a slot of the Redis gate before it is answered with `503`. With `0` a request does not wait when all slots are taken. |
+| `DOCLING_SERVE_ENG_RQ_REDIS_GATE_STATUS_POLL_WAIT_TIMEOUT` | `5.0` | Same as `DOCLING_SERVE_ENG_RQ_REDIS_GATE_WAIT_TIMEOUT`, for the status polling requests. |
+| `DOCLING_SERVE_ENG_RQ_ZOMBIE_REAPER_INTERVAL` | `300.0` | Seconds between two runs of the cleanup that drops finished tasks from the in-memory task tracking of a docling-serve process. |
+| `DOCLING_SERVE_ENG_RQ_ZOMBIE_REAPER_MAX_AGE` | `3600.0` | Seconds after which a finished task is dropped from the in-memory task tracking by that cleanup. |
 
 **Scaling Recommendations for RQ Engine:**
 
@@ -320,6 +361,88 @@ The following table describes the options to configure the Docling Serve RQ engi
 - **Large deployments (10+ workers):** Set `DOCLING_SERVE_ENG_RQ_REDIS_MAX_CONNECTIONS=150-200`
 - **Timeout settings:** Only set if experiencing connection issues. Start with 5.0 seconds for both timeouts.
 - Ensure your Redis server's `maxclients` setting can accommodate all connections from all docling-serve instances and RQ workers
+
+#### Ray engine
+
+The following table describes the options to connect the Docling Serve Ray engine to Ray and Redis.
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_ADDRESS` | (required) | The address of the Ray cluster, e.g. `ray://ray-head:10001`. Use `auto` or `local` to let Ray detect a running cluster or start a local one. |
+| `DOCLING_SERVE_ENG_RAY_NAMESPACE` | `docling` | The Ray namespace used for the engine. |
+| `DOCLING_SERVE_ENG_RAY_RUNTIME_ENV` | `None` | Optional Ray runtime environment, as a JSON object. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_MTLS` | `false` | Enable mTLS for the connection to the Ray cluster. Requires `DOCLING_SERVE_ENG_RAY_CLUSTER_NAME`. |
+| `DOCLING_SERVE_ENG_RAY_CLUSTER_NAME` | `None` | Name of the Ray cluster, used to generate the mTLS certificates. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_URL` | (required) | The connection Redis url, e.g. `redis://localhost:6373/`. Redis Sentinel (`redis+sentinel://...`) and Redis Cluster (`redis://...?cluster=true`) urls are supported. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_MAX_CONNECTIONS` | `50` | Maximum number of connections in the Redis connection pool. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_SOCKET_TIMEOUT` | `None` | Socket timeout in seconds for Redis operations. If not set, uses Redis client default. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_SOCKET_CONNECT_TIMEOUT` | `None` | Socket connect timeout in seconds for establishing Redis connections. If not set, uses Redis client default. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_GATE_CONCURRENCY` | `None` (max connections minus reserved connections, at least 1) | Maximum number of Redis operations on behalf of API requests (e.g. enqueueing a task or reading its status) a docling-serve process runs at the same time. Requests that cannot get a slot in time are answered with `503` and `Retry-After: 1`. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_GATE_RESERVED_CONNECTIONS` | `10` | Connections of the Redis pool kept free for background and internal work when `DOCLING_SERVE_ENG_RAY_REDIS_GATE_CONCURRENCY` is not set. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_GATE_WAIT_TIMEOUT` | `0.25` | Seconds a request waits for a slot of the Redis gate before it is answered with `503`. With `0` a request does not wait when all slots are taken. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_GATE_STATUS_POLL_WAIT_TIMEOUT` | `5.0` | Currently not used by the engine. |
+| `DOCLING_SERVE_ENG_RAY_RESULTS_PREFIX` | `docling:ray:results` | The prefix used for storing the results in Redis. |
+| `DOCLING_SERVE_ENG_RAY_SUB_CHANNEL` | `docling:ray:updates` | The Redis pub/sub channel used for the task updates. |
+| `DOCLING_SERVE_ENG_RAY_SCRATCH_DIR` | `None` (the Docling Serve scratch directory) | Directory for the temporary files written during processing. |
+| `DOCLING_SERVE_ENG_RAY_LOG_LEVEL` | `INFO` | Log level of the Ray engine components. Possible values are `DEBUG`, `INFO`, `WARNING` and `ERROR`. |
+| `DOCLING_SERVE_ENG_RAY_TENANT_ID_HEADER` | `X-Tenant-Id` | Name of the request header which carries the tenant of a request. The Ray engine schedules tasks fairly between tenants and applies its limits per tenant. Requests without the header belong to the tenant `default`. |
+
+#### Ray engine scheduling and tenant limits
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_MAX_CONCURRENT_TASKS` | `5` | Maximum work a tenant has in progress at the same time: its running tasks and, when a task is split into slices, its in-flight converter calls. |
+| `DOCLING_SERVE_ENG_RAY_MAX_QUEUED_TASKS` | `None` (unlimited) | Maximum number of tasks a tenant can have in the queue. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_QUEUE_LIMIT_REJECTION` | `false` | Reject a new task of a tenant which is over its limits. When `false`, the task is enqueued anyway and a warning is logged. |
+| `DOCLING_SERVE_ENG_RAY_MAX_DOCUMENTS` | `None` (unlimited) | Maximum number of documents a tenant has in processing at the same time. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_DOCUMENT_LIMITS` | `false` | Currently not used by the engine: the document limit applies whenever `DOCLING_SERVE_ENG_RAY_MAX_DOCUMENTS` is set. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_INTERVAL` | `30.0` | Seconds between two periodic resyncs of the dispatcher. The dispatcher wakes up immediately on new work; this is the fallback for reconciliation and missed wakeups. |
+| `DOCLING_SERVE_ENG_RAY_SUPERVISOR_POLL_INTERVAL` | `5.0` | Seconds between two health checks of the dispatcher. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_HEARTBEAT` | `true` | Let the dispatcher record a heartbeat in Redis. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_PDF_PAGE_SLICE_FANOUT` | `false` | Split large PDF documents into page slices which are converted in parallel by several converter replicas. |
+| `DOCLING_SERVE_ENG_RAY_MAX_PAGE_SLICE_SIZE` | `32` | Maximum number of pages in a slice when the page slice fan-out is enabled. |
+| `DOCLING_SERVE_ENG_RAY_MAX_PAGE_SLICE_PARALLELISM` | `None` | Deprecated and ignored. The fan-out concurrency is governed by `DOCLING_SERVE_ENG_RAY_MAX_CONCURRENT_TASKS`. |
+
+#### Ray engine autoscaling and resources
+
+The Ray engine runs two Ray Serve deployments, the converters and the coordinators, and one dispatcher actor.
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_MIN_ACTORS` | `1` | Minimum number of converter replicas. |
+| `DOCLING_SERVE_ENG_RAY_MAX_ACTORS` | `10` | Maximum number of converter replicas. |
+| `DOCLING_SERVE_ENG_RAY_TARGET_REQUESTS_PER_REPLICA` | `1.0` | Number of concurrent requests per converter replica the autoscaler aims for. |
+| `DOCLING_SERVE_ENG_RAY_MAX_ONGOING_REQUESTS_PER_REPLICA` | `None` (the target requests per replica) | Hard cap on the in-flight requests of a converter replica. Must not be lower than `DOCLING_SERVE_ENG_RAY_TARGET_REQUESTS_PER_REPLICA`. |
+| `DOCLING_SERVE_ENG_RAY_CONVERTER_MAX_REPLICAS_PER_NODE` | `None` (no cap) | Hard cap on the converter replicas per Ray node. |
+| `DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_NUM_CPUS` | `1.0` | Ray CPU request of a converter replica. Replaces the deprecated `DOCLING_SERVE_ENG_RAY_NUM_CPUS_PER_ACTOR`. |
+| `DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_MEMORY_REQUEST` | `None` | Ray memory request of a converter replica. Accepts a size such as `8Gi` or `512MB`. Replaces the deprecated `DOCLING_SERVE_ENG_RAY_MEMORY_LIMIT_PER_ACTOR`. |
+| `DOCLING_SERVE_ENG_RAY_UPSCALE_DELAY_S` | `30.0` | Seconds the autoscaler waits before adding replicas. |
+| `DOCLING_SERVE_ENG_RAY_DOWNSCALE_DELAY_S` | `600.0` | Seconds the autoscaler waits before removing replicas. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_MIN_ACTORS` | `None` (`DOCLING_SERVE_ENG_RAY_MIN_ACTORS`) | Minimum number of coordinator replicas. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_MAX_ACTORS` | `None` (`DOCLING_SERVE_ENG_RAY_MAX_ACTORS`) | Maximum number of coordinator replicas. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_TARGET_REQUESTS_PER_REPLICA` | `None` (the coordinator max ongoing requests, or the converter target when larger) | Number of concurrent requests per coordinator replica the autoscaler aims for. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_MAX_ONGOING_REQUESTS_PER_REPLICA` | `8` | Hard cap on the in-flight requests of a coordinator replica. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_MAX_REPLICAS_PER_NODE` | `None` (no cap) | Hard cap on the coordinator replicas per Ray node. With `1` the coordinators are spread one per node. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_ACTOR_NUM_CPUS` | `0.25` | Ray CPU request of a coordinator replica. |
+| `DOCLING_SERVE_ENG_RAY_COORDINATOR_ACTOR_MEMORY_REQUEST` | `None` (the converter memory request) | Ray memory request of a coordinator replica. Accepts a size such as `8Gi` or `512MB`. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_NUM_CPUS` | `0.25` | Ray CPU request of the dispatcher actor. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_MEMORY_REQUEST` | `None` | Ray memory request of the dispatcher actor. Accepts a size such as `8Gi` or `512MB`. |
+| `DOCLING_SERVE_ENG_RAY_OBJECT_STORE_MEMORY` | `None` | Memory of the Ray object store. Accepts a size such as `8Gi` or `512MB`. |
+| `DOCLING_SERVE_ENG_RAY_ENABLE_OOM_PROTECTION` | `true` | Let the converter replicas check their memory usage before a request. Needs `DOCLING_SERVE_ENG_RAY_CONVERTER_ACTOR_MEMORY_REQUEST`. |
+| `DOCLING_SERVE_ENG_RAY_MEMORY_WARNING_THRESHOLD` | `0.9` | Fraction (0.0-1.0) of the converter memory request above which a converter replica logs a high memory usage warning. |
+
+#### Ray engine retries and health
+
+| ENV | Default | Description |
+|-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_MAX_TASK_RETRIES` | `3` | Maximum number of retries of a failed conversion in a converter replica. |
+| `DOCLING_SERVE_ENG_RAY_RETRY_DELAY` | `5.0` | Seconds to wait between two retries. |
+| `DOCLING_SERVE_ENG_RAY_MAX_DOCUMENT_RETRIES` | `2` | Currently not used by the engine. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_MAX_RESTARTS` | `-1` (unlimited) | Maximum number of times Ray restarts the dispatcher actor. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_MAX_TASK_RETRIES` | `3` | Ray-level retries of the calls to the dispatcher actor. |
+| `DOCLING_SERVE_ENG_RAY_DISPATCHER_RPC_TIMEOUT` | `5.0` | Timeout in seconds of a single health check call to the dispatcher actor. |
+| `DOCLING_SERVE_ENG_RAY_LIVENESS_FAIL_AFTER` | `90.0` | Seconds the dispatcher must be continuously unhealthy before the liveness probe fails, so that Kubernetes restarts the pod. |
+| `DOCLING_SERVE_ENG_RAY_REDIS_OPERATION_TIMEOUT` | `30.0` | Currently not used by the engine. |
 
 #### Ray engine timeouts
 
@@ -330,6 +453,7 @@ The following table describes the timeout options of the Docling Serve Ray engin
 | `DOCLING_SERVE_ENG_RAY_TASK_TIMEOUT` | `3600` | Maximum seconds per task. When it is exceeded, the task fails and is cancelled, including its in-flight converter calls. |
 | `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT` | `300` | Per-document timeout the Ray orchestrator uses for its own checks, e.g. whether converter recycling is safe. It does not limit requests: the limit applied to a document is the request's `document_timeout`, or `DOCLING_SERVE_MAX_DOCUMENT_TIMEOUT` when the request does not set one. Keep the two equal. |
 | `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` | `None` (Ray Serve default, 20 s) | Maximum seconds Ray Serve waits for a draining replica before force-killing it. |
+| `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_WAIT_LOOP_S` | `None` (Ray Serve default) | Seconds between two checks whether a draining replica has finished its requests. |
 | `DOCLING_SERVE_ENG_RAY_CONVERTER_REQUEST_TIMEOUT` | `None` (disabled) | Hard limit in seconds, per document, on a coordinator call to a converter replica, including the wait for a free replica. A backstop for conversions that run past the document timeout: set it well above that (e.g. 2x). A PDF slice that exceeds it is recorded as failed; any other task fails. |
 | `DOCLING_SERVE_ENG_RAY_RECYCLE_CONVERTER_ON_ABANDONED_CONVERSION` | `true` | A cancelled converter call cannot stop its conversion thread. When enabled, a converter replica reports unhealthy while such a thread is still running more than `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` after the cancel, and Ray Serve replaces it. Only takes effect when `DOCLING_SERVE_ENG_RAY_GRACEFUL_SHUTDOWN_TIMEOUT_S` is at least `DOCLING_SERVE_ENG_RAY_DOCUMENT_TIMEOUT`, so the draining replica can finish the request it is serving. |
 | `DOCLING_SERVE_ENG_RAY_ABANDONED_CONVERSION_GRACE_S` | `None` (document timeout + 60 s) | Seconds a conversion may keep running after its request was cancelled before the converter replica reports unhealthy. |
@@ -338,8 +462,11 @@ The following table describes the timeout options of the Docling Serve Ray engin
 
 | ENV | Default | Description |
 |-----|---------|-------------|
+| `DOCLING_SERVE_ENG_RAY_RESULTS_TTL` | `14400` (4 hours) | Time To Live (in seconds) for the task results in Redis. |
 | `DOCLING_SERVE_ENG_RAY_TASK_METADATA_TTL` | `604800` (7 days) | Seconds a finished task's metadata is kept in Redis. Never shorter than `DOCLING_SERVE_ENG_RAY_RESULTS_TTL`. `0` keeps finished tasks forever. |
 | `DOCLING_SERVE_ENG_RAY_TENANT_METRICS_REFRESH_INTERVAL` | `30` | Seconds between two refreshes of the per-tenant Prometheus metrics (`ray_tenant_*`, `ray_total_*`). One docling-serve process at a time, chosen by a lock in Redis, reads them in the background and exports them; the other processes export only `ray_metrics_snapshot_leader` and the refresh failure counter. |
+| `DOCLING_SERVE_ENG_RAY_GENERATE_METRICS` | `false` | Enable the Prometheus metrics of the converter replicas. |
+| `DOCLING_SERVE_ENG_RAY_METRICS_PORT` | `8090` | Port on which Ray exports the metrics when `DOCLING_SERVE_ENG_RAY_GENERATE_METRICS` is enabled. |
 
 ### Web UI
 
