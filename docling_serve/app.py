@@ -271,6 +271,31 @@ async def lifespan(app: FastAPI):
 ##################################
 
 
+# cgroup v2 memory controller files read by /v1/memory/stats
+CGROUP_MEMORY_DIR = Path("/sys/fs/cgroup")
+
+
+def _read_cgroup_memory_stats() -> dict[str, float] | None:
+    """Read the cgroup v2 memory usage in MB, or None when it isn't available.
+
+    ``memory.current`` and ``memory.stat`` only exist on Linux with cgroup v2.
+    """
+    stats: dict[str, float] = {}
+    try:
+        # total memory (this is what triggers OOM)
+        stats["cgroup_total"] = (
+            int((CGROUP_MEMORY_DIR / "memory.current").read_text()) / 1024 / 1024
+        )
+
+        # detailed breakdown
+        for line in (CGROUP_MEMORY_DIR / "memory.stat").read_text().splitlines():
+            key, value = line.split()
+            stats[key] = int(value) / 1024 / 1024
+    except (OSError, ValueError):
+        return None
+    return stats
+
+
 def create_app():  # noqa: C901
     try:
         version = importlib.metadata.version("docling_serve")
@@ -1760,17 +1785,17 @@ def create_app():  # noqa: C901
             )
         process = psutil.Process(os.getpid())
         rss_mb = process.memory_info().rss / 1024 / 1024
-        stats = {}
-
-        # total memory (this is what triggers OOM)
-        with open("/sys/fs/cgroup/memory.current") as f:  # noqa: ASYNC230
-            stats["cgroup_total"] = int(f.read()) / 1024 / 1024
-
-        # detailed breakdown
-        with open("/sys/fs/cgroup/memory.stat") as f:  # noqa: ASYNC230
-            for line in f:
-                key, value = line.split()
-                stats[key] = int(value) / 1024 / 1024
+        stats = _read_cgroup_memory_stats()
+        if stats is None:
+            # No cgroup v2 memory controller (cgroup v1, macOS, Windows, ...):
+            # report the process RSS only.
+            return {
+                "rss": rss_mb,
+                "anon": None,
+                "file": None,
+                "slab": None,
+                "cgroup_total": None,
+            }
 
         return {
             "rss": rss_mb,
