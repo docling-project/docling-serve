@@ -188,3 +188,61 @@ def test_unparsable_callback_raises_a_validation_error():
 
     (error,) = excinfo.value.errors()
     assert error["loc"] == ("body", "callbacks")
+
+
+def test_callback_object_reports_the_field_that_failed():
+    """A JSON object is not retried as a URL, so its own errors survive."""
+    from fastapi.exceptions import RequestValidationError
+
+    with pytest.raises(RequestValidationError) as excinfo:
+        parse_callback_item('{"url": "not-a-url"}')
+
+    (error,) = excinfo.value.errors()
+    assert error["loc"] == ("body", "callbacks", "url")
+    assert error["input"] == "not-a-url"
+
+
+def test_callback_object_with_a_valid_url_reports_the_other_field():
+    """The URL here is fine; blaming it would point at the wrong field."""
+    from fastapi.exceptions import RequestValidationError
+
+    with pytest.raises(RequestValidationError) as excinfo:
+        parse_callback_item('{"url": "https://hook.example.com/done", "headers": 5}')
+
+    (error,) = excinfo.value.errors()
+    assert error["loc"] == ("body", "callbacks", "headers")
+    assert error["input"] == 5
+
+
+def test_callback_object_missing_url_is_reported_as_missing():
+    from fastapi.exceptions import RequestValidationError
+
+    with pytest.raises(RequestValidationError) as excinfo:
+        parse_callback_item('{"headers": {"x": "y"}}')
+
+    (error,) = excinfo.value.errors()
+    assert error["loc"] == ("body", "callbacks", "url")
+    assert error["type"] == "missing"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "https://hook.example.com/done",
+        '{"url": "https://hook.example.com/done"}',
+        '  {"url": "https://hook.example.com/done"}  ',
+    ],
+)
+def test_callback_accepts_both_documented_forms(value):
+    assert str(parse_callback_item(value).url) == "https://hook.example.com/done"
+
+
+def test_callback_json_scalar_is_still_treated_as_a_url():
+    """Only an object is the full form; a JSON scalar stays on the URL path."""
+    from fastapi.exceptions import RequestValidationError
+
+    with pytest.raises(RequestValidationError) as excinfo:
+        parse_callback_item("12345")
+
+    (error,) = excinfo.value.errors()
+    assert error["loc"] == ("body", "callbacks")

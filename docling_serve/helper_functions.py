@@ -254,23 +254,38 @@ def parse_callback_item(value: str):
     * **Bare URL** - ``https://hook.example.com/done``  (shortcut; headers and ca_cert
       default to their ``CallbackSpec`` defaults)
 
-    The full-JSON path is tried first; a parse failure falls through to the bare-URL
-    interpretation so callers never need to JSON-encode a plain URL.
+    A value that decodes to a JSON object is the full form, and its own field
+    errors are reported. Anything else is the bare-URL shortcut, so callers
+    never need to JSON-encode a plain URL.
     """
     # Import here to avoid a hard dependency at module level when callbacks are unused.
     from docling.datamodel.service.callbacks import CallbackSpec
 
     value = value.strip()
+
+    # Only a value that is not a JSON object falls through to the URL
+    # interpretation. Retrying an object there would discard the errors that
+    # name the offending field and blame the whole object for not being a URL.
     try:
-        return CallbackSpec.model_validate_json(value)
-    except (ValueError, ValidationError):
-        # Treat the raw string as the callback URL.
+        decoded = json.loads(value)
+    except ValueError:
+        decoded = None
+
+    if isinstance(decoded, dict):
         try:
-            return CallbackSpec(url=AnyUrl(value))
+            return CallbackSpec.model_validate(decoded)
         except ValidationError as e:
             raise RequestValidationError(
                 _as_validation_errors(e, lambda loc: ("callbacks", *loc))
             ) from e
+
+    # Treat the raw string as the callback URL.
+    try:
+        return CallbackSpec(url=AnyUrl(value))
+    except ValidationError as e:
+        raise RequestValidationError(
+            _as_validation_errors(e, lambda loc: ("callbacks", *loc))
+        ) from e
 
 
 def _to_list_of_strings(input_value: Union[str, list[str]]) -> list[str]:
