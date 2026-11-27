@@ -254,6 +254,15 @@ def build_service_policy(settings: DoclingServeSettings) -> ServicePolicy:
         allowed_ocr_presets = set(settings.allowed_ocr_presets) & registered_ocr_presets
     # The converter manager registers custom presets after filtering built-in kinds.
     allowed_ocr_presets |= set(settings.custom_ocr_presets)
+    # A request that omits `ocr_preset` carries the model default, so the
+    # default must be one the deployment accepts; otherwise every such request
+    # would fail, and /capabilities would advertise a default it does not list.
+    if settings.default_ocr_preset not in allowed_ocr_presets:
+        raise ValueError(
+            f"default_ocr_preset {settings.default_ocr_preset!r} is not in "
+            f"allowed_ocr_presets {sorted(allowed_ocr_presets)}; set "
+            "DOCLING_SERVE_DEFAULT_OCR_PRESET to one of them."
+        )
     source_factory = get_source_connector_factory(settings.allow_external_plugins)
     target_factory = get_target_connector_factory(settings.allow_external_plugins)
     available_source_types = (
