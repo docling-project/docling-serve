@@ -11,6 +11,7 @@ import typer
 import uvicorn
 from rich.console import Console
 
+from docling_serve.helper_functions import _optional_version
 from docling_serve.rq_instrumentation import setup_rq_worker_metrics
 from docling_serve.settings import AsyncEngine, docling_serve_settings, uvicorn_settings
 
@@ -35,8 +36,8 @@ def version_callback(value: bool) -> None:
         docling_jobkit_version = importlib.metadata.version("docling-jobkit")
         docling_version = importlib.metadata.version("docling-slim")
         docling_core_version = importlib.metadata.version("docling-core")
-        docling_ibm_models_version = importlib.metadata.version("docling-ibm-models")
-        docling_parse_version = importlib.metadata.version("docling-parse")
+        docling_ibm_models_version = _optional_version("docling-ibm-models")
+        docling_parse_version = _optional_version("docling-parse")
         platform_str = platform.platform()
         py_impl_version = sys.implementation.cache_tag
         py_lang_version = platform.python_version()

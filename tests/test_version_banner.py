@@ -4,6 +4,8 @@ import importlib
 import importlib.metadata
 import sys
 
+from typer.testing import CliRunner
+
 
 def test_version_banner_survives_a_missing_optional_distribution(monkeypatch):
     """A distribution docling-serve does not declare must not stop the import.
@@ -32,3 +34,23 @@ def test_version_banner_survives_a_missing_optional_distribution(monkeypatch):
     # A declared dependency is still reported as it is found.
     assert versions["docling-serve"] == "1.2.3"
     assert versions["docling"] == "1.2.3"
+
+
+def test_cli_version_survives_a_missing_optional_distribution(monkeypatch):
+    """`--version` must survive the same optional installs as the server banner."""
+    optional = ("docling-ibm-models", "docling-parse")
+
+    def version(name: str) -> str:
+        if name in optional:
+            raise importlib.metadata.PackageNotFoundError(name)
+        return "1.2.3"
+
+    monkeypatch.setattr(importlib.metadata, "version", version)
+
+    from docling_serve import __main__ as cli
+
+    result = CliRunner().invoke(cli.app, ["--version"])
+
+    assert result.exit_code == 0
+    assert "Docling IBM Models version: not installed" in result.output
+    assert "Docling Parse version: not installed" in result.output
