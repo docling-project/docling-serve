@@ -673,9 +673,7 @@ The response can be a JSON Document or a File.
 
 ## Asynchronous API
 
-Both `/v1/convert/source` and `/v1/convert/file` endpoints are available as asynchronous variants.
-The advantage of the asynchronous endpoints is the possible to interrupt the connection, check for the progress update and fetch the result.
-This approach is more resilient against network instabilities and allows the client application logic to easily interleave conversion with other tasks.
+The asynchronous endpoints return a task ID so the client can close the submission connection and check progress or fetch the result later.
 
 Launch an asynchronous conversion with:
 
@@ -695,38 +693,53 @@ The response format is a task detail:
 
 ### Polling status
 
-For checking the progress of the conversion task and wait for its completion, use the endpoint:
-
-- `GET /v1/status/poll/{task_id}`
+Use `GET /v1/status/poll/{task_id}` to check the task status.
+This example uploads one file to a local server, waits for the task, and prints the converted Markdown.
 
 <details>
-<summary>Example waiting loop:</summary>
+<summary>Example file submission and polling:</summary>
 
 ```python
 import time
+from pathlib import Path
+
 import httpx
 
-# ...
-# response from the async task submission
-task = response.json()
+base_url = "http://localhost:5001/v1"
+path = Path("example.md")
 
-while task["task_status"] not in ("success", "failure"):
-    response = httpx.get(f"{base_url}/status/poll/{task['task_id']}")
+with httpx.Client(timeout=30.0) as client:
+    with path.open("rb") as source:
+        response = client.post(
+            f"{base_url}/convert/file/async",
+            files={"files": (path.name, source)},
+            data={"to_formats": "md", "abort_on_error": "true"},
+        )
+    response.raise_for_status()
     task = response.json()
+    task_id = task["task_id"]
 
-    time.sleep(5)
+    while task["task_status"] in ("pending", "started"):
+        time.sleep(1)
+        response = client.get(f"{base_url}/status/poll/{task_id}")
+        response.raise_for_status()
+        task = response.json()
+
+    if task["task_status"] != "success":
+        raise RuntimeError(task.get("error_message") or f"Task {task_id} failed")
+
+    response = client.get(f"{base_url}/result/{task_id}")
+    response.raise_for_status()
+    print(response.json()["document"]["md_content"])
 ```
 
-<details>
+</details>
 
 ### Subscribe with websockets
 
-Using websocket you can get the client application being notified about updates of the conversion task.
-To start the websocket connection, use the endpoint:
+After submitting a task, connect to `/v1/status/ws/{task_id}` to receive status updates over a websocket.
 
-- `/v1/status/ws/{task_id}`
-
-Websocket messages are JSON object with the following structure:
+Websocket messages are JSON objects with the following structure.
 
 ```jsonc
 {
@@ -737,22 +750,29 @@ Websocket messages are JSON object with the following structure:
 ```
 
 <details>
-<summary>Example websocket usage:</summary>
+<summary>Example websocket status check:</summary>
 
 ```python
+import json
+
 from websockets.sync.client import connect
 
-uri = f"ws://{base_url}/v1/status/ws/{task['task_id']}"
+# task_id is returned by the async submission above.
+uri = f"ws://localhost:5001/v1/status/ws/{task_id}"
 with connect(uri) as websocket:
     for message in websocket:
-        try:
-            payload = json.loads(message)
-            if payload["message"] == "error":
+        payload = json.loads(message)
+        if payload["message"] == "error":
+            raise RuntimeError(payload.get("error") or "Task status unavailable")
+        if payload["message"] in ("connection", "update"):
+            task = payload["task"]
+            if task["task_status"] in ("success", "failure"):
                 break
-            if payload["message"] == "update" and payload["task"]["task_status"] in ("success", "failure"):
-                break
-        except:
-          break
+    else:
+        raise RuntimeError(f"WebSocket closed before task {task_id} completed")
+
+if task["task_status"] != "success":
+    raise RuntimeError(task.get("error_message") or f"Task {task_id} failed")
 ```
 
 </details>
